@@ -1,3 +1,6 @@
+public abstract interface annotation class dev/kikugie/stonecutter/StonecutterExperimentalAPI : java/lang/annotation/Annotation {
+}
+
 public abstract class dev/kikugie/stonecutter/StonecutterPlugin : org/gradle/api/Plugin {
 	public static final field Companion Ldev/kikugie/stonecutter/StonecutterPlugin$Companion;
 	public static final field GRADLE_COMPAT Ldev/kikugie/semver/data/SemanticVersion;
@@ -28,6 +31,7 @@ public abstract interface class dev/kikugie/stonecutter/build/StonecutterBuildEx
 	public abstract fun getTasks ()Ldev/kikugie/stonecutter/build/task/StonecutterBuildTasks;
 	public fun getTree ()Ldev/kikugie/stonecutter/data/tree/ProjectTree;
 	public fun getVersions ()Ljava/util/Collection;
+	public abstract fun process (Ljava/io/File;Ljava/lang/String;)Ljava/io/File;
 	public fun replacements (Lorg/gradle/api/Action;)V
 	public fun swaps (Lorg/gradle/api/Action;)V
 	public fun tasks (Lorg/gradle/api/Action;)V

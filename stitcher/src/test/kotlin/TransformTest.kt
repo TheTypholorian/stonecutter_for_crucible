@@ -68,7 +68,7 @@ class TransformTest : FreeSpec({
             } shouldBe expected
         }
 
-        // Matches inside comments shouldn't be replaced
+        // Matches inside comments should be replaced
         "commented values" {
             val content = """
                 a.b.c
@@ -76,14 +76,14 @@ class TransformTest : FreeSpec({
             """.trimIndent()
             val expected = """
                 a.d.c
-                // a.b.c
+                // a.d.c
             """.trimIndent()
             process(content) {
                 replacements.string("b", "d")
             } shouldBe expected
         }
 
-        // Matches in what is about to be processed shouldn't be replaced either
+        // Matches in what is about to be processed should be replaced as well
         "commented out values" {
             val content = """
                 //? if it
@@ -91,7 +91,7 @@ class TransformTest : FreeSpec({
             """.trimIndent()
             val expected = """
                 //? if it
-                //a.b.c
+                //a.d.c
             """.trimIndent()
             process(content) {
                 constants["it"] = false

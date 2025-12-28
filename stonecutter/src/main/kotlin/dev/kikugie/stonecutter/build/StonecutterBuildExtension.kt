@@ -96,7 +96,10 @@ public interface StonecutterBuildExtension : VersionOperations<Version> {
     /**
      * Processes the [file] using existing handlers and configuration,
      * writing the result to [destination] relative to the project directory.
-     * @return The processed file
+     *
+     * **This function is computationally expensive and should be used sparingly.**
+     *
+     * @return The processed file location
      */
     @StonecutterExperimentalAPI
     public fun process(file: File, destination: String): File
