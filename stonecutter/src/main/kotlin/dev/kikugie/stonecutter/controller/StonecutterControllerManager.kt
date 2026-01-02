@@ -37,7 +37,7 @@ internal interface StonecutterControllerManager : Serializable {
                 id "dev.kikugie.stonecutter"
             }
             stonecutter.active "$project"
-        """.trimIndent())
+        """.trimIndent(), true)
 
         override fun replace(text: String, template: String): String = text.replace(pattern) {
             it.value.replace(it.groupValues[2], template)
@@ -53,7 +53,7 @@ internal interface StonecutterControllerManager : Serializable {
                 id("dev.kikugie.stonecutter")
             }
             stonecutter active "$project"
-        """.trimIndent())
+        """.trimIndent(), true)
 
         override fun replace(text: String, template: String): String = text.replace(pattern) {
             it.value.replace(it.groupValues[2], template)

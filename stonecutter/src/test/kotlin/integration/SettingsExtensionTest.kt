@@ -18,7 +18,13 @@ class SettingsExtensionTest : GradleTest, ShouldSpec({
 
     context("script resolution") {
         should("create subproject directories") { dir, build ->
-            build.run(); dir.resolve("versions") should { it.exists() }
+            build.run()
+            dir.resolve("versions") should { it.exists() }
+        }
+
+        should("create subproject root") { dir, build ->
+            build.run()
+            dir.resolve("example") shouldContainFile "stonecutter.gradle.kts"
         }
 
         should("generate kts scripts by default") { dir, build ->

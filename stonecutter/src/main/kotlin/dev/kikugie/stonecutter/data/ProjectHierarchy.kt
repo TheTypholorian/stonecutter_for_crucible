@@ -37,7 +37,8 @@ public value class ProjectHierarchy(private val path: String) : Collection<Strin
     public fun orBlank(): String = if (isEmpty()) "" else path
     public fun relativize(child: ProjectHierarchy): String =
         child.path.removePrefix(path).removePrefix(":")
-    public operator fun plus(child: String): ProjectHierarchy = ProjectHierarchy("${orBlank()}:$child")
+    public operator fun plus(child: String): ProjectHierarchy =
+        if (child.isBlank()) this else ProjectHierarchy("${orBlank()}:$child")
     public operator fun minus(child: String): ProjectHierarchy {
         var modified = path.removeSuffix(child)
         if (modified.length > 1 && modified.endsWith(':'))
