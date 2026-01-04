@@ -6,6 +6,7 @@ import dev.kikugie.commons.text.countMatching
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.Version
 import dev.kikugie.semver.data.VersionPredicate
+import dev.kikugie.semver.impl.VersionParsingException
 import java.util.concurrent.ConcurrentHashMap
 
 /**Marker interface for extensions supporting version-based conditional evaluation.*/
@@ -51,8 +52,11 @@ internal object SemanticOperations : VersionOperations<SemanticVersion> {
         predicates.unpack(VersionPredicate.Semantic).all { it(version) }
 }
 
-private fun MutableMap<AnyVersion, Version>.getOrParse(version: AnyVersion, ops: Version.Operations): Version =
+private fun MutableMap<AnyVersion, Version>.getOrParse(version: AnyVersion, ops: Version.Operations): Version = try {
     computeIfAbsent(version, ops::parse)
+} catch (e: Exception) {
+    throw IllegalArgumentException("Failed to parse version: '$version': ${e.message ?: "?"}").initCause(e)
+}
 
 private fun Array<out String>.unpack(ops: VersionPredicate.Operations) = buildList {
     for (it in this@unpack) unpackPredicates(it, ops)
