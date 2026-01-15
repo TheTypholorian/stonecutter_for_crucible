@@ -89,6 +89,10 @@ class SettingsExtensionTest : GradleTest, ShouldSpec({
         should("have no vers function") { _, build ->
             build.fail()
         }
+
+        should("include deep projects") { _, build ->
+            build.run()
+        }
     }
 
     context("tree deserialization") {

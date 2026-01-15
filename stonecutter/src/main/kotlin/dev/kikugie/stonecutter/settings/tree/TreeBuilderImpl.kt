@@ -52,7 +52,7 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
     }
 
     internal fun createWith(ext: StonecutterSettingsImpl, ref: ProjectReference) {
-        val project = ref.resolve(ext.settings)
+        val project = ext.settings.rootProject.resolve(ref, ext.settings)
         ext.treeBuilderContainer[project.hierarchy] = this
 
         val vcs = resolveVcs()
@@ -107,7 +107,7 @@ internal abstract class BranchBuilderImpl @Inject constructor(
 
     internal fun createWith(ext: StonecutterSettingsImpl, root: ProjectDescriptor) {
         check(nodeBuilders.isNotEmpty()) { "Branch '$name' has no registered nodes" }
-        val project = if (name.isEmpty()) root else name.resolve(ext.settings)
+        val project = root.resolve(name, ext.settings)
             .apply { projectDir.toPath().createDirectories() }
         if (project.path != root.path)
             project.buildFileName = ext.checkGroovy(resolveBuild(ext, project))
@@ -117,7 +117,7 @@ internal abstract class BranchBuilderImpl @Inject constructor(
     }
 
     private fun createNode(ext: StonecutterSettingsImpl, parent: ProjectDescriptor, data: StonecutterProject, buildscript: String) {
-        val project = "${parent.path}:${data.project}".resolve(ext.settings)
+        val project = parent.resolve(data.project, ext.settings)
         val directory = parent.projectDir.resolve("versions/${data.project}")
             .apply { toPath().createDirectories() }
         with(project) {
@@ -154,15 +154,14 @@ private fun getDefaultBuildscript(ext: StonecutterSettingsImpl, dir: Path, type:
     else -> "$type.gradle.kts"
 }
 
-private operator fun Settings.plus(path: String): ProjectDescriptor {
-    val trimmed = path.trimStart(':')
-    if (trimmed.isNotEmpty()) include(trimmed)
-    return project(":$trimmed")
+private fun register(path: String, settings: Settings): ProjectDescriptor = with(path.trim(':')) {
+    if (isNotEmpty()) settings.include(this)
+    return settings.project(":$this")
 }
 
-private tailrec fun ProjectReference.resolve(settings: Settings): ProjectDescriptor = when (this) {
-    is CharSequence -> settings + toString()
-    is ProjectDescriptor -> settings + path
-    is Provider<*> -> get().resolve(settings)
-    else -> throw IllegalArgumentException("Unsupported project type ${this::class.qualifiedName}")
+private tailrec fun ProjectDescriptor.resolve(relative: ProjectReference, settings: Settings): ProjectDescriptor = when(relative) {
+    is CharSequence -> register("$path:$relative", settings)
+    is ProjectDescriptor -> register(path, settings)
+    is Provider<*> -> resolve(relative.get(), settings)
+    else -> throw IllegalArgumentException("Unsupported project type ${relative::class.qualifiedName}")
 }
