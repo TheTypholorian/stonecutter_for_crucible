@@ -1,13 +1,12 @@
 package dev.kikugie.stonecutter.build.config
 
+import dev.kikugie.commons.then
+import dev.kikugie.stitcher.util.IDENTIFIER_PATTERN
+import dev.kikugie.stitcher.util.isValidIdentifier
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.data.whatever.ExtendedMapProperty
-import dev.kikugie.commons.then
-import dev.kikugie.stitcher.util.isValidIdentifier
-import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Provider
-import org.gradle.kotlin.dsl.mapProperty
 import javax.inject.Inject
 
 @DslMarker @Retention(AnnotationRetention.BINARY)
@@ -35,5 +34,8 @@ public abstract class ConstantContainer @Inject constructor(private val delegate
     override fun putAll(provider: Provider<out Map<out Identifier, Boolean>>): Unit =
         delegate.putAll(provider.map { it.keys.forEach(::check); it })
 
-    private fun check(key: Identifier): Unit = require(key.isValidIdentifier()) { "Invalid Stonecutter constant key '$key'" }
+    private fun check(key: Identifier) {
+        require(key.isNotBlank()) { "Constant key '$key' cannot be blank" }
+        require(key.isValidIdentifier()) { "Constant key '$key' must match the pattern `$IDENTIFIER_PATTERN`"}
+    }
 }

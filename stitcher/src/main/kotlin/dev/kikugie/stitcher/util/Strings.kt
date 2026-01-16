@@ -7,7 +7,8 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.text.StringBuilder
 
-private val IDENTIFIER_REGEX: Regex = Regex("[_a-zA-Z][_\\-a-zA-Z0-9]*")
+public const val IDENTIFIER_PATTERN: String = "[_a-zA-Z][_\\-a-zA-Z0-9]*"
+private val IDENTIFIER_REGEX: Regex = Regex(IDENTIFIER_PATTERN)
 
 public fun String.isValidIdentifier(): Boolean = matches(IDENTIFIER_REGEX)
 

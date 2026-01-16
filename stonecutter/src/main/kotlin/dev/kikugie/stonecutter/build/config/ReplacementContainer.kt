@@ -5,6 +5,7 @@ import dev.kikugie.stonecutter.build.config.ReplacementContainer.RegexReplacemen
 import dev.kikugie.stonecutter.build.config.ReplacementContainer.StringReplacementSpec
 import dev.kikugie.stitcher.transform.replacement.RegexReplacement
 import dev.kikugie.stitcher.transform.replacement.StringReplacement
+import dev.kikugie.stitcher.util.IDENTIFIER_PATTERN
 import dev.kikugie.stitcher.util.isValidIdentifier
 import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
@@ -160,9 +161,12 @@ internal abstract class ReplacementContainerImpl @Inject constructor(
         objects.newInstance<RegexSpecImpl>(regex).also(action::execute).finalize()
 }
 
-internal abstract class StringSpecImpl @Inject constructor(val consumer: (StringReplacement) -> Unit) : ReplacementContainer.StringReplacementSpec {
+internal abstract class StringSpecImpl @Inject constructor(val consumer: (StringReplacement) -> Unit) : StringReplacementSpec {
     override fun replace(from: String, to: String) {
-        require(!id.isPresent || id.get().isValidIdentifier()) { "Invalid identifier: '${id.get()}'" }
+        if (id.isPresent) with(id.get()) {
+            require(isNotBlank()) { "Replacement id '$this' cannot be blank" }
+            require(isValidIdentifier()) { "Replacement id '$this' must match the pattern `$IDENTIFIER_PATTERN`"}
+        }
         val replacement =
             if (direction.get()) StringReplacement(to, from, identifier = id.orNull)
             else StringReplacement(from, to, identifier = id.orNull)
@@ -174,9 +178,12 @@ internal abstract class StringSpecImpl @Inject constructor(val consumer: (String
     }
 }
 
-internal abstract class RegexSpecImpl @Inject constructor(val consumer: (RegexReplacement) -> Unit) : ReplacementContainer.RegexReplacementSpec {
+internal abstract class RegexSpecImpl @Inject constructor(val consumer: (RegexReplacement) -> Unit) : RegexReplacementSpec {
     override fun replace(direct: Pair<String, String>, reverse: Pair<String, String>) {
-        require(!id.isPresent || id.get().isValidIdentifier()) { "Invalid identifier: '${id.get()}'" }
+        if (id.isPresent) with(id.get()) {
+            require(isNotBlank()) { "Replacement id '$this' cannot be blank" }
+            require(isValidIdentifier()) { "Replacement id '$this' must match the pattern `$IDENTIFIER_PATTERN`"}
+        }
         val replacement =
             if (direction.get()) RegexReplacement(direct.second, direct.first, identifier = id.orNull)
             else RegexReplacement(reverse.second, reverse.first, identifier = id.orNull)

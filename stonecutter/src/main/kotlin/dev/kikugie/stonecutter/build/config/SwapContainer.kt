@@ -1,13 +1,12 @@
 package dev.kikugie.stonecutter.build.config
 
+import dev.kikugie.commons.then
+import dev.kikugie.stitcher.util.IDENTIFIER_PATTERN
+import dev.kikugie.stitcher.util.isValidIdentifier
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.data.whatever.ExtendedMapProperty
-import dev.kikugie.commons.then
-import dev.kikugie.stitcher.util.isValidIdentifier
-import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Provider
-import org.gradle.kotlin.dsl.mapProperty
 import javax.inject.Inject
 
 @DslMarker @Retention(AnnotationRetention.BINARY)
@@ -30,5 +29,8 @@ public abstract class SwapContainer @Inject constructor(private val delegate: Ma
     override fun putAll(provider: Provider<out Map<out Identifier, String>>): Unit =
         delegate.putAll(provider.map { it.keys.forEach(::check); it })
 
-    private fun check(key: Identifier): Unit = require(key.isValidIdentifier()) { "Invalid Stonecutter swap key '$key'" }
+    private fun check(key: Identifier) {
+        require(key.isNotBlank()) { "Swap key '$key' cannot be blank" }
+        require(key.isValidIdentifier()) { "Swap key '$key' must match the pattern `$IDENTIFIER_PATTERN`"}
+    }
 }
