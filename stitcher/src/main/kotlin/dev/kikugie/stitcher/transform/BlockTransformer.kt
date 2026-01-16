@@ -8,6 +8,7 @@ import dev.kikugie.stitcher.data.composite.*
 import dev.kikugie.stitcher.data.eval.BlockIsBlankVisitor.isBlank
 import dev.kikugie.stitcher.data.eval.BlockRangeVisitor.range
 import dev.kikugie.stitcher.data.eval.BlockStartVisitor.start
+import dev.kikugie.stitcher.data.eval.BlockStopVisitor.stop
 import dev.kikugie.stitcher.data.eval.BlockToStringVisitor.Companion.join
 import dev.kikugie.stitcher.data.leaf.LeafToken
 import dev.kikugie.stitcher.data.leaf.LeafType
@@ -80,7 +81,7 @@ internal data class BlockTransformer(
 
             val replacement = processTemplate(template, swap.arguments)
             val content = params.replacer.replace(host.scope.join(), replacement)
-            val token = factory.create(LeafType(LayoutParser.CONTENT), host.scope.range(), content)
+            val token = factory.create(LeafType(LayoutParser.CONTENT), host.scope.range(host.host.stop()), content)
             return ContentBlock(token).let(::listOf)
         }
 

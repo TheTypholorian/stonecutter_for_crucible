@@ -28,5 +28,6 @@ internal object BlockStopVisitor : BlockToken.Visitor<Int> {
 
 internal object BlockRangeVisitor {
     fun BlockToken.range() = accept(BlockStartVisitor)..accept(BlockStopVisitor)
-    fun List<BlockToken>.range() = first().accept(BlockStartVisitor)..last().accept(BlockStopVisitor)
+    fun List<BlockToken>.range(fallback: Int) = if (isEmpty()) fallback..<fallback
+    else first().accept(BlockStartVisitor)..last().accept(BlockStopVisitor)
 }
