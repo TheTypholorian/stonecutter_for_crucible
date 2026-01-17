@@ -249,6 +249,17 @@ class TransformTest : FreeSpec({
         }
     }
 
+    "swaps" - {
+        // https://codeberg.org/stonecutter/stonecutter/issues/32
+        "insert empty" {
+            val content = "/*$ id {*//*$}*/"
+            val expected = "/*$ id {*/inserted/*$}*/"
+            process(content) {
+                swaps["id"] = "inserted"
+            } shouldBe expected
+        }
+    }
+
     "deep nesting" {
         val content = """
                 /*? if false {*/
