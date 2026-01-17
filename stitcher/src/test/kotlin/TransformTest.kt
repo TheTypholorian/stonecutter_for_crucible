@@ -1,4 +1,5 @@
 import dev.kikugie.semver.data.SemanticVersion
+import io.kotest.assertions.shouldFail
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
 import util.process
@@ -256,6 +257,22 @@ class TransformTest : FreeSpec({
             val expected = "/*$ id {*/inserted/*$}*/"
             process(content) {
                 swaps["id"] = "inserted"
+            } shouldBe expected
+        }
+
+        "oob placeholder" {
+            val content = "/*$ id 'hello' {*/.../*$}*/"
+            shouldFail { process(content) {
+                swaps["id"] = "$1 $2"
+            } }
+        }
+
+        // https://codeberg.org/stonecutter/stonecutter/issues/34
+        "weird parameter overflow bug" {
+            val content = "/*$ open_url '\"example\"' {*/ClickEvent.OpenUrl(URI.create(\"example\"))/*$}*/"
+            val expected = "/*$ open_url '\"example\"' {*/ClickEvent(ClickEvent.Action.OPEN_URL, \"example\")/*$}*/"
+            process(content) {
+                swaps["open_url"] = "ClickEvent(ClickEvent.Action.OPEN_URL, $1)"
             } shouldBe expected
         }
     }

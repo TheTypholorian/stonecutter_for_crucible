@@ -2,7 +2,7 @@ package dev.kikugie.stitcher.transform
 
 import dev.kikugie.stitcher.antlr.InlineErrorListener
 import dev.kikugie.stitcher.antlr.InlineTokenStream
-import dev.kikugie.stitcher.antlr.StitcherLexer
+import dev.kikugie.stitcher.antlr.StitcherLexer.QUOTED
 import dev.kikugie.stitcher.antlr.SwapTemplate
 import dev.kikugie.stitcher.data.composite.*
 import dev.kikugie.stitcher.data.eval.BlockIsBlankVisitor.isBlank
@@ -79,7 +79,7 @@ internal data class BlockTransformer(
                 return host.scope
             }
 
-            val replacement = processTemplate(template, swap.arguments)
+            val replacement = processTemplate(swap.identifier.text, template, swap.arguments)
             val content = params.replacer.replace(host.scope.join(), replacement)
             val token = factory.create(LeafType(LayoutParser.CONTENT), host.scope.range(host.host.stop()), content)
             return ContentBlock(token).let(::listOf)
@@ -164,24 +164,22 @@ private class BlockUncommenter(
 private fun List<BlockToken>.isCommented(): Boolean =
     all { it is CommentBlock || (it is ContentBlock && it.isBlank()) }
 
-private fun processTemplate(replacement: String, tokens: List<LeafToken>): String {
+private fun ProblemSource.processTemplate(id: String, replacement: String, tokens: List<LeafToken>): String {
     if (tokens.isEmpty()) return replacement
-
-    // Collect insertable values
-    val arguments = tokens.map {
-        if (it.type.value == StitcherLexer.QUOTED) it.text.substring(1, it.range.last) else it.text
-    }
-    // Collect insertable tokens
-    val places = SwapTemplate(replacement.toStream()).run {
-        generateSequence { nextToken().takeUnless(Token::isEOF) }.map(Token::range).toList()
-    }
+    val insertionValues = tokens.map { if (it.type.value == QUOTED) it.text.removeSurrounding("'") else it.text }
+    val insertionPlaces = SwapTemplate(replacement.toStream()).asSequence().map(AntlrToken::range)
 
     return buildString(replacement) {
-        for (range in places.asReversed()) {
-            // FIXME: Use checked conversion and list getter
-            val index = substring(range).substring(1).toInt()
-            val value = arguments[index - 1]
-            replace(range.first, range.last + 1, value)
+        var offset = 0
+        for (range in insertionPlaces) {
+            val placeholder = replacement.substring(range)
+            val insertion = insertionValues.getOrElse(placeholder.substring(1).toInt() - 1) {
+                file() report "Swap '$id' placeholder $placeholder is not in ${insertionValues.size} parameters"
+                continue
+            }
+
+            replace(range.first + offset, range.last + 1 + offset, insertion)
+            offset += insertion.length - placeholder.length
         }
     }
 }
