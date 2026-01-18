@@ -7,7 +7,6 @@ package dev.kikugie.stitcher.issue
 public interface ProblemSource {
     public val hasFailed: Boolean
 
-    public fun file(): ProblemLocation = ProblemLocation.UNDEFINED
     public fun at(index: Int): ProblemLocation
     public fun at(line: Int, column: Int): ProblemLocation
 

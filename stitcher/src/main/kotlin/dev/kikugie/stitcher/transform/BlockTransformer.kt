@@ -79,7 +79,7 @@ internal data class BlockTransformer(
                 return host.scope
             }
 
-            val replacement = processTemplate(swap.identifier.text, template, swap.arguments)
+            val replacement = processTemplate(host.marker.range.first, swap.identifier.text, template, swap.arguments)
             val content = params.replacer.replace(host.scope.join(), replacement)
             val token = factory.create(LeafType(LayoutParser.CONTENT), host.scope.range(host.host.stop()), content)
             return ContentBlock(token).let(::listOf)
@@ -164,7 +164,7 @@ private class BlockUncommenter(
 private fun List<BlockToken>.isCommented(): Boolean =
     all { it is CommentBlock || (it is ContentBlock && it.isBlank()) }
 
-private fun ProblemSource.processTemplate(id: String, replacement: String, tokens: List<LeafToken>): String {
+private fun ProblemSource.processTemplate(pos: Int, id: String, replacement: String, tokens: List<LeafToken>): String {
     if (tokens.isEmpty()) return replacement
     val insertionValues = tokens.map { if (it.type.value == QUOTED) it.text.removeSurrounding("'") else it.text }
     val insertionPlaces = SwapTemplate(replacement.toStream()).asSequence().map(AntlrToken::range)
@@ -174,7 +174,7 @@ private fun ProblemSource.processTemplate(id: String, replacement: String, token
         for (range in insertionPlaces) {
             val placeholder = replacement.substring(range)
             val insertion = insertionValues.getOrElse(placeholder.substring(1).toInt() - 1) {
-                file() report "Swap '$id' placeholder $placeholder is not in ${insertionValues.size} parameters"
+                at(pos) report "Swap '$id' placeholder $placeholder is not in ${insertionValues.size} parameters"
                 continue
             }
 
