@@ -224,19 +224,15 @@ private fun matchLineChar(ch: Char, state: Int, immediate: Boolean): Int = when 
     else -> -1
 }
 
-private fun consumeWordDefault(str: String): Int {
-    var index = str.countMatching(*WHITESPACES)
-    index += str.countWhile(index) { it !in WHITESPACES }
-    return index
+private fun consumeWordDefault(str: String): Int = when(val idx = str.countMatching(*WHITESPACES)) {
+    str.length -> -1
+    else -> idx + str.countWhile(idx) { it !in WHITESPACES }
 }
 
-private fun consumeWordCustom(str: String, match: String, capturing: Boolean): Int {
-    val index = str.indexOf(match)
-    return when {
-        index < 0 -> -1
-        capturing -> index + match.length
-        else -> index
-    }
+private fun consumeWordCustom(str: String, match: String, capturing: Boolean): Int = when (val idx = str.indexOf(match)) {
+    -1 -> -1
+    else if capturing -> idx + match.length
+    else -> idx
 }
 
 private fun BlockBuilder?.isNotBlank() = when (this) {

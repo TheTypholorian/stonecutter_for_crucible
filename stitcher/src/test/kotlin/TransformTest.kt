@@ -248,6 +248,15 @@ class TransformTest : FreeSpec({
                 dependencies[""] = SemanticVersion(intArrayOf(2))
             } shouldBe expected
         }
+
+        // https://codeberg.org/stonecutter/stonecutter/issues/31
+        "spaced string lookup bug" {
+            val content = "/*? if <1.21.9 >>*/ /*,0*/ )"
+            val expected = "/*? if <1.21.9 >>*/ ,0 )"
+            process(content) {
+                dependencies[""] = SemanticVersion(intArrayOf(1, 21, 8))
+            } shouldBe expected
+        }
     }
 
     "swaps" - {
