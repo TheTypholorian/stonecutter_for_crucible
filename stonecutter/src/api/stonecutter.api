@@ -682,10 +682,14 @@ public abstract interface class dev/kikugie/stonecutter/data/tree/ProjectTree : 
 }
 
 public abstract interface class dev/kikugie/stonecutter/data/version/VersionOperations {
-	public fun compare (Ljava/lang/String;Ljava/lang/String;)I
+	public abstract fun compare (Ljava/lang/String;Ljava/lang/String;)I
 	public abstract fun eval (Ldev/kikugie/semver/data/Version;[Ljava/lang/String;)Z
-	public fun eval (Ljava/lang/String;[Ljava/lang/String;)Z
+	public abstract fun eval (Ljava/lang/String;[Ljava/lang/String;)Z
 	public abstract fun parse (Ljava/lang/String;)Ldev/kikugie/semver/data/Version;
+	public abstract fun tryCompare-gIAlu-s (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;
+	public abstract fun tryEval-gIAlu-s (Ldev/kikugie/semver/data/Version;[Ljava/lang/String;)Ljava/lang/Object;
+	public abstract fun tryEval-gIAlu-s (Ljava/lang/String;[Ljava/lang/String;)Ljava/lang/Object;
+	public abstract fun tryParse-IoAF18A (Ljava/lang/String;)Ljava/lang/Object;
 }
 
 public abstract interface class dev/kikugie/stonecutter/data/whatever/ExtendedMapProperty : org/gradle/api/provider/MapProperty {
