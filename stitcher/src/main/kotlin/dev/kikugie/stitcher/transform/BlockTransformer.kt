@@ -26,7 +26,7 @@ internal data class BlockTransformer(
     val runtime: RuntimeState,
     val params: TransformParameters,
     val factory: StitcherTokenFactory
-) : BlockToken.Visitor<BlockToken>, ProblemSource by runtime.problems {
+) : BlockToken.Visitor<BlockToken> {
     private val evaluator: ExpressionEvaluator by lazy { ExpressionEvaluator(params, runtime.problems) }
     private var visitedEnabledBlock: Boolean = false
 

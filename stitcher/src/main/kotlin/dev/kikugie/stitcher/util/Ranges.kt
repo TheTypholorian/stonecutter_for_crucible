@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package dev.kikugie.stitcher.util
 
 import dev.kikugie.stitcher.data.StitcherToken
@@ -16,3 +18,6 @@ internal fun merge(vararg ranges: IntRange?): IntRange {
 
 internal fun merge(a: StitcherToken?, b: StitcherToken?): IntRange =
     merge(a?.range, b?.range)
+
+internal inline fun <T> firstNotNull(vararg arguments: T?): T = arguments.firstNotNull()!!
+internal inline fun <T> lastNotNull(vararg arguments: T?): T = arguments.lastNotNull()!!

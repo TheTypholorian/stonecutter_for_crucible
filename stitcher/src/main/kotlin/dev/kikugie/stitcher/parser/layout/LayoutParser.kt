@@ -1,14 +1,20 @@
 package dev.kikugie.stitcher.parser.layout
 
 import dev.kikugie.stitcher.antlr.*
-import dev.kikugie.stitcher.data.composite.DefinitionToken
-import dev.kikugie.stitcher.data.composite.DefinitionToken.Type.CLOSER
-import dev.kikugie.stitcher.data.composite.DefinitionToken.Type.INDEPENDENT
-import dev.kikugie.stitcher.data.composite.RootBlock
+import dev.kikugie.stitcher.issue.ProblemID
+import dev.kikugie.stitcher.issue.ProblemLocation
+import dev.kikugie.stitcher.issue.ProblemReporter
+import dev.kikugie.stitcher.issue.ProblemSeverity
 import dev.kikugie.stitcher.issue.ProblemSource
 import dev.kikugie.stitcher.issue.at
+import dev.kikugie.stitcher.issue.bail
+import dev.kikugie.stitcher.issue.report
+import dev.kikugie.stitcher.issue.v2.*
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.component.DefinitionBuilder
+import dev.kikugie.stitcher.token.impl.BlockToken
+import dev.kikugie.stitcher.token.impl.DefinitionToken
+import dev.kikugie.stitcher.token.impl.DefinitionToken.Kind
 import dev.kikugie.stitcher.util.*
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.Token.EOF
@@ -16,6 +22,14 @@ import org.antlr.v4.runtime.TokenStream
 import org.antlr.v4.runtime.Vocabulary
 import org.antlr.v4.runtime.VocabularyImpl
 import java.util.*
+
+private val CONSUMED_ROOT: ProblemID = ProblemID.LAYOUT_GROUP.create("consumed-root")
+private val UNEXPECTED_TOKEN: ProblemID = ProblemID.LAYOUT_GROUP.create("unexpected-token")
+private val UNMATCHED_CLOSER: ProblemID = ProblemID.LAYOUT_GROUP.create("unmatched-root-closer")
+private val CLOSER_CANDIDATE: ProblemID = ProblemID.LAYOUT_GROUP.create("unmatched-closer-candidate")
+private val MISMATCHED_CLOSER: ProblemID = ProblemID.LAYOUT_GROUP.create("mismatched-child-closer")
+private val MISMATCH_SUGGESTION: ProblemID = ProblemID.LAYOUT_GROUP.create("mismatched-child-suggestion")
+private val UNMATCHED_EXTENSION: ProblemID = ProblemID.LAYOUT_GROUP.create("unmatched-extension")
 
 /**
  * Parses a [stream] of comment tokens into an AST.
@@ -30,17 +44,17 @@ import java.util.*
 internal class LayoutParser private constructor(
     val stream: TokenStream,
     val source: CharStream,
-    val problems: ProblemSource,
-    val factory: StitcherTokenFactory
-) : ProblemSource by problems {
+    val factory: StitcherTokenFactory,
+    val problems: ProblemReporter,
+) {
     private val stack: Deque<BlockBuilder.Scoped> = ArrayDeque(4)
-    private val visitor: StitcherVisitor<Pair<AntlrToken, DefinitionToken>> = DefinitionBuilder.paired(problems, factory)
+    private val visitor: StitcherVisitor<Pair<AntlrToken, DefinitionToken>> = DefinitionBuilder.paired(factory, problems)
 
     init {
         stack += RootBuilder(factory)
     }
 
-    private fun collect(): RootBlock {
+    private fun collect(): BlockToken.Root {
         consumeTokenStream()
         return finalizeUnfinishedScopes()
     }
@@ -49,16 +63,22 @@ internal class LayoutParser private constructor(
         while (stream.LA(1) != EOF) when (stream.LA(1)) {
             CONTENT -> handleContent(stream.advance())
             COMMENT_OPEN -> handleComment(stream.advance(), stream.advance(), stream.advance())
-            else -> at(stream.advance()) report "Unexpected token"
+            else -> reportUnknownToken(stream.advance())
         }
     }
 
-    private fun finalizeUnfinishedScopes(): RootBlock {
+    private fun finalizeUnfinishedScopes(): BlockToken.Root {
         while (stack.isNotEmpty()) when (val it = stack.removeLast()) {
             is RootBuilder -> return it.build()
             is CodeBuilder -> it.finalize(problems, true)
         }
-        error("Root scope was consumed")
+
+        problems.bail(CONSUMED_ROOT, ProblemLocation.UNDEFINED) {
+            label = "The root block builder has been eaten!"
+            details = "The parser has not reached a return condition, causing a critical failure." +
+                "This shouldn't ever happen, so please report this to https://codeberg.org/stonecutter/stonecutter/issues."
+            solution = "Panic."
+        }
     }
 
     private fun acceptBlock(block: BlockBuilder): Unit = when (val result = stack.peekLast().accept(block)) {
@@ -82,6 +102,15 @@ internal class LayoutParser private constructor(
         }
     }
 
+    private fun reportUnknownToken(token: AntlrToken) {
+        problems.bail(UNEXPECTED_TOKEN, token) {
+            label = "Unknown layout token"
+            details = "Token type ${token.type} is not expected to be produced by the token stream. " +
+                "This shouldn't ever happen, so please report this to https://codeberg.org/stonecutter/stonecutter/issues."
+            solution = "Panic."
+        }
+    }
+
     private fun handleContent(token: AntlrToken) {
         if (token.text.isNotEmpty()) acceptBlock(ContentBuilder(factory, token))
     }
@@ -92,7 +121,7 @@ internal class LayoutParser private constructor(
             ?: return acceptBlock(comment)
 
         val code = CodeBuilder(factory, comment, marker, definition)
-        if (code.type == INDEPENDENT) acceptBlock(code)
+        if (code.kind == Kind.INDEPENDENT) acceptBlock(code)
         else handleCode(code)
     }
 
@@ -105,28 +134,68 @@ internal class LayoutParser private constructor(
         acceptBlock(code)
         // '}' shouldn't be possible in the root scope
         if (code.definition.closer != null)
-            at(code.definition.closer!!) report "Unmatched scope closer"
+            reportUnmatchedCloser(code)
 
         // Add invalid extensions to the scope stack anyway
-        if (code.type != CLOSER) stack.addLast(code) else Unit
+        if (code.kind != Kind.CLOSER)
+            stack.addLast(code)
     }
 
-    private fun LayoutParser.handleNestedCode(
-        code: CodeBuilder,
-        parent: CodeBuilder
-    ) {
-        // Check for situations like `? if condition { ... $}`, in which case we close it anyway
-        if (code.type.isExtension && parent.kind != code.kind)
-            at(code.marker) report "Extension closes unmatched ${parent.kind.scopeType()} scope"
-
-        // Occurs if we have an unfinished open scope, in which case we close it prematurely
-        if (code.type.isExtension && parent.type.isOpen)
-            at(code.marker) report "Extension closes an open scope"
-
-        if (code.type.isExtension)
+    private fun LayoutParser.handleNestedCode(code: CodeBuilder, parent: CodeBuilder) {
+        if (code.kind.isExtension) {
+            // Check for situations like `? if condition { ... $}`, in which case we close it anyway
+            if (parent.marker.type != code.marker.type)
+                reportMismatchedCloser(code, parent)
+            // Occurs if we have an unfinished open scope, in which case we close it prematurely
+            else if (parent.kind.isOpen)
+                reportUnmatchedExtension(code, parent)
             stack.removeLast().finalize(problems, false)
+        }
+
         acceptBlock(code)
-        if (!code.type.isEmpty) stack.addLast(code) else Unit
+        if (!code.kind.isEmpty)
+            stack.addLast(code)
+    }
+
+    private fun reportUnmatchedCloser(code: CodeBuilder) {
+        problems.report(UNMATCHED_CLOSER, code.source.body) {
+            label = "Unmatched scope closer"
+            details = "The definition must have a corresponding `${code.marker.text} ... {` opener."
+        }
+
+        val candidate = stack.peekFirst().entries.lastOrNull {
+            it is CodeBuilder && it.marker.type == code.marker.type && it.definition.opener == null
+        }
+        if (candidate is CodeBuilder)
+            suggestMissingOpener(candidate)
+    }
+
+    private fun reportMismatchedCloser(code: CodeBuilder, parent: CodeBuilder) {
+        problems.report(MISMATCHED_CLOSER, code.source.body) {
+            label = "Mismatched closer type"
+            details = "Expected `${parent.marker.text}}` instead of `${code.marker.text}}`."
+        }
+        problems.report(MISMATCH_SUGGESTION, parent.source.body) {
+            severity = ProblemSeverity.WARN
+            label = "Missing scope closer"
+            details = "The definition may need to be closed with `${parent.marker.text}}` to resolve a previously reported error."
+        }
+    }
+
+    private fun reportUnmatchedExtension(code: CodeBuilder, parent: CodeBuilder) {
+        problems.report(UNMATCHED_EXTENSION, code.source.body) {
+            label = "Mismatched extension"
+            details = "The definition closes a scope that doesn't end with a `{`."
+        }
+        suggestMissingOpener(parent)
+    }
+
+    private fun suggestMissingOpener(parent: CodeBuilder) {
+        problems.report(CLOSER_CANDIDATE, parent.source.body) {
+            severity = ProblemSeverity.INFO
+            label = "Potential missing opener"
+            details = "The definition may need to end with a `{` to resolve a previously reported error."
+        }
     }
 
     private fun parseCommentBody(body: AntlrToken): Pair<AntlrToken, DefinitionToken>? {
@@ -139,7 +208,7 @@ internal class LayoutParser private constructor(
             else -> return null
         }
 
-        val listener = InlineErrorListener(problems, at(body.startIndex))
+        val listener = InlineErrorListener(at(body.startIndex), problems)
         val scanner = StitcherLexer(input).errorListener(listener)
         val stream = InlineTokenStream(scanner, source, body.startIndex, at(body.startIndex))
         val parser = StitcherParser(stream).errorListener(listener)
@@ -147,16 +216,8 @@ internal class LayoutParser private constructor(
     }
 
     companion object {
-        const val CONTENT: Int = 1
-        const val COMMENT_OPEN: Int = 2
-        const val COMMENT_BODY: Int = 3
-        const val COMMENT_CLOSE: Int = 4
-
-        @JvmField val TOKEN_NAMES: Array<String?> = arrayOf(null, "CONTENT", "COMMENT_OPEN", "COMMENT_BODY", "COMMENT_CLOSE")
-        @JvmField val VOCABULARY: Vocabulary = VocabularyImpl(emptyArray(), TOKEN_NAMES)
-
-        fun parse(stream: TokenStream, source: CharStream, problems: ProblemSource, factory: StitcherTokenFactory): RootBlock =
-            LayoutParser(stream, source, problems, factory).collect()
+        fun parse(stream: TokenStream, source: CharStream, factory: StitcherTokenFactory, problems: ProblemReporter): BlockToken.Root =
+            LayoutParser(stream, source, factory, problems).collect()
     }
 }
 

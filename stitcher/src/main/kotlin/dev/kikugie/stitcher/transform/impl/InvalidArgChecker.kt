@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.transform.impl
 
+/*
 import dev.kikugie.stitcher.antlr.StitcherLexer
 import dev.kikugie.stitcher.data.composite.AssignmentExpression
 import dev.kikugie.stitcher.data.composite.BinaryExpression
@@ -87,3 +88,4 @@ internal class InvalidArgChecker(val parameters: TransformParameters, problems: 
             else at(assignment.target!!) report "Unresolved dependency '$name'"
     }
 }
+*/

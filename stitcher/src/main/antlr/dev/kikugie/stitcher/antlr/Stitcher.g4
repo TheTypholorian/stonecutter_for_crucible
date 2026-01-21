@@ -16,7 +16,9 @@ scopeOpener
     | SCOPE_WORD (PLUS? literal)? # wordScopeOpener
     ;
 
-replacement: IDENTIFIER;
+replacement: replacementEntry+;
+
+replacementEntry: OP_NOT? IDENTIFIER;
 
 swap
     : IDENTIFIER swapArguments? scopeOpener? # openerSwap

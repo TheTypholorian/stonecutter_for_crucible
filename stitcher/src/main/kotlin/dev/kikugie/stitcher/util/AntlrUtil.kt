@@ -12,7 +12,17 @@ import java.nio.file.Path
 
 internal typealias AntlrToken = Token
 
-internal inline val Token.length: Int get() = stopIndex - startIndex
+internal fun Vocabulary.displayName(token: AntlrToken): String = getDisplayName(token.type)
+
+internal fun Vocabulary.indexedName(token: AntlrToken): String = indexedName(token.type)
+internal fun Vocabulary.indexedName(type: Int): String = "$type ('${getDisplayName(type)}')"
+
+internal val AntlrToken.length: Int inline get() = stopIndex - startIndex
+
+internal val ParserRuleContext.startIndex: Int inline get() = start.startIndex
+internal val ParserRuleContext.stopIndex: Int inline get() = stop.stopIndex
+internal val ParserRuleContext.length: Int inline get() = stopIndex - startIndex
+
 internal inline val Token.range: IntRange get() = startIndex..stopIndex
 internal inline val Token.isEOF: Boolean get() = type == Token.EOF
 

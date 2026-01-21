@@ -1,24 +1,27 @@
 package dev.kikugie.stitcher.parser.layout
 
-import dev.kikugie.commons.ranges.extend
 import dev.kikugie.commons.text.countMatching
 import dev.kikugie.commons.text.countWhile
 import dev.kikugie.commons.then
-import dev.kikugie.stitcher.data.composite.*
-import dev.kikugie.stitcher.data.composite.DefinitionToken.Type.*
-import dev.kikugie.stitcher.data.custom.ClosedScope
-import dev.kikugie.stitcher.data.custom.WordScope
-import dev.kikugie.stitcher.data.leaf.LeafType
-import dev.kikugie.stitcher.issue.ProblemSource
 import dev.kikugie.stitcher.issue.at
+import dev.kikugie.stitcher.issue.ProblemID
+import dev.kikugie.stitcher.issue.ProblemReporter
+import dev.kikugie.stitcher.issue.report
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
-import dev.kikugie.stitcher.util.AntlrToken
-import dev.kikugie.stitcher.util.LINE_BREAKS
-import dev.kikugie.stitcher.util.WHITESPACES
-import dev.kikugie.stitcher.util.WORD_BREAKS
-import dev.kikugie.stitcher.util.hasLineBreak
-import dev.kikugie.stitcher.util.merge
-import dev.kikugie.stitcher.util.range
+import dev.kikugie.stitcher.parser.fromAntlrToken
+import dev.kikugie.stitcher.token.StitcherType
+import dev.kikugie.stitcher.token.impl.BlockToken
+import dev.kikugie.stitcher.token.impl.DefinitionToken
+import dev.kikugie.stitcher.token.impl.DefinitionToken.Kind
+import dev.kikugie.stitcher.token.impl.ScopeToken
+import dev.kikugie.stitcher.token.length
+import dev.kikugie.stitcher.util.*
+import org.antlr.v4.runtime.CommonToken
+import kotlin.math.max
+import kotlin.math.min
+
+private val UNCLOSED_SCOPE: ProblemID = ProblemID.LAYOUT_GROUP.create("unclosed-scope")
+private val LOOKUP_NOT_FOUND: ProblemID = ProblemID.LAYOUT_GROUP.create("lookup-not-found")
 
 /**
  * Mutable version of [BlockToken] used in [LayoutParser].
@@ -29,44 +32,45 @@ internal sealed interface BlockBuilder {
     fun build(): BlockToken
 
     sealed interface Scoped : BlockBuilder {
+        val entries: List<BlockBuilder>
         fun accept(block: BlockBuilder): BlockAcceptResult
-        fun finalize(problems: ProblemSource, isEOF: Boolean): Unit = Unit
+        fun finalize(problems: ProblemReporter, isEOF: Boolean): Unit = Unit
     }
 }
 
 internal class ContentBuilder(
     override val factory: StitcherTokenFactory,
-    val range: IntRange,
-    val value: String
+    val start: Int,
+    val end: Int,
+    val text: String
 ) : BlockBuilder {
     constructor(factory: StitcherTokenFactory, content: AntlrToken)
-        : this(factory, content.range, content.text)
+        : this(factory, content.startIndex, content.stopIndex + 1, content.text)
 
-    override fun build(): ContentBlock = ContentBlock(
-        factory.create(LeafType(LayoutParser.CONTENT), range, value)
+    override fun build(): BlockToken.Content = BlockToken.Content(
+        factory.create(StitcherType.Composite.CONTENT, start, end, text)
     )
 }
 
 internal class CommentBuilder(
     override val factory: StitcherTokenFactory,
-    val range: IntRange,
-    val value: String,
     val opener: AntlrToken?,
+    val body: AntlrToken,
     val closer: AntlrToken?,
 ) : BlockBuilder {
-    constructor(factory: StitcherTokenFactory, opener: AntlrToken, body: AntlrToken, closer: AntlrToken)
-        : this(factory, body.range, body.text, opener, closer)
-
-    override fun build(): CommentBlock = CommentBlock(
-        opener?.let(factory::fromAntlrToken), factory.create(LeafType(LayoutParser.CONTENT), range, value), closer?.let(factory::fromAntlrToken)
+    val text = body.text
+    override fun build(): BlockToken.Comment = BlockToken.Comment(
+        opener?.let { factory.fromAntlrToken(it, StitcherType.Layout) },
+        body.let { factory.fromAntlrToken(it, StitcherType.Layout) },
+        closer?.let { factory.fromAntlrToken(it, StitcherType.Layout) },
     )
 }
 
 internal class RootBuilder(
     override val factory: StitcherTokenFactory,
-    private val entries: MutableList<BlockBuilder> = mutableListOf()
+    override val entries: MutableList<BlockBuilder> = mutableListOf()
 ) : BlockBuilder.Scoped {
-    override fun build(): RootBlock = RootBlock(
+    override fun build(): BlockToken.Root = BlockToken.Root(
         entries.map(BlockBuilder::build)
     )
 
@@ -79,43 +83,47 @@ internal class CodeBuilder(
     val source: CommentBuilder,
     val marker: AntlrToken,
     val definition: DefinitionToken,
-    val entries: MutableList<BlockBuilder> = mutableListOf()
+    override val entries: MutableList<BlockBuilder> = mutableListOf()
 ) : BlockBuilder.Scoped {
-    val kind: Int get() = marker.type
-    val type: DefinitionToken.Type get() = definition.type
-    var satisfied: Boolean = definition.type.isScoped
+    val kind: Kind inline get() = definition.kind
+    var satisfied: Boolean = kind.isScoped
         private set
 
-    override fun build(): CodeBlock {
+    override fun build(): BlockToken.Code {
         val host = source.build()
         val blocks = entries.map(BlockBuilder::build)
-        return CodeBlock(host, factory.fromAntlrToken(marker), definition, blocks)
+        return BlockToken.Code(host, factory.fromAntlrToken(marker, StitcherType.Leaf), definition, blocks)
     }
 
-    override fun accept(block: BlockBuilder): BlockAcceptResult = when (definition.type) {
-        SCOPED_OPENER, SCOPED_EXTENSION -> entries.addMerging(block) then BlockAcceptResult.ConsumedOpen
-        LINE_OPENER, LINE_EXTENSION -> if (satisfied) BlockAcceptResult.Rejected else acceptLine(block)
-        WORD_OPENER, WORD_EXTENSION -> if (satisfied) BlockAcceptResult.Rejected else acceptWord(block)
+    override fun accept(block: BlockBuilder): BlockAcceptResult = when (definition.kind) {
+        Kind.SCOPED_OPENER, Kind.SCOPED_EXTENSION -> entries.addMerging(block) then BlockAcceptResult.ConsumedOpen
+        Kind.LINE_OPENER, Kind.LINE_EXTENSION -> if (satisfied) BlockAcceptResult.Rejected else acceptLine(block)
+        Kind.LOOKUP_OPENER, Kind.LOOKUP_EXTENSION -> if (satisfied) BlockAcceptResult.Rejected else acceptWord(block)
         else -> BlockAcceptResult.Rejected
     }
 
-    override fun finalize(problems: ProblemSource, isEOF: Boolean) = when (val opener = definition.opener) {
-        is ClosedScope if isEOF -> with(problems) {
-            at(opener) report "Unclosed scope"
+    override fun finalize(problems: ProblemReporter, isEOF: Boolean) = when (val opener = definition.opener) {
+        is ScopeToken.Closed if isEOF -> problems.report(UNCLOSED_SCOPE, opener) {
+            label = "Unclosed scope"
+            details = "Missing closing `${marker.text}}` comment."
+            documentation = "https://stonecutter.kikugie.dev/wiki/config/params#closed"
         }
 
-        is WordScope if opener.literal != null && !satisfied -> with(problems) {
-            at(opener.literal) report "Failed to find the matching string"
+        is ScopeToken.Lookup if opener.lookup != null && !satisfied -> problems.report(LOOKUP_NOT_FOUND, opener) {
+            label = "Lookup string not found"
+            details = "The pattern '${opener.extractLookup()}' wasn't found in the text ahead. " +
+                "Note: the pattern search is interrupted by any condition, swap or replacement comments."
+            documentation = "https://stonecutter.kikugie.dev/wiki/config/params#lookup"
         }
 
         else -> Unit
     }
 
     private fun acceptLine(block: BlockBuilder): BlockAcceptResult = when (block) {
-        is ContentBuilder -> consumeContentSplit(block, consumeLine(block.value, entries.lastOrNull().isNotBlank()))
-        is CommentBuilder -> consumeCommentSplit(block, consumeLine(block.value, entries.lastOrNull().isNotBlank())).let {
+        is ContentBuilder -> consumeContentSplit(block, consumeLine(block.text, entries.lastOrNull().isNotBlank()))
+        is CommentBuilder -> consumeCommentSplit(block, consumeLine(block.text, entries.lastOrNull().isNotBlank())).let {
             if (it !is BlockAcceptResult.ConsumedOpen) it
-            else if (!block.value.isNotBlank() || !block.closer?.text.orEmpty().hasLineBreak()) it
+            else if (!block.text.isNotBlank() || !block.closer?.text.orEmpty().hasLineBreak()) it
             else BlockAcceptResult.ConsumedFinal
         }
 
@@ -124,19 +132,19 @@ internal class CodeBuilder(
 
     private fun acceptWord(block: BlockBuilder): BlockAcceptResult =
         if (block is BlockBuilder.Scoped) consumeFinal(block)
-        else acceptWord(block, definition.opener as WordScope)
+        else acceptWord(block, definition.opener as ScopeToken.Lookup)
 
-    private fun acceptWord(block: BlockBuilder, scope: WordScope): BlockAcceptResult = when (block) {
+    private fun acceptWord(block: BlockBuilder, scope: ScopeToken.Lookup): BlockAcceptResult = when (block) {
         is ContentBuilder -> consumeContentSplit(
             block,
-            if (scope.literal == null) consumeWordDefault(block.value)
-            else consumeWordCustom(block.value, scope.expectedStr, scope.isCapturing)
+            if (scope.lookup == null) consumeWordDefault(block.text)
+            else consumeWordCustom(block.text, scope.extractLookup(), scope.isCapturing())
         )
 
         is CommentBuilder -> consumeCommentSplit(
             block,
-            if (scope.literal == null) consumeWordDefault(block.value)
-            else consumeWordCustom(block.value, scope.expectedStr, scope.isCapturing)
+            if (scope.lookup == null) consumeWordDefault(block.text)
+            else consumeWordCustom(block.text, scope.extractLookup(), scope.isCapturing())
         )
 
         else -> error("Unreachable")
@@ -158,15 +166,15 @@ internal class CodeBuilder(
         }
 
         // The entire content was consumed
-        split == block.value.length -> consumeFinal(block)
+        split == block.text.length -> consumeFinal(block)
 
         else -> {
             satisfied = true
             // Block before the split goes to this scope
-            ContentBuilder(factory, block.range.first extend split, block.value.take(split))
+            ContentBuilder(factory, block.start, block.start + split, block.text.take(split))
                 .let(entries::addMerging)
             // Return the remainder
-            ContentBuilder(factory, block.range.first + split..block.range.last, block.value.substring(split))
+            ContentBuilder(factory, block.start + split, block.end, block.text.substring(split))
                 .let(BlockAcceptResult::ConsumedPartial)
         }
     }
@@ -176,15 +184,23 @@ internal class CodeBuilder(
         split < 0 -> entries.add(block) then BlockAcceptResult.ConsumedOpen
 
         // The entire comment was consumed
-        split == block.value.length -> consumeFinal(block)
+        split == block.text.length -> consumeFinal(block)
 
         else -> {
             satisfied = true
             // Split comment without a closer goes to this scope
-            CommentBuilder(factory, block.range.first extend split, block.value.take(split), block.opener, null)
+            val partial = CommonToken(block.body).apply {
+                text = text.take(split)
+                stopIndex = startIndex + split - 1
+            }
+            CommentBuilder(factory, block.opener, partial, null)
                 .let(entries::add)
             // Return the remainder comment without an opener
-            CommentBuilder(factory, block.range.first + split..block.range.last, block.value.substring(split), null, block.closer)
+            val remainder = CommonToken(block.body).apply {
+                text = text.substring(split)
+                startIndex += split
+            }
+            CommentBuilder(factory, null, remainder, block.closer)
                 .let(BlockAcceptResult::ConsumedPartial)
         }
     }
@@ -192,7 +208,7 @@ internal class CodeBuilder(
 
 private fun MutableList<BlockBuilder>.addMerging(block: BlockBuilder) = when (val it = lastOrNull()) {
     is ContentBuilder if (block is ContentBuilder) ->
-        this[lastIndex] = ContentBuilder(it.factory, merge(it.range, block.range), it.value + block.value)
+        this[lastIndex] = ContentBuilder(it.factory, min(it.start, block.start), max(it.end, block.end), it.text + block.text)
 
     else -> this += block
 }
@@ -236,8 +252,8 @@ private fun consumeWordCustom(str: String, match: String, capturing: Boolean): I
 }
 
 private fun BlockBuilder?.isNotBlank() = when (this) {
-    is ContentBuilder -> value.isNotBlank()
-    is CommentBuilder -> value.isNotBlank()
+    is ContentBuilder -> text.isNotBlank()
+    is CommentBuilder -> text.isNotBlank()
     null -> false
     else -> true
 }

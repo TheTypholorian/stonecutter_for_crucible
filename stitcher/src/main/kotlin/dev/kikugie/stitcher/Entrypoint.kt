@@ -30,7 +30,7 @@ public fun process(file: Path, contents: String, parameters: TransformParameters
     }
     val layout = LayoutParser.parse(CommonTokenStream(source), input, runtime.problems, StitcherTokenFactory)
     if (problems.hasFailed) {
-        layout.accept(InvalidArgChecker(parameters, problems))
+//        layout.accept(InvalidArgChecker(parameters, problems))
         throw BailException()
     }
 
