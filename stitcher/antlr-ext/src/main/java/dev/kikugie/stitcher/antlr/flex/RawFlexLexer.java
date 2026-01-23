@@ -4,6 +4,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 
+@SuppressWarnings({"unused", "SpellCheckingInspection"})
 public interface RawFlexLexer<T> {
     void yybegin(int state);
     int yystate();

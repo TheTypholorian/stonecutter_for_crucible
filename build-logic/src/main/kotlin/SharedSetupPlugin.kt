@@ -1,8 +1,6 @@
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.plugins.antlr.AntlrTask
-import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.gradle.jvm.toolchain.JvmVendorSpec
@@ -14,6 +12,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 private const val JAVA_VERSION: Int = 21
 private const val KOTLIN_VERSION: String = "2.2"
 
+@Suppress("unused")
 open class SharedSetupPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
         repositories {

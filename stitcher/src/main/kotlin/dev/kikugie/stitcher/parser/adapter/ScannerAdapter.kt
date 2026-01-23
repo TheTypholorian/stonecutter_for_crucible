@@ -4,12 +4,9 @@ import dev.kikugie.commons.collections.FixedQueue
 import dev.kikugie.commons.then
 import dev.kikugie.stitcher.antlr.AntlrToken
 import dev.kikugie.stitcher.antlr.indexedName
-import dev.kikugie.stitcher.antlr.lineIndex
 import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.ProblemID
 import dev.kikugie.stitcher.issue.ProblemReporter
-import dev.kikugie.stitcher.issue.report
-import dev.kikugie.stitcher.parser.layout.LayoutParser
 import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.token.StitcherType.Layout
 import dev.kikugie.stitcher.util.report

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.NoSuchElementException;
 import java.util.function.Supplier;
 
+@SuppressWarnings("unused")
 public class FlexLexerAdapter<T> {
     private final RawFlexLexer<T> flex;
     private boolean isDone = false;

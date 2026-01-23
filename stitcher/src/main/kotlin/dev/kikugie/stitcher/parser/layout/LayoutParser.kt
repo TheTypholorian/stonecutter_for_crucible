@@ -2,7 +2,6 @@ package dev.kikugie.stitcher.parser.layout
 
 import dev.kikugie.stitcher.antlr.*
 import dev.kikugie.stitcher.issue.*
-import dev.kikugie.stitcher.issue.report
 import dev.kikugie.stitcher.parser.LAYOUT_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.component.DefinitionBuilder
@@ -193,25 +192,19 @@ internal class LayoutParser private constructor(
             else -> return null
         }
 
-        val listener = InlineErrorListener(at(body.startIndex), problems)
+        val location = problems.location(body)
+        val listener = InlineErrorListener(location, problems)
         val scanner = StitcherLexer(input).errorListener(listener)
-        val stream = InlineTokenStream(scanner, source, body.startIndex, at(body.startIndex))
+        val stream = InlineTokenStream(scanner, source, body.startIndex, location)
         val parser = StitcherParser(stream).errorListener(listener)
         return parser.definition().accept(visitor)
     }
 
     companion object {
-        fun parse(stream: TokenStream, source: CharStream, factory: StitcherTokenFactory, problems: ProblemReporter): BlockToken.Root =
+        fun parse(stream: TokenStream, source: CharStream, factory: StitcherTokenFactory, problems: FileProblemReporter): BlockToken.Root =
             LayoutParser(stream, source, factory, problems).collect()
     }
 }
 
 private fun TokenStream.advance(): AntlrToken =
     LT(1).also { consume() }
-
-private fun Int.scopeType(): String = when (this) {
-    StitcherLexer.COND_MARK -> "condition"
-    StitcherLexer.SWAP_MARK -> "swap"
-    StitcherLexer.REPL_MARK -> "replacement"
-    else -> "unknown"
-}

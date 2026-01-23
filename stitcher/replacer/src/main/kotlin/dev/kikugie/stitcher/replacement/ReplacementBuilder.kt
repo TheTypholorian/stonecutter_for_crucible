@@ -9,18 +9,18 @@ private val REPL_GROUP: ProblemID = ProblemID("replacement-builder")
 private const val IDENTIFIER_PATTERN: String = "[_a-zA-Z][_\\-a-zA-Z0-9]*"
 private val IDENTIFIER_REGEX: Regex = Regex(IDENTIFIER_PATTERN)
 
-public interface ReplacementBuilder<T : Replacement> {
-    public fun add(replacement: T): ProblemReport?
-    public fun build(): List<T>
+interface ReplacementBuilder<T : Replacement> {
+    fun add(replacement: T): ProblemReport?
+    fun build(): List<T>
 
-    public companion object {
-        public operator fun invoke(entries: Iterable<Replacement> = emptyList()): ReplacementBuilder<Replacement> =
+    companion object {
+        operator fun invoke(entries: Iterable<Replacement> = emptyList()): ReplacementBuilder<Replacement> =
             CompositeReplacementBuilder(entries)
 
-        public fun string(entries: Iterable<StringReplacement> = emptyList()) : ReplacementBuilder<StringReplacement> =
+        fun string(entries: Iterable<StringReplacement> = emptyList()) : ReplacementBuilder<StringReplacement> =
             StringReplacementBuilder(entries)
 
-        public fun regex(entries: Iterable<RegexReplacement> = emptyList()) : ReplacementBuilder<RegexReplacement> =
+        fun regex(entries: Iterable<RegexReplacement> = emptyList()) : ReplacementBuilder<RegexReplacement> =
             RegexReplacementBuilder(entries)
     }
 }

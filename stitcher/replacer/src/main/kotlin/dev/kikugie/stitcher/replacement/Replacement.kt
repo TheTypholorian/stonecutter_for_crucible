@@ -21,8 +21,6 @@ data class StringReplacement(
     override val identifier: String? = null,
     override val tags: Set<Replacement.Tag> = emptySet(),
 ) : Replacement {
-    constructor(target: String, vararg sources: String, identifier: String? = null)
-        : this(target, sources.toSet(), identifier)
 }
 
 @Serializable
