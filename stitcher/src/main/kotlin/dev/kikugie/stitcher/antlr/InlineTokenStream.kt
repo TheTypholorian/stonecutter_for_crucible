@@ -1,7 +1,6 @@
 package dev.kikugie.stitcher.antlr
 
 import dev.kikugie.stitcher.issue.ProblemLocation
-import dev.kikugie.stitcher.util.AntlrToken
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.Interval
 import org.antlr.v4.runtime.misc.Pair

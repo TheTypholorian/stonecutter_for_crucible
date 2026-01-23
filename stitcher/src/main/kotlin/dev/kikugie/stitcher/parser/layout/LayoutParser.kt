@@ -1,17 +1,12 @@
 package dev.kikugie.stitcher.parser.layout
 
 import dev.kikugie.stitcher.antlr.*
-import dev.kikugie.stitcher.issue.ProblemID
-import dev.kikugie.stitcher.issue.ProblemLocation
-import dev.kikugie.stitcher.issue.ProblemReporter
-import dev.kikugie.stitcher.issue.ProblemSeverity
-import dev.kikugie.stitcher.issue.ProblemSource
-import dev.kikugie.stitcher.issue.at
-import dev.kikugie.stitcher.issue.bail
+import dev.kikugie.stitcher.issue.*
 import dev.kikugie.stitcher.issue.report
-import dev.kikugie.stitcher.issue.v2.*
+import dev.kikugie.stitcher.parser.LAYOUT_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.component.DefinitionBuilder
+import dev.kikugie.stitcher.token.StitcherType.Layout
 import dev.kikugie.stitcher.token.impl.BlockToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken.Kind
@@ -19,17 +14,7 @@ import dev.kikugie.stitcher.util.*
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.Token.EOF
 import org.antlr.v4.runtime.TokenStream
-import org.antlr.v4.runtime.Vocabulary
-import org.antlr.v4.runtime.VocabularyImpl
 import java.util.*
-
-private val CONSUMED_ROOT: ProblemID = ProblemID.LAYOUT_GROUP.create("consumed-root")
-private val UNEXPECTED_TOKEN: ProblemID = ProblemID.LAYOUT_GROUP.create("unexpected-token")
-private val UNMATCHED_CLOSER: ProblemID = ProblemID.LAYOUT_GROUP.create("unmatched-root-closer")
-private val CLOSER_CANDIDATE: ProblemID = ProblemID.LAYOUT_GROUP.create("unmatched-closer-candidate")
-private val MISMATCHED_CLOSER: ProblemID = ProblemID.LAYOUT_GROUP.create("mismatched-child-closer")
-private val MISMATCH_SUGGESTION: ProblemID = ProblemID.LAYOUT_GROUP.create("mismatched-child-suggestion")
-private val UNMATCHED_EXTENSION: ProblemID = ProblemID.LAYOUT_GROUP.create("unmatched-extension")
 
 /**
  * Parses a [stream] of comment tokens into an AST.
@@ -45,7 +30,7 @@ internal class LayoutParser private constructor(
     val stream: TokenStream,
     val source: CharStream,
     val factory: StitcherTokenFactory,
-    val problems: ProblemReporter,
+    val problems: FileProblemReporter,
 ) {
     private val stack: Deque<BlockBuilder.Scoped> = ArrayDeque(4)
     private val visitor: StitcherVisitor<Pair<AntlrToken, DefinitionToken>> = DefinitionBuilder.paired(factory, problems)
@@ -60,9 +45,9 @@ internal class LayoutParser private constructor(
     }
 
     private fun consumeTokenStream() {
-        while (stream.LA(1) != EOF) when (stream.LA(1)) {
-            CONTENT -> handleContent(stream.advance())
-            COMMENT_OPEN -> handleComment(stream.advance(), stream.advance(), stream.advance())
+        while (stream.LA(1) != EOF) when (Layout.getOrNull(stream.LA(1))) {
+            Layout.CONTENT -> handleContent(stream.advance())
+            Layout.COMMENT_OPEN -> handleComment(stream.advance(), stream.advance(), stream.advance())
             else -> reportUnknownToken(stream.advance())
         }
     }
@@ -73,7 +58,7 @@ internal class LayoutParser private constructor(
             is CodeBuilder -> it.finalize(problems, true)
         }
 
-        problems.bail(CONSUMED_ROOT, ProblemLocation.UNDEFINED) {
+        problems.bail(LAYOUT_GROUP.child("consumed-root"), 0, 0) {
             label = "The root block builder has been eaten!"
             details = "The parser has not reached a return condition, causing a critical failure." +
                 "This shouldn't ever happen, so please report this to https://codeberg.org/stonecutter/stonecutter/issues."
@@ -102,8 +87,8 @@ internal class LayoutParser private constructor(
         }
     }
 
-    private fun reportUnknownToken(token: AntlrToken) {
-        problems.bail(UNEXPECTED_TOKEN, token) {
+    private fun reportUnknownToken(token: AntlrToken): Nothing {
+        problems.bail(LAYOUT_GROUP.child("unexpected-token"), token) {
             label = "Unknown layout token"
             details = "Token type ${token.type} is not expected to be produced by the token stream. " +
                 "This shouldn't ever happen, so please report this to https://codeberg.org/stonecutter/stonecutter/issues."
@@ -158,7 +143,7 @@ internal class LayoutParser private constructor(
     }
 
     private fun reportUnmatchedCloser(code: CodeBuilder) {
-        problems.report(UNMATCHED_CLOSER, code.source.body) {
+        problems.report(LAYOUT_GROUP.child("unmatched-root-closer"), code.source.body) {
             label = "Unmatched scope closer"
             details = "The definition must have a corresponding `${code.marker.text} ... {` opener."
         }
@@ -171,11 +156,11 @@ internal class LayoutParser private constructor(
     }
 
     private fun reportMismatchedCloser(code: CodeBuilder, parent: CodeBuilder) {
-        problems.report(MISMATCHED_CLOSER, code.source.body) {
+        problems.report(LAYOUT_GROUP.child("unmatched-root-closer"), code.source.body) {
             label = "Mismatched closer type"
             details = "Expected `${parent.marker.text}}` instead of `${code.marker.text}}`."
         }
-        problems.report(MISMATCH_SUGGESTION, parent.source.body) {
+        problems.report(LAYOUT_GROUP.child("mismatched-child-suggestion"), parent.source.body) {
             severity = ProblemSeverity.WARN
             label = "Missing scope closer"
             details = "The definition may need to be closed with `${parent.marker.text}}` to resolve a previously reported error."
@@ -183,7 +168,7 @@ internal class LayoutParser private constructor(
     }
 
     private fun reportUnmatchedExtension(code: CodeBuilder, parent: CodeBuilder) {
-        problems.report(UNMATCHED_EXTENSION, code.source.body) {
+        problems.report(LAYOUT_GROUP.child("unmatched-extension"), code.source.body) {
             label = "Mismatched extension"
             details = "The definition closes a scope that doesn't end with a `{`."
         }
@@ -191,7 +176,7 @@ internal class LayoutParser private constructor(
     }
 
     private fun suggestMissingOpener(parent: CodeBuilder) {
-        problems.report(CLOSER_CANDIDATE, parent.source.body) {
+        problems.report(LAYOUT_GROUP.child("unmatched-closer-candidate"), parent.source.body) {
             severity = ProblemSeverity.INFO
             label = "Potential missing opener"
             details = "The definition may need to end with a `{` to resolve a previously reported error."
@@ -202,7 +187,7 @@ internal class LayoutParser private constructor(
         if (body.stopIndex < body.startIndex)
             return null // Empty comment body
 
-        val input = body.text.toStream()
+        val input = body.text.charStream()
         when (input.LC(1)) {
             '?', '$', '~' -> {}
             else -> return null

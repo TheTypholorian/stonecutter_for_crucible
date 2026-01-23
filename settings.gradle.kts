@@ -21,4 +21,5 @@ plugins {
 }
 
 rootProject.name = "Stonecutter"
-include("stitcher", "stonecutter")
+includeBuild("build-logic")
+include("stonecutter", "stitcher", "stitcher:antlr-ext", "stitcher:reporter",  "stitcher:replacer")

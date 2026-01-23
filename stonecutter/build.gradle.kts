@@ -2,8 +2,6 @@
 @file:OptIn(ExperimentalPathApi::class)
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import kotlin.io.path.ExperimentalPathApi
 
 plugins {
@@ -11,20 +9,12 @@ plugins {
     signing
     `kotlin-dsl`
     `maven-publish`
+    kotlin("jvm")
+    kotlin("plugin.serialization")
     alias(common.plugins.gradle.shadow)
     alias(common.plugins.gradle.publish)
-    alias(common.plugins.kotlin.jvm)
-    alias(common.plugins.kotlin.dokka)
-    alias(common.plugins.kotlin.dokka.javadoc)
-    alias(common.plugins.kotlin.serialization)
     alias(common.plugins.kotlin.validator)
-}
-
-repositories {
-    mavenLocal()
-    mavenCentral()
-    maven("https://maven.kikugie.dev/releases")
-    maven("https://central.sonatype.com/repository/maven-snapshots/")
+    id("shared-setup")
 }
 
 sourceSets {
@@ -52,82 +42,23 @@ dependencies {
     testImplementation(common.ktor.client.negotiation)
 
     testImplementation(common.misc.mordant)
-
-    dokkaHtmlPlugin(libs.dokka.versioning)
 }
 
 apiValidation {
     apiDumpDirectory = "src/api"
 }
 
-dokka {
-    moduleName = "Stonecutter Gradle"
-
-    pluginsConfiguration.html {
-        homepageLink = "https://stonecutter.codeberg.page/"
-        footerMessage = "(c) 2025 KikuGie"
-    }
-
-    pluginsConfiguration.versioning {
-        version = property("version").toString().substringBefore('-')
-    }
-
-    dokkaPublications.all {
-        suppressInheritedMembers = true
-        suppressObviousFunctions = true
-    }
-
-    dokkaSourceSets.named("main") {
-        reportUndocumented = true
-        skipEmptyPackages = true
-
-        sourceLink {
-            localDirectory = file("src/main/kotlin")
-            remoteLineSuffix = "#L"
-            remoteUrl("https://codeberg.org/stonecutter/stonecutter/src/branch/0.8/stonecutter/")
-        }
-
-        externalDocumentationLinks.register("gradle-kotlin-dsl") {
-            url("https://docs.gradle.org/current/kotlin-dsl/")
-            packageListUrl("https://docs.gradle.org/current/kotlin-dsl/gradle/package-list")
-        }
-
-        externalDocumentationLinks.register("kotlin-stdlib") {
-            url("https://kotlinlang.org/api/core/")
-        }
-
-        externalDocumentationLinks.register("kotlinx-serialization") {
-            url("https://kotlinlang.org/api/kotlinx.serialization/")
-        }
-    }
-}
-
 java {
     withSourcesJar()
-    withJavadocJar()
-    toolchain {
-        vendor = JvmVendorSpec.ADOPTIUM
-    }
 }
 
 kotlin {
-    explicitApi = ExplicitApiMode.Strict
-    jvmToolchain(17)
-    compilerOptions {
-        languageVersion = KotlinVersion.KOTLIN_2_2
-        apiVersion = KotlinVersion.KOTLIN_2_2
-    }
+    explicitApi()
 }
 
 tasks {
-    test {
-        useJUnitPlatform()
-    }
-
     compileTestKotlin {
         compilerOptions {
-            languageVersion = KotlinVersion.KOTLIN_2_2
-            apiVersion = KotlinVersion.KOTLIN_2_2
             freeCompilerArgs.add("-Xcontext-parameters")
         }
     }
@@ -141,10 +72,6 @@ tasks {
         minimize()
         exclude("com/ibm/**", "org/jetbrains/**", "**/*.knm", "**/*.pro", "commonMain/**", "nativeMain/**")
     }
-
-//    named<Jar>("javadocJar") {
-//        from(named("dokkaGeneratePublicationJavadoc"))
-//    }
 
     register<ShadowJar>("slimJar") {
         group = "build"

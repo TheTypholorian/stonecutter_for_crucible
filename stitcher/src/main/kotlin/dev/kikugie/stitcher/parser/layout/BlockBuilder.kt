@@ -3,10 +3,10 @@ package dev.kikugie.stitcher.parser.layout
 import dev.kikugie.commons.text.countMatching
 import dev.kikugie.commons.text.countWhile
 import dev.kikugie.commons.then
-import dev.kikugie.stitcher.issue.at
-import dev.kikugie.stitcher.issue.ProblemID
-import dev.kikugie.stitcher.issue.ProblemReporter
-import dev.kikugie.stitcher.issue.report
+import dev.kikugie.stitcher.antlr.AntlrToken
+import dev.kikugie.stitcher.antlr.endIndex
+import dev.kikugie.stitcher.issue.FileProblemReporter
+import dev.kikugie.stitcher.parser.LAYOUT_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.fromAntlrToken
 import dev.kikugie.stitcher.token.StitcherType
@@ -14,14 +14,10 @@ import dev.kikugie.stitcher.token.impl.BlockToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken.Kind
 import dev.kikugie.stitcher.token.impl.ScopeToken
-import dev.kikugie.stitcher.token.length
 import dev.kikugie.stitcher.util.*
 import org.antlr.v4.runtime.CommonToken
 import kotlin.math.max
 import kotlin.math.min
-
-private val UNCLOSED_SCOPE: ProblemID = ProblemID.LAYOUT_GROUP.create("unclosed-scope")
-private val LOOKUP_NOT_FOUND: ProblemID = ProblemID.LAYOUT_GROUP.create("lookup-not-found")
 
 /**
  * Mutable version of [BlockToken] used in [LayoutParser].
@@ -34,7 +30,7 @@ internal sealed interface BlockBuilder {
     sealed interface Scoped : BlockBuilder {
         val entries: List<BlockBuilder>
         fun accept(block: BlockBuilder): BlockAcceptResult
-        fun finalize(problems: ProblemReporter, isEOF: Boolean): Unit = Unit
+        fun finalize(problems: FileProblemReporter, isEOF: Boolean): Unit = Unit
     }
 }
 
@@ -45,7 +41,7 @@ internal class ContentBuilder(
     val text: String
 ) : BlockBuilder {
     constructor(factory: StitcherTokenFactory, content: AntlrToken)
-        : this(factory, content.startIndex, content.stopIndex + 1, content.text)
+        : this(factory, content.startIndex, content.endIndex, content.text)
 
     override fun build(): BlockToken.Content = BlockToken.Content(
         factory.create(StitcherType.Composite.CONTENT, start, end, text)
@@ -58,7 +54,7 @@ internal class CommentBuilder(
     val body: AntlrToken,
     val closer: AntlrToken?,
 ) : BlockBuilder {
-    val text = body.text
+    val text inline get() = body.text
     override fun build(): BlockToken.Comment = BlockToken.Comment(
         opener?.let { factory.fromAntlrToken(it, StitcherType.Layout) },
         body.let { factory.fromAntlrToken(it, StitcherType.Layout) },
@@ -102,22 +98,22 @@ internal class CodeBuilder(
         else -> BlockAcceptResult.Rejected
     }
 
-    override fun finalize(problems: ProblemReporter, isEOF: Boolean) = when (val opener = definition.opener) {
-        is ScopeToken.Closed if isEOF -> problems.report(UNCLOSED_SCOPE, opener) {
+    override fun finalize(problems: FileProblemReporter, isEOF: Boolean): Unit = when (val opener = definition.opener) {
+        is ScopeToken.Closed if isEOF -> problems.report(LAYOUT_GROUP.child("unclosed-scope"), opener) {
             label = "Unclosed scope"
             details = "Missing closing `${marker.text}}` comment."
             documentation = "https://stonecutter.kikugie.dev/wiki/config/params#closed"
         }
 
-        is ScopeToken.Lookup if opener.lookup != null && !satisfied -> problems.report(LOOKUP_NOT_FOUND, opener) {
+        is ScopeToken.Lookup if opener.lookup != null && !satisfied -> problems.report(LAYOUT_GROUP.child("lookup-not-found"), opener) {
             label = "Lookup string not found"
             details = "The pattern '${opener.extractLookup()}' wasn't found in the text ahead. " +
                 "Note: the pattern search is interrupted by any condition, swap or replacement comments."
             documentation = "https://stonecutter.kikugie.dev/wiki/config/params#lookup"
         }
 
-        else -> Unit
-    }
+        else -> {}
+    }.let { }
 
     private fun acceptLine(block: BlockBuilder): BlockAcceptResult = when (block) {
         is ContentBuilder -> consumeContentSplit(block, consumeLine(block.text, entries.lastOrNull().isNotBlank()))
@@ -228,19 +224,22 @@ private fun matchLineChar(ch: Char, state: Int, immediate: Boolean): Int = when 
         in LINE_BREAKS -> if (immediate) 1 else 0
         else -> 1
     }
+
     1 -> when (ch) {
         '\n' -> 2
         '\r' -> 3
         else -> 1
     }
+
     2 -> when (ch) {
         '\r' -> 3
         else -> -1
     }
+
     else -> -1
 }
 
-private fun consumeWordDefault(str: String): Int = when(val idx = str.countMatching(*WHITESPACES)) {
+private fun consumeWordDefault(str: String): Int = when (val idx = str.countMatching(*WHITESPACES)) {
     str.length -> -1
     else -> idx + str.countWhile(idx) { it !in WHITESPACES }
 }

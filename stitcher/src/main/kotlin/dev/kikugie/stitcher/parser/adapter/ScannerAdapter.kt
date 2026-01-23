@@ -1,17 +1,18 @@
 package dev.kikugie.stitcher.parser.adapter
 
 import dev.kikugie.commons.collections.FixedQueue
-import dev.kikugie.commons.collections.first
-import dev.kikugie.commons.collections.plusAssign
 import dev.kikugie.commons.then
+import dev.kikugie.stitcher.antlr.AntlrToken
+import dev.kikugie.stitcher.antlr.indexedName
+import dev.kikugie.stitcher.antlr.lineIndex
+import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.ProblemID
 import dev.kikugie.stitcher.issue.ProblemReporter
-import dev.kikugie.stitcher.issue.location
 import dev.kikugie.stitcher.issue.report
 import dev.kikugie.stitcher.parser.layout.LayoutParser
-import dev.kikugie.stitcher.util.AntlrToken
-import dev.kikugie.stitcher.util.indexedName
-import dev.kikugie.stitcher.util.length
+import dev.kikugie.stitcher.token.StitcherType
+import dev.kikugie.stitcher.token.StitcherType.Layout
+import dev.kikugie.stitcher.util.report
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.Lexer
 import org.antlr.v4.runtime.TokenSource
@@ -19,8 +20,7 @@ import org.antlr.v4.runtime.Vocabulary
 import org.antlr.v4.runtime.misc.Pair
 import java.io.Serializable
 
-private val INCONSISTENT_TOKEN = ProblemID.SCANNER_GROUP.create("inconsistent-token")
-private val UNREGISTERED_TOKEN = ProblemID.SCANNER_GROUP.create("unregistered-token")
+private val SCANNER_GROUP: ProblemID = ProblemID("scanner-adapter")
 
 /**
  * Adapts the output of a user-defined comment [Lexer],
@@ -50,19 +50,19 @@ private val UNREGISTERED_TOKEN = ProblemID.SCANNER_GROUP.create("unregistered-to
  *
  * Registered scanners should provide the respective adapter with a [Factory] implementation.
  */
-public class ScannerAdapter(
+class ScannerAdapter(
     internal val scanner: Lexer,
     private val openers: IntArray,
     private val closers: IntArray,
-    private val problems: ProblemReporter
+    private val problems: FileProblemReporter
 ) : TokenSource by scanner{
 
     /**
      * Encapsulates the creation of a [ScannerAdapter] configured with
      * a specific [Lexer], [openers][ScannerAdapter.openers] and [closers][ScannerAdapter.closers].
      */
-    public fun interface Factory : Serializable {
-        public fun create(input: CharStream, problems: ProblemReporter): ScannerAdapter
+    fun interface Factory : Serializable {
+        fun create(input: CharStream, problems: ProblemReporter): ScannerAdapter
     }
 
     private data class Checkpoint(val cursor: Int, val line: Int, val offset: Int, val comment: Boolean)
@@ -108,7 +108,7 @@ public class ScannerAdapter(
     private fun handleEOF(token: AntlrToken): Boolean {
         if (checkpoint.comment) handleCommentEnd(token)
         else if (checkpoint.cursor < token.startIndex)
-            push(LayoutParser.CONTENT, token.startIndex)
+            push(Layout.CONTENT, token.startIndex)
         queue += token
         checkpoint = Checkpoint(-1, -1, -1, false)
         return true
@@ -118,8 +118,8 @@ public class ScannerAdapter(
         if (checkpoint.comment)
             return reportInvalidOpener(token) then false
         if (checkpoint.cursor < token.startIndex)
-            push(LayoutParser.CONTENT, token.startIndex)
-        push(LayoutParser.COMMENT_OPEN, token)
+            push(Layout.CONTENT, token.startIndex)
+        push(Layout.COMMENT_OPEN, token)
         checkpoint = Checkpoint(token, true)
         return true
     }
@@ -127,45 +127,45 @@ public class ScannerAdapter(
     private fun handleCommentEnd(token: AntlrToken): Boolean {
         if (!checkpoint.comment)
             return reportInvalidCloser(token) then false
-        push(LayoutParser.COMMENT_BODY, token.startIndex)
-        push(LayoutParser.COMMENT_CLOSE, token)
+        push(Layout.COMMENT_BODY, token.startIndex)
+        push(Layout.COMMENT_CLOSE, token)
         checkpoint = Checkpoint(token, false)
         return true
     }
 
-    private fun reportInvalidOpener(token: AntlrToken) = problems.report(INCONSISTENT_TOKEN, token.location, token.length) {
+    private fun reportInvalidOpener(token: AntlrToken) = problems.report(SCANNER_GROUP.child("inconsistent-token"), token) {
         val options = closers.joinToString(", ", "[", "]") { scannerVocab.indexedName(it) }
         label = "Unexpected comment opener"
         details = "Comment scanner $scannerName provided token ${scannerVocab.indexedName(token)}, but $options were expected."
         documentation = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-ordering"
     }
 
-    private fun reportInvalidCloser(token: AntlrToken) = problems.report(INCONSISTENT_TOKEN, token.location, token.length) {
+    private fun reportInvalidCloser(token: AntlrToken) = problems.report(SCANNER_GROUP.child("inconsistent-token"), token) {
         val options = openers.joinToString(", ", "[", "]") { scannerVocab.indexedName(it) }
         label = "Unexpected comment closer"
         details = "Comment scanner $scannerName provided token ${scannerVocab.indexedName(token)}, but $options were expected."
         documentation = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-ordering"
     }
 
-    private fun reportUnknown(token: AntlrToken) = problems.report(UNREGISTERED_TOKEN, token.location, token.length) {
+    private fun reportUnknown(token: AntlrToken) = problems.report(SCANNER_GROUP.child("unregistered-token"), token) {
         label = "Unknown token type"
         details = "Comment scanner $scannerName provided token ${scannerVocab.indexedName(token)} which is not registered as an opener or a closer."
         documentation = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-counting"
     }
 
-    private fun push(type: Int, endExclusive: Int): Unit =
+    private fun push(type: StitcherType, endExclusive: Int): Unit =
         push(type, checkpoint.cursor, endExclusive)
 
-    private fun push(type: Int, start: Int, endExclusive: Int) {
+    private fun push(type: StitcherType, start: Int, endExclusive: Int) {
         queue += tokenFactory.create(
-            Pair(this, inputStream), type, null, AntlrToken.DEFAULT_CHANNEL,
+            Pair(this, inputStream), type.value, null, AntlrToken.DEFAULT_CHANNEL,
             start, endExclusive - 1, checkpoint.line, checkpoint.offset
         )
     }
 
-    private fun push(type: Int, host: AntlrToken) {
+    private fun push(type: StitcherType, host: AntlrToken) {
         queue += tokenFactory.create(
-            Pair(this, inputStream), type, if (host.type == AntlrToken.EOF) "" else null, AntlrToken.DEFAULT_CHANNEL,
+            Pair(this, inputStream), type.value, if (host.type == AntlrToken.EOF) "" else null, AntlrToken.DEFAULT_CHANNEL,
             host.startIndex, host.stopIndex, host.line, host.charPositionInLine
         )
     }

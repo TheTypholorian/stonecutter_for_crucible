@@ -2,12 +2,12 @@ package dev.kikugie.stitcher.transform
 
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stitcher.parser.adapter.ScannerAdapter
-import dev.kikugie.stitcher.transform.replacement.Replacement
+import dev.kikugie.stitcher.replacement.Replacement
 import dev.kikugie.stitcher.transform.strategy.CommentingStrategy
 import dev.kikugie.stitcher.transform.strategy.SwappingStrategy
 import dev.kikugie.stitcher.transform.strategy.UncommentingStrategy
 
-public data class TransformParameters(
+data class TransformParameters(
     val adapter: ScannerAdapter.Factory,
 
     val commenter: CommentingStrategy,

@@ -1,12 +1,10 @@
 package dev.kikugie.stitcher.parser.component
 
-import dev.kikugie.stitcher.antlr.StitcherBaseVisitor
-import dev.kikugie.stitcher.antlr.StitcherParser
-import dev.kikugie.stitcher.antlr.StitcherVisitor
-import dev.kikugie.stitcher.issue.ProblemID
-import dev.kikugie.stitcher.issue.ProblemReporter
+import dev.kikugie.stitcher.antlr.*
+import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.bail
 import dev.kikugie.stitcher.issue.runBailing
+import dev.kikugie.stitcher.parser.SYNTAX_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.fromAntlrNode
 import dev.kikugie.stitcher.parser.fromAntlrToken
@@ -14,13 +12,8 @@ import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.ExpressionToken
 import dev.kikugie.stitcher.token.impl.ScopeToken
-import dev.kikugie.stitcher.util.AntlrToken
-import dev.kikugie.stitcher.util.length
-import dev.kikugie.stitcher.util.startIndex
 
-private val EXPRESSION_PARSE: ProblemID = ProblemID.SYNTAX_GROUP.create("expression-parse-exception")
-
-internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems: ProblemReporter)
+internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems: FileProblemReporter)
     : StitcherBaseVisitor<DefinitionToken>() {
     private val expressionBuilder: ExpressionBuilder by lazy { ExpressionBuilder(factory, problems) }
     private val scopeTokenBuilder: ScopeTokenBuilder by lazy { ScopeTokenBuilder(factory) }
@@ -69,13 +62,13 @@ internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems
     private fun parseExpression(ctx: StitcherParser.ConditionExpressionContext): ExpressionToken = runBailing {
         ctx.accept(expressionBuilder)
     }.getOrElse {
-        problems.bail(EXPRESSION_PARSE, ctx.startIndex, ctx.length) {
+        problems.bail(SYNTAX_GROUP.child("expression-parse-exception"), ctx.startIndex) {
             label = "Unexpected error when parsing expression"
             exception = it
         }
     }
 
-    private class PairDefinitionBuilder(factory: StitcherTokenFactory, problems: ProblemReporter) : StitcherBaseVisitor<Pair<AntlrToken, DefinitionToken>>() {
+    private class PairDefinitionBuilder(factory: StitcherTokenFactory, problems: FileProblemReporter) : StitcherBaseVisitor<Pair<AntlrToken, DefinitionToken>>() {
         private val definitionBuilder = DefinitionBuilder(factory, problems)
 
         override fun visitConditionDefinition(ctx: StitcherParser.ConditionDefinitionContext): Pair<AntlrToken, DefinitionToken> =
@@ -103,7 +96,7 @@ internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems
     }
 
     companion object {
-        fun paired(factory: StitcherTokenFactory, problems: ProblemReporter): StitcherVisitor<Pair<AntlrToken, DefinitionToken>> =
+        fun paired(factory: StitcherTokenFactory, problems: FileProblemReporter): StitcherVisitor<Pair<AntlrToken, DefinitionToken>> =
             PairDefinitionBuilder(factory, problems)
     }
 }

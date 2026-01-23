@@ -6,55 +6,55 @@ import dev.kikugie.stitcher.token.StitcherToken
 import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.token.impl.DefinitionToken.Kind
 
-public sealed interface DefinitionToken : StitcherToken {
-    public val kind: Kind
-    public val closer: LeafToken? get() = null
-    public val opener: ScopeToken? get() = null
+sealed interface DefinitionToken : StitcherToken {
+    val kind: Kind
+    val closer: LeafToken? get() = null
+    val opener: ScopeToken? get() = null
 
-    public fun <T> accept(visitor: Visitor<T>): T
+    fun <T> accept(visitor: Visitor<T>): T
 
-    public interface Visitor<T> {
-        public fun visitSwap(swap: Swap): T
-        public fun visitCondition(cond: Condition): T
-        public fun visitReplacement(repl: Replacement): T
+    interface Visitor<T> {
+        fun visitSwap(swap: Swap): T
+        fun visitCondition(cond: Condition): T
+        fun visitReplacement(repl: Replacement): T
     }
 
-    public enum class Kind {
+    enum class Kind {
         SCOPED_OPENER, LINE_OPENER, LOOKUP_OPENER,
         SCOPED_EXTENSION, LINE_EXTENSION, LOOKUP_EXTENSION,
         CLOSER, INDEPENDENT;
 
-        public val isScoped: Boolean
+        val isScoped: Boolean
             get() = when (this) {
                 SCOPED_OPENER, SCOPED_EXTENSION -> true
                 else -> false
             }
 
-        public val isOpen: Boolean
+        val isOpen: Boolean
             get() = when (this) {
                 LINE_OPENER, LOOKUP_OPENER, LINE_EXTENSION, LOOKUP_EXTENSION -> true
                 else -> false
             }
 
-        public val isExtension: Boolean
+        val isExtension: Boolean
             get() = when (this) {
                 SCOPED_EXTENSION, LINE_EXTENSION, LOOKUP_EXTENSION, CLOSER -> true
                 else -> false
             }
 
-        public val isEmpty: Boolean
+        val isEmpty: Boolean
             get() = when (this) {
                 CLOSER, INDEPENDENT -> true
                 else -> false
             }
     }
 
-    public sealed interface Swap : DefinitionToken {
-        public val identifier: LeafToken? get() = null
-        public val arguments: List<LeafToken> get() = emptyList()
+    sealed interface Swap : DefinitionToken {
+        val identifier: LeafToken? get() = null
+        val arguments: List<LeafToken> get() = emptyList()
     }
 
-    public data class SwapOpener(override val identifier: LeafToken, override val arguments: List<LeafToken>, override val opener: ScopeToken?) : Swap {
+    data class SwapOpener(override val identifier: LeafToken, override val arguments: List<LeafToken>, override val opener: ScopeToken?) : Swap {
         override val type: StitcherType get() = StitcherType.Composite.SWAP_OPEN
         override val kind: Kind = opener.openerKind()
         override val start: Int get() = identifier.start
@@ -63,19 +63,19 @@ public sealed interface DefinitionToken : StitcherToken {
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitSwap(this)
     }
 
-    public data class SwapCloser(override val closer: LeafToken) : Swap, StitcherToken by closer {
+    data class SwapCloser(override val closer: LeafToken) : Swap, StitcherToken by closer {
         override val type: StitcherType get() = StitcherType.Composite.SWAP_CLOSE
         override val kind: Kind get() = Kind.CLOSER
 
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitSwap(this)
     }
     
-    public sealed interface Condition : DefinitionToken {
-        public val sugar: List<LeafToken> get() = emptyList()
-        public val expression: ExpressionToken? get() = null
+    sealed interface Condition : DefinitionToken {
+        val sugar: List<LeafToken> get() = emptyList()
+        val expression: ExpressionToken? get() = null
     }
 
-    public data class ConditionOpener(
+    data class ConditionOpener(
         override val sugar: List<LeafToken>,
         override val expression: ExpressionToken, override val opener: ScopeToken?
     ) : Condition {
@@ -87,7 +87,7 @@ public sealed interface DefinitionToken : StitcherToken {
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitCondition(this)
     }
 
-    public data class ConditionExtension(
+    data class ConditionExtension(
         override val closer: LeafToken, override val sugar: List<LeafToken>,
         override val expression: ExpressionToken?, override val opener: ScopeToken?
     ) : Condition {
@@ -99,14 +99,14 @@ public sealed interface DefinitionToken : StitcherToken {
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitCondition(this)
     }
 
-    public data class ConditionCloser(override val closer: LeafToken) : Condition, StitcherToken by closer {
+    data class ConditionCloser(override val closer: LeafToken) : Condition, StitcherToken by closer {
         override val type: StitcherType get() = StitcherType.Composite.COND_CLOSE
         override val kind: Kind get() = Kind.CLOSER
 
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitCondition(this)
     }
 
-    public data class Replacement(public val expressions: List<ExpressionToken>) : DefinitionToken {
+    data class Replacement(val expressions: List<ExpressionToken>) : DefinitionToken {
         override val type: StitcherType get() = StitcherType.Composite.REPL
         override val kind: Kind get() = Kind.INDEPENDENT
         override val start: Int = expressions.first().start

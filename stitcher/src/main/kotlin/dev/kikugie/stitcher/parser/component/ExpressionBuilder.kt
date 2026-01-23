@@ -2,22 +2,19 @@ package dev.kikugie.stitcher.parser.component
 
 import dev.kikugie.stitcher.antlr.StitcherBaseVisitor
 import dev.kikugie.stitcher.antlr.StitcherParser
-import dev.kikugie.stitcher.issue.ProblemID
-import dev.kikugie.stitcher.issue.ProblemReporter
+import dev.kikugie.stitcher.antlr.startIndex
+import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.report
-import dev.kikugie.stitcher.issue.tryBailing
+import dev.kikugie.stitcher.issue.tryBailingOn
+import dev.kikugie.stitcher.parser.SYNTAX_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.fromAntlrNode
 import dev.kikugie.stitcher.parser.fromAntlrToken
 import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.token.impl.ExpressionToken
 import dev.kikugie.stitcher.token.impl.PredicateToken
-import dev.kikugie.stitcher.util.length
-import dev.kikugie.stitcher.util.startIndex
 
-private val PREDICATE_PARSE: ProblemID = ProblemID.SYNTAX_GROUP.create("predicate-parse-exception")
-
-internal class ExpressionBuilder(val factory: StitcherTokenFactory, val problems: ProblemReporter)
+internal class ExpressionBuilder(val factory: StitcherTokenFactory, val problems: FileProblemReporter)
     : StitcherBaseVisitor<ExpressionToken>() {
     private val predicateBuilder: PredicateBuilder by lazy { PredicateBuilder(factory, problems) }
 
@@ -54,10 +51,10 @@ internal class ExpressionBuilder(val factory: StitcherTokenFactory, val problems
         return ExpressionToken.Constant(identifier)
     }
 
-    private fun parsePredicate(ctx: StitcherParser.VersionPredicateContext): PredicateToken? = tryBailing {
-        ctx.accept(predicateBuilder)
+    private fun parsePredicate(ctx: StitcherParser.VersionPredicateContext): PredicateToken? = ctx.tryBailingOn {
+        accept(predicateBuilder)
     }.onFailure {
-        problems.report(PREDICATE_PARSE, ctx.startIndex, ctx.length) {
+        problems.report(SYNTAX_GROUP.child("predicate-parse-exception"), ctx.startIndex) {
             label = "Unexpected error when parsing predicate"
             exception = it
         }

@@ -5,23 +5,23 @@ import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.util.firstNotNull
 import dev.kikugie.stitcher.util.lastNotNull
 
-public sealed interface BlockToken : StitcherToken {
-    public fun <T> accept(visitor: Visitor<T>): T
+sealed interface BlockToken : StitcherToken {
+    fun <T> accept(visitor: Visitor<T>): T
 
-    public interface Visitor<T> {
-        public fun visitContent(content: Content): T
-        public fun visitComment(comment: Comment): T
-        public fun visitCode(code: Code): T
-        public fun visitRoot(root: Root): T
+    interface Visitor<T> {
+        fun visitContent(content: Content): T
+        fun visitComment(comment: Comment): T
+        fun visitCode(code: Code): T
+        fun visitRoot(root: Root): T
     }
 
-    public data class Content(public val leaf: LeafToken) : BlockToken, StitcherToken by leaf {
+    data class Content(val leaf: LeafToken) : BlockToken, StitcherToken by leaf {
         override val type: StitcherType get() = StitcherType.Composite.CONTENT
 
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitContent(this)
     }
 
-    public data class Comment(val opener: LeafToken?, val body: LeafToken, val closer: LeafToken?) : BlockToken {
+    data class Comment(val opener: LeafToken?, val body: LeafToken, val closer: LeafToken?) : BlockToken {
         override val type: StitcherType get() = StitcherType.Composite.COMMENT
         override val start: Int = firstNotNull(opener, body).start
         override val end: Int = lastNotNull(body, closer).end
@@ -29,7 +29,7 @@ public sealed interface BlockToken : StitcherToken {
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitComment(this)
     }
 
-    public data class Code(
+    data class Code(
         val host: Comment, val marker: LeafToken,
         val definition: DefinitionToken, val scope: List<BlockToken> = emptyList()
     ) : BlockToken {
@@ -40,7 +40,7 @@ public sealed interface BlockToken : StitcherToken {
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitCode(this)
     }
 
-    public data class Root(val scope: List<BlockToken>) : BlockToken {
+    data class Root(val scope: List<BlockToken>) : BlockToken {
         override val type: StitcherType get() = StitcherType.Composite.ROOT
         override val start: Int = scope.firstOrNull()?.start ?: 0
         override val end: Int = scope.lastOrNull()?.end ?: 0
