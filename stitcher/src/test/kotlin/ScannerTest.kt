@@ -1,7 +1,7 @@
 import dev.kikugie.commons.text.getOrDefault
+import dev.kikugie.stitcher.antlr.charStream
 import dev.kikugie.stitcher.antlr.scanner.SlashStyleScanner
-import dev.kikugie.stitcher.util.asSequence
-import dev.kikugie.stitcher.util.toStream
+import dev.kikugie.stitcher.antlr.toSequence
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
@@ -22,7 +22,7 @@ private data class ScanSpec(
     override fun toString(): String = "${lexer::class.simpleName}: [$pattern]"
     fun run() {
         var hasAtLeastOne = false
-        for ((i, token) in lexer.asSequence().withIndex()) {
+        for ((i, token) in lexer.toSequence().withIndex()) {
             hasAtLeastOne = true
             withClue("At $i: $token") {
                 when (pattern.getOrDefault(i)) {
@@ -37,7 +37,7 @@ private data class ScanSpec(
 
     class Template(val lexer: (CharStream) -> Lexer, val openers: IntArray, val closers: IntArray) {
         context(collector: SequenceScope<ScanSpec>) suspend fun yield(pattern: String, text: String) =
-            collector.yield(ScanSpec(lexer(text.toStream()), openers.toList(), closers.toList(), pattern))
+            collector.yield(ScanSpec(lexer(text.charStream()), openers.toList(), closers.toList(), pattern))
     }
 }
 

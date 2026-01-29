@@ -6,10 +6,9 @@ import dev.kikugie.stitcher.antlr.AntlrToken
 import dev.kikugie.stitcher.antlr.indexedName
 import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.ProblemID
-import dev.kikugie.stitcher.issue.ProblemReporter
+import dev.kikugie.stitcher.issue.report
 import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.token.StitcherType.Layout
-import dev.kikugie.stitcher.util.report
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.Lexer
 import org.antlr.v4.runtime.TokenSource
@@ -59,7 +58,7 @@ class ScannerAdapter(
      * a specific [Lexer], [openers][ScannerAdapter.openers] and [closers][ScannerAdapter.closers].
      */
     fun interface Factory : Serializable {
-        fun create(input: CharStream, problems: ProblemReporter): ScannerAdapter
+        fun create(input: CharStream, problems: FileProblemReporter): ScannerAdapter
     }
 
     private data class Checkpoint(val cursor: Int, val line: Int, val offset: Int, val comment: Boolean)

@@ -7,9 +7,6 @@ plugins {
 
 dependencies {
     antlr(libs.antlr)
-    api(project("reporter"))
-    api(project("replacer"))
-    implementation(project("antlr-ext"))
     implementation(common.misc.semver)
     implementation(common.misc.commons)
     implementation(common.kotlin.stdlib)
@@ -20,7 +17,7 @@ dependencies {
 }
 
 antlr {
-    sourceSets.register("main") {
+    sourceSets.create("main") {
         visitor = true
         libs.addAll("dev.kikugie.stitcher.antlr", "dev.kikugie.stitcher.antlr.scanner")
     }

@@ -6,6 +6,7 @@ import dev.kikugie.commons.then
 import dev.kikugie.stitcher.antlr.AntlrToken
 import dev.kikugie.stitcher.antlr.endIndex
 import dev.kikugie.stitcher.issue.FileProblemReporter
+import dev.kikugie.stitcher.issue.report
 import dev.kikugie.stitcher.parser.LAYOUT_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.fromAntlrToken

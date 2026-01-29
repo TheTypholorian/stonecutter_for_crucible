@@ -1,94 +1,95 @@
 package dev.kikugie.stitcher.transform
 
+import dev.kikugie.stitcher.antlr.AntlrToken
 import dev.kikugie.stitcher.antlr.InlineErrorListener
 import dev.kikugie.stitcher.antlr.InlineTokenStream
 import dev.kikugie.stitcher.antlr.StitcherLexer.QUOTED
-import dev.kikugie.stitcher.antlr.SwapTemplate
-import dev.kikugie.stitcher.data.composite.*
-import dev.kikugie.stitcher.data.eval.BlockIsBlankVisitor.isBlank
-import dev.kikugie.stitcher.data.eval.BlockRangeVisitor.range
-import dev.kikugie.stitcher.data.eval.BlockStartVisitor.start
-import dev.kikugie.stitcher.data.eval.BlockStopVisitor.stop
-import dev.kikugie.stitcher.data.eval.BlockToStringVisitor.Companion.join
-import dev.kikugie.stitcher.data.leaf.LeafToken
-import dev.kikugie.stitcher.data.leaf.LeafType
-import dev.kikugie.stitcher.issue.ProblemSource
-import dev.kikugie.stitcher.issue.at
+import dev.kikugie.stitcher.antlr.TokenStreamIterator
+import dev.kikugie.stitcher.antlr.charStream
+import dev.kikugie.stitcher.issue.FileProblemReporter
+import dev.kikugie.stitcher.issue.location
+import dev.kikugie.stitcher.issue.runMarked
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.adapter.ScannerAdapter
 import dev.kikugie.stitcher.parser.layout.LayoutParser
-import dev.kikugie.stitcher.transform.impl.ExpressionEvaluator
+import dev.kikugie.stitcher.replacement.findInsertionPlaces
+import dev.kikugie.stitcher.token.StitcherType
+import dev.kikugie.stitcher.token.StitcherType.Layout
+import dev.kikugie.stitcher.token.eval.join
+import dev.kikugie.stitcher.token.eval.scopeEnd
+import dev.kikugie.stitcher.token.eval.scopeStart
+import dev.kikugie.stitcher.token.impl.BlockToken
+import dev.kikugie.stitcher.token.impl.DefinitionToken
+import dev.kikugie.stitcher.token.impl.LeafToken
 import dev.kikugie.stitcher.util.*
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.Pair
 
 internal data class BlockTransformer(
-    val runtime: RuntimeState,
     val params: TransformParameters,
-    val factory: StitcherTokenFactory
+    val factory: StitcherTokenFactory,
+    val input: CharStream,
+    val problems: FileProblemReporter,
 ) : BlockToken.Visitor<BlockToken> {
-    private val evaluator: ExpressionEvaluator by lazy { ExpressionEvaluator(params, runtime.problems) }
+    private val evaluator: ExpressionEvaluator = ExpressionEvaluator(params)
+    private val checker: InvalidParameterChecker = InvalidParameterChecker(params, problems)
     private var visitedEnabledBlock: Boolean = false
 
-    override fun visitRoot(root: RootBlock) = root.copy(scope = root.scope.map { it.accept(this) })
-    override fun visitCode(code: CodeBlock) = code.copy(scope = code.definition.accept(ScopeTransformer(code)))
-    override fun visitComment(comment: CommentBlock): BlockToken {
-        if (comment.opener != null && comment.closer != null) {
-            if (!runtime.replacer.isFinalized) return comment
-            val content = buildString {
-                append(comment.opener.text)
-                append(comment.body.text.let { runtime.replacer.replace(it) ?: it })
-                append(comment.closer.text)
-            }
-            return factory.create(LeafType(LayoutParser.CONTENT), comment.range(), content).let(::ContentBlock)
-        }
+    override fun visitRoot(root: BlockToken.Root): BlockToken =
+        root.copy(scope = root.scope.map { it.accept(this) })
 
-        val start = comment.start()
-        val closer = comment.closer?.text.orEmpty()
-        var content = params.commenter.comment(comment.body.text, false)
-        if (closer.hasLineBreak()) content += closer
-        if (runtime.replacer.isFinalized)
-            content = runtime.replacer.replace(content) ?: content
+    override fun visitCode(code: BlockToken.Code): BlockToken =
+        code.copy(scope = code.definition.accept(ScopeTransformer(code)))
 
-        // TODO: Check if reparsing the comment is needed
-        return factory.create(LeafType(LayoutParser.CONTENT), comment.range(), content).let(::ContentBlock)
+    override fun visitComment(comment: BlockToken.Comment): BlockToken {
+        return comment
+//        if (comment.opener != null && comment.closer != null) {
+//            if (!runtime.replacer.isFinalized) return comment
+//            val content = buildString {
+//                append(comment.opener.text)
+//                append(comment.body.text.let { runtime.replacer.replace(it) ?: it })
+//                append(comment.closer.text)
+//            }
+//            return factory.create(LeafType(LayoutParser.CONTENT), comment.range(), content).let(::ContentBlock)
+//        }
+//
+//        val start = comment.start()
+//        val closer = comment.closer?.text.orEmpty()
+//        var content = params.commenter.comment(comment.body.text, false)
+//        if (closer.hasLineBreak()) content += closer
+//        if (runtime.replacer.isFinalized)
+//            content = runtime.replacer.replace(content) ?: content
+//
+//        // TODO: Check if reparsing the comment is needed
+//        return factory.create(LeafType(LayoutParser.CONTENT), comment.range(), content).let(::ContentBlock)
     }
 
-    override fun visitContent(content: ContentBlock): BlockToken =
-        if (content.isBlank()) content else runtime.replacer.replace(content.join())
-            ?.let { ContentBlock(content.leaf.copy(text = it)) } ?: content
+    override fun visitContent(content: BlockToken.Content): BlockToken = content
 
-    private fun visitScope(tokens: Iterable<BlockToken>): List<BlockToken> {
+    private fun visitScope(tokens: Collection<BlockToken>): List<BlockToken> {
+        if (tokens.isEmpty()) return emptyList()
         val copy = this@BlockTransformer.copy()
         return tokens.map { it.accept(copy) }
     }
 
-    private inner class ScopeTransformer(val host: CodeBlock) : DefinitionToken.Visitor<List<BlockToken>> {
-        override fun visitReplacement(repl: ReplacementDefinition): List<BlockToken> {
-            runtime.replacer += host
-            return emptyList()
+    private inner class ScopeTransformer(val code: BlockToken.Code) : DefinitionToken.Visitor<List<BlockToken>> {
+        override fun visitReplacement(repl: DefinitionToken.Replacement): List<BlockToken> = emptyList()
+
+        override fun visitSwap(swap: DefinitionToken.Swap): List<BlockToken> {
+            if (swap !is DefinitionToken.SwapOpener || !swap.accept(checker)) return emptyList()
+
+            val replacement = processTemplate(params.swaps[swap.identifier.text]!!, swap.arguments)
+            val content = params.replacer.replace(code.scope.join(), replacement)
+            val start = code.scope.firstOrNull()?.start ?: code.host.end
+            val end = code.scope.lastOrNull()?.end ?: code.host.end
+
+            val token = factory.create(Layout.CONTENT, start, end, content)
+            return listOf(BlockToken.Content(token))
         }
 
-        override fun visitSwap(swap: SwapDefinition): List<BlockToken> {
-            runtime.replacer.finalize()
-            if (swap !is SwapDefinition.Opener) return emptyList()
-
-            val template = params.swaps[swap.identifier.text]
-            if (template == null) {
-                at(swap.identifier) report "Unresolved swap identifier '${swap.identifier.text}'"
-                return host.scope
-            }
-
-            val replacement = processTemplate(host.marker.range.first, swap.identifier.text, template, swap.arguments)
-            val content = params.replacer.replace(host.scope.join(), replacement)
-            val token = factory.create(LeafType(LayoutParser.CONTENT), host.scope.range(host.host.stop()), content)
-            return ContentBlock(token).let(::listOf)
-        }
-
-        override fun visitCondition(cond: ConditionDefinition): List<BlockToken> {
-            runtime.replacer.finalize()
-            if (cond !is ConditionDefinition.Extension) visitedEnabledBlock = false
-            if (cond is ConditionDefinition.Closer) return emptyList()
+        override fun visitCondition(cond: DefinitionToken.Condition): List<BlockToken> {
+            if (cond !is DefinitionToken.ConditionExtension) visitedEnabledBlock = false
+            if (cond is DefinitionToken.ConditionCloser || !cond.accept(checker)) return emptyList()
 
             // In an if-else chain makes the rest of the blocks disabled
             val shouldEnable = cond.expression?.accept(evaluator) ?: true
@@ -96,65 +97,73 @@ internal data class BlockTransformer(
             visitedEnabledBlock = shouldEnable || visitedEnabledBlock
 
             return when {
-                shouldEnable -> if (host.scope.isCommented()) uncommentScope() else visitScope(host.scope)
-                else -> if (!host.scope.isCommented()) commentScope() else visitScope(host.scope)
+                shouldEnable -> if (code.scope.isCommented()) uncommentScope() else visitScope(code.scope)
+                else -> if (!code.scope.isCommented()) commentScope() else visitScope(code.scope)
             }
         }
 
-        private fun uncommentScope(): List<BlockToken> {
-            if (host.scope.isEmpty()) return emptyList()
+        private fun processTemplate(template: String, tokens: List<LeafToken>): String {
+            if (tokens.isEmpty()) return template
 
-            val stream: TokenStream = BlockUncommenter(host.scope, params, runtime).let(::CommonTokenStream)
-            val factory: StitcherTokenFactory = StitcherTokenFactory.Inline(host.start())
-            val tokens: List<BlockToken> = LayoutParser.parse(stream, runtime.input, runtime.problems, factory).scope
-            return if (tokens.isEmpty()) emptyList() else visitScope(tokens)
+            var offset = 0
+            val builder = StringBuilder(template)
+            val insertions = tokens.map {
+                if (it.type == StitcherType.Leaf[QUOTED]) it.text.removeSurrounding("'") else it.text
+            }
+            for (place in template.findInsertionPlaces())
+                offset += place.apply(builder, offset) { insertions[it - 1] }
+            return builder.toString()
+        }
+
+        private fun uncommentScope(): List<BlockToken> {
+            if (code.scope.isEmpty()) return emptyList()
+
+            val stream: TokenStream = BlockUncommenter(params, input, problems, code.scope).let(::CommonTokenStream)
+            val factory: StitcherTokenFactory = StitcherTokenFactory.Inline(code.host.end)
+            val block: BlockToken.Root = problems.runMarked({ LayoutParser.parse(stream, input, factory, problems) }) {
+                return it.scope
+            }
+
+            return visitScope(block.scope)
         }
 
         private fun commentScope(): List<BlockToken> {
-            if (host.scope.isEmpty()) return emptyList()
+            if (code.scope.isEmpty()) return emptyList()
 
-            val start: Int = host.start()
-            val reprocessed: List<BlockToken> = visitScope(host.scope)
-            val content: String = params.commenter.comment(reprocessed.join(), host.definition.opener == null)
-            return factory.create(LeafType(LayoutParser.CONTENT), host.range(), content).let { listOf(ContentBlock(it)) }
-
-            // TODO: Check if reparsing the comment is needed
-            // val content: CharStream = params.commenter.comment(reprocessed.join(), false).toStream(runtime.input.sourceName)
-            // val stream: TokenStream = params.adapter.create(content, runtime).let { InlineTokenStream(it, runtime.input, start, at(start)) }
-            // return LayoutParser.parse(stream, runtime.input, runtime, factory).scope
+            // TODO: Is reprocessing needed if the reformat task is going to be added?
+            val content: String = params.commenter.comment(code.scope.join(), code.definition.opener == null)
+            return listOf(BlockToken.Content(factory.create(Layout.CONTENT, code.scopeStart, code.scopeEnd, content)))
         }
     }
 }
 
 private class BlockUncommenter(
+    val params: TransformParameters,
+    val input: CharStream,
+    val problems: FileProblemReporter,
     blocks: List<BlockToken>,
-    val parameters: TransformParameters,
-    val runtime: RuntimeState,
     list: MutableList<AntlrToken> = mutableListOf()
 ) : ListTokenSource(list) {
+    private val source: Pair<TokenSource?, CharStream?> = Pair(this, input)
+
     init {
-        val source: Pair<TokenSource, CharStream> = Pair(this, runtime.input)
-        for (it: BlockToken in blocks) match(list, source, it)
+        for (it in blocks) match(list, it)
     }
 
-    private fun match(tokens: MutableList<AntlrToken>, source: Pair<TokenSource, CharStream>, block: BlockToken): Unit = when (block) {
-        is ContentBlock -> {
-            tokens += tokenFactory.create(source, LayoutParser.CONTENT, block.leaf.text, block.leaf.range, runtime.problems.at(block.leaf))
+    private fun match(tokens: MutableList<AntlrToken>, block: BlockToken): Unit = when (block) {
+        is BlockToken.Content -> with(block) {
+            tokens += tokenFactory.create(source, leaf, problems)
         }
 
-        is CommentBlock -> {
-            val start: Int = block.body.range.first
-            val content: CharStream = parameters.uncommenter.uncomment(block.body.text, block.opener?.text.orEmpty(), block.closer?.text.orEmpty())
-                .toStream(runtime.input.sourceName)
-            val scanner: ScannerAdapter = parameters.adapter.create(content, runtime.problems).apply {
-                scanner.errorListener(InlineErrorListener(runtime.problems, runtime.problems.at(start)))
+        is BlockToken.Comment -> with(block) {
+            val location = problems.location(body)
+            val content = params.uncommenter.uncomment(body.text, opener?.text.orEmpty(), closer?.text.orEmpty())
+                .charStream(input.sourceName)
+            val scanner = params.adapter.create(content, problems).apply {
+                scanner.errorListener(InlineErrorListener(location, problems))
             }
-
-            var next: AntlrToken
-            val stream = InlineTokenStream(scanner, runtime.input, start, runtime.problems.at(start))
-            while (stream.LT(1).also { next = it }.type != AntlrToken.EOF) {
-                tokens += next; stream.consume()
-            }
+            val stream = InlineTokenStream(source, CommonTokenStream(scanner), location)
+            TokenStreamIterator(stream).forEach(tokens::add)
         }
 
         else -> error("Illegal block type ${block::class.simpleName}")
@@ -162,24 +171,4 @@ private class BlockUncommenter(
 }
 
 private fun List<BlockToken>.isCommented(): Boolean =
-    all { it is CommentBlock || (it is ContentBlock && it.isBlank()) }
-
-private fun ProblemSource.processTemplate(pos: Int, id: String, replacement: String, tokens: List<LeafToken>): String {
-    if (tokens.isEmpty()) return replacement
-    val insertionValues = tokens.map { if (it.type.value == QUOTED) it.text.removeSurrounding("'") else it.text }
-    val insertionPlaces = SwapTemplate(replacement.toStream()).asSequence().map(AntlrToken::range)
-
-    return buildString(replacement) {
-        var offset = 0
-        for (range in insertionPlaces) {
-            val placeholder = replacement.substring(range)
-            val insertion = insertionValues.getOrElse(placeholder.substring(1).toInt() - 1) {
-                at(pos) report "Swap '$id' placeholder $placeholder is not in ${insertionValues.size} parameters"
-                continue
-            }
-
-            replace(range.first + offset, range.last + 1 + offset, insertion)
-            offset += insertion.length - placeholder.length
-        }
-    }
-}
+    all { it is BlockToken.Comment || (it is BlockToken.Content && it.isBlank()) }

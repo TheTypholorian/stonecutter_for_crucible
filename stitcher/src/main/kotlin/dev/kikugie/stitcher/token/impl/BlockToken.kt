@@ -19,6 +19,7 @@ sealed interface BlockToken : StitcherToken {
         override val type: StitcherType get() = StitcherType.Composite.CONTENT
 
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitContent(this)
+        fun isBlank(): Boolean = leaf.text.isBlank()
     }
 
     data class Comment(val opener: LeafToken?, val body: LeafToken, val closer: LeafToken?) : BlockToken {
@@ -27,6 +28,7 @@ sealed interface BlockToken : StitcherToken {
         override val end: Int = lastNotNull(body, closer).end
 
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitComment(this)
+        fun isBlank(): Boolean = body.text.isBlank()
     }
 
     data class Code(

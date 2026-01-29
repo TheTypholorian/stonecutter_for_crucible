@@ -3,19 +3,17 @@ package util
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stitcher.antlr.scanner.HashStyleScanner
 import dev.kikugie.stitcher.antlr.scanner.SlashStyleScanner
-import dev.kikugie.stitcher.issue.ProblemCause
-import dev.kikugie.stitcher.issue.ProblemConsumer
-import dev.kikugie.stitcher.issue.ProblemLocation
-import dev.kikugie.stitcher.issue.ProblemSource
+import dev.kikugie.stitcher.issue.FileProblemReporter
+import dev.kikugie.stitcher.issue.ProblemReport
 import dev.kikugie.stitcher.parser.adapter.ScannerAdapter
 import dev.kikugie.stitcher.process
+import dev.kikugie.stitcher.replacement.Replacement
+import dev.kikugie.stitcher.replacement.ReplacementBuilder
+import dev.kikugie.stitcher.replacement.StringReplacement
 import dev.kikugie.stitcher.transform.TransformParameters
 import dev.kikugie.stitcher.transform.impl.LineCommentStrategy
 import dev.kikugie.stitcher.transform.impl.StandardSwapStrategy
 import dev.kikugie.stitcher.transform.impl.StarCommentStrategy
-import dev.kikugie.stitcher.transform.replacement.Replacement
-import dev.kikugie.stitcher.transform.replacement.ReplacementBuilder
-import dev.kikugie.stitcher.transform.replacement.StringReplacement
 import dev.kikugie.stitcher.transform.strategy.CommentingStrategy
 import dev.kikugie.stitcher.transform.strategy.SwappingStrategy
 import dev.kikugie.stitcher.transform.strategy.UncommentingStrategy
@@ -23,26 +21,30 @@ import io.kotest.core.TestConfiguration
 import io.kotest.engine.spec.tempfile
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.Lexer
-import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.writeText
 
-val PROBLEM_REPORTER = ProblemConsumer { file: Path, location: ProblemLocation, problem: ProblemCause ->
+val PROBLEM_REPORTER: (ProblemReport) -> Unit = { report: ProblemReport ->
     println(buildString {
-        append("e: ${formatLocation(file, location)} ${problem.message}")
-        if (problem.exception != null) append("\nCaused by: ${problem.exception.stackTraceToString()}")
+        append("e: ${formatLocation(report)} ${report.label}")
+        if (report.details != null) append("\n${report.details}")
+        if (report.exception != null) append("\nCaused by: ${report.exception!!.stackTraceToString()}")
     })
 }
 
-val IMMEDIATE_THROW = ProblemConsumer { file: Path, location: ProblemLocation, problem: ProblemCause ->
-    throw AssertionError(problem.message).apply {
-        if (problem.exception != null) initCause(problem.exception)
+val IMMEDIATE_THROW: (ProblemReport) -> Unit = { report: ProblemReport ->
+    throw AssertionError(buildString {
+        append(report.label)
+        if (report.details != null) append("\n${report.details}")
+    }).apply {
+        if (report.exception != null) initCause(report.exception)
     }
 }
 
-private fun formatLocation(file: Path, location: ProblemLocation): String = buildString {
-    append("file://${file.absolutePathString()}")
+private fun formatLocation(report: ProblemReport): String = buildString {
+    val location = checkNotNull(report.location)
+    append("file://${location.file.absolutePathString()}")
     if (location.line >= 1) {
         append(":${location.line}")
         if (location.column >= 1)
@@ -108,7 +110,7 @@ class TransformParametersBuilder {
             val openers: Set<Int>,
             val closers: Set<Int>
         ) : ScannerAdapter.Factory {
-            override fun create(input: CharStream, problems: ProblemSource): ScannerAdapter =
+            override fun create(input: CharStream, problems: FileProblemReporter): ScannerAdapter =
                 ScannerAdapter(constructor(input), openers.toIntArray(), closers.toIntArray(), problems)
         }
     }

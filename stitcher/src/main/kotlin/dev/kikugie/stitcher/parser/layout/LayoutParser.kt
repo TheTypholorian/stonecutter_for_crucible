@@ -11,8 +11,10 @@ import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken.Kind
 import dev.kikugie.stitcher.util.*
 import org.antlr.v4.runtime.CharStream
+import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.Token.EOF
 import org.antlr.v4.runtime.TokenStream
+import org.antlr.v4.runtime.misc.Pair
 import java.util.*
 
 /**
@@ -32,7 +34,7 @@ internal class LayoutParser private constructor(
     val problems: FileProblemReporter,
 ) {
     private val stack: Deque<BlockBuilder.Scoped> = ArrayDeque(4)
-    private val visitor: StitcherVisitor<Pair<AntlrToken, DefinitionToken>> = DefinitionBuilder.paired(factory, problems)
+    private val visitor: StitcherVisitor<kotlin.Pair<AntlrToken, DefinitionToken>> = DefinitionBuilder.paired(factory, problems)
 
     init {
         stack += RootBuilder(factory)
@@ -182,7 +184,7 @@ internal class LayoutParser private constructor(
         }
     }
 
-    private fun parseCommentBody(body: AntlrToken): Pair<AntlrToken, DefinitionToken>? {
+    private fun parseCommentBody(body: AntlrToken): kotlin.Pair<AntlrToken, DefinitionToken>? {
         if (body.stopIndex < body.startIndex)
             return null // Empty comment body
 
@@ -195,7 +197,7 @@ internal class LayoutParser private constructor(
         val location = problems.location(body)
         val listener = InlineErrorListener(location, problems)
         val scanner = StitcherLexer(input).errorListener(listener)
-        val stream = InlineTokenStream(scanner, source, body.startIndex, location)
+        val stream = InlineTokenStream(Pair(scanner, source), CommonTokenStream(scanner), location)
         val parser = StitcherParser(stream).errorListener(listener)
         return parser.definition().accept(visitor)
     }

@@ -55,7 +55,7 @@ open class SharedSetupPlugin : Plugin<Project> {
 
         afterEvaluate {
             tasks.withType<AntlrTask> {
-                val type = name.removeSurrounding("generate", "GrammarSources").lowercase().ifBlank { "main" }
+                val type = name.removeSurrounding("generate", "GrammarSource").lowercase().ifBlank { "main" }
                 val conf = ext.sourceSets.findByName(type) ?: return@withType
                 val args = buildList {
                     if (conf.longMessages.get()) this += "-long-messages"
