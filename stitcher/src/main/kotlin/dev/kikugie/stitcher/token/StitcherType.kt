@@ -2,9 +2,17 @@ package dev.kikugie.stitcher.token
 
 import dev.kikugie.stitcher.antlr.StitcherLexer
 
+private const val INIT_TYPE = StitcherLexer.WHITESPACE + 1
+
 sealed interface StitcherType {
     val value: Int
     val name: String
+
+    companion object {
+        fun of(type: Int): StitcherType =
+            if (type < INIT_TYPE) AntlrStitcherType.of(type)
+            else NativeStitcherType.of(type)
+    }
 }
 
 @ConsistentCopyVisibility
@@ -34,8 +42,6 @@ enum class NativeStitcherType : StitcherType {
     inline operator fun component2(): String = name
 
     companion object {
-        private const val INIT_TYPE = StitcherLexer.WHITESPACE + 1
-
         init {
             check(INIT_TYPE == StitcherLexer.VOCABULARY.maxTokenType + 1) {
                 "INIT_TYPE is expected to be ${StitcherLexer.VOCABULARY.maxTokenType + 1}, got $INIT_TYPE"

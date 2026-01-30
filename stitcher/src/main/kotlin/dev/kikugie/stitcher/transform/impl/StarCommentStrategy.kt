@@ -114,3 +114,7 @@ public class StarCommentStrategy(private val flattenComments: Boolean) : Comment
         insert(scope.countMatching(*WHITESPACES), "//")
     }
 }
+
+internal enum class SuperscriptType {
+    NONE, IMPLICIT_ZERO, NUMERIC
+}

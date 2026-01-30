@@ -87,7 +87,7 @@ internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems
         override fun visitWordScopeOpener(ctx: StitcherParser.WordScopeOpenerContext): ScopeToken {
             val marker = factory.fromAntlrNode(ctx.SCOPE_WORD())
             val plus = ctx.PLUS()?.let(factory::fromAntlrNode)
-            val lookup = ctx.PLUS()?.let(factory::fromAntlrNode)
+            val lookup = ctx.literal()?.let { factory.fromAntlrToken(it.start) }
             return ScopeToken.Lookup(marker, plus, lookup)
         }
     }

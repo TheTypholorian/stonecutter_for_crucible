@@ -96,7 +96,7 @@ class SyntaxTest : FreeSpec({
         }
     }
 
-    "extended word" - {
+    "lookup" - {
         "disable non-capturing" {
             @Language("JAVA") val content = """
                 //? if false >> '='
