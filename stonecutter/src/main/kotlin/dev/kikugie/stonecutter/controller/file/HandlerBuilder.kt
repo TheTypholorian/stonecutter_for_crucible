@@ -1,10 +1,10 @@
 package dev.kikugie.stonecutter.controller.file
 
-import dev.kikugie.stitcher.transform.impl.LineCommentStrategy
-import dev.kikugie.stitcher.transform.impl.StandardSwapStrategy
-import dev.kikugie.stitcher.transform.strategy.CommentingStrategy
-import dev.kikugie.stitcher.transform.strategy.SwappingStrategy
-import dev.kikugie.stitcher.transform.strategy.UncommentingStrategy
+import dev.kikugie.stitcher.transformer.impl.LineCommentStrategy
+import dev.kikugie.stitcher.transformer.impl.StandardSwapStrategy
+import dev.kikugie.stitcher.transformer.strategy.CommentingStrategy
+import dev.kikugie.stitcher.transformer.strategy.SwappingStrategy
+import dev.kikugie.stitcher.transformer.strategy.UncommentingStrategy
 import org.gradle.api.Action
 import org.gradle.api.Named
 import org.gradle.api.model.ObjectFactory

@@ -1,15 +1,10 @@
-package dev.kikugie.stitcher.transform.impl
+package dev.kikugie.stitcher.transformer.impl
 
 import dev.kikugie.commons.text.countMatching
-import dev.kikugie.commons.text.countWhile
 import dev.kikugie.commons.text.getOrDefault
-import dev.kikugie.commons.text.reverseView
-import dev.kikugie.commons.then
-import dev.kikugie.stitcher.transform.strategy.CommentingStrategy
-import dev.kikugie.stitcher.transform.strategy.UncommentingStrategy
-import dev.kikugie.stitcher.util.LINE_BREAKS
+import dev.kikugie.stitcher.transformer.strategy.CommentingStrategy
+import dev.kikugie.stitcher.transformer.strategy.UncommentingStrategy
 import dev.kikugie.stitcher.util.WHITESPACES
-import dev.kikugie.stitcher.util.WORD_BREAKS
 import dev.kikugie.stitcher.util.buildString
 import dev.kikugie.stitcher.util.hasLineBreak
 
@@ -113,8 +108,4 @@ public class StarCommentStrategy(private val flattenComments: Boolean) : Comment
     private fun commentLine(scope: String): String = buildString(scope) {
         insert(scope.countMatching(*WHITESPACES), "//")
     }
-}
-
-internal enum class SuperscriptType {
-    NONE, IMPLICIT_ZERO, NUMERIC
 }

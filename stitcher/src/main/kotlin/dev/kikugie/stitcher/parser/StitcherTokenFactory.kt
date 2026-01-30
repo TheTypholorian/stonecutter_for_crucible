@@ -15,7 +15,7 @@ internal val SYNTAX_GROUP: ProblemID = ProblemID("comment-syntax")
  * Factory interface for creating [LeafToken] instances.
  *
  * The factory **must** be used in favour of direct instantiation,
- * as during the [BlockTransformer][dev.kikugie.stitcher.transform.BlockTransformer]
+ * as during the [BlockTransformer][dev.kikugie.stitcher.transformer.BlockTransformer]
  * pass regions are evaluated as isolated files, with the factory carrying the
  * necessary token location modifiers.
  */

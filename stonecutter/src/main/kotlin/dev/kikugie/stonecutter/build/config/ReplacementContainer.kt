@@ -3,8 +3,8 @@ package dev.kikugie.stonecutter.build.config
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.build.config.ReplacementContainer.RegexReplacementSpec
 import dev.kikugie.stonecutter.build.config.ReplacementContainer.StringReplacementSpec
-import dev.kikugie.stitcher.transform.replacement.RegexReplacement
-import dev.kikugie.stitcher.transform.replacement.StringReplacement
+import dev.kikugie.stitcher.transformer.replacement.RegexReplacement
+import dev.kikugie.stitcher.transformer.replacement.StringReplacement
 import dev.kikugie.stitcher.util.IDENTIFIER_PATTERN
 import dev.kikugie.stitcher.util.isValidIdentifier
 import org.gradle.api.Action

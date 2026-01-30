@@ -1,4 +1,4 @@
-package dev.kikugie.stitcher.transform
+package dev.kikugie.stitcher.transformer
 
 import dev.kikugie.stitcher.antlr.*
 import dev.kikugie.stitcher.issue.FileProblemReporter

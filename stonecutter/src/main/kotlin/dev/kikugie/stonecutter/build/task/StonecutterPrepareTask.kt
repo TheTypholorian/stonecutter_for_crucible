@@ -1,6 +1,5 @@
 package dev.kikugie.stonecutter.build.task
 
-import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.tree.ParametersModel
@@ -12,7 +11,7 @@ import dev.kikugie.stitcher.issue.ProblemCause
 import dev.kikugie.stitcher.issue.ProblemConsumer
 import dev.kikugie.stitcher.issue.ProblemLocation
 import dev.kikugie.stitcher.process
-import dev.kikugie.stitcher.transform.TransformParameters
+import dev.kikugie.stitcher.transformer.TransformParameters
 import dev.kikugie.stonecutter.controller.file.HandlerModel
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -23,7 +22,6 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
-import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
 import org.gradle.api.services.ServiceReference
 import org.gradle.api.tasks.*

@@ -1,6 +1,6 @@
-package dev.kikugie.stitcher.transform.impl
+package dev.kikugie.stitcher.transformer.impl
 
-import dev.kikugie.stitcher.transform.strategy.CommentingStrategy
+import dev.kikugie.stitcher.transformer.strategy.CommentingStrategy
 import dev.kikugie.stitcher.util.LINE_BREAKS
 import dev.kikugie.stitcher.util.WORD_BREAKS
 

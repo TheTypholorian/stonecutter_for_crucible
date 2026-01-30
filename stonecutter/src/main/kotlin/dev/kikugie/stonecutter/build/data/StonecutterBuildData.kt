@@ -8,9 +8,9 @@ import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.controller.StonecutterControllerExtension
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.util.newInstance
-import dev.kikugie.stitcher.transform.replacement.RegexReplacement
-import dev.kikugie.stitcher.transform.replacement.ReplacementBuilder
-import dev.kikugie.stitcher.transform.replacement.StringReplacement
+import dev.kikugie.stitcher.transformer.replacement.RegexReplacement
+import dev.kikugie.stitcher.transformer.replacement.ReplacementBuilder
+import dev.kikugie.stitcher.transformer.replacement.StringReplacement
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty

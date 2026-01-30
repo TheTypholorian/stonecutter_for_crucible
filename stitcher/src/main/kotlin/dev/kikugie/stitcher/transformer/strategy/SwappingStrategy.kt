@@ -1,4 +1,4 @@
-package dev.kikugie.stitcher.transform.strategy
+package dev.kikugie.stitcher.transformer.strategy
 
 import java.io.Serializable
 

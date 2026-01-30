@@ -10,9 +10,9 @@ import dev.kikugie.stitcher.issue.runMarked
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.layout.LayoutParser
 import dev.kikugie.stitcher.token.eval.join
-import dev.kikugie.stitcher.transform.BlockTransformer
-import dev.kikugie.stitcher.transform.InvalidParameterChecker
-import dev.kikugie.stitcher.transform.TransformParameters
+import dev.kikugie.stitcher.transformer.BlockTransformer
+import dev.kikugie.stitcher.transformer.InvalidParameterChecker
+import dev.kikugie.stitcher.transformer.TransformParameters
 import dev.kikugie.stitcher.util.errorListener
 import org.antlr.v4.runtime.CommonTokenStream
 import java.nio.file.Path

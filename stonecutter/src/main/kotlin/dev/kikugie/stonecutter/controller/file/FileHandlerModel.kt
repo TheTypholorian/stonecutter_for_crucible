@@ -2,9 +2,9 @@ package dev.kikugie.stonecutter.controller.file
 
 import dev.kikugie.stitcher.issue.ProblemSource
 import dev.kikugie.stitcher.parser.adapter.ScannerAdapter
-import dev.kikugie.stitcher.transform.strategy.CommentingStrategy
-import dev.kikugie.stitcher.transform.strategy.SwappingStrategy
-import dev.kikugie.stitcher.transform.strategy.UncommentingStrategy
+import dev.kikugie.stitcher.transformer.strategy.CommentingStrategy
+import dev.kikugie.stitcher.transformer.strategy.SwappingStrategy
+import dev.kikugie.stitcher.transformer.strategy.UncommentingStrategy
 import org.antlr.v4.runtime.CharStream
 import java.io.Serializable
 

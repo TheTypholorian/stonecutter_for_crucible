@@ -2,8 +2,8 @@ package dev.kikugie.stonecutter.controller.file
 
 import dev.kikugie.stitcher.antlr.scanner.HashStyleScanner
 import dev.kikugie.stitcher.antlr.scanner.SlashStyleScanner
-import dev.kikugie.stitcher.transform.impl.LineCommentStrategy
-import dev.kikugie.stitcher.transform.impl.StarCommentStrategy
+import dev.kikugie.stitcher.transformer.impl.LineCommentStrategy
+import dev.kikugie.stitcher.transformer.impl.StarCommentStrategy
 
 internal fun FileHandlerContainer.configureDefaults() {
     configureJava()
