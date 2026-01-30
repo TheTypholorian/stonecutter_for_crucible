@@ -11,6 +11,7 @@ import dev.kikugie.stitcher.issue.bail
 import dev.kikugie.stitcher.parser.SYNTAX_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.fromAntlrRule
+import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.token.impl.PredicateToken
 import org.antlr.v4.runtime.ParserRuleContext
@@ -27,13 +28,13 @@ internal class PredicateBuilder(val factory: StitcherTokenFactory, val problems:
             ?: ctx.stringComparator()?.resolve()
             ?: VersionOperator.IMPLICIT_EQUAL
         val version = ctx.semanticVersion().build()
-        return PredicateToken(factory.fromAntlrRule(ctx, StitcherType.Custom.PREDICATE), VersionPredicate(comparator, version))
+        return PredicateToken(factory.fromAntlrRule(ctx, NativeStitcherType.PREDICATE), VersionPredicate(comparator, version))
     }
 
     override fun visitStringPredicate(ctx: StitcherParser.StringPredicateContext): PredicateToken {
         val comparator = ctx.stringComparator().resolve()
         val version = ctx.stringVersion().build()
-        return PredicateToken(factory.fromAntlrRule(ctx, StitcherType.Custom.PREDICATE), VersionPredicate(comparator, version))
+        return PredicateToken(factory.fromAntlrRule(ctx, NativeStitcherType.PREDICATE), VersionPredicate(comparator, version))
     }
 
     private fun ParserRuleContext.resolve(): VersionOperator = when(getChild(0).type) {

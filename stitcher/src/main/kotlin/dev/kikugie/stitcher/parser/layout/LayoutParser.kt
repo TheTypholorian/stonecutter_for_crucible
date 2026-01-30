@@ -5,11 +5,11 @@ import dev.kikugie.stitcher.issue.*
 import dev.kikugie.stitcher.parser.LAYOUT_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.component.DefinitionBuilder
-import dev.kikugie.stitcher.token.StitcherType.Layout
+import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.impl.BlockToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken.Kind
-import dev.kikugie.stitcher.util.*
+import dev.kikugie.stitcher.util.errorListener
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.Token.EOF
@@ -46,9 +46,9 @@ internal class LayoutParser private constructor(
     }
 
     private fun consumeTokenStream() {
-        while (stream.LA(1) != EOF) when (Layout.getOrNull(stream.LA(1))) {
-            Layout.CONTENT -> handleContent(stream.advance())
-            Layout.COMMENT_OPEN -> handleComment(stream.advance(), stream.advance(), stream.advance())
+        while (stream.LA(1) != EOF) when (NativeStitcherType.of(stream.LA(1))) {
+            NativeStitcherType.CONTENT -> handleContent(stream.advance())
+            NativeStitcherType.COMMENT_OPEN -> handleComment(stream.advance(), stream.advance(), stream.advance())
             else -> reportUnknownToken(stream.advance())
         }
     }

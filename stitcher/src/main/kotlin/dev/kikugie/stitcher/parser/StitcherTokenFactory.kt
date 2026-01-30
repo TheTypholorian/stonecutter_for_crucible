@@ -3,6 +3,7 @@ package dev.kikugie.stitcher.parser
 import dev.kikugie.stitcher.antlr.AntlrToken
 import dev.kikugie.stitcher.antlr.endIndex
 import dev.kikugie.stitcher.issue.ProblemID
+import dev.kikugie.stitcher.token.AntlrStitcherType
 import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.token.impl.LeafToken
 import org.antlr.v4.runtime.ParserRuleContext
@@ -33,10 +34,10 @@ interface StitcherTokenFactory {
     }
 }
 
-fun StitcherTokenFactory.fromAntlrToken(token: AntlrToken, type: StitcherType.TypeFlyweight): LeafToken =
-    create(type[token.type], token.startIndex, token.endIndex, token.text)
+fun StitcherTokenFactory.fromAntlrToken(token: AntlrToken, type: StitcherType = AntlrStitcherType.of(token.type)): LeafToken =
+    create(type, token.startIndex, token.endIndex, token.text)
 
-fun StitcherTokenFactory.fromAntlrNode(node: TerminalNode, type: StitcherType.TypeFlyweight): LeafToken =
+fun StitcherTokenFactory.fromAntlrNode(node: TerminalNode, type: StitcherType = AntlrStitcherType.of(node.symbol.type)): LeafToken =
     fromAntlrToken(node.symbol, type)
 
 fun StitcherTokenFactory.fromAntlrRule(rule: ParserRuleContext, type: StitcherType): LeafToken =

@@ -10,6 +10,7 @@ import dev.kikugie.stitcher.issue.report
 import dev.kikugie.stitcher.parser.LAYOUT_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.fromAntlrToken
+import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.token.impl.BlockToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
@@ -45,7 +46,7 @@ internal class ContentBuilder(
         : this(factory, content.startIndex, content.endIndex, content.text)
 
     override fun build(): BlockToken.Content = BlockToken.Content(
-        factory.create(StitcherType.Composite.CONTENT, start, end, text)
+        factory.create(NativeStitcherType.CONTENT, start, end, text)
     )
 }
 
@@ -57,9 +58,9 @@ internal class CommentBuilder(
 ) : BlockBuilder {
     val text inline get() = body.text
     override fun build(): BlockToken.Comment = BlockToken.Comment(
-        opener?.let { factory.fromAntlrToken(it, StitcherType.Layout) },
-        body.let { factory.fromAntlrToken(it, StitcherType.Layout) },
-        closer?.let { factory.fromAntlrToken(it, StitcherType.Layout) },
+        opener?.let(factory::fromAntlrToken),
+        body.let(factory::fromAntlrToken),
+        closer?.let(factory::fromAntlrToken),
     )
 }
 
@@ -89,7 +90,7 @@ internal class CodeBuilder(
     override fun build(): BlockToken.Code {
         val host = source.build()
         val blocks = entries.map(BlockBuilder::build)
-        return BlockToken.Code(host, factory.fromAntlrToken(marker, StitcherType.Leaf), definition, blocks)
+        return BlockToken.Code(host, factory.fromAntlrToken(marker), definition, blocks)
     }
 
     override fun accept(block: BlockBuilder): BlockAcceptResult = when (definition.kind) {

@@ -8,7 +8,6 @@ import dev.kikugie.stitcher.parser.SYNTAX_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.fromAntlrNode
 import dev.kikugie.stitcher.parser.fromAntlrToken
-import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.ExpressionToken
 import dev.kikugie.stitcher.token.impl.ScopeToken
@@ -25,37 +24,35 @@ internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems
     }
 
     override fun visitOpenerSwap(ctx: StitcherParser.OpenerSwapContext): DefinitionToken {
-        val identifier = factory.fromAntlrNode(ctx.IDENTIFIER(), StitcherType.Leaf)
+        val identifier = factory.fromAntlrNode(ctx.IDENTIFIER())
         val arguments = ctx.swapArguments()?.literal().orEmpty<StitcherParser.LiteralContext>()
-            .map { factory.fromAntlrToken(it.start, StitcherType.Leaf) }
+            .map { factory.fromAntlrToken(it.start) }
         val opener = ctx.scopeOpener()?.accept(scopeTokenBuilder)
         return DefinitionToken.SwapOpener(identifier, arguments, opener)
     }
 
     override fun visitCloserSwap(ctx: StitcherParser.CloserSwapContext): DefinitionToken {
-        val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE(), StitcherType.Leaf)
+        val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE())
         return DefinitionToken.SwapCloser(closer)
     }
 
     override fun visitOpenerCondition(ctx: StitcherParser.OpenerConditionContext): DefinitionToken {
-        val sugar = listOfNotNull(ctx.SUGAR_IF())
-            .map { factory.fromAntlrNode(it, StitcherType.Leaf) }
+        val sugar = listOfNotNull(ctx.SUGAR_IF()).map(factory::fromAntlrNode)
         val expression = ctx.conditionExpression().let(::parseExpression)
         val opener = ctx.scopeOpener()?.accept(scopeTokenBuilder)
         return DefinitionToken.ConditionOpener(sugar, expression, opener)
     }
 
     override fun visitExtensionCondition(ctx: StitcherParser.ExtensionConditionContext): DefinitionToken {
-        val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE(), StitcherType.Leaf)
-        val sugar = listOfNotNull(ctx.SUGAR_ELIF(), ctx.SUGAR_ELSE(), ctx.SUGAR_IF())
-            .map { factory.fromAntlrNode(it, StitcherType.Leaf) }
+        val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE())
+        val sugar = listOfNotNull(ctx.SUGAR_ELIF(), ctx.SUGAR_ELSE(), ctx.SUGAR_IF()).map(factory::fromAntlrNode)
         val expression = ctx.conditionExpression()?.let(::parseExpression)
         val opener = ctx.scopeOpener()?.accept(scopeTokenBuilder)
         return DefinitionToken.ConditionExtension(closer, sugar, expression, opener)
     }
 
     override fun visitCloserCondition(ctx: StitcherParser.CloserConditionContext): DefinitionToken {
-        val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE(), StitcherType.Leaf)
+        val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE())
         return DefinitionToken.ConditionCloser(closer)
     }
 
@@ -83,14 +80,14 @@ internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems
 
     private class ScopeTokenBuilder(val factory: StitcherTokenFactory) : StitcherBaseVisitor<ScopeToken>() {
         override fun visitClosedScopeOpener(ctx: StitcherParser.ClosedScopeOpenerContext): ScopeToken {
-            val marker = factory.fromAntlrNode(ctx.SCOPE_OPEN(), StitcherType.Leaf)
+            val marker = factory.fromAntlrNode(ctx.SCOPE_OPEN())
             return ScopeToken.Closed(marker)
         }
 
         override fun visitWordScopeOpener(ctx: StitcherParser.WordScopeOpenerContext): ScopeToken {
-            val marker = factory.fromAntlrNode(ctx.SCOPE_WORD(), StitcherType.Leaf)
-            val plus = ctx.PLUS()?.let { factory.fromAntlrNode(it, StitcherType.Leaf) }
-            val lookup = ctx.PLUS()?.let { factory.fromAntlrNode(it, StitcherType.Leaf) }
+            val marker = factory.fromAntlrNode(ctx.SCOPE_WORD())
+            val plus = ctx.PLUS()?.let(factory::fromAntlrNode)
+            val lookup = ctx.PLUS()?.let(factory::fromAntlrNode)
             return ScopeToken.Lookup(marker, plus, lookup)
         }
     }

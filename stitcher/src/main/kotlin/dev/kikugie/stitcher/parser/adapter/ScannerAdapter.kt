@@ -7,8 +7,8 @@ import dev.kikugie.stitcher.antlr.indexedName
 import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.ProblemID
 import dev.kikugie.stitcher.issue.report
+import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.StitcherType
-import dev.kikugie.stitcher.token.StitcherType.Layout
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.Lexer
 import org.antlr.v4.runtime.TokenSource
@@ -104,7 +104,7 @@ class ScannerAdapter(
     private fun handleEOF(token: AntlrToken): Boolean {
         if (checkpoint.comment) handleCommentEnd(token)
         else if (checkpoint.cursor < token.startIndex)
-            push(Layout.CONTENT, token.startIndex)
+            push(NativeStitcherType.CONTENT, token.startIndex)
         queue += token
         checkpoint = Checkpoint(-1, -1, -1, false)
         return true
@@ -114,8 +114,8 @@ class ScannerAdapter(
         if (checkpoint.comment)
             return reportInvalidOpener(token) then false
         if (checkpoint.cursor < token.startIndex)
-            push(Layout.CONTENT, token.startIndex)
-        push(Layout.COMMENT_OPEN, token)
+            push(NativeStitcherType.CONTENT, token.startIndex)
+        push(NativeStitcherType.COMMENT_OPEN, token)
         checkpoint = Checkpoint(token, true)
         return true
     }
@@ -123,8 +123,8 @@ class ScannerAdapter(
     private fun handleCommentEnd(token: AntlrToken): Boolean {
         if (!checkpoint.comment)
             return reportInvalidCloser(token) then false
-        push(Layout.COMMENT_BODY, token.startIndex)
-        push(Layout.COMMENT_CLOSE, token)
+        push(NativeStitcherType.COMMENT_BODY, token.startIndex)
+        push(NativeStitcherType.COMMENT_CLOSE, token)
         checkpoint = Checkpoint(token, false)
         return true
     }

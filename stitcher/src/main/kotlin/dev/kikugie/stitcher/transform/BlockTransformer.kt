@@ -1,20 +1,13 @@
 package dev.kikugie.stitcher.transform
 
-import dev.kikugie.stitcher.antlr.AntlrToken
-import dev.kikugie.stitcher.antlr.InlineErrorListener
-import dev.kikugie.stitcher.antlr.InlineTokenStream
-import dev.kikugie.stitcher.antlr.StitcherLexer.QUOTED
-import dev.kikugie.stitcher.antlr.TokenStreamIterator
-import dev.kikugie.stitcher.antlr.charStream
+import dev.kikugie.stitcher.antlr.*
 import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.location
 import dev.kikugie.stitcher.issue.runMarked
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
-import dev.kikugie.stitcher.parser.adapter.ScannerAdapter
 import dev.kikugie.stitcher.parser.layout.LayoutParser
 import dev.kikugie.stitcher.replacement.findInsertionPlaces
-import dev.kikugie.stitcher.token.StitcherType
-import dev.kikugie.stitcher.token.StitcherType.Layout
+import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.eval.join
 import dev.kikugie.stitcher.token.eval.scopeEnd
 import dev.kikugie.stitcher.token.eval.scopeStart
@@ -83,7 +76,7 @@ internal data class BlockTransformer(
             val start = code.scope.firstOrNull()?.start ?: code.host.end
             val end = code.scope.lastOrNull()?.end ?: code.host.end
 
-            val token = factory.create(Layout.CONTENT, start, end, content)
+            val token = factory.create(NativeStitcherType.CONTENT, start, end, content)
             return listOf(BlockToken.Content(token))
         }
 
@@ -108,7 +101,7 @@ internal data class BlockTransformer(
             var offset = 0
             val builder = StringBuilder(template)
             val insertions = tokens.map {
-                if (it.type == StitcherType.Leaf[QUOTED]) it.text.removeSurrounding("'") else it.text
+                if (it.type.value == StitcherLexer.QUOTED) it.text.removeSurrounding("'") else it.text
             }
             for (place in template.findInsertionPlaces())
                 offset += place.apply(builder, offset) { insertions[it - 1] }
@@ -132,7 +125,7 @@ internal data class BlockTransformer(
 
             // TODO: Is reprocessing needed if the reformat task is going to be added?
             val content: String = params.commenter.comment(code.scope.join(), code.definition.opener == null)
-            return listOf(BlockToken.Content(factory.create(Layout.CONTENT, code.scopeStart, code.scopeEnd, content)))
+            return listOf(BlockToken.Content(factory.create(NativeStitcherType.CONTENT, code.scopeStart, code.scopeEnd, content)))
         }
     }
 }

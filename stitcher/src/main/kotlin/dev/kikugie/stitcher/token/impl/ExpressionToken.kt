@@ -1,7 +1,7 @@
 package dev.kikugie.stitcher.token.impl
 
+import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.StitcherToken
-import dev.kikugie.stitcher.token.StitcherType
 
 sealed interface ExpressionToken : StitcherToken {
     fun <T> accept(visitor: Visitor<T>): T
@@ -15,7 +15,7 @@ sealed interface ExpressionToken : StitcherToken {
     }
 
     data class Group(val lb: LeafToken, val body: ExpressionToken, val rb: LeafToken) : ExpressionToken {
-        override val type: StitcherType get() = StitcherType.Composite.GROUP
+        override val type: NativeStitcherType get() = NativeStitcherType.GROUP
         override val start: Int get() = lb.start
         override val end: Int get() = rb.end
 
@@ -23,7 +23,7 @@ sealed interface ExpressionToken : StitcherToken {
     }
 
     data class Unary(val operator: LeafToken, val target: ExpressionToken) : ExpressionToken {
-        override val type: StitcherType get() = StitcherType.Composite.UNARY
+        override val type: NativeStitcherType get() = NativeStitcherType.UNARY
         override val start: Int get() = operator.start
         override val end: Int get() = target.end
 
@@ -31,7 +31,7 @@ sealed interface ExpressionToken : StitcherToken {
     }
 
     data class Binary(val left: ExpressionToken, val operator: LeafToken, val right: ExpressionToken) : ExpressionToken {
-        override val type: StitcherType get() = StitcherType.Composite.BINARY
+        override val type: NativeStitcherType get() = NativeStitcherType.BINARY
         override val start: Int get() = left.start
         override val end: Int get() = right.end
 
@@ -39,7 +39,7 @@ sealed interface ExpressionToken : StitcherToken {
     }
 
     data class Constant(val value: LeafToken) : ExpressionToken {
-        override val type: StitcherType get() = StitcherType.Composite.CONSTANT
+        override val type: NativeStitcherType get() = NativeStitcherType.CONSTANT
         override val start: Int get() = value.start
         override val end: Int get() = value.end
 
@@ -51,7 +51,7 @@ sealed interface ExpressionToken : StitcherToken {
         val operator: LeafToken?,
         val predicates: List<PredicateToken>
     ) : ExpressionToken {
-        override val type: StitcherType get() = StitcherType.Composite.ASSIGNMENT
+        override val type: NativeStitcherType get() = NativeStitcherType.ASSIGNMENT
         override val start: Int = target?.start ?: predicates.first().start
         override val end: Int = predicates.last().end
 

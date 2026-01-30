@@ -10,7 +10,6 @@ import dev.kikugie.stitcher.parser.SYNTAX_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.fromAntlrNode
 import dev.kikugie.stitcher.parser.fromAntlrToken
-import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.token.impl.ExpressionToken
 import dev.kikugie.stitcher.token.impl.PredicateToken
 
@@ -19,35 +18,35 @@ internal class ExpressionBuilder(val factory: StitcherTokenFactory, val problems
     private val predicateBuilder: PredicateBuilder by lazy { PredicateBuilder(factory, problems) }
 
     override fun visitBinaryExpression(ctx: StitcherParser.BinaryExpressionContext): ExpressionToken.Binary {
-        val operator = factory.fromAntlrToken(ctx.op, StitcherType.Leaf)
+        val operator = factory.fromAntlrToken(ctx.op)
         val left = ctx.conditionExpression(0).accept(this)
         val right = ctx.conditionExpression(1).accept(this)
         return ExpressionToken.Binary(left, operator, right)
     }
 
     override fun visitUnaryExpression(ctx: StitcherParser.UnaryExpressionContext): ExpressionToken.Unary {
-        val operator = factory.fromAntlrNode(ctx.OP_NOT(), StitcherType.Leaf)
+        val operator = factory.fromAntlrNode(ctx.OP_NOT())
         val target = ctx.conditionExpression().accept(this)
         return ExpressionToken.Unary(operator, target)
     }
 
     override fun visitGroupExpression(ctx: StitcherParser.GroupExpressionContext): ExpressionToken.Group {
-        val lb = factory.fromAntlrNode(ctx.LEFT_BRACE(), StitcherType.Leaf)
-        val rb = factory.fromAntlrNode(ctx.RIGHT_BRACE(), StitcherType.Leaf)
+        val lb = factory.fromAntlrNode(ctx.LEFT_BRACE())
+        val rb = factory.fromAntlrNode(ctx.RIGHT_BRACE())
         val body = ctx.conditionExpression().accept(this)
         return ExpressionToken.Group(lb, body, rb)
     }
 
     override fun visitAssignmentExpression(ctx: StitcherParser.AssignmentExpressionContext): ExpressionToken.Assignment {
-        val identifier = ctx.IDENTIFIER()?.let { factory.fromAntlrNode(it, StitcherType.Leaf) }
-        val operator = ctx.OP_ASSIGN()?.let { factory.fromAntlrNode(it, StitcherType.Leaf) }
+        val identifier = ctx.IDENTIFIER()?.let(factory::fromAntlrNode)
+        val operator = ctx.OP_ASSIGN()?.let(factory::fromAntlrNode)
         val predicates = ctx.versionPredicate().mapNotNull(::parsePredicate)
         return if (identifier == null || operator == null) ExpressionToken.Assignment(null, null, predicates)
         else ExpressionToken.Assignment(identifier, operator, predicates)
     }
 
     override fun visitConstantExpression(ctx: StitcherParser.ConstantExpressionContext): ExpressionToken.Constant {
-        val identifier = factory.fromAntlrNode(ctx.IDENTIFIER(), StitcherType.Leaf)
+        val identifier = factory.fromAntlrNode(ctx.IDENTIFIER())
         return ExpressionToken.Constant(identifier)
     }
 
