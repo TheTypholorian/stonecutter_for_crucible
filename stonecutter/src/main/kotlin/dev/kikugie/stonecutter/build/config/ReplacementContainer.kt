@@ -1,12 +1,12 @@
 package dev.kikugie.stonecutter.build.config
 
+import dev.kikugie.stitcher.replacement.RegexReplacement
+import dev.kikugie.stitcher.replacement.StringReplacement
+import dev.kikugie.stitcher.util.IDENTIFIER_PATTERN
+import dev.kikugie.stitcher.util.isValidIdentifier
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.build.config.ReplacementContainer.RegexReplacementSpec
 import dev.kikugie.stonecutter.build.config.ReplacementContainer.StringReplacementSpec
-import dev.kikugie.stitcher.transformer.replacement.RegexReplacement
-import dev.kikugie.stitcher.transformer.replacement.StringReplacement
-import dev.kikugie.stitcher.util.IDENTIFIER_PATTERN
-import dev.kikugie.stitcher.util.isValidIdentifier
 import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
@@ -30,6 +30,11 @@ public sealed interface ReplacementContainer {
         string { this.direction.set(direction); action.execute(this) }
 
     /**Creates and configures a new [string replacement](https://stonecutter.kikugie.dev/wiki/config/params#string-replacements).*/
+    public fun string(direction: Boolean, id: Identifier, action: Action<StringReplacementSpec>): Unit =
+        string { this.direction.set(direction); this.id.set(id); action.execute(this) }
+
+    /**Creates and configures a new [string replacement](https://stonecutter.kikugie.dev/wiki/config/params#string-replacements).*/
+    @Deprecated("Use the direction-first variant", replaceWith = ReplaceWith("string(direction, id, action)"))
     public fun string(id: Identifier, direction: Boolean? = null, action: Action<StringReplacementSpec>): Unit =
         string { this.id.set(id); this.direction.set(direction); action.execute(this) }
 
@@ -41,6 +46,11 @@ public sealed interface ReplacementContainer {
         regex { this.direction.set(direction); action.execute(this) }
 
     /**Creates and configures a new [regex replacement](https://stonecutter.kikugie.dev/wiki/config/params#string-replacements).*/
+    public fun regex(direction: Boolean, id: Identifier, action: Action<RegexReplacementSpec>): Unit =
+        regex { this.direction.set(direction); this.id.set(id); action.execute(this) }
+
+    /**Creates and configures a new [regex replacement](https://stonecutter.kikugie.dev/wiki/config/params#string-replacements).*/
+    @Deprecated("Use the direction-first variant", replaceWith = ReplaceWith("regex(direction, id, action)"))
     public fun regex(id: Identifier, direction: Boolean? = null, action: Action<RegexReplacementSpec>): Unit =
         regex { this.id.set(id); this.direction.set(direction); action.execute(this) }
 
@@ -155,25 +165,25 @@ internal abstract class ReplacementContainerImpl @Inject constructor(
     val objects: ObjectFactory
 ) : ReplacementContainer {
     override fun string(action: Action<StringReplacementSpec>): Unit =
-        objects.newInstance<StringSpecImpl>(string).also(action::execute).finalize()
+        objects.newInstance<StringSpecImpl>(string).also(action::execute).finalise()
 
     override fun regex(action: Action<RegexReplacementSpec>): Unit =
-        objects.newInstance<RegexSpecImpl>(regex).also(action::execute).finalize()
+        objects.newInstance<RegexSpecImpl>(regex).also(action::execute).finalise()
 }
 
 internal abstract class StringSpecImpl @Inject constructor(val consumer: (StringReplacement) -> Unit) : StringReplacementSpec {
     override fun replace(from: String, to: String) {
         if (id.isPresent) with(id.get()) {
             require(isNotBlank()) { "Replacement id '$this' cannot be blank" }
-            require(isValidIdentifier()) { "Replacement id '$this' must match the pattern `$IDENTIFIER_PATTERN`"}
+            require(isValidIdentifier()) { "Replacement id '$this' must match the pattern `$IDENTIFIER_PATTERN`" }
         }
         val replacement =
-            if (direction.get()) StringReplacement(to, from, identifier = id.orNull)
-            else StringReplacement(from, to, identifier = id.orNull)
+            if (direction.get()) StringReplacement(to, setOf(from), identifier = id.orNull)
+            else StringReplacement(from, setOf(to), identifier = id.orNull)
         consumer(replacement)
     }
 
-    fun finalize() {
+    fun finalise() {
         if (from.isPresent || to.isPresent) replace(from.get(), to.get())
     }
 }
@@ -182,7 +192,7 @@ internal abstract class RegexSpecImpl @Inject constructor(val consumer: (RegexRe
     override fun replace(direct: Pair<String, String>, reverse: Pair<String, String>) {
         if (id.isPresent) with(id.get()) {
             require(isNotBlank()) { "Replacement id '$this' cannot be blank" }
-            require(isValidIdentifier()) { "Replacement id '$this' must match the pattern `$IDENTIFIER_PATTERN`"}
+            require(isValidIdentifier()) { "Replacement id '$this' must match the pattern `$IDENTIFIER_PATTERN`" }
         }
         val replacement =
             if (direction.get()) RegexReplacement(direct.second, direct.first, identifier = id.orNull)
@@ -190,7 +200,7 @@ internal abstract class RegexSpecImpl @Inject constructor(val consumer: (RegexRe
         consumer(replacement)
     }
 
-    fun finalize() {
+    fun finalise() {
         if (fromPattern.isPresent || toValue.isPresent || reversePattern.isPresent || reverseValue.isPresent)
             replace(fromPattern.get() to toValue.get(), reversePattern.get() to reverseValue.get())
     }
