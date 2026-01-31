@@ -13,7 +13,8 @@ import dev.kikugie.stitcher.replacement.StringReplacement
 import dev.kikugie.stitcher.transformer.TransformParameters
 import dev.kikugie.stitcher.transformer.impl.LineCommentStrategy
 import dev.kikugie.stitcher.transformer.impl.StandardSwapStrategy
-import dev.kikugie.stitcher.transformer.impl.StarCommentStrategy
+import dev.kikugie.stitcher.transformer.impl.SlashStarCommentStrategy
+import dev.kikugie.stitcher.transformer.impl.StarRemoveCommentStrategy
 import dev.kikugie.stitcher.transformer.strategy.CommentingStrategy
 import dev.kikugie.stitcher.transformer.strategy.SwappingStrategy
 import dev.kikugie.stitcher.transformer.strategy.UncommentingStrategy
@@ -119,13 +120,13 @@ class TransformParametersBuilder {
         /**
          * Wraps the text in `/* */`-style comments, replacing nested cases with `/^ ^/` placeholders.
          */
-        @JvmField val JavaStar: CommentingStrategy = StarCommentStrategy(true)
+        @JvmField val JavaStar: CommentingStrategy = SlashStarCommentStrategy(true)
 
         /**
          * Wraps the text in `/* */`-style comments, but doesn't insert `/^ ^/` placeholders like [SlashStarFlat]
          * because Kotlin handles comment depth.
          */
-        @JvmField val KotlinStar: CommentingStrategy = StarCommentStrategy(false)
+        @JvmField val KotlinStar: CommentingStrategy = SlashStarCommentStrategy(false)
 
         @JvmField val Hash: CommentingStrategy = lines("#")
         @JvmField val DoubleSlash: CommentingStrategy = lines("//")
@@ -137,7 +138,7 @@ class TransformParametersBuilder {
         /**
          * Removes single- and multi-line comments, handling the `/^ ^/` placeholders produced by [Commenter.JavaMultiline].
          */
-        @JvmField val Java: UncommentingStrategy = StarCommentStrategy(true)
+        @JvmField val Java: UncommentingStrategy = StarRemoveCommentStrategy
 
         /**
          * Removes single- and multi-line comments, inserting line breaks for the former ones.

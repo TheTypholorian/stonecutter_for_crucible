@@ -4,8 +4,7 @@ import dev.kikugie.stitcher.transformer.strategy.SwappingStrategy
 import dev.kikugie.stitcher.util.LINE_BREAKS
 import dev.kikugie.stitcher.util.WORD_BREAKS
 
-public object StandardSwapStrategy : SwappingStrategy {
-    private fun readResolve(): Any = StandardSwapStrategy
+object StandardSwapStrategy : SwappingStrategy {
     override fun replace(scope: String, value: String): String {
         val range = scope.run { countOffset()..<length - reversed().countOffset() }
         val indent = scope.lineSequence()
@@ -28,4 +27,7 @@ public object StandardSwapStrategy : SwappingStrategy {
 
         return if (seenNewLine) count else 0
     }
+
+    @Suppress("unused")
+    private fun readResolve(): Any = StandardSwapStrategy
 }

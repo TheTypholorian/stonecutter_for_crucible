@@ -3,7 +3,8 @@ package dev.kikugie.stonecutter.controller.file
 import dev.kikugie.stitcher.antlr.scanner.HashStyleScanner
 import dev.kikugie.stitcher.antlr.scanner.SlashStyleScanner
 import dev.kikugie.stitcher.transformer.impl.LineCommentStrategy
-import dev.kikugie.stitcher.transformer.impl.StarCommentStrategy
+import dev.kikugie.stitcher.transformer.impl.SlashStarCommentStrategy
+import dev.kikugie.stitcher.transformer.impl.StarRemoveCommentStrategy
 
 internal fun FileHandlerContainer.configureDefaults() {
     configureJava()
@@ -18,8 +19,8 @@ private fun FileHandlerContainer.configureJava() = configure("java", "scala", "s
         closers(SlashStyleScanner.SLASH_COMMENT_END, SlashStyleScanner.STAR_COMMENT_END)
     }
 
-    commenter.set(StarCommentStrategy(true))
-    uncommenter.set(StarCommentStrategy(true))
+    commenter.set(SlashStarCommentStrategy(true))
+    uncommenter.set(StarRemoveCommentStrategy)
 }
 
 private fun FileHandlerContainer.configureKotlin() = configure("kt", "kts") {
@@ -29,8 +30,8 @@ private fun FileHandlerContainer.configureKotlin() = configure("kt", "kts") {
         closers(SlashStyleScanner.SLASH_COMMENT_END, SlashStyleScanner.STAR_COMMENT_END)
     }
 
-    commenter.set(StarCommentStrategy(false))
-    uncommenter.set(StarCommentStrategy(true))
+    commenter.set(SlashStarCommentStrategy(false))
+    uncommenter.set(StarRemoveCommentStrategy)
 }
 
 private fun FileHandlerContainer.configureHash() = configure("cfg", "aw", "accesswidener", "yml", "yaml") {

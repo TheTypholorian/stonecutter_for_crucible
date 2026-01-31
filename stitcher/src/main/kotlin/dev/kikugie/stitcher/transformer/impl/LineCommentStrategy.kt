@@ -4,7 +4,7 @@ import dev.kikugie.stitcher.transformer.strategy.CommentingStrategy
 import dev.kikugie.stitcher.util.LINE_BREAKS
 import dev.kikugie.stitcher.util.WORD_BREAKS
 
-public class LineCommentStrategy(public val symbol: String) : CommentingStrategy {
+class LineCommentStrategy(val symbol: String) : CommentingStrategy {
     override fun comment(scope: String, open: Boolean): String {
         val range = scope.run { countOffset()..<length - reversed().countOffset() }
         val indent = scope.lineSequence()
