@@ -35,26 +35,14 @@ internal data class BlockTransformer(
         code.copy(scope = code.definition.accept(ScopeTransformer(code)))
 
     override fun visitComment(comment: BlockToken.Comment): BlockToken {
-        return comment
-//        if (comment.opener != null && comment.closer != null) {
-//            if (!runtime.replacer.isFinalized) return comment
-//            val content = buildString {
-//                append(comment.opener.text)
-//                append(comment.body.text.let { runtime.replacer.replace(it) ?: it })
-//                append(comment.closer.text)
-//            }
-//            return factory.create(LeafType(LayoutParser.CONTENT), comment.range(), content).let(::ContentBlock)
-//        }
-//
-//        val start = comment.start()
-//        val closer = comment.closer?.text.orEmpty()
-//        var content = params.commenter.comment(comment.body.text, false)
-//        if (closer.hasLineBreak()) content += closer
-//        if (runtime.replacer.isFinalized)
-//            content = runtime.replacer.replace(content) ?: content
-//
-//        // TODO: Check if reparsing the comment is needed
-//        return factory.create(LeafType(LayoutParser.CONTENT), comment.range(), content).let(::ContentBlock)
+        if (comment.opener != null && comment.closer != null) return comment
+
+        // If this is a partial comment — recomment it to insert the missing opener/closer
+        var body = params.commenter.comment(comment.body.text, false)
+        val closer = comment.closer?.text.orEmpty()
+        if (closer.hasLineBreak()) body += closer
+
+        return BlockToken.Content(factory.create(NativeStitcherType.COMMENT, comment.start, comment.end, body))
     }
 
     override fun visitContent(content: BlockToken.Content): BlockToken = content
