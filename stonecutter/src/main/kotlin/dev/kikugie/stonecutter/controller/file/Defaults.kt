@@ -33,7 +33,7 @@ private fun FileHandlerContainer.configureKotlin() = configure("kt", "kts") {
     uncommenter.set(StarCommentStrategy(true))
 }
 
-private fun FileHandlerContainer.configureHash() = configure("cfg", "aw", "accesswidener", "yml", "yaml") {
+private fun FileHandlerContainer.configureHash() = configure("cfg", "aw", "accesswidener", "ct", "classtweaker", "yml", "yaml") {
     scanner {
         lexer.set(::HashStyleScanner)
         openers(HashStyleScanner.HASH_COMMENT_START)
