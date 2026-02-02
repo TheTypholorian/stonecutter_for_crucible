@@ -141,7 +141,8 @@ internal class BlockTransformer private constructor(
             if (code.scope.isEmpty()) return emptyList()
 
             // TODO: Is reprocessing needed if the reformat task is going to be added?
-            val content: String = params.commenter.comment(code.scope.join().let(state.replacer::replace), code.definition.opener == null)
+            val reprocessed = visitScope(code.scope)
+            val content: String = params.commenter.comment(reprocessed.join(), code.definition.opener == null)
             return listOf(BlockToken.Content(factory.create(NativeStitcherType.CONTENT, code.scopeStart, code.scopeEnd, content)))
         }
     }
