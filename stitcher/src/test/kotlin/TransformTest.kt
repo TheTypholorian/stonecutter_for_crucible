@@ -115,6 +115,20 @@ class TransformTest : FreeSpec({
                 replacements.string("b", "d")
             } shouldBe expected
         }
+
+        "string-regex overlap" {
+            val content = "a.b.c.d"
+            val expected = "a.2.c.d"
+            process(content) {
+                replacements.string("a.b.c", "a.2.c")
+                replacements.regex("b\\.c\\.d", "!!!")
+            } shouldBe expected
+
+            process(content) {
+                replacements.string("b.c.d", "!!!")
+                replacements.regex("a\\.b\\.c", "a.2.c")
+            } shouldBe expected
+        }
     }
 
     "conditions" - {

@@ -7,6 +7,7 @@ import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.ProblemReport
 import dev.kikugie.stitcher.parser.adapter.ScannerAdapter
 import dev.kikugie.stitcher.process
+import dev.kikugie.stitcher.replacement.RegexReplacement
 import dev.kikugie.stitcher.replacement.Replacement
 import dev.kikugie.stitcher.replacement.ReplacementBuilder
 import dev.kikugie.stitcher.replacement.StringReplacement
@@ -22,6 +23,7 @@ import io.kotest.core.TestConfiguration
 import io.kotest.engine.spec.tempfile
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.Lexer
+import org.intellij.lang.annotations.Language
 import java.nio.file.StandardOpenOption
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.writeText
@@ -74,6 +76,9 @@ class TransformParametersBuilder {
 
     fun ReplacementBuilder<Replacement>.string(from: String, to: String, id: String? = null) =
         add(StringReplacement(to, setOf(from), identifier = id))
+
+    fun ReplacementBuilder<Replacement>.regex(@Language("RegExp") from: String, to: String, id: String? = null) =
+        add(RegexReplacement(to, from, identifier = id))
 
     fun build() = TransformParameters(adapter, commenter, uncommenter, swapper, swaps, constants, dependencies, replacements.build())
 
