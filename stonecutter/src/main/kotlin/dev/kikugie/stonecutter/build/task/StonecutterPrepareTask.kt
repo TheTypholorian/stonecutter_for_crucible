@@ -135,7 +135,7 @@ internal class GradleProblemReporter(val logger: Logger, val checker: (ProblemRe
 
     // FIXME: this code is shit, but works as a prototype
     private fun ProblemReport.formatFull(): String = buildString {
-        val file = location?.run { "$file:$line:$column" } ?: ""
+        val file = location?.run { "file://$file:$line:$column" } ?: ""
         val sev = when(severity) {
             ProblemSeverity.INFO -> 'i'
             ProblemSeverity.WARN -> 'w'
@@ -144,7 +144,7 @@ internal class GradleProblemReporter(val logger: Logger, val checker: (ProblemRe
         appendLine("$sev: $file ${id.id}")
         appendLine("> $label")
         for (line in details?.lineSequence().orEmpty())
-            appendLine("|  $line")
+            appendLine("| $line")
         solution?.let { appendLine("Hint: $it") }
         documentation?.let { appendLine("Docs: $it") }
         exception?.let { appendLine("Error: ${it.message}\n${it.stackTraceToString()}") }
@@ -157,7 +157,7 @@ internal class GradleProblemReporter(val logger: Logger, val checker: (ProblemRe
     }
 
     private fun ProblemReport.formatShort() = buildString {
-        append(location?.run { "$file:$line:$column" } ?: "")
+        append(location?.run { "file://$file:$line:$column" } ?: "")
         append(" $label")
     }
 }

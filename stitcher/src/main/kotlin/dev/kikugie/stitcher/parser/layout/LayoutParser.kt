@@ -150,7 +150,7 @@ internal class LayoutParser private constructor(
         }
 
         val candidate = stack.peekFirst().entries.lastOrNull {
-            it is CodeBuilder && it.marker.type == code.marker.type && it.definition.opener == null
+            it !== code && it is CodeBuilder && it.marker.type == code.marker.type && it.definition.opener == null
         }
         if (candidate is CodeBuilder)
             suggestMissingOpener(candidate)
