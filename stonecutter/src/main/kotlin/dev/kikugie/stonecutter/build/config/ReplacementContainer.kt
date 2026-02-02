@@ -1,6 +1,7 @@
 package dev.kikugie.stonecutter.build.config
 
 import dev.kikugie.stitcher.replacement.RegexReplacement
+import dev.kikugie.stitcher.replacement.Replacement
 import dev.kikugie.stitcher.replacement.StringReplacement
 import dev.kikugie.stitcher.util.IDENTIFIER_PATTERN
 import dev.kikugie.stitcher.util.isValidIdentifier
@@ -173,13 +174,16 @@ internal abstract class ReplacementContainerImpl @Inject constructor(
 
 internal abstract class StringSpecImpl @Inject constructor(val consumer: (StringReplacement) -> Unit) : StringReplacementSpec {
     override fun replace(from: String, to: String) {
-        if (id.isPresent) with(id.get()) {
-            require(isNotBlank()) { "Replacement id '$this' cannot be blank" }
-            require(isValidIdentifier()) { "Replacement id '$this' must match the pattern `$IDENTIFIER_PATTERN`" }
+        val tags = mutableSetOf<Replacement.Tag>()
+        val id = id.orNull?.let {
+            if (!it.startsWith('!')) return@let it
+            tags += Replacement.Tag.DEFAULT_ENABLED
+            it.removePrefix("!")
         }
+
         val replacement =
-            if (direction.get()) StringReplacement(to, setOf(from), identifier = id.orNull)
-            else StringReplacement(from, setOf(to), identifier = id.orNull)
+            if (direction.get()) StringReplacement(to, setOf(from), id, tags)
+            else StringReplacement(from, setOf(to), id, tags)
         consumer(replacement)
     }
 
@@ -190,13 +194,16 @@ internal abstract class StringSpecImpl @Inject constructor(val consumer: (String
 
 internal abstract class RegexSpecImpl @Inject constructor(val consumer: (RegexReplacement) -> Unit) : RegexReplacementSpec {
     override fun replace(direct: Pair<String, String>, reverse: Pair<String, String>) {
-        if (id.isPresent) with(id.get()) {
-            require(isNotBlank()) { "Replacement id '$this' cannot be blank" }
-            require(isValidIdentifier()) { "Replacement id '$this' must match the pattern `$IDENTIFIER_PATTERN`" }
+        val tags = mutableSetOf<Replacement.Tag>()
+        val id = id.orNull?.let {
+            if (!it.startsWith('!')) return@let it
+            tags += Replacement.Tag.DEFAULT_ENABLED
+            it.removePrefix("!")
         }
+
         val replacement =
-            if (direction.get()) RegexReplacement(direct.second, direct.first, identifier = id.orNull)
-            else RegexReplacement(reverse.second, reverse.first, identifier = id.orNull)
+            if (direction.get()) RegexReplacement(direct.second, direct.first, id, tags)
+            else RegexReplacement(reverse.second, reverse.first, id, tags)
         consumer(replacement)
     }
 

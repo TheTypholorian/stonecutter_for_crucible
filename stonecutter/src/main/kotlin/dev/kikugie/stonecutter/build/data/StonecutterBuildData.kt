@@ -2,15 +2,17 @@
 
 package dev.kikugie.stonecutter.build.data
 
+import dev.kikugie.stitcher.issue.ProblemReport
 import dev.kikugie.stonecutter.AnyVersion
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.controller.StonecutterControllerExtension
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.util.newInstance
-import dev.kikugie.stitcher.transformer.replacement.RegexReplacement
-import dev.kikugie.stitcher.transformer.replacement.ReplacementBuilder
-import dev.kikugie.stitcher.transformer.replacement.StringReplacement
+import dev.kikugie.stitcher.replacement.RegexReplacement
+import dev.kikugie.stitcher.replacement.ReplacementBuilder
+import dev.kikugie.stitcher.replacement.StringReplacement
+import org.gradle.api.GradleException
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
@@ -53,8 +55,12 @@ internal abstract class StonecutterBuildData @Inject constructor(
         regexReplacements.set(providers.provider { regexReplacementBuilder.build().map(objects::regexSpec) })
     }
 
-    internal fun addString(repl: StringReplacement): Unit = stringReplacementBuilder.add(repl)
-    internal fun addRegex(repl: RegexReplacement): Unit = regexReplacementBuilder.add(repl)
+    internal fun addString(repl: StringReplacement): Unit {
+        stringReplacementBuilder.add(repl)?.thr()
+    }
+    internal fun addRegex(repl: RegexReplacement): Unit {
+        regexReplacementBuilder.add(repl)?.thr()
+    }
 
     public interface StringReplacementSpec {
         @get:Input public val target: Property<String>
@@ -68,11 +74,10 @@ internal abstract class StonecutterBuildData @Inject constructor(
     public interface RegexReplacementSpec {
         @get:Input public val target: Property<String>
         @get:Input public val pattern: Property<String>
-        @get:Input @get:Optional public val flags: SetProperty<RegexOption>
         @get:Input @get:Optional public val identifier: Property<Identifier>
 
         public fun build(): RegexReplacement =
-            RegexReplacement(target.get(), pattern.get(), emptySet(), identifier.orNull)
+            RegexReplacement(target.get(), pattern.get(), identifier.orNull)
     }
 }
 
@@ -80,7 +85,7 @@ private fun ObjectFactory.stringSpec(repl: StringReplacement): StonecutterBuildD
     newInstance { target.set(repl.target); sources.set(repl.sources); identifier.set(repl.identifier) }
 
 private fun ObjectFactory.regexSpec(repl: RegexReplacement): StonecutterBuildData.RegexReplacementSpec =
-    newInstance { target.set(repl.target); pattern.set(repl.pattern); flags.set(repl.flags); identifier.set(repl.identifier) }
+    newInstance { target.set(repl.target); pattern.set(repl.pattern); identifier.set(repl.identifier) }
 
 private fun patchImplicitDependency(
     prop: MapProperty<Identifier, AnyVersion>,
@@ -92,3 +97,5 @@ private fun patchImplicitDependency(
     this[""] = implicit
     this[key] = implicit
 }
+
+private fun ProblemReport.thr(): Nothing = throw GradleException("$label:\n$details")

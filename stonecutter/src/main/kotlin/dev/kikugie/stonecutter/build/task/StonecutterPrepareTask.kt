@@ -1,18 +1,19 @@
 package dev.kikugie.stonecutter.build.task
 
+import dev.kikugie.stitcher.issue.BailException
+import dev.kikugie.stitcher.issue.ProblemID
+import dev.kikugie.stitcher.issue.ProblemLocation
+import dev.kikugie.stitcher.issue.ProblemReport
+import dev.kikugie.stitcher.issue.ProblemSeverity
+import dev.kikugie.stitcher.process
+import dev.kikugie.stitcher.transformer.TransformParameters
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
+import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.controller.tree.ParametersModel
 import dev.kikugie.stonecutter.util.clearIfNotIncremental
 import dev.kikugie.stonecutter.util.execute
 import dev.kikugie.stonecutter.util.overwriteText
-import dev.kikugie.stitcher.issue.BailException
-import dev.kikugie.stitcher.issue.ProblemCause
-import dev.kikugie.stitcher.issue.ProblemConsumer
-import dev.kikugie.stitcher.issue.ProblemLocation
-import dev.kikugie.stitcher.process
-import dev.kikugie.stitcher.transformer.TransformParameters
-import dev.kikugie.stonecutter.controller.file.HandlerModel
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.ConfigurableFileCollection
@@ -97,8 +98,10 @@ private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
         val reporter = GradleProblemReporter(Logging.getLogger("StonecutterPrepareTask"), parameters.errors.get()::isNew)
         val transform = parameters.model.get().forFile(source, parameters.handlers.get().parameters.handlers.get())
 
-        if (transform == null) reporter
-            .accept("No file handler registered for ${source.extension}", level = LogLevel.WARN, aggregate = false)
+        if (transform == null) reporter.invoke(ProblemReport(ProblemID("invalid-extension"), ProblemLocation(source)).apply {
+            label = "No file handler registered for ${source.extension}"
+            severity = ProblemSeverity.WARN
+        })
         if (!source.exists() || transform == null) { output.deleteIfExists(); return }
         val contents = source.readText()
         val modified = reporter.run { process(source, contents, transform, reporter) }
@@ -115,34 +118,47 @@ private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
     }
 }
 
-internal class GradleProblemReporter(val logger: Logger, val checker: (String) -> Boolean) : ProblemConsumer {
-    private val myErrors: MutableList<String> = mutableListOf()
+internal class GradleProblemReporter(val logger: Logger, val checker: (ProblemReport) -> Boolean) : (ProblemReport) -> Unit {
+    private val errors: MutableList<ProblemReport> = mutableListOf()
 
-    override fun accept(file: Path, location: ProblemLocation, cause: ProblemCause) =
-        accept(file.format(location, cause), cause.exception)
-
-    fun accept(message: String, cause: Throwable? = null, level: LogLevel = LogLevel.ERROR, aggregate: Boolean = true) {
-        if (aggregate) myErrors += message
-        if (checker(message)) {
-            val prefix = level.name.first().lowercaseChar()
-            logger.log(level, "$prefix: $message", cause)
-        }
+    override fun invoke(report: ProblemReport) {
+        errors += report
+        if (checker(report)) logger.log(report.level(), report.formatFull())
     }
 
     inline fun <T> run(action: () -> T) = try {
         action()
     } catch (_: BailException) {
-        val formatted = myErrors.joinToString("\n").prependIndent("  ")
-        throw GradleException("File processing failed; see errors below.\n$formatted")
+        val formatted = errors.joinToString("\n") { it.formatShort() }.prependIndent("  ")
+        throw GradleException("File processing failed; see log for more info.\n$formatted")
     }
 
-    private fun Path.format(location: ProblemLocation, cause: ProblemCause): String = buildString {
-        append("file://${absolutePathString()}")
-        if (location.line >= 1)
-            append(":${location.line}")
-        if (location.column >= 1)
-            append(":${location.column}")
-        append(": ${cause.message}")
+    // FIXME: this code is shit, but works as a prototype
+    private fun ProblemReport.formatFull(): String = buildString {
+        val file = location?.run { "$file:$line:$column" } ?: ""
+        val sev = when(severity) {
+            ProblemSeverity.INFO -> 'i'
+            ProblemSeverity.WARN -> 'w'
+            ProblemSeverity.ERROR -> 'e'
+        }
+        appendLine("$sev: $file ${id.id}")
+        appendLine("> $label")
+        for (line in details?.lineSequence().orEmpty())
+            appendLine("|  $line")
+        solution?.let { appendLine("Hint: $it") }
+        documentation?.let { appendLine("Docs: $it") }
+        exception?.let { appendLine("Error: ${it.message}\n${it.stackTraceToString()}") }
+    }
+
+    private fun ProblemReport.level() = when(severity) {
+        ProblemSeverity.INFO -> LogLevel.LIFECYCLE
+        ProblemSeverity.WARN -> LogLevel.WARN
+        ProblemSeverity.ERROR -> LogLevel.ERROR
+    }
+
+    private fun ProblemReport.formatShort() = buildString {
+        append(location?.run { "$file:$line:$column" } ?: "")
+        append(" $label")
     }
 }
 

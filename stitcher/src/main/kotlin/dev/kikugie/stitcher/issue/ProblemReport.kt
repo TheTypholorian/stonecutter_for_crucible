@@ -73,6 +73,22 @@ class ProblemReport(
 //        it.children += this.children
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ProblemReport) return false
+
+        if (id != other.id) return false
+        if (location != other.location) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = id.hashCode()
+        result = 31 * result + (location?.hashCode() ?: 0)
+        return result
+    }
+
     companion object {
         /**
          * Creates a report and applies the provided builder

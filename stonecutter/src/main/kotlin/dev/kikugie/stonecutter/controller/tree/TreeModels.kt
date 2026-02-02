@@ -13,7 +13,7 @@ import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.semver.data.Version
-import dev.kikugie.stitcher.transformer.replacement.Replacement
+import dev.kikugie.stitcher.replacement.Replacement
 import dev.kikugie.stonecutter.StonecutterPlugin
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
