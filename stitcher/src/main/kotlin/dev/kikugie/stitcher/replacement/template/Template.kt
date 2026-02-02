@@ -1,11 +1,11 @@
-package dev.kikugie.stitcher.replacement
+package dev.kikugie.stitcher.replacement.template
 
 import dev.kikugie.stitcher.antlr.flex.FlexLexerAdapter
 import dev.kikugie.stitcher.antlr.flex.toSequence
 
 private val TEMPLATE_FACTORY: FlexLexerAdapter.Factory<TemplateToken> = FlexLexerAdapter.Factory { TemplateLexer(null) }
 
-fun String.findInsertionPlaces(): Sequence<InsertionPlace> = TEMPLATE_FACTORY.create(this).toSequence().mapNotNull {
+fun CharSequence.findInsertionPlaces(): Sequence<InsertionPlace> = TEMPLATE_FACTORY.create(this).toSequence().mapNotNull {
     val number = substring(it.tokenStart + 1, it.tokenEnd).toIntOrNull() ?: return@mapNotNull null
     InsertionPlace(number, it.tokenStart, it.tokenEnd)
 }

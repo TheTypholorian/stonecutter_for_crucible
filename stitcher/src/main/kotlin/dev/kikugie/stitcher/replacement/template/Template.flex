@@ -1,4 +1,4 @@
-package dev.kikugie.stitcher.replacement;
+package dev.kikugie.stitcher.replacement.template;
 %%
 
 %class TemplateLexer

@@ -2,6 +2,7 @@ package dev.kikugie.stitcher.token.impl
 
 import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.StitcherToken
+import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.token.impl.DefinitionToken.Kind
 import dev.kikugie.stitcher.util.firstNotNull
 import dev.kikugie.stitcher.util.lastNotNull
@@ -106,13 +107,19 @@ sealed interface DefinitionToken : StitcherToken {
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitCondition(this)
     }
 
-    data class Replacement(val expressions: List<ExpressionToken>) : DefinitionToken {
+    data class Replacement(val expressions: List<ReplacementEntry>) : DefinitionToken {
         override val type: NativeStitcherType get() = NativeStitcherType.REPL
         override val kind: Kind get() = Kind.INDEPENDENT
         override val start: Int = expressions.first().start
         override val end: Int = expressions.last().end
 
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitReplacement(this)
+    }
+
+    data class ReplacementEntry(val op: LeafToken?, val identifier: LeafToken) : StitcherToken {
+        override val type: StitcherType get() = NativeStitcherType.REPL_ENTRY
+        override val start: Int = firstNotNull(op, identifier).start
+        override val end: Int get() = identifier.end
     }
 }
 

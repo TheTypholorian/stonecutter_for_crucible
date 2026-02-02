@@ -18,8 +18,7 @@ internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems
     private val scopeTokenBuilder: ScopeTokenBuilder by lazy { ScopeTokenBuilder(factory) }
 
     override fun visitReplacement(ctx: StitcherParser.ReplacementContext): DefinitionToken {
-        val tokens = ctx.replacementEntry()
-            .map { it.accept(expressionBuilder) }
+        val tokens = ctx.replacementEntry().map(::parseReplacement)
         return DefinitionToken.Replacement(tokens)
     }
 
@@ -55,6 +54,9 @@ internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems
         val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE())
         return DefinitionToken.ConditionCloser(closer)
     }
+
+    private fun parseReplacement(ctx: StitcherParser.ReplacementEntryContext): DefinitionToken.ReplacementEntry =
+        DefinitionToken.ReplacementEntry(ctx.OP_NOT()?.let(factory::fromAntlrNode), factory.fromAntlrNode(ctx.IDENTIFIER()))
 
     private fun parseExpression(ctx: StitcherParser.ConditionExpressionContext): ExpressionToken = runBailing {
         ctx.accept(expressionBuilder)

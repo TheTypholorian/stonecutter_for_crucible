@@ -1,5 +1,5 @@
-import dev.kikugie.stitcher.replacement.InsertionPlace
-import dev.kikugie.stitcher.replacement.findInsertionPlaces
+import dev.kikugie.stitcher.replacement.template.InsertionPlace
+import dev.kikugie.stitcher.replacement.template.findInsertionPlaces
 import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.matchers.shouldBe
 
