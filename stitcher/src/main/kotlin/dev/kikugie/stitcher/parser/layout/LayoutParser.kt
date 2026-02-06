@@ -61,9 +61,22 @@ internal class LayoutParser private constructor(
 
         problems.bail(LAYOUT_GROUP.child("consumed-root"), 0, 0) {
             label = "The root block builder has been eaten!"
-            details = "The parser has not reached a return condition, causing a critical failure." +
-                "This shouldn't ever happen, so please report this to https://codeberg.org/stonecutter/stonecutter/issues."
-            solution = "Panic."
+            details = """
+                The parser has not reached a return condition, causing a critical failure.
+                This shouldn't ever happen, so please report this to https://codeberg.org/stonecutter/stonecutter/issues.
+            """.trimIndent()
+            hint = "Panic."
+        }
+    }
+
+    private fun reportUnknownToken(token: AntlrToken): Nothing {
+        problems.bail(LAYOUT_GROUP.child("unexpected-token"), token) {
+            label = "Unknown layout token"
+            details = """
+                Token type ${token.type} is not expected to be produced by the token stream.
+                This shouldn't ever happen, so please report this to https://codeberg.org/stonecutter/stonecutter/issues.
+            """.trimIndent()
+            hint = "Panic."
         }
     }
 
@@ -85,15 +98,6 @@ internal class LayoutParser private constructor(
         is BlockAcceptResult.ConsumedPartial -> {
             stack.removeLast().finalize(problems, false)
             acceptBlock(result.remainder)
-        }
-    }
-
-    private fun reportUnknownToken(token: AntlrToken): Nothing {
-        problems.bail(LAYOUT_GROUP.child("unexpected-token"), token) {
-            label = "Unknown layout token"
-            details = "Token type ${token.type} is not expected to be produced by the token stream. " +
-                "This shouldn't ever happen, so please report this to https://codeberg.org/stonecutter/stonecutter/issues."
-            solution = "Panic."
         }
     }
 

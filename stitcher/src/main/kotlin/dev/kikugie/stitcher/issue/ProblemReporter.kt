@@ -8,6 +8,8 @@ import java.nio.file.Path
 @Retention(AnnotationRetention.SOURCE)
 private annotation class ProblemDsl
 
+typealias ProblemConsumer = (report: ProblemReport) -> Unit
+
 @ProblemDsl
 interface ProblemMarker {
     val isDirty: Boolean

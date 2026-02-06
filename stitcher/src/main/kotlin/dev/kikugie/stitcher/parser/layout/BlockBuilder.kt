@@ -11,7 +11,6 @@ import dev.kikugie.stitcher.parser.LAYOUT_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.fromAntlrToken
 import dev.kikugie.stitcher.token.NativeStitcherType
-import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.token.impl.BlockToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken.Kind
@@ -104,14 +103,14 @@ internal class CodeBuilder(
         is ScopeToken.Closed if isEOF -> problems.report(LAYOUT_GROUP.child("unclosed-scope"), opener) {
             label = "Unclosed scope"
             details = "Missing closing `${marker.text}}` comment."
-            documentation = "https://stonecutter.kikugie.dev/wiki/config/params#closed"
+            docs = "https://stonecutter.kikugie.dev/wiki/config/params#closed"
         }
 
         is ScopeToken.Lookup if opener.lookup != null && !satisfied -> problems.report(LAYOUT_GROUP.child("lookup-not-found"), opener) {
             label = "Lookup string not found"
             details = "The pattern '${opener.extractLookup()}' wasn't found in the text ahead. " +
                 "Note: the pattern search is interrupted by any condition, swap or replacement comments."
-            documentation = "https://stonecutter.kikugie.dev/wiki/config/params#lookup"
+            docs = "https://stonecutter.kikugie.dev/wiki/config/params#lookup"
         }
 
         else -> {}

@@ -3,8 +3,8 @@ package dev.kikugie.stitcher.issue
 import dev.kikugie.stitcher.issue.lines.LineIndex
 import java.nio.file.Path
 
-class ProblemReporterImpl(override val file: Path, val index: LineIndex, val consumer: (ProblemReport) -> Unit) : FileProblemReporter {
-    constructor(file: Path, contents: String, consumer: (ProblemReport) -> Unit) : this(file, LineIndex(contents), consumer)
+class ProblemReporterImpl(override val file: Path, val index: LineIndex, val consumer: ProblemConsumer) : FileProblemReporter {
+    constructor(file: Path, contents: String, consumer: ProblemConsumer) : this(file, LineIndex(contents), consumer)
     private var counter: Int = 0
 
     override fun mark(): ProblemMarker = ProblemMarkerImpl(counter)

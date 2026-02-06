@@ -90,7 +90,7 @@ private class StringReplacementBuilder() : ReplacementBuilder<StringReplacement>
               + ${descriptor(target, listOf(source))}
               ? '$source' -> '$target' -> '$source'
         """.trimIndent()
-        documentation = "https://stonecutter.kikugie.dev/wiki/config/params#string-replacements"
+        docs = "https://stonecutter.kikugie.dev/wiki/config/params#string-replacements"
     }
 
     private fun ambiguousReplacementReport(stub: StringReplacementStub, source: String, target: String) = create(REPL_GROUP.child("ambiguous-string")) {
@@ -101,7 +101,7 @@ private class StringReplacementBuilder() : ReplacementBuilder<StringReplacement>
               + ${descriptor(target, listOf(source))}
               ? '$source' -> '${stub.target}' & '$target'
         """.trimIndent()
-        documentation = "https://stonecutter.kikugie.dev/wiki/config/params#string-replacements"
+        docs = "https://stonecutter.kikugie.dev/wiki/config/params#string-replacements"
     }
 
     private data class StringReplacementStub(var target: String, val sources: MutableSet<String>, val identifier: String?) {

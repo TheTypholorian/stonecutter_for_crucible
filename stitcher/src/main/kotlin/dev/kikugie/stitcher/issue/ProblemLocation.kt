@@ -3,6 +3,7 @@
 package dev.kikugie.stitcher.issue
 
 import java.nio.file.Path
+import kotlin.io.path.invariantSeparatorsPathString
 
 /**
  * Represents a location within a file where a problem was detected
@@ -72,4 +73,7 @@ data class ProblemLocation(
         val newIndex = if (fileIndex < 0 || relativeFileIndex < 0) -1 else fileIndex + relativeFileIndex
         return ProblemLocation(file, newLine, newOffset, newIndex)
     }
+
+    fun toLinkString(): String =
+        "file://${file.invariantSeparatorsPathString}:$line:$column"
 }

@@ -27,7 +27,7 @@ internal class InvalidParameterChecker(val parameters: TransformParameters, val 
         if (swap !is DefinitionToken.SwapOpener) return true
         val insertion = parameters.swaps[swap.identifier.text] ?: problems.report(SYNTAX_GROUP.child("invalid-parameter"), swap.identifier) {
             label = "Unresolved swap '${swap.identifier.text}'"
-            documentation = "https://stonecutter.kikugie.dev/wiki/config/params#string-swaps"
+            docs = "https://stonecutter.kikugie.dev/wiki/config/params#string-swaps"
         }.let { return false }
         val insertions = insertion.findInsertionPlaces().maxOfOrNull { it.number } ?: 0
         val hasEnoughParameters = swap.arguments.size >= insertions
@@ -46,7 +46,7 @@ internal class InvalidParameterChecker(val parameters: TransformParameters, val 
         val isPresent = parameters.replacements.any { it.identifier == id.text }
         if (!isPresent) problems.report(SYNTAX_GROUP.child("invalid-parameter"), id) {
             label = "Unresolved replacement '${id.text}'"
-            documentation = "https://stonecutter.kikugie.dev/wiki/config/params#replacements"
+            docs = "https://stonecutter.kikugie.dev/wiki/config/params#replacements"
         }
         isPresent
     }

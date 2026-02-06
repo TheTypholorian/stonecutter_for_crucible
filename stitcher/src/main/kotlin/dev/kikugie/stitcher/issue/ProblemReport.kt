@@ -45,14 +45,14 @@ class ProblemReport(
     var details: String? = null
 
     /**
-     * Optional suggested solution
+     * Optional suggested hint
      */
-    var solution: String? = null
+    var hint: String? = null
 
     /**
      * Optional documentation link or reference
      */
-    var documentation: String? = null
+    var docs: String? = null
 
     /**
      * Optional underlying exception
@@ -67,11 +67,14 @@ class ProblemReport(
         it.label = this.label
         it.severity = this.severity
         it.details = this.details
-        it.solution = this.solution
-        it.documentation = this.documentation
+        it.hint = this.hint
+        it.docs = this.docs
         it.exception = this.exception
 //        it.children += this.children
     }
+
+    fun accept(formatter: ProblemFormatter): String =
+        formatter.format(this)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

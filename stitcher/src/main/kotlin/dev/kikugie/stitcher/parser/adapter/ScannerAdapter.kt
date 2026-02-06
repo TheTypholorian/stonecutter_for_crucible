@@ -133,20 +133,20 @@ class ScannerAdapter(
         val options = closers.joinToString(", ", "[", "]") { scannerVocab.indexedName(it) }
         label = "Unexpected comment opener"
         details = "Comment scanner $scannerName provided token ${scannerVocab.indexedName(token)}, but $options were expected."
-        documentation = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-ordering"
+        docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-ordering"
     }
 
     private fun reportInvalidCloser(token: AntlrToken) = problems.report(SCANNER_GROUP.child("inconsistent-token"), token) {
         val options = openers.joinToString(", ", "[", "]") { scannerVocab.indexedName(it) }
         label = "Unexpected comment closer"
         details = "Comment scanner $scannerName provided token ${scannerVocab.indexedName(token)}, but $options were expected."
-        documentation = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-ordering"
+        docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-ordering"
     }
 
     private fun reportUnknown(token: AntlrToken) = problems.report(SCANNER_GROUP.child("unregistered-token"), token) {
         label = "Unknown token type"
         details = "Comment scanner $scannerName provided token ${scannerVocab.indexedName(token)} which is not registered as an opener or a closer."
-        documentation = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-counting"
+        docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-counting"
     }
 
     private fun push(type: StitcherType, endExclusive: Int): Unit =

@@ -273,7 +273,7 @@ class SyntaxTest : FreeSpec({
             @Language("JAVA") val content = """
                 //? if false {
                 /**
-                 * Example documentation.
+                 * Example docs.
                  */
                 public void example();
                 //?}
@@ -281,7 +281,7 @@ class SyntaxTest : FreeSpec({
             @Language("JAVA") val expected = """
                 //? if false {
                 /**
-                 * Example documentation.
+                 * Example docs.
                  */
                 /*public void example();
                 *///?}
@@ -292,13 +292,13 @@ class SyntaxTest : FreeSpec({
         "markdown javadoc" {
             @Language("JAVA") val content = """
                 //? if false {
-                /// Example documentation.
+                /// Example docs.
                 public void example();
                 //?}
             """.trimIndent()
             @Language("JAVA") val expected = """
                 //? if false {
-                /// Example documentation.
+                /// Example docs.
                 /*public void example();
                 *///?}
             """.trimIndent()
@@ -308,12 +308,12 @@ class SyntaxTest : FreeSpec({
         "scope extension" {
             @Language("JAVA") val content = """
                 //? if false
-                /// Example documentation.
+                /// Example docs.
                 public void example();
             """.trimIndent()
             @Language("JAVA") val expected = """
                 //? if false
-                /// Example documentation.
+                /// Example docs.
                 /*public void example();*/
             """.trimIndent()
             process(content) shouldBe expected
@@ -322,19 +322,19 @@ class SyntaxTest : FreeSpec({
         "long scopes" {
             @Language("JAVA") val content = """
                 //? if false {
-                /// Example documentation #1.
+                /// Example docs #1.
                 public void example1();
                 
-                /// Example documentation #2.
+                /// Example docs #2.
                 public void example2();
                 //?}
             """.trimIndent()
             @Language("JAVA") val expected = """
                 //? if false {
-                /// Example documentation #1.
+                /// Example docs #1.
                 /*public void example1();
                 
-                *//// Example documentation #2.
+                *//// Example docs #2.
                 /*public void example2();
                 *///?}
             """.trimIndent()

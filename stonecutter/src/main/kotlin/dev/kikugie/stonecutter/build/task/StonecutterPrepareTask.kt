@@ -8,6 +8,7 @@ import dev.kikugie.stitcher.issue.ProblemSeverity
 import dev.kikugie.stitcher.process
 import dev.kikugie.stitcher.transformer.TransformParameters
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData
+import dev.kikugie.stonecutter.build.task.StonecutterErrorsService.GradleProblemConsumer
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.controller.tree.ParametersModel
@@ -15,14 +16,10 @@ import dev.kikugie.stonecutter.util.clearIfNotIncremental
 import dev.kikugie.stonecutter.util.execute
 import dev.kikugie.stonecutter.util.overwriteText
 import org.gradle.api.DefaultTask
-import org.gradle.api.GradleException
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileType
 import org.gradle.api.file.RegularFileProperty
-import org.gradle.api.logging.LogLevel
-import org.gradle.api.logging.Logger
-import org.gradle.api.logging.Logging
 import org.gradle.api.provider.Property
 import org.gradle.api.services.ServiceReference
 import org.gradle.api.tasks.*
@@ -37,7 +34,10 @@ import org.gradle.workers.WorkerExecutor
 import java.io.File
 import java.nio.file.Path
 import javax.inject.Inject
-import kotlin.io.path.*
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.exists
+import kotlin.io.path.extension
+import kotlin.io.path.readText
 
 /**The task responsible for processing Stonecutter comments in files.*/
 public abstract class StonecutterPrepareTask : DefaultTask() {
@@ -62,8 +62,12 @@ public abstract class StonecutterPrepareTask : DefaultTask() {
     @get:ServiceReference(FileHandlerService.NAME)
     internal abstract val handlers: Property<FileHandlerService>
 
-    @get:ServiceReference(TaskErrorsService.NAME)
-    internal abstract val errors: Property<TaskErrorsService>
+    @get:ServiceReference(StonecutterErrorsService.NAME)
+    internal abstract val errors: Property<StonecutterErrorsService>
+
+    private val consumer: GradleProblemConsumer by lazy {
+        errors.get().GradleProblemConsumer(path, logger)
+    }
 
     @TaskAction
     internal fun run(inputs: InputChanges) {
@@ -75,6 +79,7 @@ public abstract class StonecutterPrepareTask : DefaultTask() {
                 if (change.fileType != FileType.DIRECTORY)
                     it.processFile(change, model)
         }
+        consumer.complete()
     }
 
     private val File.cacheFile: File
@@ -86,7 +91,7 @@ public abstract class StonecutterPrepareTask : DefaultTask() {
         model.set(params)
 
         handlers.set(this@StonecutterPrepareTask.handlers)
-        errors.set(this@StonecutterPrepareTask.errors)
+        reporter.set(this@StonecutterPrepareTask.consumer)
     }
 }
 
@@ -95,7 +100,7 @@ private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
     private val output: Path get() = parameters.output.asFile.get().toPath()
 
     override fun execute() {
-        val reporter = GradleProblemReporter(Logging.getLogger("StonecutterPrepareTask"), parameters.errors.get()::isNew)
+        val reporter = parameters.reporter.get()
         val transform = parameters.model.get().forFile(source, parameters.handlers.get().parameters.handlers.get())
 
         if (transform == null) reporter.invoke(ProblemReport(ProblemID("invalid-extension"), ProblemLocation(source)).apply {
@@ -104,7 +109,11 @@ private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
         })
         if (!source.exists() || transform == null) { output.deleteIfExists(); return }
         val contents = source.readText()
-        val modified = reporter.run { process(source, contents, transform, reporter) }
+        val modified = try {
+            process(source, contents, transform, reporter)
+        } catch (_: BailException) {
+            return // Will be rethrown as GradleException
+        }
         if (contents == modified) output.deleteIfExists() else output.overwriteText(modified, true)
     }
 
@@ -114,51 +123,7 @@ private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
         val model: Property<ParametersModel>
 
         val handlers: Property<FileHandlerService>
-        val errors: Property<TaskErrorsService>
-    }
-}
-
-internal class GradleProblemReporter(val logger: Logger, val checker: (ProblemReport) -> Boolean) : (ProblemReport) -> Unit {
-    private val errors: MutableList<ProblemReport> = mutableListOf()
-
-    override fun invoke(report: ProblemReport) {
-        errors += report
-        if (checker(report)) logger.log(report.level(), report.formatFull())
-    }
-
-    inline fun <T> run(action: () -> T) = try {
-        action()
-    } catch (_: BailException) {
-        val formatted = errors.joinToString("\n") { it.formatShort() }.prependIndent("  ")
-        throw GradleException("File processing failed; see log for more info.\n$formatted")
-    }
-
-    // FIXME: this code is shit, but works as a prototype
-    private fun ProblemReport.formatFull(): String = buildString {
-        val file = location?.run { "file://$file:$line:$column" } ?: ""
-        val sev = when(severity) {
-            ProblemSeverity.INFO -> 'i'
-            ProblemSeverity.WARN -> 'w'
-            ProblemSeverity.ERROR -> 'e'
-        }
-        appendLine("$sev: $file ${id.id}")
-        appendLine("> $label")
-        for (line in details?.lineSequence().orEmpty())
-            appendLine("| $line")
-        solution?.let { appendLine("Hint: $it") }
-        documentation?.let { appendLine("Docs: $it") }
-        exception?.let { appendLine("Error: ${it.message}\n${it.stackTraceToString()}") }
-    }
-
-    private fun ProblemReport.level() = when(severity) {
-        ProblemSeverity.INFO -> LogLevel.LIFECYCLE
-        ProblemSeverity.WARN -> LogLevel.WARN
-        ProblemSeverity.ERROR -> LogLevel.ERROR
-    }
-
-    private fun ProblemReport.formatShort() = buildString {
-        append(location?.run { "file://$file:$line:$column" } ?: "")
-        append(" $label")
+        val reporter: Property<GradleProblemConsumer>
     }
 }
 

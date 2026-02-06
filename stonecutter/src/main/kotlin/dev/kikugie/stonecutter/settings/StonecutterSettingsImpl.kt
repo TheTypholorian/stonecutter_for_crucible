@@ -19,7 +19,9 @@ import dev.kikugie.stonecutter.util.requestTasks
 import dev.kikugie.commons.takeAs
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.StonecutterPlugin
+import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
 import dev.kikugie.stonecutter.controller.file.configureDefaults
+import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
 import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.logging.Logger
@@ -56,8 +58,6 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
             projectsLoaded {
                 createIdeaTask(this)
             }
-            sharedServices.registerIfAbsent(TaskErrorsService.NAME, TaskErrorsService::class)
-                .let(registry::onTaskCompletion)
 
             val handlers = createContainer<FileHandlerContainer>()
             handlers.configureDefaults()
@@ -65,6 +65,14 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
                 sharedServices.registerIfAbsent(FileHandlerService.NAME, FileHandlerService::class) {
                     parameters.handlers.value(handlers.build()).finalizeValue()
                 }
+
+                sharedServices.registerIfAbsent(StonecutterErrorsService.NAME, StonecutterErrorsService::class) {
+                    val trees = gradle.getContainer<ProjectNodeContainer>().values.asSequence().map { it.tree }.toSet()
+                    for (tree in trees) {
+                        val active = tree.current ?: tree.versions.first()
+                        for (node in tree.nodes) parameters.active.put(node.hierarchy.toString(), node.metadata == active)
+                    }
+                }.let(registry::onTaskCompletion)
             }
         }
     }
