@@ -68,7 +68,7 @@ inline fun FileProblemReporter.report(id: ProblemID, line: Int, column: Int, bui
  * Builds and reports a problem identified by [id] at [index] using [builder]
  */
 inline fun FileProblemReporter.report(id: ProblemID, index: Int, builder: ProblemReport.() -> Unit): ProblemReport =
-    report(id, location(index = index), builder)
+    report(id, locate(index = index), builder)
 
 /**
  * Reports a problem identified by [id] at [line] and [column] and then throws [BailException]
@@ -80,7 +80,7 @@ inline fun FileProblemReporter.bail(id: ProblemID, line: Int, column: Int, build
  * Reports a problem identified by [id] at [index] and then throws [BailException]
  */
 inline fun FileProblemReporter.bail(id: ProblemID, index: Int, builder: ProblemReport.() -> Unit): Nothing =
-    bail(id, location(index = index), builder)
+    bail(id, locate(index = index), builder)
 
 /**
  * Runs [action] and captures non-bail exceptions into a [Result]

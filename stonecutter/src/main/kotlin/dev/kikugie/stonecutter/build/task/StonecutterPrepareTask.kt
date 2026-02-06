@@ -69,8 +69,8 @@ public abstract class StonecutterPrepareTask : DefaultTask() {
                 if (change.fileType != FileType.DIRECTORY)
                     processFile(change, model)
             await()
-            errors.get().complete(path)
         }
+        errors.get().complete(path)
     }
 
     private val File.cacheFile: File
@@ -104,6 +104,7 @@ private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
         val modified = try {
             process(source, contents, transform, reporter)
         } catch (_: BailException) {
+            output.deleteIfExists()
             return // Will be rethrown as GradleException
         }
         if (contents == modified) output.deleteIfExists() else output.overwriteText(modified, true)

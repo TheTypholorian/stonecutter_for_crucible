@@ -151,24 +151,26 @@ internal class LayoutParser private constructor(
         problems.report(LAYOUT_GROUP.child("unmatched-root-closer"), code.source.body) {
             label = "Unmatched scope closer"
             details = "The definition must have a corresponding `${code.marker.text} ... {` opener."
-        }
 
-        val candidate = stack.peekFirst().entries.lastOrNull {
-            it !== code && it is CodeBuilder && it.marker.type == code.marker.type && it.definition.opener == null
+            val candidate = stack.peekFirst().entries.lastOrNull {
+                it !== code && it is CodeBuilder && it.marker.type == code.marker.type && it.definition.opener == null
+            }
+
+            if (candidate is CodeBuilder) hint = kotlin.run {
+                val location = problems.locate(candidate.source.body.endIndex)
+                "${location.toLinkString()}\nmay need to end with `{`."
+            }
         }
-        if (candidate is CodeBuilder)
-            suggestMissingOpener(candidate)
     }
 
     private fun reportMismatchedCloser(code: CodeBuilder, parent: CodeBuilder) {
         problems.report(LAYOUT_GROUP.child("unmatched-root-closer"), code.source.body) {
             label = "Mismatched closer type"
             details = "Expected `${parent.marker.text}}` instead of `${code.marker.text}}`."
-        }
-        problems.report(LAYOUT_GROUP.child("mismatched-child-suggestion"), parent.source.body) {
-            severity = ProblemSeverity.WARN
-            label = "Missing scope closer"
-            details = "The definition may need to be closed with `${parent.marker.text}}` to resolve a previously reported error."
+            hint = kotlin.run {
+                val location = problems.locate(parent.source.body.startIndex)
+                "${location.toLinkString()}\nmay need to be closed with `${parent.marker.text}}`."
+            }
         }
     }
 
@@ -176,15 +178,10 @@ internal class LayoutParser private constructor(
         problems.report(LAYOUT_GROUP.child("unmatched-extension"), code.source.body) {
             label = "Mismatched extension"
             details = "The definition closes a scope that doesn't end with a `{`."
-        }
-        suggestMissingOpener(parent)
-    }
-
-    private fun suggestMissingOpener(parent: CodeBuilder) {
-        problems.report(LAYOUT_GROUP.child("unmatched-closer-candidate"), parent.source.body) {
-            severity = ProblemSeverity.INFO
-            label = "Potential missing opener"
-            details = "The definition may need to end with a `{` to resolve a previously reported error."
+            hint = kotlin.run {
+                val location = problems.location(parent.source.body.endIndex)
+                "${location.toLinkString()}\nmay need to end with `{`."
+            }
         }
     }
 

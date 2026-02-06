@@ -3,10 +3,12 @@ package dev.kikugie.stitcher.transformer
 import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.report
 import dev.kikugie.stitcher.parser.SYNTAX_GROUP
+import dev.kikugie.stitcher.replacement.Replacement
 import dev.kikugie.stitcher.replacement.template.findInsertionPlaces
 import dev.kikugie.stitcher.token.impl.BlockToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.ExpressionToken
+import dev.kikugie.stitcher.token.impl.LeafToken
 import dev.kikugie.stitcher.token.length
 
 internal class InvalidParameterChecker(val parameters: TransformParameters, val problems: FileProblemReporter) :
@@ -28,6 +30,10 @@ internal class InvalidParameterChecker(val parameters: TransformParameters, val 
         val insertion = parameters.swaps[swap.identifier.text] ?: problems.report(SYNTAX_GROUP.child("invalid-parameter"), swap.identifier) {
             label = "Unresolved swap '${swap.identifier.text}'"
             docs = "https://stonecutter.kikugie.dev/wiki/config/params#string-swaps"
+            hint = kotlin.run {
+                val ids = parameters.swaps.keys.joinToString()
+                "Available swaps: [$ids]"
+            }
         }.let { return false }
         val insertions = insertion.findInsertionPlaces().maxOfOrNull { it.number } ?: 0
         val hasEnoughParameters = swap.arguments.size >= insertions
@@ -47,6 +53,10 @@ internal class InvalidParameterChecker(val parameters: TransformParameters, val 
         if (!isPresent) problems.report(SYNTAX_GROUP.child("invalid-parameter"), id) {
             label = "Unresolved replacement '${id.text}'"
             docs = "https://stonecutter.kikugie.dev/wiki/config/params#replacements"
+            hint = kotlin.run {
+                val ids = parameters.replacements.mapNotNull(Replacement::identifier).toSet().joinToString()
+                "Available replacements: [$ids]"
+            }
         }
         isPresent
     }
@@ -67,22 +77,39 @@ internal class InvalidParameterChecker(val parameters: TransformParameters, val 
         val isPresent = constant.value.text in parameters.constants
         if (!isPresent) problems.report(SYNTAX_GROUP.child("invalid-parameter"), constant) {
             label = "Unresolved constant '${constant.value.text}'"
+            docs = "https://stonecutter.kikugie.dev/wiki/config/params#condition-constants"
+            hint = kotlin.run {
+                val ids = parameters.constants.keys.joinToString()
+                "Available constants: [$ids]"
+            }
         }
         return isPresent
     }
 
     override fun visitAssignment(assignment: ExpressionToken.Assignment): Boolean {
         val version = parameters.dependencies[assignment.target?.text.orEmpty()]
-        if (version == null) assignment.run {
-            val isImplicit = target == null
-            val location = if (isImplicit) predicates.first().start else target.start
-            val length = if (isImplicit) predicates.last().end - location else target.length
-            problems.report(SYNTAX_GROUP.child("invalid-parameter"), location, length) {
-                label = if (isImplicit) "No default dependency specified"
-                else "Unresolved dependency '${target.text}'"
+        if (version == null)
+            if (assignment.target == null) reportImplicit(assignment)
+            else reportExplicit(assignment.target)
+        return version != null
+    }
+
+    private fun reportImplicit(assignment: ExpressionToken.Assignment) {
+        problems.report(SYNTAX_GROUP.child("invalid-parameter"), assignment.predicates.first()) {
+            label = "No default dependency specified"
+            hint = "You're doing something *really* wrong with Stonecutter to achieve this..."
+        }
+    }
+
+    private fun reportExplicit(target: LeafToken) {
+        problems.report(SYNTAX_GROUP.child("invalid-parameter"), target) {
+            label = "Unresolved dependency '${target.text}'"
+            docs = "https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies"
+            hint = kotlin.run {
+                val ids = parameters.dependencies.keys.joinToString()
+                "Available dependencies: [$ids]"
             }
         }
-        return version != null
     }
 }
 
