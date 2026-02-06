@@ -109,7 +109,7 @@ internal class CodeBuilder(
         is ScopeToken.Lookup if opener.lookup != null && !satisfied -> problems.report(LAYOUT_GROUP.child("lookup-not-found"), opener) {
             label = "Lookup string not found"
             details = "The pattern '${opener.extractLookup()}' wasn't found in the text ahead."
-            hint = "The pattern search is interrupted by any condition, swap or replacement comments."
+            hint = "the pattern search is interrupted by any condition, swap or replacement comments."
             docs = "https://stonecutter.kikugie.dev/wiki/config/params#lookup"
         }
 

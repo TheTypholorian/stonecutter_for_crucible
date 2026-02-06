@@ -32,7 +32,7 @@ internal class InvalidParameterChecker(val parameters: TransformParameters, val 
             docs = "https://stonecutter.kikugie.dev/wiki/config/params#string-swaps"
             hint = kotlin.run {
                 val ids = parameters.swaps.keys.joinToString()
-                "Available swaps: [$ids]"
+                "available swaps: [$ids]"
             }
         }.let { return false }
         val insertions = insertion.findInsertionPlaces().maxOfOrNull { it.number } ?: 0
@@ -55,7 +55,7 @@ internal class InvalidParameterChecker(val parameters: TransformParameters, val 
             docs = "https://stonecutter.kikugie.dev/wiki/config/params#replacements"
             hint = kotlin.run {
                 val ids = parameters.replacements.mapNotNull(Replacement::identifier).toSet().joinToString()
-                "Available replacements: [$ids]"
+                "available replacements: [$ids]"
             }
         }
         isPresent
@@ -80,7 +80,7 @@ internal class InvalidParameterChecker(val parameters: TransformParameters, val 
             docs = "https://stonecutter.kikugie.dev/wiki/config/params#condition-constants"
             hint = kotlin.run {
                 val ids = parameters.constants.keys.joinToString()
-                "Available constants: [$ids]"
+                "available constants: [$ids]"
             }
         }
         return isPresent
@@ -97,7 +97,7 @@ internal class InvalidParameterChecker(val parameters: TransformParameters, val 
     private fun reportImplicit(assignment: ExpressionToken.Assignment) {
         problems.report(SYNTAX_GROUP.child("invalid-parameter"), assignment.predicates.first()) {
             label = "No default dependency specified"
-            hint = "You're doing something *really* wrong with Stonecutter to achieve this..."
+            hint = "you're doing something *really* wrong with Stonecutter to achieve this..."
         }
     }
 
@@ -107,7 +107,7 @@ internal class InvalidParameterChecker(val parameters: TransformParameters, val 
             docs = "https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies"
             hint = kotlin.run {
                 val ids = parameters.dependencies.keys.joinToString()
-                "Available dependencies: [$ids]"
+                "available dependencies: [$ids]"
             }
         }
     }
