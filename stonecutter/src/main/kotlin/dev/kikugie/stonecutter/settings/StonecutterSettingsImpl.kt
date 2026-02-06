@@ -2,7 +2,6 @@ package dev.kikugie.stonecutter.settings
 
 import dev.kikugie.stonecutter.ProjectReference
 import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
-import dev.kikugie.stonecutter.build.task.TaskErrorsService
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.tree.ProjectNodeContainer

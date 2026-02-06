@@ -58,6 +58,7 @@ internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems
     private fun parseReplacement(ctx: StitcherParser.ReplacementEntryContext): DefinitionToken.ReplacementEntry =
         DefinitionToken.ReplacementEntry(ctx.OP_NOT()?.let(factory::fromAntlrNode), factory.fromAntlrNode(ctx.IDENTIFIER()))
 
+    // FIXME: Can throw NPE if ctx has no expression
     private fun parseExpression(ctx: StitcherParser.ConditionExpressionContext): ExpressionToken = runBailing {
         ctx.accept(expressionBuilder)
     }.getOrElse {

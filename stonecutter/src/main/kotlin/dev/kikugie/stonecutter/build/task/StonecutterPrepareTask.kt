@@ -1,19 +1,13 @@
 package dev.kikugie.stonecutter.build.task
 
-import dev.kikugie.stitcher.issue.BailException
-import dev.kikugie.stitcher.issue.ProblemID
-import dev.kikugie.stitcher.issue.ProblemLocation
-import dev.kikugie.stitcher.issue.ProblemReport
-import dev.kikugie.stitcher.issue.ProblemSeverity
+import dev.kikugie.stitcher.issue.*
 import dev.kikugie.stitcher.process
 import dev.kikugie.stitcher.transformer.TransformParameters
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData
-import dev.kikugie.stonecutter.build.task.StonecutterErrorsService.GradleProblemConsumer
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.controller.tree.ParametersModel
 import dev.kikugie.stonecutter.util.clearIfNotIncremental
-import dev.kikugie.stonecutter.util.execute
 import dev.kikugie.stonecutter.util.overwriteText
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
@@ -65,21 +59,18 @@ public abstract class StonecutterPrepareTask : DefaultTask() {
     @get:ServiceReference(StonecutterErrorsService.NAME)
     internal abstract val errors: Property<StonecutterErrorsService>
 
-    private val consumer: GradleProblemConsumer by lazy {
-        errors.get().GradleProblemConsumer(path, logger)
-    }
-
     @TaskAction
     internal fun run(inputs: InputChanges) {
         inputs.clearIfNotIncremental(destination.asFile.get())
         val model = ParametersModel(params.get())
 
-        executor.execute {
+        with(executor.noIsolation()) {
             for (change in inputs.getFileChanges(source))
                 if (change.fileType != FileType.DIRECTORY)
-                    it.processFile(change, model)
+                    processFile(change, model)
+            await()
+            errors.get().complete(path)
         }
-        consumer.complete()
     }
 
     private val File.cacheFile: File
@@ -91,7 +82,8 @@ public abstract class StonecutterPrepareTask : DefaultTask() {
         model.set(params)
 
         handlers.set(this@StonecutterPrepareTask.handlers)
-        reporter.set(this@StonecutterPrepareTask.consumer)
+        reporter.set(this@StonecutterPrepareTask.errors)
+        task.set(this@StonecutterPrepareTask.path)
     }
 }
 
@@ -100,7 +92,7 @@ private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
     private val output: Path get() = parameters.output.asFile.get().toPath()
 
     override fun execute() {
-        val reporter = parameters.reporter.get()
+        val reporter: ProblemConsumer = { parameters.reporter.get().report(parameters.task.get(), it) }
         val transform = parameters.model.get().forFile(source, parameters.handlers.get().parameters.handlers.get())
 
         if (transform == null) reporter.invoke(ProblemReport(ProblemID("invalid-extension"), ProblemLocation(source)).apply {
@@ -123,7 +115,8 @@ private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
         val model: Property<ParametersModel>
 
         val handlers: Property<FileHandlerService>
-        val reporter: Property<GradleProblemConsumer>
+        val reporter: Property<StonecutterErrorsService>
+        val task: Property<String>
     }
 }
 

@@ -1,6 +1,11 @@
 package dev.kikugie.stonecutter.build.data
 
 import dev.kikugie.semver.data.Version
+import dev.kikugie.stitcher.issue.BailException
+import dev.kikugie.stitcher.issue.ProblemConsumer
+import dev.kikugie.stitcher.issue.ProblemReport
+import dev.kikugie.stitcher.issue.ProblemSeverity
+import dev.kikugie.stitcher.transformer.TransformParameters
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
@@ -8,8 +13,10 @@ import dev.kikugie.stonecutter.build.config.ConstantContainer
 import dev.kikugie.stonecutter.build.config.DependencyContainer
 import dev.kikugie.stonecutter.build.config.ReplacementContainerImpl
 import dev.kikugie.stonecutter.build.config.SwapContainer
-import dev.kikugie.stonecutter.build.task.GradleProblemReporter
 import dev.kikugie.stonecutter.build.task.StonecutterBuildTasks
+import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
+import dev.kikugie.stonecutter.build.task.StonecutterErrorsService.Companion.collect
+import dev.kikugie.stonecutter.build.task.StonecutterErrorsService.Companion.log
 import dev.kikugie.stonecutter.build.task.forFile
 import dev.kikugie.stonecutter.controller.StonecutterControllerExtension
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
@@ -57,10 +64,18 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
         val project = node.project
         val handlers = project.gradle.getContainer<FileHandlerContainer>()
             .handlers[file.extension.lowercase()].let { mapOf(it.name to HandlerModel(it)) }
-        val parameters = ParametersModel(data).forFile(file.toPath(), handlers)!!
-        val reporter = GradleProblemReporter(node.project.logger) { true }
+        val parameters: TransformParameters = ParametersModel(data).forFile(file.toPath(), handlers)!!
+        val problems: MutableCollection<ProblemReport> = mutableListOf()
+        val reporter: ProblemConsumer = {
+            if (it.severity == ProblemSeverity.ERROR) problems += it
+            project.logger.log(it)
+        }
 
-        val contents = reporter.run { dev.kikugie.stitcher.process(file.toPath(), file.readText(), parameters, reporter) }
+        val contents = try {
+            dev.kikugie.stitcher.process(file.toPath(), file.readText(), parameters, reporter)
+        } catch (_: BailException) {
+            problems.collect()
+        }
         val output = project.layout.projectDirectory.file(destination)
             .also(project.providers::fileContents).asFile
         output.overwriteText(contents, true)

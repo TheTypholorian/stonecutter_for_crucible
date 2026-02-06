@@ -6,7 +6,7 @@ fun interface ProblemFormatter {
 
 object FullProblemFormatter : ProblemFormatter {
     override fun format(report: ProblemReport): String = buildString {
-        append(report.prefix, ' ', report.location?.toLinkString() ?: "<unknown file>", ' ', report.label, '\n')
+        append(report.prefix, ": ", report.location?.toLinkString() ?: "<unknown file>", ' ', report.label, '\n')
         for ((index, line) in report.details?.lineSequence().orEmpty().withIndex())
             append(if (index == 0) "> " else "| ", line, '\n')
         report.hint?.let { append("Hint: ", it, '\n') }
@@ -14,6 +14,8 @@ object FullProblemFormatter : ProblemFormatter {
         report.exception?.let {
             append("Caused by: ", it::class.simpleName ?: "<anonymous class>", ' ', it.message.orEmpty(), '\n', it.stackTraceToString())
         }
+        if (endsWith('\n'))
+            replace(length - 1, length, "")
     }
 
     private val ProblemReport.prefix: Char

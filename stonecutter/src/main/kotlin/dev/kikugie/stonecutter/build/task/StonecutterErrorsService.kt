@@ -1,67 +1,78 @@
 package dev.kikugie.stonecutter.build.task
 
 import dev.kikugie.stitcher.issue.FullProblemFormatter
-import dev.kikugie.stitcher.issue.ProblemConsumer
 import dev.kikugie.stitcher.issue.ProblemReport
 import dev.kikugie.stitcher.issue.ProblemSeverity
 import dev.kikugie.stitcher.issue.ShortProblemFormatter
 import org.gradle.api.GradleException
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.services.BuildService
 import org.gradle.api.services.BuildServiceParameters
 import org.gradle.tooling.events.FinishEvent
 import org.gradle.tooling.events.OperationCompletionListener
-import java.io.Serializable
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 
 internal abstract class StonecutterErrorsService : BuildService<StonecutterErrorsService.Parameters>, OperationCompletionListener {
-    private val allRrinted = ConcurrentHashMap.newKeySet<ProblemReport>()
+    private val printed = ConcurrentHashMap.newKeySet<ProblemReport>()
+    private val buckets = ConcurrentHashMap<String, TaskBucket>()
 
     override fun onFinish(event: FinishEvent) {
         // no-op: this is only to make the service persist until the end of all tasks
+    }
+
+    fun report(task: String, report: ProblemReport) = with(bucket(task)) {
+        reports.add(report)
+        if (report.severity == ProblemSeverity.ERROR)
+            errors.add(report)
+        if (immediate && printed.add(report))
+            Logging.getLogger(task.substringAfterLast(':')).log(report)
+    }
+
+    fun complete(task: String) = with(bucket(task)) {
+        val logger = Logging.getLogger(task.substringAfterLast(':'))
+        for (report in reports) if (printed.add(report))
+            logger.log(report.level, report.accept(FullProblemFormatter))
+
+        if (errors.isNotEmpty())
+            errors.collect()
+    }
+
+    private fun bucket(task: String): TaskBucket = buckets.computeIfAbsent(task) {
+        val path = task.substringBeforeLast(':')
+        val immediate = parameters.active.getting(path).getOrElse(false)
+        TaskBucket(immediate)
     }
 
     interface Parameters : BuildServiceParameters {
         val active: MapProperty<String, Boolean>
     }
 
-    inner class GradleProblemConsumer(val task: String, val logger: Logger): ProblemConsumer, Serializable {
-        val immediate: Boolean = parameters.active.getting(task.substringBeforeLast(':')).getOrElse(false)
-        private val myReports = ConcurrentLinkedQueue<ProblemReport>()
-        private val myErrors = ConcurrentLinkedQueue<ProblemReport>()
-
-        override fun invoke(report: ProblemReport) {
-            myReports += report
-            if (report.severity == ProblemSeverity.ERROR)
-                myErrors += report
-            if (immediate && allRrinted.add(report))
-                print(report)
-        }
-
-        fun complete() {
-            for (report in myReports) if (allRrinted.add(report))
-                print(report)
-            if (myErrors.isNotEmpty()) {
-                val joined = myErrors.distinct().joinToString("\n") { "  " + it.accept(ShortProblemFormatter) }
-                throw GradleException("File processing failed; see logs for more details.\n$joined")
-            }
-        }
-
-        private fun print(report: ProblemReport) {
-            logger.log(report.level, report.accept(FullProblemFormatter))
-        }
-    }
+    private data class TaskBucket(
+        val immediate: Boolean,
+        val reports: MutableCollection<ProblemReport> = ConcurrentLinkedQueue(),
+        val errors: MutableCollection<ProblemReport> = ConcurrentLinkedQueue(),
+    )
 
     companion object {
         const val NAME: String = "StonecutterTaskErrors"
-    }
-}
 
-private val ProblemReport.level get() = when(severity) {
-    ProblemSeverity.INFO -> LogLevel.LIFECYCLE
-    ProblemSeverity.WARN -> LogLevel.WARN
-    ProblemSeverity.ERROR -> LogLevel.ERROR
+        val ProblemReport.level get() = when(severity) {
+            ProblemSeverity.INFO -> LogLevel.LIFECYCLE
+            ProblemSeverity.WARN -> LogLevel.WARN
+            ProblemSeverity.ERROR -> LogLevel.ERROR
+        }
+
+        fun Logger.log(report: ProblemReport) =
+            log(report.level, report.accept(FullProblemFormatter))
+
+        @Suppress("NOTHING_TO_INLINE")
+        inline fun Iterable<ProblemReport>.collect(): Nothing {
+            val joined = distinct().joinToString("\n") { "  " + it.accept(ShortProblemFormatter) }
+            throw GradleException("File processing failed; see logs for more details.\n$joined")
+        }
+    }
 }
