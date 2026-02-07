@@ -10,44 +10,26 @@ import dev.kikugie.stitcher.parser.fromAntlrNode
 import dev.kikugie.stitcher.parser.fromAntlrToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.ExpressionToken
+import dev.kikugie.stitcher.token.impl.LeafToken
 import dev.kikugie.stitcher.token.impl.ScopeToken
 
 internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems: FileProblemReporter)
     : StitcherBaseVisitor<DefinitionToken>() {
-    private val expressionBuilder: ExpressionBuilder by lazy { ExpressionBuilder(factory, problems) }
-    private val scopeTokenBuilder: ScopeTokenBuilder by lazy { ScopeTokenBuilder(factory) }
-
-    override fun visitReplacement(ctx: StitcherParser.ReplacementContext): DefinitionToken {
-        val tokens = ctx.replacementEntry().map(::parseReplacement)
-        return DefinitionToken.Replacement(tokens)
-    }
-
-    override fun visitOpenerSwap(ctx: StitcherParser.OpenerSwapContext): DefinitionToken {
-        val identifier = factory.fromAntlrNode(ctx.IDENTIFIER())
-        val arguments = ctx.swapArguments()?.literal().orEmpty<StitcherParser.LiteralContext>()
-            .map { factory.fromAntlrToken(it.start) }
-        val opener = ctx.scopeOpener()?.accept(scopeTokenBuilder)
-        return DefinitionToken.SwapOpener(identifier, arguments, opener)
-    }
-
-    override fun visitCloserSwap(ctx: StitcherParser.CloserSwapContext): DefinitionToken {
-        val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE())
-        return DefinitionToken.SwapCloser(closer)
-    }
+    private val expressionBuilder: ExpressionBuilder = ExpressionBuilder(factory, problems)
+    private val scopeTokenBuilder: ScopeTokenBuilder = ScopeTokenBuilder(factory)
 
     override fun visitOpenerCondition(ctx: StitcherParser.OpenerConditionContext): DefinitionToken {
         val sugar = listOfNotNull(ctx.SUGAR_IF()).map(factory::fromAntlrNode)
-        val expression = ctx.conditionExpression().let(::parseExpression)
+        val expression = parseExpression(ctx.conditionExpression())
         val opener = ctx.scopeOpener()?.accept(scopeTokenBuilder)
         return DefinitionToken.ConditionOpener(sugar, expression, opener)
     }
 
     override fun visitExtensionCondition(ctx: StitcherParser.ExtensionConditionContext): DefinitionToken {
         val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE())
-        val sugar = listOfNotNull(ctx.SUGAR_ELIF(), ctx.SUGAR_ELSE(), ctx.SUGAR_IF()).map(factory::fromAntlrNode)
         val expression = ctx.conditionExpression()?.let(::parseExpression)
         val opener = ctx.scopeOpener()?.accept(scopeTokenBuilder)
-        return DefinitionToken.ConditionExtension(closer, sugar, expression, opener)
+        return DefinitionToken.ConditionExtension(closer, collectSugar(ctx.elseSugar()), expression, opener)
     }
 
     override fun visitCloserCondition(ctx: StitcherParser.CloserConditionContext): DefinitionToken {
@@ -55,8 +37,60 @@ internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems
         return DefinitionToken.ConditionCloser(closer)
     }
 
-    private fun parseReplacement(ctx: StitcherParser.ReplacementEntryContext): DefinitionToken.ReplacementEntry =
-        DefinitionToken.ReplacementEntry(ctx.OP_NOT()?.let(factory::fromAntlrNode), factory.fromAntlrNode(ctx.IDENTIFIER()))
+    override fun visitIdentifierSwap(ctx: StitcherParser.IdentifierSwapContext): DefinitionToken {
+        val identifier = factory.fromAntlrNode(ctx.IDENTIFIER())
+        val arguments = ctx.swapArguments()?.literal().orEmpty<StitcherParser.LiteralContext>()
+            .map { factory.fromAntlrToken(it.start) }
+        val opener = ctx.scopeOpener()?.accept(scopeTokenBuilder)
+        return DefinitionToken.SwapOpener(identifier, arguments, opener)
+    }
+
+    override fun visitLocalSwap(ctx: StitcherParser.LocalSwapContext): DefinitionToken {
+        val expressions = mutableListOf<DefinitionToken.SwapExpr>()
+        expressions += kotlin.run {
+            val sugar = listOf(factory.fromAntlrNode(ctx.SUGAR_IF()))
+            val expression = parseExpression(ctx.conditionExpression())
+            val literal = factory.fromAntlrToken(ctx.literal(0).start)
+            DefinitionToken.SwapExpr(sugar, expression, literal)
+        }
+        for (extension in ctx.swapExtension())
+            expressions += parseSwapExtension(extension)
+        expressions += kotlin.run {
+            val sugar = listOf(factory.fromAntlrNode(ctx.SUGAR_ELSE()))
+            val literal = factory.fromAntlrToken(ctx.literal(1).start)
+            DefinitionToken.SwapExpr(sugar, null, literal)
+        }
+        val opener = ctx.scopeOpener()?.accept(scopeTokenBuilder)
+        return DefinitionToken.SwapLocal(expressions, opener)
+    }
+
+    override fun visitCloserSwap(ctx: StitcherParser.CloserSwapContext): DefinitionToken {
+        val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE())
+        return DefinitionToken.SwapCloser(closer)
+    }
+
+    override fun visitToggleReplacement(ctx: StitcherParser.ToggleReplacementContext): DefinitionToken {
+        val tokens = ctx.replacementEntry().map(::parseReplacementEntry)
+        return DefinitionToken.ReplacementToggle(tokens)
+    }
+
+    override fun visitLocalReplacement(ctx: StitcherParser.LocalReplacementContext): DefinitionToken {
+        val sugar = factory.fromAntlrNode(ctx.SUGAR_IF())
+        val expression = parseExpression(ctx.conditionExpression())
+        val (source, target) = ctx.literal().map { factory.fromAntlrToken(it.start) }
+        val op = factory.fromAntlrNode(ctx.OP_DIR())
+        val opener = ctx.scopeOpener()?.accept(scopeTokenBuilder)
+        return DefinitionToken.ReplacementLocal(sugar, expression, source, op, target, opener)
+    }
+
+    override fun visitCloserReplacement(ctx: StitcherParser.CloserReplacementContext): DefinitionToken {
+        val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE())
+        return DefinitionToken.ReplacementCloser(closer)
+    }
+
+    private fun collectSugar(ctx: StitcherParser.ElseSugarContext?): List<LeafToken> =
+        if (ctx == null) emptyList()
+        else listOfNotNull(ctx.SUGAR_ELIF(), ctx.SUGAR_ELSE(), ctx.SUGAR_IF()).map(factory::fromAntlrNode)
 
     // FIXME: Can throw NPE if ctx has no expression
     private fun parseExpression(ctx: StitcherParser.ConditionExpressionContext): ExpressionToken = runBailing {
@@ -67,6 +101,16 @@ internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems
             exception = it
         }
     }
+
+    private fun parseSwapExtension(ctx: StitcherParser.SwapExtensionContext): DefinitionToken.SwapExpr {
+        val sugar = collectSugar(ctx.elseSugar())
+        val expression = ctx.conditionExpression()?.let(::parseExpression)
+        val literal = factory.fromAntlrToken(ctx.literal().start)
+        return DefinitionToken.SwapExpr(sugar, expression, literal)
+    }
+
+    private fun parseReplacementEntry(ctx: StitcherParser.ReplacementEntryContext): DefinitionToken.ReplacementEntry =
+        DefinitionToken.ReplacementEntry(ctx.OP_NOT()?.let(factory::fromAntlrNode), factory.fromAntlrNode(ctx.IDENTIFIER()))
 
     private class PairDefinitionBuilder(factory: StitcherTokenFactory, problems: FileProblemReporter) : StitcherBaseVisitor<Pair<AntlrToken, DefinitionToken>>() {
         private val definitionBuilder = DefinitionBuilder(factory, problems)
