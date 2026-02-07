@@ -11,27 +11,36 @@ definition
     | REPL_MARK replacement EOF # replacementDefinition
     ;
 
+condition
+    : SUGAR_IF? conditionExpression scopeOpener?                                              # openerCondition
+    | SCOPE_CLOSE ((elseSugar? conditionExpression scopeOpener?) | (SUGAR_ELSE scopeOpener?)) # extensionCondition
+    | SCOPE_CLOSE                                                                             # closerCondition
+    ;
+
+swap
+    : IDENTIFIER swapArguments? scopeOpener?                                              # identifierSwap
+    | SUGAR_IF conditionExpression literal swapExtension* SUGAR_ELSE literal scopeOpener? # localSwap
+    | SCOPE_CLOSE                                                                         # closerSwap
+    ;
+
+replacement
+    : replacementEntry+                                                # toggleReplacement
+    | SUGAR_IF conditionExpression literal OP_DIR literal scopeOpener? # localReplacement
+    | SCOPE_CLOSE                                                      # closerReplacement
+    ;
+
 scopeOpener
     : SCOPE_OPEN                  # closedScopeOpener
     | SCOPE_WORD (PLUS? literal)? # wordScopeOpener
     ;
 
-replacement: replacementEntry+;
-
-replacementEntry: OP_NOT? IDENTIFIER;
-
-swap
-    : IDENTIFIER swapArguments? scopeOpener? # openerSwap
-    | SCOPE_CLOSE                            # closerSwap
-    ;
+elseSugar: SUGAR_ELSE SUGAR_IF | SUGAR_ELIF | SUGAR_ELSE;
 
 swapArguments: literal+;
 
-condition
-    : SUGAR_IF? conditionExpression scopeOpener?                                                                                    # openerCondition
-    | SCOPE_CLOSE (((SUGAR_ELSE SUGAR_IF | SUGAR_ELIF | SUGAR_ELSE)? conditionExpression scopeOpener?) | (SUGAR_ELSE scopeOpener?)) # extensionCondition
-    | SCOPE_CLOSE                                                                                                                   # closerCondition
-    ;
+swapExtension: elseSugar conditionExpression literal;
+
+replacementEntry: OP_NOT? IDENTIFIER;
 
 conditionExpression
     : conditionExpression op=(OP_AND | OP_OR) conditionExpression # binaryExpression
@@ -115,6 +124,7 @@ OP_ASSIGN: ':';
 OP_NOT: '!';
 OP_AND: '&&';
 OP_OR: '||';
+OP_DIR: '->';
 
 NUMERIC: NUMBER;
 IDENTIFIER: IDENTIFIER_START IDENTIFIER_PART*;

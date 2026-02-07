@@ -2,7 +2,7 @@ package dev.kikugie.stitcher.token
 
 import dev.kikugie.stitcher.antlr.StitcherLexer
 
-private const val INIT_TYPE = StitcherLexer.WHITESPACE + 1
+private const val INIT_TYPE: Int = StitcherLexer.WHITESPACE + 1
 
 sealed interface StitcherType {
     val value: Int
@@ -32,7 +32,9 @@ data class AntlrStitcherType private constructor(override val value: Int, overri
 @Suppress("NOTHING_TO_INLINE")
 enum class NativeStitcherType : StitcherType {
     ROOT, CODE, CONTENT, COMMENT, COMMENT_OPEN, COMMENT_BODY, COMMENT_CLOSE,
-    SWAP_OPEN, SWAP_CLOSE, COND_OPEN, COND_EXT, COND_CLOSE, REPL, REPL_ENTRY,
+    COND_OPEN, COND_EXT, COND_CLOSE,
+    SWAP_OPEN, SWAP_CLOSE, SWAP_LOCAL, SWAP_EXPR,
+    REPL_TOGGLE, REPL_OPEN, REPL_CLOSE, REPL_ENTRY,
     GROUP, UNARY, BINARY, CONSTANT, ASSIGNMENT,
     CLOSED_SCOPE, LOOKUP_SCOPE, PREDICATE;
 
