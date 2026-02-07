@@ -16,13 +16,16 @@ import dev.kikugie.stitcher.token.eval.scopeEnd
 import dev.kikugie.stitcher.token.eval.scopeStart
 import dev.kikugie.stitcher.token.impl.BlockToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
+import dev.kikugie.stitcher.token.impl.ExpressionToken
 import dev.kikugie.stitcher.token.impl.LeafToken
+import dev.kikugie.stitcher.token.impl.unwrapText
 import dev.kikugie.stitcher.util.create
 import dev.kikugie.stitcher.util.errorListener
 import dev.kikugie.stitcher.util.hasLineBreak
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.Pair
 
+// TODO: Clean this mess up
 internal class BlockTransformer private constructor(
     val params: TransformParameters,
     val factory: StitcherTokenFactory,
@@ -71,23 +74,22 @@ internal class BlockTransformer private constructor(
     }
 
     private inner class ScopeTransformer(val code: BlockToken.Code) : DefinitionToken.Visitor<List<BlockToken>> {
-        override fun visitReplacement(repl: DefinitionToken.Replacement): List<BlockToken> {
-            repl.accept(state.checker) // Is it necessary to abort if some identifiers are not present?
-            val enable = mutableSetOf<String>()
-            val disable = mutableSetOf<String>()
-            for ((op, id) in repl.expressions) when(op) {
-                null -> enable += id.text
-                else -> disable += id.text
-            }
-
-            state.replacer.update(enable, disable)
-            return emptyList()
-        }
-
-        override fun visitSwap(swap: DefinitionToken.Swap): List<BlockToken> {
-            if (swap !is DefinitionToken.SwapOpener || !swap.accept(state.checker)) return emptyList()
+        // TODO: The inserted swap code is not processed, should it be?
+        override fun visitSwapOpener(swap: DefinitionToken.SwapOpener): List<BlockToken> {
+            if (!swap.accept(state.checker)) return code.scope
 
             val replacement = processTemplate(params.swaps[swap.identifier.text]!!, swap.arguments)
+            return substituteSwap(replacement)
+        }
+
+        override fun visitSwapLocal(swap: DefinitionToken.SwapLocal): List<BlockToken> {
+            if (!swap.accept(state.checker)) return code.scope
+
+            val variant = swap.entries.first { it.expression?.accept(state.evaluator) ?: true }
+            return substituteSwap(variant.literal.unwrapText())
+        }
+
+        private fun substituteSwap(replacement: String): List<BlockToken> {
             val content = params.replacer.replace(code.scope.join(), replacement)
                 .let(state.replacer::replace)
             val start = code.scope.firstOrNull()?.start ?: code.host.end
@@ -97,12 +99,28 @@ internal class BlockTransformer private constructor(
             return listOf(BlockToken.Content(token))
         }
 
-        override fun visitCondition(cond: DefinitionToken.Condition): List<BlockToken> {
-            if (cond !is DefinitionToken.ConditionExtension) visitedEnabledBlock = false
-            if (cond is DefinitionToken.ConditionCloser || !cond.accept(state.checker)) return emptyList()
+        override fun visitSwapCloser(swap: DefinitionToken.SwapCloser): List<BlockToken> =
+            emptyList()
 
+        override fun visitConditionOpener(cond: DefinitionToken.ConditionOpener): List<BlockToken> {
+            visitedEnabledBlock = false
+            return if (!cond.accept(state.checker)) visitScope(code.scope)
+            else evaluateCondition(cond.expression)
+        }
+
+        override fun visitConditionExtension(cond: DefinitionToken.ConditionExtension): List<BlockToken> {
+            return if (!cond.accept(state.checker)) visitScope(code.scope)
+            else evaluateCondition(cond.expression)
+        }
+
+        override fun visitConditionCloser(cond: DefinitionToken.ConditionCloser): List<BlockToken> {
+            visitedEnabledBlock = false
+            return emptyList()
+        }
+
+        private fun evaluateCondition(expression: ExpressionToken?): List<BlockToken> {
             // In an if-else chain makes the rest of the blocks disabled
-            val shouldEnable = cond.expression?.accept(state.evaluator) ?: true
+            val shouldEnable = expression?.accept(state.evaluator) ?: true
                 && !visitedEnabledBlock
             visitedEnabledBlock = shouldEnable || visitedEnabledBlock
 
@@ -112,14 +130,34 @@ internal class BlockTransformer private constructor(
             }
         }
 
+        override fun visitReplacementToggle(repl: DefinitionToken.ReplacementToggle): List<BlockToken> {
+            repl.accept(state.checker) // Is it necessary to abort if some identifiers are not present?
+            val enable = mutableSetOf<String>()
+            val disable = mutableSetOf<String>()
+            for ((op, id) in repl.entries) when(op) {
+                null -> enable += id.text
+                else -> disable += id.text
+            }
+
+            state.replacer.update(enable, disable)
+            return emptyList()
+        }
+
+        override fun visitReplacementLocal(repl: DefinitionToken.ReplacementLocal): List<BlockToken> {
+            if (!repl.accept(state.checker)) return visitScope(code.scope)
+
+            TODO()
+        }
+
+        override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser): List<BlockToken> =
+            emptyList()
+
         private fun processTemplate(template: String, tokens: List<LeafToken>): String {
             if (tokens.isEmpty()) return template
 
             var offset = 0
             val builder = StringBuilder(template)
-            val insertions = tokens.map {
-                if (it.type.value == StitcherLexer.QUOTED) it.text.removeSurrounding("'") else it.text
-            }
+            val insertions = tokens.map(LeafToken::unwrapText)
             for (place in template.findInsertionPlaces())
                 offset += place.apply(builder, offset) { insertions[it - 1] }
             return builder.toString()

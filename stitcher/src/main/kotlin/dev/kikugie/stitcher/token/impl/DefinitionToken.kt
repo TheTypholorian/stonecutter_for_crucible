@@ -61,13 +61,13 @@ sealed interface DefinitionToken : StitcherToken {
     sealed interface Swap : DefinitionToken
 
     data class SwapLocal(
-        val expressions: List<SwapExpr>,
+        val entries: List<SwapExpr>,
         override val opener: ScopeToken?
     ) : Swap {
         override val type: StitcherType get() = NativeStitcherType.SWAP_LOCAL
         override val kind: Kind = opener.openerKind()
-        override val start: Int get() = expressions.first().start
-        override val end: Int = lastNotNull(expressions.last(), opener).end
+        override val start: Int get() = entries.first().start
+        override val end: Int = lastNotNull(entries.last(), opener).end
 
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitSwapLocal(this)
     }
@@ -136,11 +136,11 @@ sealed interface DefinitionToken : StitcherToken {
 
     sealed interface Replacement : DefinitionToken
 
-    data class ReplacementToggle(val expressions: List<ReplacementEntry>) : Replacement {
+    data class ReplacementToggle(val entries: List<ReplacementEntry>) : Replacement {
         override val type: NativeStitcherType get() = NativeStitcherType.REPL_TOGGLE
         override val kind: Kind get() = Kind.INDEPENDENT
-        override val start: Int = expressions.first().start
-        override val end: Int = expressions.last().end
+        override val start: Int = entries.first().start
+        override val end: Int = entries.last().end
 
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitReplacementToggle(this)
     }

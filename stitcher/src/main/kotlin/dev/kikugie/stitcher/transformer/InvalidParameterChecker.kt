@@ -9,7 +9,7 @@ import dev.kikugie.stitcher.token.impl.BlockToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.ExpressionToken
 import dev.kikugie.stitcher.token.impl.LeafToken
-import dev.kikugie.stitcher.token.length
+import dev.kikugie.stitcher.token.impl.unwrapText
 
 internal class InvalidParameterChecker(val parameters: TransformParameters, val problems: FileProblemReporter) :
     BlockToken.Visitor<Boolean>, DefinitionToken.Visitor<Boolean>, ExpressionToken.Visitor<Boolean> {
@@ -25,8 +25,10 @@ internal class InvalidParameterChecker(val parameters: TransformParameters, val 
         return isDefinitionValid && isScopeValid
     }
 
-    override fun visitSwap(swap: DefinitionToken.Swap): Boolean {
-        if (swap !is DefinitionToken.SwapOpener) return true
+    override fun visitSwapLocal(swap: DefinitionToken.SwapLocal): Boolean =
+        swap.entries.allExhaustive { it.expression?.accept(this) ?: true }
+
+    override fun visitSwapOpener(swap: DefinitionToken.SwapOpener): Boolean {
         val insertion = parameters.swaps[swap.identifier.text] ?: problems.report(SYNTAX_GROUP.child("invalid-parameter"), swap.identifier) {
             label = "Unresolved swap '${swap.identifier.text}'"
             docs = "https://stonecutter.kikugie.dev/wiki/config/params#string-swaps"
@@ -34,7 +36,9 @@ internal class InvalidParameterChecker(val parameters: TransformParameters, val 
                 val ids = parameters.swaps.keys.joinToString()
                 "available swaps: [$ids]"
             }
-        }.let { return false }
+        }.let {
+            return false
+        }
         val insertions = insertion.findInsertionPlaces().maxOfOrNull { it.number } ?: 0
         val hasEnoughParameters = swap.arguments.size >= insertions
         if (!hasEnoughParameters) problems.report(SYNTAX_GROUP.child("insufficient-insertions"), swap.arguments.first()) {
@@ -44,14 +48,20 @@ internal class InvalidParameterChecker(val parameters: TransformParameters, val 
         return hasEnoughParameters
     }
 
-    override fun visitCondition(cond: DefinitionToken.Condition) =
+    override fun visitSwapCloser(swap: DefinitionToken.SwapCloser): Boolean = true
+
+    override fun visitConditionOpener(cond: DefinitionToken.ConditionOpener): Boolean =
+        cond.expression.accept(this)
+
+    override fun visitConditionExtension(cond: DefinitionToken.ConditionExtension): Boolean =
         cond.expression?.accept(this) ?: true
 
-    override fun visitReplacement(repl: DefinitionToken.Replacement) = repl.expressions.allExhaustive { entry ->
-        val id = entry.identifier
-        val isPresent = parameters.replacements.any { it.identifier == id.text }
-        if (!isPresent) problems.report(SYNTAX_GROUP.child("invalid-parameter"), id) {
-            label = "Unresolved replacement '${id.text}'"
+    override fun visitConditionCloser(cond: DefinitionToken.ConditionCloser): Boolean = true
+
+    override fun visitReplacementToggle(repl: DefinitionToken.ReplacementToggle): Boolean = repl.entries.allExhaustive { entry ->
+        val isPresent = parameters.replacements.any { it.identifier == entry.identifier.text }
+        if (!isPresent) problems.report(SYNTAX_GROUP.child("invalid-parameter"), entry.identifier) {
+            label = "Unresolved replacement '${entry.identifier.text}'"
             docs = "https://stonecutter.kikugie.dev/wiki/config/params#replacements"
             hint = kotlin.run {
                 val ids = parameters.replacements.mapNotNull(Replacement::identifier).toSet().joinToString()
@@ -60,6 +70,26 @@ internal class InvalidParameterChecker(val parameters: TransformParameters, val 
         }
         isPresent
     }
+
+    override fun visitReplacementLocal(repl: DefinitionToken.ReplacementLocal): Boolean {
+        var valid = repl.expression.accept(this)
+        fun reportEmpty(token: LeafToken) = problems.report(SYNTAX_GROUP.child("invalid-parameter"), token) {
+            label = "Empty replacement value"
+        }
+
+        if (repl.source.unwrapText().isEmpty()) {
+            reportEmpty(repl.source)
+            valid = false
+        }
+
+        if (repl.target.unwrapText().isEmpty()) {
+            reportEmpty(repl.source)
+            valid = false
+        }
+        return valid
+    }
+
+    override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser): Boolean = true
 
     override fun visitGroup(group: ExpressionToken.Group) =
         group.body.accept(this)
