@@ -14,7 +14,10 @@ internal val LINE_BREAKS: CharArray = charArrayOf('\r', '\n')
 internal val WORD_BREAKS: CharArray = charArrayOf(' ', '\t')
 internal val WHITESPACES: CharArray = WORD_BREAKS + LINE_BREAKS
 
-fun String.isValidIdentifier(): Boolean = matches(IDENTIFIER_REGEX)
+fun String.isValidIdentifier(): Boolean = when(this) {
+    "if", "else", "elif" -> false
+    else -> matches(IDENTIFIER_REGEX)
+}
 
 fun CharSequence.hasLineBreak() = any(LINE_BREAKS::contains)
 
