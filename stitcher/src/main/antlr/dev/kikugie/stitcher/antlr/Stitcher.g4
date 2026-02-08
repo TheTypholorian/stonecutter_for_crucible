@@ -12,9 +12,10 @@ definition
     ;
 
 condition
-    : SUGAR_IF? conditionExpression scopeOpener?                                              # openerCondition
-    | SCOPE_CLOSE ((elseSugar? conditionExpression scopeOpener?) | (SUGAR_ELSE scopeOpener?)) # extensionCondition
-    | SCOPE_CLOSE                                                                             # closerCondition
+    : SUGAR_IF? conditionExpression scopeOpener?              # openerCondition
+    | SCOPE_CLOSE elseSugar? conditionExpression scopeOpener? # extensionCondition
+    | SCOPE_CLOSE SUGAR_ELSE scopeOpener?                     # elseExtCondition
+    | SCOPE_CLOSE                                             # closerCondition
     ;
 
 swap

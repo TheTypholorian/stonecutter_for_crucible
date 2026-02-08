@@ -27,9 +27,16 @@ internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems
 
     override fun visitExtensionCondition(ctx: StitcherParser.ExtensionConditionContext): DefinitionToken {
         val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE())
-        val expression = ctx.conditionExpression()?.let(::parseExpression)
+        val expression = parseExpression(ctx.conditionExpression())
         val opener = ctx.scopeOpener()?.accept(scopeTokenBuilder)
         return DefinitionToken.ConditionExtension(closer, collectSugar(ctx.elseSugar()), expression, opener)
+    }
+
+    override fun visitElseExtCondition(ctx: StitcherParser.ElseExtConditionContext): DefinitionToken {
+        val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE())
+        val sugar = listOf(factory.fromAntlrNode(ctx.SUGAR_ELSE()))
+        val opener = ctx.scopeOpener()?.accept(scopeTokenBuilder)
+        return DefinitionToken.ConditionExtension(closer, sugar, null, opener)
     }
 
     override fun visitCloserCondition(ctx: StitcherParser.CloserConditionContext): DefinitionToken {

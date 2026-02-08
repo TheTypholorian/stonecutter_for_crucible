@@ -2,16 +2,11 @@ package dev.kikugie.stitcher
 
 import dev.kikugie.stitcher.antlr.InlineErrorListener
 import dev.kikugie.stitcher.antlr.charStream
-import dev.kikugie.stitcher.issue.BailException
-import dev.kikugie.stitcher.issue.ProblemReport
-import dev.kikugie.stitcher.issue.ProblemReporterImpl
-import dev.kikugie.stitcher.issue.location
-import dev.kikugie.stitcher.issue.runMarked
+import dev.kikugie.stitcher.issue.*
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.layout.LayoutParser
 import dev.kikugie.stitcher.token.eval.join
 import dev.kikugie.stitcher.transformer.BlockTransformer
-import dev.kikugie.stitcher.transformer.InvalidParameterChecker
 import dev.kikugie.stitcher.transformer.TransformParameters
 import dev.kikugie.stitcher.util.errorListener
 import org.antlr.v4.runtime.CommonTokenStream
@@ -25,14 +20,11 @@ fun process(file: Path, contents: String, parameters: TransformParameters, consu
         scanner.errorListener(InlineErrorListener(problems.location(0, 0, 0), problems))
     }
 
-    val layout = problems.runMarked({ LayoutParser.parse(CommonTokenStream(source), input, StitcherTokenFactory, problems) }) {
-        it.accept(InvalidParameterChecker(parameters, problems))
-        throw BailException()
+    val layout = problems.runMarked({ LayoutParser.parse(CommonTokenStream(source), input, StitcherTokenFactory, problems) }) { root, ok ->
+        if (ok) root else throw BailException()
     }
 
-    val modified = problems.runMarked({ layout.accept(BlockTransformer(parameters, StitcherTokenFactory, input, problems)) }) {
-        throw BailException()
+    return problems.runMarked({ layout.accept(BlockTransformer(parameters, problems, input)) }) { root, ok ->
+        if (ok) root.join() else throw BailException()
     }
-
-    return modified.join()
 }

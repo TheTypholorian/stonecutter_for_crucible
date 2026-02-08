@@ -1,7 +1,11 @@
-package dev.kikugie.stitcher.transformer
+package dev.kikugie.stitcher.transformer.visitor
 
 import dev.kikugie.stitcher.antlr.StitcherLexer
 import dev.kikugie.stitcher.token.impl.ExpressionToken
+import dev.kikugie.stitcher.transformer.TransformParameters
+import dev.kikugie.stitcher.util.eval
+import dev.kikugie.stitcher.util.id
+import dev.kikugie.stitcher.util.text
 
 internal class ExpressionEvaluator(val parameters: TransformParameters) : ExpressionToken.Visitor<Boolean> {
     override fun visitGroup(group: ExpressionToken.Group): Boolean = group.body.accept(this)
@@ -17,10 +21,10 @@ internal class ExpressionEvaluator(val parameters: TransformParameters) : Expres
     }
 
     override fun visitConstant(constant: ExpressionToken.Constant): Boolean =
-        parameters.constants[constant.value.text]!! // Checked beforehand
+        parameters.constants[constant.text]!! // Checked beforehand
 
     override fun visitAssignment(assignment: ExpressionToken.Assignment): Boolean {
-        val value = parameters.dependencies[assignment.target?.text.orEmpty()]!! // Checked beforehand
-        return assignment.predicates.all { it.predicate(value) }
+        val value = parameters.dependencies[assignment.id]!! // Checked beforehand
+        return assignment.eval(value)
     }
 }

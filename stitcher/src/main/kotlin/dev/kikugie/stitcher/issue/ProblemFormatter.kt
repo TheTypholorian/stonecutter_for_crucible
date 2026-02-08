@@ -8,8 +8,8 @@ object FullProblemFormatter : ProblemFormatter {
     override fun format(report: ProblemReport): String = buildString {
         append(report.prefix, ": ", report.location?.toLinkString() ?: "<unknown file>", ' ', report.label, '\n')
         report.details?.let { appendLines(it, "> ") }
-        report.hint?.let { appendLines(it, "- Hint: ") }
-        report.docs?.let { appendLines(it, "- Docs: ") }
+        report.hint?.let { appendLines(it.replaceFirstChar(Char::lowercaseChar), "- Hint: ") }
+        report.docs?.let { appendLines(it.replaceFirstChar(Char::lowercaseChar), "- Docs: ") }
         report.exception?.let {
             append("Caused by: ", it::class.simpleName ?: "<anonymous class>", ' ', it.message.orEmpty(), '\n', it.stackTraceToString())
         }

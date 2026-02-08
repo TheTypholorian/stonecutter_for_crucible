@@ -13,8 +13,3 @@ data class LeafToken(
     fun isConsistent(): Boolean =
         text.length == end - start
 }
-
-fun LeafToken.unwrapText(): String = when(type.value) {
-    StitcherLexer.QUOTED -> text.removeSurrounding("'")
-    else -> text
-}

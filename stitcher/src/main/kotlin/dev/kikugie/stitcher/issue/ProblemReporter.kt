@@ -126,8 +126,7 @@ inline fun <R, T : Any> R.tryBailingOn(action: R.() -> T): Result<T?> = try {
     Result.failure(e)
 }
 
-inline fun <T> ProblemReporter.runMarked(action: () -> T, handler: (T) -> Nothing): T {
+inline fun <T, R> ProblemReporter.runMarked(action: () -> T, handler: (result: T, ok: Boolean) -> R): R {
     val marker = mark()
-    val result = action()
-    return if (marker.isDirty) handler(result) else result
+    return handler(action(), !marker.isDirty)
 }

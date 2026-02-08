@@ -7,16 +7,14 @@ import dev.kikugie.stitcher.transformer.strategy.CommentingStrategy
 import dev.kikugie.stitcher.transformer.strategy.SwappingStrategy
 import dev.kikugie.stitcher.transformer.strategy.UncommentingStrategy
 
-data class TransformParameters(
+class TransformParameters(
     val adapter: ScannerAdapter.Factory,
-
     val commenter: CommentingStrategy,
     val uncommenter: UncommentingStrategy,
-    val replacer: SwappingStrategy,
+    val swapper: SwappingStrategy,
 
-    val swaps: Map<String, String> = emptyMap(),
-    val constants: Map<String, Boolean> = emptyMap(),
-    val dependencies: Map<String, Version> = emptyMap(),
-
-    val replacements: List<Replacement> = emptyList()
-)
+    val swaps: Map<String, String>,
+    val constants: Map<String, Boolean>,
+    val dependencies: Map<String, Version>,
+    val replacements: List<Replacement>
+) : ScannerAdapter.Factory by adapter, CommentingStrategy by commenter, UncommentingStrategy by uncommenter, SwappingStrategy by swapper

@@ -1,4 +1,4 @@
-import dev.kikugie.stitcher.transform.impl.LineCommentStrategy
+import dev.kikugie.stitcher.transformer.impl.LineCommentStrategy
 
 plugins {
     id("dev.kikugie.stonecutter")

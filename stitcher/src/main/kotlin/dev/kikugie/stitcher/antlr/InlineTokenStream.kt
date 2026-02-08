@@ -30,8 +30,8 @@ internal class InlineTokenStream(val source: Pair<TokenSource?, CharStream?>, va
             token.type,
             token.text,
             token.channel,
-            token.startIndex + location.fileIndex,
-            token.startIndex + location.fileIndex,
+            location.fileIndex,
+            location.fileIndex,
             location.line,
             location.charOffset
         )

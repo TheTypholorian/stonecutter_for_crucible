@@ -3,13 +3,7 @@ package dev.kikugie.stitcher.replacement.executor
 import dev.kikugie.stitcher.replacement.RegexReplacement
 import dev.kikugie.stitcher.replacement.Replacement
 import dev.kikugie.stitcher.replacement.StringReplacement
-import dev.kikugie.stitcher.replacement.search.EmitConsumer
-import dev.kikugie.stitcher.replacement.search.NativeSearcher
-import dev.kikugie.stitcher.replacement.search.RegexSearcher
-import dev.kikugie.stitcher.replacement.search.SearchData
-import dev.kikugie.stitcher.replacement.search.SearchEmit
-import dev.kikugie.stitcher.replacement.search.SearchEmitQueue
-import dev.kikugie.stitcher.replacement.search.TrieSearcher
+import dev.kikugie.stitcher.replacement.search.*
 import dev.kikugie.stitcher.util.buildString
 
 interface ReplacementExecutor {
@@ -56,7 +50,8 @@ class CompositeReplacementExecutor(replacements: List<Replacement>) : Replacemen
     }
 }
 
-class RegexReplacementExecutor(replacements: Iterable<RegexReplacement>, private val identifiers: MutableSet<String> = mutableSetOf()) : ReplacementExecutor {
+class RegexReplacementExecutor(replacements: Iterable<RegexReplacement>, private val identifiers: MutableSet<String> = mutableSetOf()) :
+    ReplacementExecutor {
     private val searcher = RegexSearcher<State>(replacements.toStateList())
     override fun update(enabled: Collection<String>, disabled: Collection<String>) {
         identifiers += enabled
@@ -83,8 +78,10 @@ class RegexReplacementExecutor(replacements: Iterable<RegexReplacement>, private
     }
 }
 
-class StringReplacementExecutor(replacements: Iterable<StringReplacement>, private val identifiers: MutableSet<String> = mutableSetOf()) : ReplacementExecutor {
+class StringReplacementExecutor(replacements: Iterable<StringReplacement>, private val identifiers: MutableSet<String> = mutableSetOf()) :
+    ReplacementExecutor {
     private val searcher = TrieSearcher<State>(replacements.toStateList())
+
     override fun update(enabled: Collection<String>, disabled: Collection<String>) {
         identifiers += enabled
         identifiers -= disabled
@@ -113,9 +110,12 @@ class StringReplacementExecutor(replacements: Iterable<StringReplacement>, priva
     }
 }
 
-class SimpleReplacementExecutor() : ReplacementExecutor {
+class SimpleReplacementExecutor : ReplacementExecutor {
     private val searcher = NativeSearcher<State>()
     override fun update(enabled: Collection<String>, disabled: Collection<String>) = Unit
+
+    override fun replace(text: String): String =
+        if (searcher.payloads.isEmpty()) text else super.replace(text)
 
     override fun collect(text: CharSequence, queue: SearchEmitQueue<SearchData>) {
         searcher.search(text) { @Suppress("UNCHECKED_CAST") queue.add(it as SearchEmit<SearchData>) }
@@ -126,7 +126,8 @@ class SimpleReplacementExecutor() : ReplacementExecutor {
     }
 
     fun pop() {
-        searcher.payloads.removeLast()
+        if (searcher.payloads.isNotEmpty())
+            searcher.payloads.removeLast()
     }
 
     @JvmInline
