@@ -74,11 +74,11 @@ class TransformParametersBuilder {
     val dependencies: MutableMap<String, Version> = mutableMapOf()
     val replacements: ReplacementBuilder<Replacement> = ReplacementBuilder()
 
-    fun ReplacementBuilder<Replacement>.string(from: String, to: String, id: String? = null) =
-        add(StringReplacement(to, setOf(from), identifier = id))
+    fun ReplacementBuilder<Replacement>.string(from: String, to: String, id: String? = null, tags: Set<Replacement.Tag> = emptySet()) =
+        add(StringReplacement(to, setOf(from), id, tags))
 
-    fun ReplacementBuilder<Replacement>.regex(@Language("RegExp") from: String, to: String, id: String? = null) =
-        add(RegexReplacement(to, from, identifier = id))
+    fun ReplacementBuilder<Replacement>.regex(@Language("RegExp") from: String, to: String, id: String? = null, tags: Set<Replacement.Tag> = emptySet()) =
+        add(RegexReplacement(to, from, id, tags))
 
     fun build() = TransformParameters(adapter, commenter, uncommenter, swapper, swaps, constants, dependencies, replacements.build())
 

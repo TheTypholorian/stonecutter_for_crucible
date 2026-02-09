@@ -76,14 +76,14 @@ class BlockTransformer private constructor(val factory: StitcherTokenFactory, pr
 private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTransformer) :
     DefinitionToken.Visitor<List<BlockToken>>, TransformerStateV2 by context {
     override fun visitSwapLocal(swap: DefinitionToken.SwapLocal): List<BlockToken> {
-        if (!tokenChecker.check(swap)) return code.scope
+        if (!checker.check(swap)) return code.scope
 
         val variant = swap.entries.first { eval(it.expression) }
         return wrapSwapReplacement(variant.literal.unquote())
     }
 
     override fun visitSwapOpener(swap: DefinitionToken.SwapOpener): List<BlockToken> {
-        if (!tokenChecker.check(swap)) return code.scope
+        if (!checker.check(swap)) return code.scope
 
         val replacement = processTemplate(parameters.swaps[swap.id]!!, swap.arguments)
         return wrapSwapReplacement(replacement)
@@ -93,12 +93,12 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
 
     override fun visitConditionOpener(cond: DefinitionToken.ConditionOpener): List<BlockToken> {
         context.conditionCarry = false
-        return if (!tokenChecker.check(cond)) code.scope
+        return if (!checker.check(cond)) code.scope
         else processCondition(cond.expression)
     }
 
     override fun visitConditionExtension(cond: DefinitionToken.ConditionExtension): List<BlockToken> {
-        return if (!tokenChecker.check(cond)) code.scope
+        return if (!checker.check(cond)) code.scope
         else processCondition(cond.expression)
     }
 
@@ -108,7 +108,7 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
     }
 
     override fun visitReplacementToggle(repl: DefinitionToken.ReplacementToggle): List<BlockToken> {
-        tokenChecker.check(repl)
+        checker.check(repl)
 
         val enable = mutableSetOf<String>()
         val disable = mutableSetOf<String>()
@@ -117,23 +117,22 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
             else -> disable += id.text
         }
 
-        globalReplacer.update(enable, disable)
+        replacer.update(enable, disable)
         return emptyList()
     }
 
     override fun visitReplacementLocal(repl: DefinitionToken.ReplacementLocal): List<BlockToken> {
-        if (!tokenChecker.check(repl)) return code.scope.reprocess()
+        if (!checker.check(repl)) return code.scope.reprocess()
 
         val direction = eval(repl.expression)
         val (source, target) = if (direction) repl.source to repl.target else repl.target to repl.source
-        localReplacer.push(source.text, target.text)
+        replacer.localExecutor.push(source.unquote(), target.unquote())
         return code.scope.reprocess()
+            .also { replacer.localExecutor.pop() }
     }
 
-    override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser): List<BlockToken> {
-        localReplacer.pop()
-        return emptyList()
-    }
+    override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser): List<BlockToken> =
+        emptyList()
 
     private fun wrapSwapReplacement(replacement: String): List<BlockToken> {
         val content = parameters.replace(code.scope.join(), replacement)
@@ -184,7 +183,7 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
         val factory = StitcherTokenFactory.Inline(first().start)
         return problems.runMarked({ LayoutParser.parse(stream, input, factory, problems) }) { root, ok ->
             if (ok) return@runMarked root.scope.reprocess()
-            tokenChecker.check(root)
+            checker.check(root)
             root.scope
         }
     }
@@ -200,9 +199,8 @@ interface TransformerStateV2 {
     val problems: FileProblemReporter
     val input: CharStream
 
-    val tokenChecker: ParameterChecker
-    val globalReplacer: ReplacementExecutor
-    val localReplacer: SimpleReplacementExecutor
+    val checker: ParameterChecker
+    val replacer: CompositeReplacementExecutor
 
     fun eval(expr: ExpressionToken?): Boolean
 
@@ -215,19 +213,11 @@ private class TransformerStateImpl(
     override val input: CharStream,
 ) : TransformerStateV2 {
     val evaluator: ExpressionEvaluator = ExpressionEvaluator(parameters)
-    override val tokenChecker: ParameterChecker = ParameterChecker(parameters, problems)
-
-    override val globalReplacer: ReplacementExecutor by lazy {
-        if (parameters.replacements.isEmpty()) EmptyReplacementExecutor
-        else CompositeReplacementExecutor(parameters.replacements)
-    }
-
-    override val localReplacer: SimpleReplacementExecutor by lazy {
-        SimpleReplacementExecutor()
-    }
+    override val checker: ParameterChecker = ParameterChecker(parameters, problems)
+    override val replacer: CompositeReplacementExecutor = CompositeReplacementExecutor(parameters.replacements)
 
     override fun eval(expr: ExpressionToken?): Boolean = expr?.accept(evaluator) ?: true
-    override fun String.applyReplacements(): String = let(globalReplacer::replace).let(localReplacer::replace)
+    override fun String.applyReplacements(): String = let(replacer::replace)
 }
 
 private class UncommentedTokenSource(tokens: Iterable<BlockToken>, state: TransformerStateV2, val reparse: Boolean): ListTokenSource(mutableListOf()) {

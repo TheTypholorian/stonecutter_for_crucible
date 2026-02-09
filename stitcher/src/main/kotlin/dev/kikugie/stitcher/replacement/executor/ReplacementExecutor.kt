@@ -31,22 +31,30 @@ class CompositeReplacementExecutor(replacements: List<Replacement>) : Replacemen
     private val identifiers: MutableSet<String> = mutableSetOf<String>().apply {
         replacements.mapNotNullTo(this) { it.identifier?.takeIf { _ -> Replacement.Tag.DEFAULT_ENABLED in it.tags } }
     }
-    private val stringExecutor: StringReplacementExecutor
-    private val regexExecutor: RegexReplacementExecutor
+    private val stringExecutor: StringReplacementExecutor?
+    private val regexExecutor: RegexReplacementExecutor?
+    val localExecutor: SimpleReplacementExecutor = SimpleReplacementExecutor()
     override fun update(enabled: Collection<String>, disabled: Collection<String>) {
+        if (stringExecutor == null || regexExecutor == null) return
         identifiers += enabled
         identifiers -= disabled
     }
 
     override fun collect(text: CharSequence, queue: SearchEmitQueue<SearchData>) {
-        stringExecutor.collect(text, queue)
-        regexExecutor.collect(text, queue)
+        stringExecutor?.collect(text, queue)
+        regexExecutor?.collect(text, queue)
+        localExecutor.collect(text, queue)
     }
 
     init {
-        val replacements = replacements.asSequence()
-        stringExecutor = StringReplacementExecutor(replacements.filterIsInstance<StringReplacement>().asIterable(), identifiers)
-        regexExecutor = RegexReplacementExecutor(replacements.filterIsInstance<RegexReplacement>().asIterable(), identifiers)
+        if (replacements.isEmpty()) {
+            stringExecutor = null
+            regexExecutor = null
+        } else {
+            val replacements = replacements.asSequence()
+            stringExecutor = StringReplacementExecutor(replacements.filterIsInstance<StringReplacement>().asIterable(), identifiers)
+            regexExecutor = RegexReplacementExecutor(replacements.filterIsInstance<RegexReplacement>().asIterable(), identifiers)
+        }
     }
 }
 
@@ -113,9 +121,6 @@ class StringReplacementExecutor(replacements: Iterable<StringReplacement>, priva
 class SimpleReplacementExecutor : ReplacementExecutor {
     private val searcher = NativeSearcher<State>()
     override fun update(enabled: Collection<String>, disabled: Collection<String>) = Unit
-
-    override fun replace(text: String): String =
-        if (searcher.payloads.isEmpty()) text else super.replace(text)
 
     override fun collect(text: CharSequence, queue: SearchEmitQueue<SearchData>) {
         searcher.search(text) { @Suppress("UNCHECKED_CAST") queue.add(it as SearchEmit<SearchData>) }

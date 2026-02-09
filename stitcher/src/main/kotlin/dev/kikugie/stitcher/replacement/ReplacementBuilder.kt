@@ -17,10 +17,10 @@ interface ReplacementBuilder<T : Replacement> {
         operator fun invoke(entries: Iterable<Replacement> = emptyList()): ReplacementBuilder<Replacement> =
             CompositeReplacementBuilder(entries)
 
-        fun string(entries: Iterable<StringReplacement> = emptyList()) : ReplacementBuilder<StringReplacement> =
+        fun string(entries: Iterable<StringReplacement> = emptyList()): ReplacementBuilder<StringReplacement> =
             StringReplacementBuilder(entries)
 
-        fun regex(entries: Iterable<RegexReplacement> = emptyList()) : ReplacementBuilder<RegexReplacement> =
+        fun regex(entries: Iterable<RegexReplacement> = emptyList()): ReplacementBuilder<RegexReplacement> =
             RegexReplacementBuilder(entries)
     }
 }
@@ -39,8 +39,9 @@ private class CompositeReplacementBuilder(entries: Iterable<Replacement>) : Repl
 
 private class StringReplacementBuilder() : ReplacementBuilder<StringReplacement> {
     constructor(entries: Iterable<StringReplacement>) : this() {
-        for (it in entries) stubs += StringReplacementStub(it.target, it.sources.toMutableSet(), it.identifier)
+        for (it in entries) stubs += StringReplacementStub(it.target, it.sources.toMutableSet(), it.identifier, it.tags)
     }
+
     private val stubs: MutableList<StringReplacementStub> = mutableListOf()
 
     override fun build(): List<StringReplacement> = stubs.map(StringReplacementStub::build)
@@ -49,17 +50,19 @@ private class StringReplacementBuilder() : ReplacementBuilder<StringReplacement>
         if (sources.any(String::isEmpty)) return invalidSourceReport()
         if (target.isEmpty()) return invalidTargetReport()
         if (identifier != null && !IDENTIFIER_REGEX.matches(identifier)) return invalidIdentifierReport(identifier)
-        for (source in sources) merge(target, source, identifier)
+        for (source in sources) merge(target, source, identifier, replacement.tags)
             .let { if (it != null) return it }
         null
     }
 
-    private fun merge(target: String, source: String, identifier: String?): ProblemReport? {
-        val matching = stubs.asSequence().filter { it.identifier == identifier }
+    private fun merge(target: String, source: String, identifier: String?, tags: Set<Replacement.Tag>): ProblemReport? {
+        val matching = stubs.asSequence().filter {
+            it.identifier == identifier && it.tags.size == tags.size && it.tags.containsAll(tags)
+        }
         if (matching.none {
             val (result, report) = it.tryMerge(target, source)
             if (report != null) return report else result
-        }) stubs += StringReplacementStub(target, source, identifier)
+        }) stubs += StringReplacementStub(target, source, identifier, tags)
         return null
     }
 
@@ -73,7 +76,9 @@ private class StringReplacementBuilder() : ReplacementBuilder<StringReplacement>
 
         // Composite replacement: ({a, b} -> d) + ({c} -> d) = ({a, b, c} -> d)
         // Transitive replacement: ({a, c} -> d) + ({b} -> c) = ({a, b, c} -> d)
-        newTarget == target || newTarget in sources -> { sources += newSource; true to null }
+        newTarget == target || newTarget in sources -> {
+            sources += newSource; true to null
+        }
 
         // Ambiguous replacement: ({a, b} -> d) + ({a, c} -> d)
         else -> if (newSource in sources) false to ambiguousReplacementReport(this, newSource, newTarget) else false to null
@@ -104,15 +109,28 @@ private class StringReplacementBuilder() : ReplacementBuilder<StringReplacement>
         docs = "https://stonecutter.kikugie.dev/wiki/config/params#string-replacements"
     }
 
-    private data class StringReplacementStub(var target: String, val sources: MutableSet<String>, val identifier: String?) {
-        constructor(target: String, source: String, identifier: String? = null) : this(target, mutableSetOf(source), identifier)
+    private data class StringReplacementStub(
+        var target: String,
+        val sources: MutableSet<String>,
+        val identifier: String?,
+        val tags: Set<Replacement.Tag>
+    ) {
+        constructor(target: String, source: String, identifier: String? = null, tags: Set<Replacement.Tag> = emptySet()) : this(
+            target,
+            mutableSetOf(source),
+            identifier,
+            tags
+        )
 
-        fun build(): StringReplacement = StringReplacement(target, sources, identifier)
+        fun build(): StringReplacement = StringReplacement(target, sources, identifier, tags)
     }
 }
 
 private class RegexReplacementBuilder() : ReplacementBuilder<RegexReplacement> {
-    constructor(entries: Iterable<RegexReplacement>) : this() { replacements.addAll(entries) }
+    constructor(entries: Iterable<RegexReplacement>) : this() {
+        replacements.addAll(entries)
+    }
+
     private val replacements: MutableList<RegexReplacement> = mutableListOf()
 
     override fun build(): List<RegexReplacement> = replacements.toList()

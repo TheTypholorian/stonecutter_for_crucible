@@ -106,6 +106,6 @@ class OldRandomTest : GradleTest, FreeSpec({
      * @see <a href="https://codeberg.org/stonecutter/stonecutter/issues/17">#17</a>
      */
     "word scope unmatched" - { _, build ->
-        build.fail(":2:run").buildResult.output shouldContain "Failed to find the matching string"
+        build.fail(":2:run").buildResult.output shouldContain "Lookup string not found"
     }
 })

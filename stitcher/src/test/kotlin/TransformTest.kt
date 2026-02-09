@@ -1,4 +1,5 @@
 import dev.kikugie.semver.data.SemanticVersion
+import dev.kikugie.stitcher.replacement.Replacement
 import io.kotest.assertions.shouldFail
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
@@ -127,6 +128,100 @@ class TransformTest : FreeSpec({
             process(content) {
                 replacements.string("b.c.d", "!!!")
                 replacements.regex("a\\.b\\.c", "a.2.c")
+            } shouldBe expected
+        }
+
+        "toggle multiple ids" {
+            val content = """
+                a.b.c.d.e
+                //~ !ab de
+                a.b.c.d.e
+            """.trimIndent()
+            val expected = """
+                1.2.c.d.e
+                //~ !ab de
+                a.b.c.4.5
+            """.trimIndent()
+            process(content) {
+                replacements.string("a.b", "1.2", id = "ab", tags = setOf(Replacement.Tag.DEFAULT_ENABLED))
+                replacements.string("d.e", "4.5", id = "de")
+            } shouldBe expected
+        }
+
+        "ignore subsequent toggles" {
+            val content = """
+                //~ !my_id
+                //~ !my_id
+                a.b.c
+            """.trimIndent()
+            val expected = """
+                //~ !my_id
+                //~ !my_id
+                a.b.c
+            """.trimIndent()
+            process(content) {
+                replacements.string("a.b", "1.2", id = "my_id")
+            } shouldBe expected
+        }
+
+        "basic local replacement" {
+            val content = """
+                a.b.c.d.e
+                //~ if true 'b.c' -> '2.3' {
+                a.b.c.d.e
+                a.b.c.d.e
+                //~}
+            """.trimIndent()
+            val expected = """
+                a.b.c.d.e
+                //~ if true 'b.c' -> '2.3' {
+                a.2.3.d.e
+                a.2.3.d.e
+                //~}
+            """.trimIndent()
+            process(content) {
+                constants["true"] = true
+            } shouldBe expected
+        }
+
+        "nested local replacement" {
+            val content = """
+                a.b.c.d.e
+                //~ if true 'b.c' -> '2.3' {
+                a.b.c.d.e
+                //~ if true 'd.e' -> '4.5'
+                a.b.c.d.e
+                a.b.c.d.e
+                //~}
+            """.trimIndent()
+            val expected = """
+                a.b.c.d.e
+                //~ if true 'b.c' -> '2.3' {
+                a.2.3.d.e
+                //~ if true 'd.e' -> '4.5'
+                a.2.3.4.5
+                a.2.3.d.e
+                //~}
+            """.trimIndent()
+            process(content) {
+                constants["true"] = true
+            } shouldBe expected
+        }
+
+        "overwrite global replacements" {
+            val content = """
+                a.b.c.d.e
+                //~ if true 'b.c' -> '6.9'
+                a.b.c.d.e
+            """.trimIndent()
+            val expected = """
+                a.2.3.d.e
+                //~ if true 'b.c' -> '6.9'
+                a.6.9.d.e
+            """.trimIndent()
+            process(content) {
+                constants["true"] = true
+                replacements.string("b.c", "2.3")
             } shouldBe expected
         }
     }
@@ -297,6 +392,58 @@ class TransformTest : FreeSpec({
             process(content) {
                 swaps["open_url"] = "ClickEvent(ClickEvent.Action.OPEN_URL, $1)"
             } shouldBe expected
+        }
+
+        "basic local swap" {
+            val content = """
+                //$ if param 'method1()' else 'method2()'
+                    ???
+            """.trimIndent()
+
+            process(content) {
+                constants["param"] = true
+            } shouldBe """
+                //$ if param 'method1()' else 'method2()'
+                    method1()
+            """.trimIndent()
+
+            process(content) {
+                constants["param"] = false
+            } shouldBe """
+                //$ if param 'method1()' else 'method2()'
+                    method2()
+            """.trimIndent()
+        }
+
+        "horrible local swap" {
+            val content = """
+                //$ if param1 'method1()' elif param2 'method2()' else 'method3()'
+                    ???
+            """.trimIndent()
+
+            process(content) {
+                constants["param1"] = true
+                constants["param2"] = true
+            } shouldBe """
+                //$ if param1 'method1()' elif param2 'method2()' else 'method3()'
+                    method1()
+            """.trimIndent()
+
+            process(content) {
+                constants["param1"] = false
+                constants["param2"] = true
+            } shouldBe """
+                //$ if param1 'method1()' elif param2 'method2()' else 'method3()'
+                    method2()
+            """.trimIndent()
+
+            process(content) {
+                constants["param1"] = false
+                constants["param2"] = false
+            } shouldBe """
+                //$ if param1 'method1()' elif param2 'method2()' else 'method3()'
+                    method3()
+            """.trimIndent()
         }
     }
 
