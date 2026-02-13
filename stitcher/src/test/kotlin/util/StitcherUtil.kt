@@ -4,7 +4,9 @@ import dev.kikugie.semver.data.Version
 import dev.kikugie.stitcher.antlr.scanner.HashStyleScanner
 import dev.kikugie.stitcher.antlr.scanner.SlashStyleScanner
 import dev.kikugie.stitcher.issue.FileProblemReporter
+import dev.kikugie.stitcher.issue.FullProblemFormatter
 import dev.kikugie.stitcher.issue.ProblemReport
+import dev.kikugie.stitcher.issue.ShortProblemFormatter
 import dev.kikugie.stitcher.parser.adapter.ScannerAdapter
 import dev.kikugie.stitcher.process
 import dev.kikugie.stitcher.replacement.RegexReplacement
@@ -13,8 +15,8 @@ import dev.kikugie.stitcher.replacement.ReplacementBuilder
 import dev.kikugie.stitcher.replacement.StringReplacement
 import dev.kikugie.stitcher.transformer.TransformParameters
 import dev.kikugie.stitcher.transformer.impl.LineCommentStrategy
-import dev.kikugie.stitcher.transformer.impl.StandardSwapStrategy
 import dev.kikugie.stitcher.transformer.impl.SlashStarCommentStrategy
+import dev.kikugie.stitcher.transformer.impl.StandardSwapStrategy
 import dev.kikugie.stitcher.transformer.impl.StarRemoveCommentStrategy
 import dev.kikugie.stitcher.transformer.strategy.CommentingStrategy
 import dev.kikugie.stitcher.transformer.strategy.SwappingStrategy
@@ -25,34 +27,17 @@ import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.Lexer
 import org.intellij.lang.annotations.Language
 import java.nio.file.StandardOpenOption
-import kotlin.io.path.absolutePathString
+import kotlin.io.path.Path
 import kotlin.io.path.writeText
 
-val PROBLEM_REPORTER: (ProblemReport) -> Unit = { report: ProblemReport ->
-    println(buildString {
-        append("e: ${formatLocation(report)} ${report.label}")
-        if (report.details != null) append("\n${report.details}")
-        if (report.exception != null) append("\nCaused by: ${report.exception!!.stackTraceToString()}")
-    })
-}
-
 val IMMEDIATE_THROW: (ProblemReport) -> Unit = { report: ProblemReport ->
-    throw AssertionError(buildString {
-        append(report.label)
-        if (report.details != null) append("\n${report.details}")
-    }).apply {
-        if (report.exception != null) initCause(report.exception)
-    }
+    System.err.println(report.accept(FullProblemFormatter))
+    throw AssertionError(report.accept(ShortProblemFormatter))
 }
 
-private fun formatLocation(report: ProblemReport): String = buildString {
-    val location = checkNotNull(report.location)
-    append("file://${location.file.absolutePathString()}")
-    if (location.line >= 1) {
-        append(":${location.line}")
-        if (location.column >= 1)
-            append(":${location.column}")
-    }
+inline fun processRaw(contents: String, parameters: TransformParametersBuilder.() -> Unit = {}) : String {
+    val parameters = TransformParametersBuilder().apply(parameters).build()
+    return process(Path(""), contents, parameters, IMMEDIATE_THROW)
 }
 
 inline fun TestConfiguration.process(contents: String, parameters: TransformParametersBuilder.() -> Unit = {}): String {

@@ -55,7 +55,7 @@ internal class PredicateBuilder(val factory: StitcherTokenFactory, val problems:
         StringVersion(text)
 
     private fun StitcherParser.SemanticVersionContext.build(): Version {
-        val components = versionCore().NUMERIC().map<TerminalNode, Int> { it.text.toInt() }.toIntArray()
+        val components = versionCore().NUMERIC().map<TerminalNode, Int> { it.text.toInt() }
         val preRelease = preRelease()?.text.orEmpty()
         val buildMetadata = buildMetadata()?.text.orEmpty()
         return SemanticVersion(components, preRelease, buildMetadata)

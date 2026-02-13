@@ -197,9 +197,9 @@ internal class LayoutParser private constructor(
 
         val location = problems.location(body)
         val listener = InlineErrorListener(location, problems)
-        val scanner = StitcherLexer(input).errorListener(listener)
+        val scanner = StitcherLexer(input).apply { errorListener = listener }
         val stream = InlineTokenStream(Pair(scanner, source), CommonTokenStream(scanner), location)
-        val parser = StitcherParser(stream).errorListener(listener)
+        val parser = StitcherParser(stream).apply { errorListener = listener; errorHandler = StitcherErrorStrategy() }
         return parser.definition().accept(visitor)
     }
 

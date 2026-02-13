@@ -312,7 +312,7 @@ class TransformTest : FreeSpec({
                 //...
             """.trimIndent()
             process(content) {
-                dependencies[""] = SemanticVersion(intArrayOf(1))
+                dependencies[""] = SemanticVersion(1)
             } shouldBe expected
         }
 
@@ -326,7 +326,7 @@ class TransformTest : FreeSpec({
                 //...
             """.trimIndent()
             process(content) {
-                dependencies[""] = SemanticVersion(intArrayOf(3))
+                dependencies[""] = SemanticVersion(3)
             } shouldBe expected
         }
 
@@ -340,7 +340,7 @@ class TransformTest : FreeSpec({
                 //...
             """.trimIndent()
             process(content) {
-                dependencies["id"] = SemanticVersion(intArrayOf(3))
+                dependencies["id"] = SemanticVersion(3)
             } shouldBe expected
         }
 
@@ -354,7 +354,7 @@ class TransformTest : FreeSpec({
                 ...
             """.trimIndent()
             process(content) {
-                dependencies[""] = SemanticVersion(intArrayOf(2))
+                dependencies[""] = SemanticVersion(2)
             } shouldBe expected
         }
 
@@ -363,7 +363,7 @@ class TransformTest : FreeSpec({
             val content = "/*? if <1.21.9 >>*/ /*,0*/ )"
             val expected = "/*? if <1.21.9 >>*/ ,0 )"
             process(content) {
-                dependencies[""] = SemanticVersion(intArrayOf(1, 21, 8))
+                dependencies[""] = SemanticVersion(1, 21, 8)
             } shouldBe expected
         }
     }

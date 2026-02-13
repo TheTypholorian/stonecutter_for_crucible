@@ -2,6 +2,7 @@
 
 package dev.kikugie.stitcher.util
 
+import dev.kikugie.commons.takeAs
 import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.stitcher.antlr.AntlrToken
 import dev.kikugie.stitcher.issue.FileProblemReporter
@@ -41,7 +42,12 @@ internal fun <T : AntlrToken> TokenFactory<T>.create(
     )
 }
 
-internal fun <T : Recognizer<*, *>> T.errorListener(listener: ANTLRErrorListener) = apply {
-    errorListeners.clear()
-    (errorListeners as MutableList<ANTLRErrorListener>) += listener
-}
+private val Parser.previousToken: AntlrToken
+    get() = tokenStream.LT(-1)
+
+var Recognizer<*, *>.errorListener: ANTLRErrorListener
+    get() = errorListeners.single()
+    set(value) {
+        errorListeners.clear()
+        errorListeners.takeAs<MutableList<ANTLRErrorListener>>() += value
+    }

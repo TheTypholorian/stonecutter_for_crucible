@@ -2,14 +2,7 @@
 
 package dev.kikugie.stitcher.antlr
 
-import org.antlr.v4.runtime.CharStream
-import org.antlr.v4.runtime.CharStreams
-import org.antlr.v4.runtime.IntStream
-import org.antlr.v4.runtime.ParserRuleContext
-import org.antlr.v4.runtime.Token
-import org.antlr.v4.runtime.TokenSource
-import org.antlr.v4.runtime.TokenStream
-import org.antlr.v4.runtime.Vocabulary
+import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.tree.TerminalNode
 import java.io.InputStream
 import java.nio.charset.Charset

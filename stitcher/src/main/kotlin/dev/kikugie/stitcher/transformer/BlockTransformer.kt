@@ -253,7 +253,7 @@ private class UncommentedTokenSource(tokens: Iterable<BlockToken>, state: Transf
         private fun acceptReparsed(text: String, location: ProblemLocation) {
             val content = text.charStream(input.sourceName)
             val scanner = parameters.create(content, problems).apply {
-                scanner.errorListener(InlineErrorListener(location, problems))
+                scanner.errorListener = InlineErrorListener(location, problems)
             }
             for (token in InlineTokenStream(source, CommonTokenStream(scanner), location).let(::TokenStreamIterator))
                 list += token

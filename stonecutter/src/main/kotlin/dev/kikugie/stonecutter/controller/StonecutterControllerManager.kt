@@ -42,6 +42,7 @@ internal interface StonecutterControllerManager : Serializable {
         override fun replace(text: String, template: String): String = text.replace(pattern) {
             it.value.replace(it.groupValues[2], template)
         }
+        private fun readResolve(): Any = Groovy
     }
 
     object Kotlin : StonecutterControllerManager {
@@ -58,5 +59,6 @@ internal interface StonecutterControllerManager : Serializable {
         override fun replace(text: String, template: String): String = text.replace(pattern) {
             it.value.replace(it.groupValues[2], template)
         }
+        private fun readResolve(): Any = Kotlin
     }
 }
