@@ -79,16 +79,16 @@ internal class ExtendedProjectProperties(
             emit(table, source, target)
     }
 
-    private suspend fun SequenceScope<Pair<String, Any?>>.emit(table: TomlTable, source: ProjectHierarchy, target: ProjectHierarchy) {
+    private suspend fun SequenceScope<Pair<String, Any?>>.emit(table: TomlTable, source: ProjectHierarchy, target: ProjectHierarchy, prefix: String = "") {
         for ((key, value) in table) when(value) {
             is TomlTable -> {
                 val combined = source.resolve(key)
                 if (target.startsWith(combined)) emit(value, combined, target)
-                // TODO: report as an error or convert?
+                else emit(value, source, target, "$key.")
             }
 
             is TomlLiteral ->
-                yield(key to value.content)
+                yield(prefix + key to value.content)
 
             else -> {
                 // TODO: What to do here too?
