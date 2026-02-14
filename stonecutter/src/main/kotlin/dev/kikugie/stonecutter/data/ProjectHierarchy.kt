@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.data
 
+import dev.kikugie.commons.text.getOrDefault
 import kotlinx.serialization.Serializable
 import org.gradle.api.Project
 import org.gradle.api.initialization.ProjectDescriptor
@@ -75,6 +76,6 @@ public value class ProjectHierarchy(@PublishedApi internal val path: String) : C
 }
 
 public fun ProjectHierarchy.startsWith(other: ProjectHierarchy): Boolean =
-    path.startsWith(other.path)
+    path == other.path || path.startsWith(other.path) && path.getOrDefault(other.path.lastIndex) == ':'
 
 private val String.segments: Sequence<String> get() = substring(1).splitToSequence(':')
