@@ -1,13 +1,23 @@
 package dev.kikugie.stonecutter.settings
 
+import dev.kikugie.commons.takeAs
+import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
+import dev.kikugie.stonecutter.StonecutterExperimentalAPI
+import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
+import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
+import dev.kikugie.stonecutter.controller.file.configureDefaults
 import dev.kikugie.stonecutter.controller.tree.ProjectNodeContainer
+import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.createContainer
+import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage.Companion.mergeTo
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.TreeBuilder
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderContainer
@@ -15,16 +25,6 @@ import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.isIdeaSync
 import dev.kikugie.stonecutter.util.projectDirectory
 import dev.kikugie.stonecutter.util.requestTasks
-import dev.kikugie.commons.takeAs
-import dev.kikugie.semver.data.Version
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
-import dev.kikugie.stonecutter.StonecutterPlugin
-import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
-import dev.kikugie.stonecutter.controller.file.configureDefaults
-import dev.kikugie.stonecutter.data.ProjectHierarchy
-import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage.Companion.mergeTo
 import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.logging.Logger
@@ -36,9 +36,18 @@ import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.registerIfAbsent
 import org.gradle.kotlin.dsl.the
-import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
+import kotlin.Boolean
+import kotlin.OptIn
+import kotlin.String
+import kotlin.Suppress
+import kotlin.Unit
+import kotlin.also
+import kotlin.getValue
+import kotlin.lazy
+import kotlin.let
+import kotlin.with
 
 @OptIn(StonecutterExperimentalAPI::class)
 internal abstract class StonecutterSettingsImpl @Inject constructor(
@@ -89,10 +98,10 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
         builder.takeAs<TreeBuilderImpl>().createWith(this, ref)
 
     @Suppress("UnstableApiUsage")
-    override fun properties(file: File) {
-        val file = settings.layout.settingsDirectory.file(file.path)
+    override fun properties(path: String) {
+        val file = settings.layout.settingsDirectory.file(path)
         val entries = settings.gradle.the<ExtendedPropertiesStorage>().load(file, ProjectHierarchy.ROOT)
-        entries.emit(ProjectHierarchy.ROOT).mergeTo(settings.extra)
+        entries?.emit(ProjectHierarchy.ROOT)?.mergeTo(settings.extra)
     }
 
     internal fun checkGroovy(file: String): String = file.also {
@@ -101,7 +110,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
 
     private fun configureExtendedPropertiesExt() {
         settings.gradle.extensions.create<ExtendedPropertiesStorage>("ExtendedProperties")
-        properties(File(ExtendedPropertiesStorage.DEFAULT_FILENAME))
+        properties(ExtendedPropertiesStorage.DEFAULT_FILENAME)
     }
 
     private companion object {

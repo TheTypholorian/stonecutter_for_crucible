@@ -17,7 +17,6 @@ import org.gradle.work.InputChanges
 import org.gradle.workers.WorkQueue
 import org.gradle.workers.WorkerExecutor
 import java.io.File
-import kotlin.io.deleteRecursively
 
 internal val Project.sourceSets: SourceSetContainer
     get() = project.the<SourceSetContainer>()

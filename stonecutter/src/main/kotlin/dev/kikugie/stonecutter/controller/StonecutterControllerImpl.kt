@@ -90,10 +90,10 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
         configContainer[tree] = action
     }
 
-    override fun properties(file: File) {
-        val file = root.layout.projectDirectory.file(file.path)
+    override fun properties(path: String) {
+        val file = root.layout.projectDirectory.file(path)
         val entries = root.gradle.the<ExtendedPropertiesStorage>().load(file, tree.hierarchy)
-        entries.emit(tree.hierarchy).mergeTo(root.extra)
+        entries?.emit(tree.hierarchy)?.mergeTo(root.extra)
     }
 
     private fun initializeExtendedProperties() {

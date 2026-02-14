@@ -15,20 +15,21 @@ import org.gradle.api.plugins.ExtraPropertiesExtension
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.internal.extensions.core.remove
+import org.gradle.kotlin.dsl.namedDomainObjectList
 import org.gradle.kotlin.dsl.property
 import javax.inject.Inject
 
 internal abstract class ExtendedPropertiesStorage @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory) {
-    protected abstract val container: NamedDomainObjectCollection<ExtendedProjectProperties>
+    private val container: NamedDomainObjectCollection<ExtendedProjectProperties> = objects.namedDomainObjectList(ExtendedProjectProperties::class)
 
     operator fun get(hierarchy: ProjectHierarchy): Sequence<Pair<String, Any?>> {
         val properties = container.matching { ext ->
-            ext.projects.any { it.startsWith(hierarchy) }
+            ext.projects.any { hierarchy.startsWith(it) }
         }
         return properties.asSequence().flatMap { it.emit(hierarchy) }
     }
 
-    fun load(file: RegularFile, hierarchy: ProjectHierarchy): ExtendedProjectProperties = synchronized(container) {
+    fun load(file: RegularFile, hierarchy: ProjectHierarchy): ExtendedProjectProperties? = synchronized(container) {
         val path = file.asFile.absolutePath
         LOGGER.debug("Loading properties for {} from {}", hierarchy, path)
         val provider = if (path in container.names) container.named(path) {
@@ -36,7 +37,7 @@ internal abstract class ExtendedPropertiesStorage @Inject constructor(val object
         } else loadNew(file, hierarchy).also {
             container.addLater(it)
         }
-        return@synchronized provider.get()
+        return@synchronized provider.orNull
     }
 
     // IDK why is this a provider when it's realized immediately...
@@ -75,14 +76,14 @@ internal class ExtendedProjectProperties(
 
     fun emit(target: ProjectHierarchy): Sequence<Pair<String, Any?>> = sequence {
         for (source in projects) if (target.startsWith(source))
-            emit(source, target)
+            emit(table, source, target)
     }
 
-    private suspend fun SequenceScope<Pair<String, Any?>>.emit(source: ProjectHierarchy, target: ProjectHierarchy) {
+    private suspend fun SequenceScope<Pair<String, Any?>>.emit(table: TomlTable, source: ProjectHierarchy, target: ProjectHierarchy) {
         for ((key, value) in table) when(value) {
             is TomlTable -> {
                 val combined = source.resolve(key)
-                if (target.startsWith(combined)) emit(combined, target)
+                if (target.startsWith(combined)) emit(value, combined, target)
                 // TODO: report as an error or convert?
             }
 

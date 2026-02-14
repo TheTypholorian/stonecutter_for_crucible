@@ -5,5 +5,5 @@ import java.io.File
 
 public interface ExtendedPropertyProvider {
     @StonecutterExperimentalAPI
-    public infix fun properties(file: File)
+    public infix fun properties(path: String)
 }

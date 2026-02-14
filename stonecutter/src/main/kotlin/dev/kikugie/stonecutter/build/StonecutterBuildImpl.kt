@@ -34,6 +34,7 @@ internal abstract class StonecutterBuildImpl private constructor(val project: Pr
     override val tasks: StonecutterBuildTasksImpl = project.objects.newInstance(this)
 
     init {
+        initializeExtendedProperties()
         project.plugins.apply("java")
         project.sourceSets.all {
             tasks.configureSource(this)
@@ -50,8 +51,8 @@ internal abstract class StonecutterBuildImpl private constructor(val project: Pr
 
     private fun initializeExtendedProperties() {
         val ext = project.gradle.the<ExtendedPropertiesStorage>()
-        ext.load(project.layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), tree.hierarchy)
-        ext[tree.hierarchy].mergeTo(project.extra)
+        ext.load(project.layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), node.hierarchy)
+        ext[node.hierarchy].mergeTo(project.extra)
     }
 }
 

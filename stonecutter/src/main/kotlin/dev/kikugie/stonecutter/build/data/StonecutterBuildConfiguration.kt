@@ -83,10 +83,10 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
         return output
     }
 
-    override fun properties(file: File) {
+    override fun properties(path: String) {
         val project = node.project
-        val file = project.layout.projectDirectory.file(file.path)
-        val entries = project.the<ExtendedPropertiesStorage>().load(file, node.hierarchy)
-        entries.emit(node.hierarchy).mergeTo(project.extra)
+        val file = project.layout.projectDirectory.file(path)
+        val entries = project.gradle.the<ExtendedPropertiesStorage>().load(file, node.hierarchy)
+        entries?.emit(node.hierarchy)?.mergeTo(project.extra)
     }
 }
