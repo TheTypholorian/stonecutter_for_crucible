@@ -16,7 +16,7 @@ import org.gradle.api.invocation.Gradle
  * and can be obtained using [ProjectHierarchy.Companion.hierarchy] extension.
  */
 @JvmInline @Serializable @JvmExposeBoxed @OptIn(ExperimentalStdlibApi::class)
-public value class ProjectHierarchy(private val path: String) : Collection<String>, java.io.Serializable {
+public value class ProjectHierarchy(@PublishedApi internal val path: String) : Collection<String>, java.io.Serializable {
     init {
         require(path.startsWith(':')) { "Path '$path' must be absolute" }
         require(all(String::isNotBlank)) { "Path '$path' contains invalid segments" }
@@ -73,5 +73,8 @@ public value class ProjectHierarchy(private val path: String) : Collection<Strin
         public fun of(vararg components: String): ProjectHierarchy = of(components.asIterable())
     }
 }
+
+public fun ProjectHierarchy.startsWith(other: ProjectHierarchy): Boolean =
+    path.startsWith(other.path)
 
 private val String.segments: Sequence<String> get() = substring(1).splitToSequence(':')

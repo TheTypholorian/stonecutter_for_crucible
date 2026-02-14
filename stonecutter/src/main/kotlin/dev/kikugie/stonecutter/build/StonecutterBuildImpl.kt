@@ -12,6 +12,8 @@ import dev.kikugie.stonecutter.controller.tree.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
 import dev.kikugie.stonecutter.data.tree.ProjectNode
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage.Companion.mergeTo
 import dev.kikugie.stonecutter.util.isIdeaSync
 import dev.kikugie.stonecutter.util.projectDirectory
 import dev.kikugie.stonecutter.util.requestTasks
@@ -20,7 +22,9 @@ import org.gradle.api.Project
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.util.PatternFilterable
+import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.newInstance
+import org.gradle.kotlin.dsl.the
 import javax.inject.Inject
 
 @OptIn(StonecutterInternalAPI::class)
@@ -42,6 +46,12 @@ internal abstract class StonecutterBuildImpl private constructor(val project: Pr
         filters.include {
             it.isDirectory || it.file.extension.lowercase() in handlers.names
         }
+    }
+
+    private fun initializeExtendedProperties() {
+        val ext = project.gradle.the<ExtendedPropertiesStorage>()
+        ext.load(project.layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), tree.hierarchy)
+        ext[tree.hierarchy].mergeTo(project.extra)
     }
 }
 

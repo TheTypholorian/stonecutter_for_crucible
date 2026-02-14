@@ -9,6 +9,7 @@ import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.SCJSON
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.Version
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.decodeFromStream
 import org.gradle.api.Action
@@ -30,7 +31,7 @@ private annotation class SettingsDsl
  * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings">Wiki #2</a>
  */
 @SettingsDsl
-public abstract class StonecutterSettingsExtension(protected val objects: ObjectFactory) : VersionOperations<Version> {
+public abstract class StonecutterSettingsExtension(protected val objects: ObjectFactory) : VersionOperations<Version>, ExtendedPropertyProvider {
     /**
      * Defines a shared [Action] for configuring instances of [TreeBuilder].
      *

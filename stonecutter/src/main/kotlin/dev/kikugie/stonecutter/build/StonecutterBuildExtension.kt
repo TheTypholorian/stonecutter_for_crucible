@@ -15,6 +15,7 @@ import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
 import org.gradle.api.Action
 import org.gradle.api.tasks.util.PatternFilterable
 import java.io.File
@@ -32,7 +33,7 @@ private annotation class BuildDsl
  * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings">Wiki #2</a>
  */
 @BuildDsl
-public interface StonecutterBuildExtension : VersionOperations<Version> {
+public interface StonecutterBuildExtension : VersionOperations<Version>, ExtendedPropertyProvider {
     /**The associated Stonecutter project node.*/
     public val node: ProjectNode
 

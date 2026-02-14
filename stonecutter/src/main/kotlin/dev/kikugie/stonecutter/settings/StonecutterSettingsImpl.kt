@@ -17,21 +17,30 @@ import dev.kikugie.stonecutter.util.projectDirectory
 import dev.kikugie.stonecutter.util.requestTasks
 import dev.kikugie.commons.takeAs
 import dev.kikugie.semver.data.Version
+import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
 import dev.kikugie.stonecutter.controller.file.configureDefaults
+import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage.Companion.mergeTo
 import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.model.ObjectFactory
 import org.gradle.build.event.BuildEventsListenerRegistry
+import org.gradle.kotlin.dsl.create
+import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.registerIfAbsent
+import org.gradle.kotlin.dsl.the
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
+@OptIn(StonecutterExperimentalAPI::class)
 internal abstract class StonecutterSettingsImpl @Inject constructor(
     internal val settings: Settings,
     registry: BuildEventsListenerRegistry,
@@ -43,16 +52,16 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
         settings.providers.gradleProperty("dev.kikugie.stonecutter.hard_mode").getOrElse("false").toBoolean()
     }
     private var usesGroovy: Boolean = false
-    private val logger: Logger = Logging.getLogger("StonecutterSettings")
 
     init {
-        logger.lifecycle("Running Stonecutter ${StonecutterPlugin.VERSION}")
+        LOGGER.lifecycle("Running Stonecutter ${StonecutterPlugin.VERSION}")
+        configureExtendedPropertiesExt()
         // This is the ugliest configuration block I have
         with(settings.gradle) {
             createContainer<ProjectNodeContainer>()
             createContainer<BuildConfigurationContainer>()
             settingsEvaluated {
-                if (usesGroovy && !isHardMode) logger.reportGroovyComplaint()
+                if (usesGroovy && !isHardMode) LOGGER.reportGroovyComplaint()
             }
             projectsLoaded {
                 createIdeaTask(this)
@@ -79,8 +88,24 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     override fun create(ref: ProjectReference, builder: TreeBuilder) =
         builder.takeAs<TreeBuilderImpl>().createWith(this, ref)
 
+    @Suppress("UnstableApiUsage")
+    override fun properties(file: File) {
+        val file = settings.layout.settingsDirectory.file(file.path)
+        val entries = settings.gradle.the<ExtendedPropertiesStorage>().load(file, ProjectHierarchy.ROOT)
+        entries.emit(ProjectHierarchy.ROOT).mergeTo(settings.extra)
+    }
+
     internal fun checkGroovy(file: String): String = file.also {
         usesGroovy = usesGroovy || it.endsWith(".gradle")
+    }
+
+    private fun configureExtendedPropertiesExt() {
+        settings.gradle.extensions.create<ExtendedPropertiesStorage>("ExtendedProperties")
+        properties(File(ExtendedPropertiesStorage.DEFAULT_FILENAME))
+    }
+
+    private companion object {
+        val LOGGER = Logging.getLogger("StonecutterSettings")
     }
 }
 

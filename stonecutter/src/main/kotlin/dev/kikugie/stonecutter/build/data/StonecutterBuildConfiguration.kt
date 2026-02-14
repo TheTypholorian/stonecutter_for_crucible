@@ -14,7 +14,6 @@ import dev.kikugie.stonecutter.build.config.DependencyContainer
 import dev.kikugie.stonecutter.build.config.ReplacementContainerImpl
 import dev.kikugie.stonecutter.build.config.SwapContainer
 import dev.kikugie.stonecutter.build.task.StonecutterBuildTasks
-import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService.Companion.collect
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService.Companion.log
 import dev.kikugie.stonecutter.build.task.forFile
@@ -27,19 +26,22 @@ import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage.Companion.mergeTo
 import dev.kikugie.stonecutter.util.overwriteText
 import org.gradle.api.Named
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.util.PatternFilterable
 import org.gradle.api.tasks.util.PatternSet
+import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.the
 import java.io.File
 import javax.inject.Inject
 
-@OptIn(StonecutterInternalAPI::class)
+@OptIn(StonecutterInternalAPI::class, StonecutterExperimentalAPI::class)
 internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override val node: ProjectNode,
     factory: ProviderFactory,
@@ -58,7 +60,6 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override val tasks: StonecutterBuildTasks
         get() = throw UnsupportedOperationException("Build tasks are not available in the controller")
 
-    @OptIn(StonecutterExperimentalAPI::class)
     override fun process(file: File, destination: String): File {
         // Jankiest code ever
         val project = node.project
@@ -80,5 +81,12 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
             .also(project.providers::fileContents).asFile
         output.overwriteText(contents, true)
         return output
+    }
+
+    override fun properties(file: File) {
+        val project = node.project
+        val file = project.layout.projectDirectory.file(file.path)
+        val entries = project.the<ExtendedPropertiesStorage>().load(file, node.hierarchy)
+        entries.emit(node.hierarchy).mergeTo(project.extra)
     }
 }

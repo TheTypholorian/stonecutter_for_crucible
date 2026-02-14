@@ -10,6 +10,7 @@ import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.Version
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
 import org.gradle.api.Action
 
 @DslMarker @Retention(AnnotationRetention.BINARY)
@@ -25,7 +26,7 @@ private annotation class ControllerDsl
  * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings">Wiki #2</a>
  */
 @ControllerDsl
-public interface StonecutterControllerExtension : VersionOperations<Version> {
+public interface StonecutterControllerExtension : VersionOperations<Version>, ExtendedPropertyProvider {
     /**The associated project tree.*/
     public val tree: ProjectTree
 

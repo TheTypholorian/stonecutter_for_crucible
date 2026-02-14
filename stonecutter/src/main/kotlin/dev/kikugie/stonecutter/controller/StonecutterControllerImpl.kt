@@ -27,18 +27,24 @@ import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.isIdeaSync
 import dev.kikugie.stonecutter.util.requestTasks
 import dev.kikugie.semver.data.Version
+import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.StonecutterPlugin
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage.Companion.mergeTo
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.apply
+import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.newInstance
+import org.gradle.kotlin.dsl.the
 import java.io.File
 import java.nio.file.Path
 import javax.inject.Inject
 
+@StonecutterExperimentalAPI
 internal abstract class StonecutterControllerImpl @Inject constructor(val root: Project) :
     StonecutterControllerExtension, VersionOperations<Version> by LenientOperations {
     override val tree: ProjectTreeImpl = constructTree(root)
@@ -52,6 +58,7 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     private var hasInitialized: Boolean = false
 
     init {
+        initializeExtendedProperties()
         root.afterEvaluate {
             if (!hasInitialized) {
                 val function =
@@ -81,6 +88,18 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
 
     override fun parameters(action: Action<StonecutterBuildExtension>) {
         configContainer[tree] = action
+    }
+
+    override fun properties(file: File) {
+        val file = root.layout.projectDirectory.file(file.path)
+        val entries = root.gradle.the<ExtendedPropertiesStorage>().load(file, tree.hierarchy)
+        entries.emit(tree.hierarchy).mergeTo(root.extra)
+    }
+
+    private fun initializeExtendedProperties() {
+        val ext = root.gradle.the<ExtendedPropertiesStorage>()
+        ext.load(root.layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), tree.hierarchy)
+        ext[tree.hierarchy].mergeTo(root.extra)
     }
 }
 
