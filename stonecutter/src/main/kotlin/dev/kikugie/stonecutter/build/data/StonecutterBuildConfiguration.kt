@@ -29,6 +29,7 @@ import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage.Companion.mergeTo
 import dev.kikugie.stonecutter.util.overwriteText
+import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Named
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ProviderFactory
@@ -45,7 +46,7 @@ import javax.inject.Inject
 internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override val node: ProjectNode,
     factory: ProviderFactory,
-    objects: ObjectFactory
+    private val objects: ObjectFactory
 ) : Named, StonecutterBuildExtension, VersionOperations<Version> by LenientOperations {
     internal val controller: StonecutterControllerExtension = node.tree.project.the()
     internal val data: StonecutterBuildData = objects.newInstance(controller, current.version, factory)
@@ -83,10 +84,9 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
         return output
     }
 
-    override fun properties(path: String) {
+    override fun properties(file: File) {
         val project = node.project
-        val file = project.layout.projectDirectory.file(path)
-        val entries = project.gradle.the<ExtendedPropertiesStorage>().load(file, node.hierarchy)
+        val entries = project.gradle.the<ExtendedPropertiesStorage>().load(file.toRegularFile(objects), node.hierarchy)
         entries?.emit(node.hierarchy)?.mergeTo(project.extra)
     }
 }

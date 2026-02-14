@@ -31,9 +31,11 @@ import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage.Companion.mergeTo
+import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFile
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.extra
@@ -45,7 +47,7 @@ import java.nio.file.Path
 import javax.inject.Inject
 
 @StonecutterExperimentalAPI
-internal abstract class StonecutterControllerImpl @Inject constructor(val root: Project) :
+internal abstract class StonecutterControllerImpl @Inject constructor(val root: Project, private val objects: ObjectFactory) :
     StonecutterControllerExtension, VersionOperations<Version> by LenientOperations {
     override val tree: ProjectTreeImpl = constructTree(root)
     override val tasks: StonecutterControllerTasksImpl = root.objects.newInstance(this)
@@ -90,9 +92,8 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
         configContainer[tree] = action
     }
 
-    override fun properties(path: String) {
-        val file = root.layout.projectDirectory.file(path)
-        val entries = root.gradle.the<ExtendedPropertiesStorage>().load(file, tree.hierarchy)
+    override fun properties(file: File) {
+        val entries = root.gradle.the<ExtendedPropertiesStorage>().load(file.toRegularFile(objects), tree.hierarchy)
         entries?.emit(tree.hierarchy)?.mergeTo(root.extra)
     }
 

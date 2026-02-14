@@ -25,6 +25,7 @@ import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.isIdeaSync
 import dev.kikugie.stonecutter.util.projectDirectory
 import dev.kikugie.stonecutter.util.requestTasks
+import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.logging.Logger
@@ -36,6 +37,7 @@ import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.registerIfAbsent
 import org.gradle.kotlin.dsl.the
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import kotlin.Boolean
@@ -97,10 +99,8 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     override fun create(ref: ProjectReference, builder: TreeBuilder) =
         builder.takeAs<TreeBuilderImpl>().createWith(this, ref)
 
-    @Suppress("UnstableApiUsage")
-    override fun properties(path: String) {
-        val file = settings.layout.settingsDirectory.file(path)
-        val entries = settings.gradle.the<ExtendedPropertiesStorage>().load(file, ProjectHierarchy.ROOT)
+    override fun properties(file: File) {
+        val entries = settings.gradle.the<ExtendedPropertiesStorage>().load(file.toRegularFile(objects), ProjectHierarchy.ROOT)
         entries?.emit(ProjectHierarchy.ROOT)?.mergeTo(settings.extra)
     }
 
@@ -108,9 +108,11 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
         usesGroovy = usesGroovy || it.endsWith(".gradle")
     }
 
+    @Suppress("UnstableApiUsage")
     private fun configureExtendedPropertiesExt() {
-        settings.gradle.extensions.create<ExtendedPropertiesStorage>("ExtendedProperties")
-        properties(ExtendedPropertiesStorage.DEFAULT_FILENAME)
+        val ext = settings.gradle.extensions.create<ExtendedPropertiesStorage>("ExtendedProperties")
+        val entries = ext.load(settings.layout.settingsDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), ProjectHierarchy.ROOT)
+        entries?.emit(ProjectHierarchy.ROOT)?.mergeTo(settings.extra)
     }
 
     private companion object {

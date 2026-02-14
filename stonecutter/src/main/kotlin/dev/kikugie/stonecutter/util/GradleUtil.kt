@@ -2,6 +2,8 @@ package dev.kikugie.stonecutter.util
 
 import org.gradle.api.Action
 import org.gradle.api.Project
+import org.gradle.api.file.Directory
+import org.gradle.api.file.RegularFile
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.model.ObjectFactory
@@ -58,3 +60,15 @@ internal fun <T : Any> Property<T>.set(factory: ProviderFactory, provider: () ->
 
 internal inline fun WorkerExecutor.execute(action: (queue: WorkQueue) -> Unit) =
     noIsolation().apply(action).await()
+
+/**
+ * The dumbest way possible to construct a [RegularFile].
+ *
+ * Fuck you, Gradle.
+ */
+internal fun File.toRegularFile(objects: ObjectFactory): RegularFile {
+    val property = objects.fileProperty().apply {
+        set(this@toRegularFile)
+    }
+    return property.get()
+}
