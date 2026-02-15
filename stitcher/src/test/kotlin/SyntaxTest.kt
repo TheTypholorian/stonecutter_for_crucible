@@ -1,5 +1,4 @@
 import io.kotest.assertions.shouldFail
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
 import org.intellij.lang.annotations.Language

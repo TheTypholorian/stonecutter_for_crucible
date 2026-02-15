@@ -6,15 +6,13 @@ fun interface ProblemFormatter {
 
 object FullProblemFormatter : ProblemFormatter {
     override fun format(report: ProblemReport): String = buildString {
-        append(report.prefix, ": ", report.location?.toLinkString() ?: "<unknown file>", ' ', report.label, '\n')
+        append(report.prefix, ": ", report.location?.toLinkString() ?: "<unknown file>", ' ', report.decorateLabel(), '\n')
         report.details?.let { appendLines(it, "> ") }
         report.hint?.let { appendLines(it.replaceFirstChar(Char::lowercaseChar), "- Hint: ") }
         report.docs?.let { appendLines(it.replaceFirstChar(Char::lowercaseChar), "- Docs: ") }
         report.exception?.let {
             append("Caused by: ", it::class.simpleName ?: "<anonymous class>", ' ', it.message.orEmpty(), '\n', it.stackTraceToString())
         }
-//        if (endsWith('\n'))
-//            replace(length - 1, length, "")
     }
 
     private val ProblemReport.prefix: Char
@@ -23,6 +21,10 @@ object FullProblemFormatter : ProblemFormatter {
             ProblemSeverity.WARN -> 'w'
             ProblemSeverity.ERROR -> 'e'
         }
+
+    private fun ProblemReport.decorateLabel(): String =
+        if (location?.line?.let { !(it > 21 && it % 10 == 2) } ?: true) label
+        else "~\n\u001B[41mRoses are red\u001B[0m; \u001B[46mViolets are blue\u001B[0m; $label on line ${location.line}"
 
     private fun StringBuilder.appendLines(text: String, init: String, follow: String = "  ") {
         for ((index, line) in text.lineSequence().withIndex())
