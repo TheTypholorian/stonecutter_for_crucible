@@ -23,13 +23,18 @@ object FullProblemFormatter : ProblemFormatter {
         }
 
     private fun ProblemReport.decorateLabel(): String =
-        if (location?.line?.let { !(it > 21 && it % 10 == 2) } ?: true) label
-        else "~\n\u001B[41mRoses are red\u001B[0m; \u001B[46mViolets are blue\u001B[0m; $label on line ${location.line}"
+        if (!(location?.line ?: 0).rhymes()) label
+        else "~\n\u001B[41mRoses are red\u001B[0m; \u001B[46mViolets are blue\u001B[0m; $label on line ${location?.line}"
 
     private fun StringBuilder.appendLines(text: String, init: String, follow: String = "  ") {
         for ((index, line) in text.lineSequence().withIndex())
             append(if (index == 0) init else follow, line, '\n')
     }
+
+    // Twelves don't rhyme
+    // The "on line two" ends the rhyme too abruptly
+    private fun Int.rhymes(): Boolean =
+        this > 21 && this % 10 == 2 && this % 100 != 12
 }
 
 object ShortProblemFormatter : ProblemFormatter {
