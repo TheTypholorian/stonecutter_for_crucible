@@ -25,7 +25,7 @@ dokka {
 
     pluginsConfiguration.html {
         homepageLink = "https://stonecutter.codeberg.page/"
-        footerMessage = "(c) 2025 KikuGie"
+        footerMessage = "(c) 2026 KikuGie"
     }
 
     pluginsConfiguration.versioning {

@@ -13,7 +13,7 @@ public abstract class dev/kikugie/stonecutter/StonecutterPlugin : org/gradle/api
 public final class dev/kikugie/stonecutter/StonecutterPlugin$Companion {
 }
 
-public abstract interface class dev/kikugie/stonecutter/build/StonecutterBuildExtension : dev/kikugie/stonecutter/data/version/VersionOperations {
+public abstract interface class dev/kikugie/stonecutter/build/StonecutterBuildExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider {
 	public fun constants (Lorg/gradle/api/Action;)V
 	public fun dependencies (Lorg/gradle/api/Action;)V
 	public fun flags (Lorg/gradle/api/Action;)V
@@ -126,10 +126,12 @@ public abstract class dev/kikugie/stonecutter/build/config/DependencyContainer :
 public abstract interface class dev/kikugie/stonecutter/build/config/ReplacementContainer {
 	public fun regex (Ljava/lang/String;Ljava/lang/Boolean;Lorg/gradle/api/Action;)V
 	public abstract fun regex (Lorg/gradle/api/Action;)V
+	public fun regex (ZLjava/lang/String;Lorg/gradle/api/Action;)V
 	public fun regex (ZLorg/gradle/api/Action;)V
 	public static synthetic fun regex$default (Ldev/kikugie/stonecutter/build/config/ReplacementContainer;Ljava/lang/String;Ljava/lang/Boolean;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public fun string (Ljava/lang/String;Ljava/lang/Boolean;Lorg/gradle/api/Action;)V
 	public abstract fun string (Lorg/gradle/api/Action;)V
+	public fun string (ZLjava/lang/String;Lorg/gradle/api/Action;)V
 	public fun string (ZLorg/gradle/api/Action;)V
 	public static synthetic fun string$default (Ldev/kikugie/stonecutter/build/config/ReplacementContainer;Ljava/lang/String;Ljava/lang/Boolean;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 }
@@ -213,7 +215,7 @@ public abstract class dev/kikugie/stonecutter/build/task/StonecutterPrepareTask 
 	public abstract fun getSource ()Lorg/gradle/api/file/ConfigurableFileCollection;
 }
 
-public abstract interface class dev/kikugie/stonecutter/controller/StonecutterControllerExtension : dev/kikugie/stonecutter/data/version/VersionOperations {
+public abstract interface class dev/kikugie/stonecutter/controller/StonecutterControllerExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider {
 	public abstract fun active (Ljava/lang/Object;)V
 	public fun flags (Lorg/gradle/api/Action;)V
 	public fun getCurrent ()Ldev/kikugie/stonecutter/data/StonecutterProject;
@@ -243,7 +245,7 @@ public abstract class dev/kikugie/stonecutter/controller/file/HandlerBuilder : o
 	public abstract fun getScanner ()Lorg/gradle/api/provider/Property;
 	public abstract fun getSwapper ()Lorg/gradle/api/provider/Property;
 	public abstract fun getUncommenter ()Lorg/gradle/api/provider/Property;
-	public final fun line (Ljava/lang/String;)Ldev/kikugie/stitcher/transform/strategy/CommentingStrategy;
+	public final fun line (Ljava/lang/String;)Ldev/kikugie/stitcher/transformer/strategy/CommentingStrategy;
 	public final fun scanner (Lorg/gradle/api/Action;)V
 }
 
@@ -618,6 +620,10 @@ public final class dev/kikugie/stonecutter/data/ProjectHierarchy$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public final class dev/kikugie/stonecutter/data/ProjectHierarchyKt {
+	public static final fun startsWith-2t9Hcuc (Ljava/lang/String;Ljava/lang/String;)Z
+}
+
 public final class dev/kikugie/stonecutter/data/StonecutterProject {
 	public static final field Companion Ldev/kikugie/stonecutter/data/StonecutterProject$Companion;
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
@@ -743,7 +749,7 @@ public final class dev/kikugie/stonecutter/data/whatever/TaskProviderMap : java/
 	public final fun values ()Ljava/util/Collection;
 }
 
-public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtension : dev/kikugie/stonecutter/data/version/VersionOperations {
+public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider {
 	public fun <init> (Lorg/gradle/api/model/ObjectFactory;)V
 	public final fun create (Ljava/lang/Iterable;)V
 	public final fun create (Ljava/lang/Iterable;Ljava/io/File;)V
@@ -770,6 +776,10 @@ public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtens
 	public final fun getSemantics ()Ldev/kikugie/stonecutter/data/version/VersionOperations;
 	public final fun getShared ()Lorg/gradle/api/Action;
 	public final fun shared (Lorg/gradle/api/Action;)V
+}
+
+public abstract interface class dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider {
+	public abstract fun properties (Ljava/io/File;)V
 }
 
 public abstract class dev/kikugie/stonecutter/settings/task/StonecutterIdeaConfigTask : org/gradle/api/DefaultTask {
