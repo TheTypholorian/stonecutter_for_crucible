@@ -71,7 +71,7 @@ tasks {
     shadowJar {
         archiveClassifier = ""
         minimize()
-        exclude("com/ibm/**", "org/jetbrains/**", "**/*.knm", "**/*.pro", "commonMain/**", "nativeMain/**")
+        exclude("kotlin/**", "com/ibm/**", "org/jetbrains/**", "**/*.knm", "**/*.pro", "commonMain/**", "nativeMain/**")
     }
 
     register<ShadowJar>("slimJar") {
