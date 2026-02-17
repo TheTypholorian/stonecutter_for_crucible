@@ -7,7 +7,9 @@ import dev.kikugie.stitcher.issue.runBailing
 import dev.kikugie.stitcher.parser.SYNTAX_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.fromAntlrNode
+import dev.kikugie.stitcher.parser.fromAntlrRule
 import dev.kikugie.stitcher.parser.fromAntlrToken
+import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.ExpressionToken
 import dev.kikugie.stitcher.token.impl.LeafToken
@@ -99,9 +101,8 @@ internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems
         if (ctx == null) emptyList()
         else listOfNotNull(ctx.SUGAR_ELIF(), ctx.SUGAR_ELSE(), ctx.SUGAR_IF()).map(factory::fromAntlrNode)
 
-    // FIXME: Can throw NPE if ctx has no expression
     private fun parseExpression(ctx: StitcherParser.ConditionExpressionContext): ExpressionToken = runBailing {
-        ctx.accept(expressionBuilder)
+        ctx.accept(expressionBuilder) ?: ExpressionToken.Constant(factory.fromAntlrRule(ctx, NativeStitcherType.CONSTANT))
     }.getOrElse {
         problems.bail(SYNTAX_GROUP.child("expression-parse-exception"), ctx.startIndex) {
             label = "Unexpected error when parsing expression"
