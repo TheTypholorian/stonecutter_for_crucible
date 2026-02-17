@@ -31,6 +31,11 @@ value class LineIndex(val lines: List<Int>) : List<Int> by lines {
         return ProblemLocation(file, lineIndex, charOffset, index)
     }
 
+    fun reverse(lineIndex: Int, charOffset: Int): Int {
+        val start = lines.getOrElse(lineIndex) { lines.lastOrNull() ?: 0 }
+        return start + charOffset
+    }
+
     private tailrec fun findLineIndex(index: Int, min: Int = 0, max: Int = lines.lastIndex): Int {
         if (min == max) return min // Converged onto one position
         val middle = min + (max - min) / 2

@@ -14,7 +14,6 @@ import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.Token.EOF
 import org.antlr.v4.runtime.TokenStream
-import org.antlr.v4.runtime.misc.Pair
 import java.util.*
 
 /**
@@ -34,7 +33,8 @@ internal class LayoutParser private constructor(
     val problems: FileProblemReporter,
 ) {
     private val stack: Deque<BlockBuilder.Scoped> = ArrayDeque(4)
-    private val visitor: StitcherVisitor<kotlin.Pair<AntlrToken, DefinitionToken>> = DefinitionBuilder.paired(factory, problems)
+    private val visitor: StitcherVisitor<Pair<AntlrToken, DefinitionToken>> = DefinitionBuilder.paired(factory, problems)
+    private val listener: StitcherErrorListener = StitcherErrorListener(problems)
 
     init {
         stack += RootBuilder(factory)
@@ -156,7 +156,7 @@ internal class LayoutParser private constructor(
                 it !== code && it is CodeBuilder && it.marker.type == code.marker.type && it.definition.opener == null
             }
 
-            if (candidate is CodeBuilder) hint = kotlin.run {
+            if (candidate is CodeBuilder) hint = run {
                 val location = problems.locate(candidate.source.body.endIndex)
                 "${location.toLinkString()}\nmay need to end with `{`."
             }
@@ -167,7 +167,7 @@ internal class LayoutParser private constructor(
         problems.report(LAYOUT_GROUP.child("unmatched-root-closer"), code.source.body) {
             label = "Mismatched closer type"
             details = "Expected `${parent.marker.text}}` instead of `${code.marker.text}}`."
-            hint = kotlin.run {
+            hint = run {
                 val location = problems.locate(parent.source.body.startIndex)
                 "${location.toLinkString()}\nmay need to be closed with `${parent.marker.text}}`."
             }
@@ -178,29 +178,25 @@ internal class LayoutParser private constructor(
         problems.report(LAYOUT_GROUP.child("unmatched-extension"), code.source.body) {
             label = "Mismatched extension"
             details = "The definition closes a scope that doesn't end with a `{`."
-            hint = kotlin.run {
+            hint = run {
                 val location = problems.location(parent.source.body.endIndex)
                 "${location.toLinkString()}\nmay need to end with `{`."
             }
         }
     }
 
-    private fun parseCommentBody(body: AntlrToken): kotlin.Pair<AntlrToken, DefinitionToken>? {
-        if (body.stopIndex < body.startIndex)
-            return null // Empty comment body
+    private fun parseCommentBody(body: AntlrToken): Pair<AntlrToken, DefinitionToken>? = InlineCharStream(body).use { input ->
+        if (input.LC(1).let { it != '?' && it != '$' && it != '~' }) return@use null
 
-        val input = body.text.charStream()
-        when (input.LC(1)) {
-            '?', '$', '~' -> {}
-            else -> return null
+        val lexer = StitcherLexer(input).apply {
+            errorListener = listener
+            tokenFactory = InlineTokenFactory(body.lineIndex, body.charPositionInLine)
         }
-
-        val location = problems.location(body)
-        val listener = InlineErrorListener(location, problems)
-        val scanner = StitcherLexer(input).apply { errorListener = listener }
-        val stream = InlineTokenStream(Pair(scanner, source), CommonTokenStream(scanner), location)
-        val parser = StitcherParser(stream).apply { errorListener = listener; errorHandler = StitcherErrorStrategy() }
-        return parser.definition().accept(visitor)
+        val parser = StitcherParser(CommonTokenStream(lexer)).apply {
+            errorListener = listener
+            errorHandler = StitcherErrorStrategy
+        }
+        parser.definition().accept(visitor)
     }
 
     companion object {

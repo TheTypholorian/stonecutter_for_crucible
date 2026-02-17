@@ -2,7 +2,6 @@ package dev.kikugie.stitcher.parser.layout
 
 import dev.kikugie.commons.text.countMatching
 import dev.kikugie.commons.text.countWhile
-import dev.kikugie.commons.then
 import dev.kikugie.stitcher.antlr.AntlrToken
 import dev.kikugie.stitcher.antlr.endIndex
 import dev.kikugie.stitcher.issue.FileProblemReporter
@@ -15,7 +14,10 @@ import dev.kikugie.stitcher.token.impl.BlockToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken.Kind
 import dev.kikugie.stitcher.token.impl.ScopeToken
-import dev.kikugie.stitcher.util.*
+import dev.kikugie.stitcher.util.LINE_BREAKS
+import dev.kikugie.stitcher.util.WHITESPACES
+import dev.kikugie.stitcher.util.WORD_BREAKS
+import dev.kikugie.stitcher.util.hasLineBreak
 import org.antlr.v4.runtime.CommonToken
 import kotlin.math.max
 import kotlin.math.min
@@ -37,12 +39,11 @@ internal sealed interface BlockBuilder {
 
 internal class ContentBuilder(
     override val factory: StitcherTokenFactory,
-    val start: Int,
-    val end: Int,
-    val text: String
+    val start: Int, val end: Int, val text: String
 ) : BlockBuilder {
     constructor(factory: StitcherTokenFactory, content: AntlrToken)
         : this(factory, content.startIndex, content.endIndex, content.text)
+    val isBlank by lazy(text::isBlank)
 
     override fun build(): BlockToken.Content = BlockToken.Content(
         factory.create(NativeStitcherType.CONTENT, start, end, text)
@@ -51,11 +52,10 @@ internal class ContentBuilder(
 
 internal class CommentBuilder(
     override val factory: StitcherTokenFactory,
-    val opener: AntlrToken?,
-    val body: AntlrToken,
-    val closer: AntlrToken?,
+    val opener: AntlrToken?, val body: AntlrToken, val closer: AntlrToken?,
 ) : BlockBuilder {
-    val text inline get() = body.text
+    val isBlank by lazy(body.text::isBlank)
+
     override fun build(): BlockToken.Comment = BlockToken.Comment(
         opener?.let(factory::fromAntlrToken),
         body.let(factory::fromAntlrToken),
@@ -71,8 +71,10 @@ internal class RootBuilder(
         entries.map(BlockBuilder::build)
     )
 
-    override fun accept(block: BlockBuilder): BlockAcceptResult =
-        entries.addMerging(block) then BlockAcceptResult.ConsumedOpen
+    override fun accept(block: BlockBuilder): BlockAcceptResult {
+        entries += block
+        return BlockAcceptResult.ConsumedOpen
+    }
 }
 
 internal class CodeBuilder(
@@ -93,9 +95,19 @@ internal class CodeBuilder(
     }
 
     override fun accept(block: BlockBuilder): BlockAcceptResult = when (definition.kind) {
-        Kind.SCOPED_OPENER, Kind.SCOPED_EXTENSION -> entries.addMerging(block) then BlockAcceptResult.ConsumedOpen
-        Kind.LINE_OPENER, Kind.LINE_EXTENSION -> if (satisfied) BlockAcceptResult.Rejected else acceptLine(block)
-        Kind.LOOKUP_OPENER, Kind.LOOKUP_EXTENSION -> if (satisfied) BlockAcceptResult.Rejected else acceptWord(block)
+        Kind.SCOPED_OPENER, Kind.SCOPED_EXTENSION -> {
+            entries.merge(block)
+            BlockAcceptResult.ConsumedOpen
+        }
+
+        Kind.LINE_OPENER, Kind.LINE_EXTENSION ->
+            if (satisfied) BlockAcceptResult.Rejected
+            else acceptLine(block)
+
+        Kind.LOOKUP_OPENER, Kind.LOOKUP_EXTENSION ->
+            if (satisfied) BlockAcceptResult.Rejected
+            else acceptWord(block)
+
         else -> BlockAcceptResult.Rejected
     }
 
@@ -118,9 +130,9 @@ internal class CodeBuilder(
 
     private fun acceptLine(block: BlockBuilder): BlockAcceptResult = when (block) {
         is ContentBuilder -> consumeContentSplit(block, consumeLine(block.text, entries.lastOrNull().isNotBlank()))
-        is CommentBuilder -> consumeCommentSplit(block, consumeLine(block.text, entries.lastOrNull().isNotBlank())).let {
+        is CommentBuilder -> consumeCommentSplit(block, consumeLine(block.body.text, entries.lastOrNull().isNotBlank())).let {
             if (it !is BlockAcceptResult.ConsumedOpen) it
-            else if (!block.text.isNotBlank() || !block.closer?.text.orEmpty().hasLineBreak()) it
+            else if (!block.isNotBlank() || !block.closer?.text.orEmpty().hasLineBreak()) it
             else BlockAcceptResult.ConsumedFinal
         }
 
@@ -140,8 +152,8 @@ internal class CodeBuilder(
 
         is CommentBuilder -> consumeCommentSplit(
             block,
-            if (scope.lookup == null) consumeWordDefault(block.text)
-            else consumeWordCustom(block.text, scope.extractLookup(), scope.isCapturing())
+            if (scope.lookup == null) consumeWordDefault(block.body.text)
+            else consumeWordCustom(block.body.text, scope.extractLookup(), scope.isCapturing())
         )
 
         else -> error("Unreachable")
@@ -149,12 +161,16 @@ internal class CodeBuilder(
 
     private fun consumeFinal(block: BlockBuilder): BlockAcceptResult {
         satisfied = true
-        return entries.addMerging(block) then BlockAcceptResult.ConsumedFinal
+        entries += block
+        return BlockAcceptResult.ConsumedFinal
     }
 
     private fun consumeContentSplit(block: ContentBuilder, split: Int): BlockAcceptResult = when {
         // No end sequence was found
-        split < 0 -> entries.addMerging(block) then BlockAcceptResult.ConsumedOpen
+        split < 0 -> {
+            entries += block
+            BlockAcceptResult.ConsumedOpen
+        }
 
         // The matching sequence is right at the start of the block, but we don't want it
         split == 0 -> {
@@ -169,7 +185,7 @@ internal class CodeBuilder(
             satisfied = true
             // Block before the split goes to this scope
             ContentBuilder(factory, block.start, block.start + split, block.text.take(split))
-                .let(entries::addMerging)
+                .let(entries::merge)
             // Return the remainder
             ContentBuilder(factory, block.start + split, block.end, block.text.substring(split))
                 .let(BlockAcceptResult::ConsumedPartial)
@@ -178,10 +194,13 @@ internal class CodeBuilder(
 
     private fun consumeCommentSplit(block: CommentBuilder, split: Int): BlockAcceptResult = when {
         // No end sequence was found
-        split < 0 -> entries.add(block) then BlockAcceptResult.ConsumedOpen
+        split < 0 -> {
+            entries += block
+            BlockAcceptResult.ConsumedOpen
+        }
 
         // The entire comment was consumed
-        split == block.text.length -> consumeFinal(block)
+        split == block.body.text.length -> consumeFinal(block)
 
         else -> {
             satisfied = true
@@ -203,7 +222,7 @@ internal class CodeBuilder(
     }
 }
 
-private fun MutableList<BlockBuilder>.addMerging(block: BlockBuilder) = when (val it = lastOrNull()) {
+private fun MutableList<BlockBuilder>.merge(block: BlockBuilder) = when (val it = lastOrNull()) {
     is ContentBuilder if (block is ContentBuilder) ->
         this[lastIndex] = ContentBuilder(it.factory, min(it.start, block.start), max(it.end, block.end), it.text + block.text)
 
@@ -251,9 +270,10 @@ private fun consumeWordCustom(str: String, match: String, capturing: Boolean): I
     else -> idx
 }
 
-private fun BlockBuilder?.isNotBlank() = when (this) {
-    is ContentBuilder -> text.isNotBlank()
-    is CommentBuilder -> text.isNotBlank()
+
+private fun BlockBuilder?.isNotBlank(): Boolean = when (this) {
+    is ContentBuilder -> !isBlank
+    is CommentBuilder -> !isBlank
     null -> false
     else -> true
 }

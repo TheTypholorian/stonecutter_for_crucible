@@ -6,10 +6,10 @@ import dev.kikugie.stitcher.antlr.AntlrToken
 import dev.kikugie.stitcher.antlr.lineIndex
 import dev.kikugie.stitcher.token.StitcherToken
 
-inline fun FileProblemReporter.location(token: AntlrToken): ProblemLocation =
+inline fun FileProblemReporter.locate(token: AntlrToken): ProblemLocation =
     ProblemLocation(this.file, token.lineIndex, token.charPositionInLine, token.startIndex)
 
-inline fun FileProblemReporter.location(token: StitcherToken): ProblemLocation =
+inline fun FileProblemReporter.locate(token: StitcherToken): ProblemLocation =
     locate(token.start)
 
 inline fun FileProblemReporter.report(id: ProblemID, token: AntlrToken, builder: ProblemReport.() -> Unit): ProblemReport =

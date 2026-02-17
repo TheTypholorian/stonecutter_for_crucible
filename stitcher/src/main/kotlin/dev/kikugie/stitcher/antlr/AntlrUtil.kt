@@ -2,6 +2,7 @@
 
 package dev.kikugie.stitcher.antlr
 
+import dev.kikugie.stitcher.token.StitcherType
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.tree.TerminalNode
 import java.io.InputStream
@@ -17,6 +18,12 @@ val AntlrToken.isEOF: Boolean inline get() = type == AntlrToken.EOF
 val AntlrToken.endIndex: Int inline get() = stopIndex + 1
 /** Zero-based line number for the token. */
 val AntlrToken.lineIndex: Int inline get() = line - 1
+
+var CommonToken.endIndex: Int
+    inline get() = stopIndex + 1
+    inline set(value) {
+        stopIndex = value - 1
+    }
 
 /** Token type for this terminal node. */
 val TerminalNode.type: Int inline get() = symbol.type
@@ -45,6 +52,9 @@ fun Vocabulary.indexedName(type: Int): String = "$type ('${getDisplayName(type)}
 fun String.charStream(source: String = CharStream.UNKNOWN_SOURCE_NAME): CharStream =
     CharStreams.fromString(this, source)
 
+fun AntlrToken.repr(): String =
+    "$type ${StitcherType.of(type).name}($startIndex..<$endIndex:$lineIndex:$charPositionInLine): '${text.replace("\n", "\\n")}'"
+
 /** Builds a CharStream from a Path using the specified charset. */
 fun Path.charStream(charset: Charset = StandardCharsets.UTF_8): CharStream =
     CharStreams.fromPath(this, charset)
@@ -67,7 +77,21 @@ fun CharStream.LC(offset: Int): Char = when(val it = LA(offset)) {
     else -> it.toChar()
 }
 
+inline fun TokenSource.forEach(action: (AntlrToken) -> Unit) {
+    var next: AntlrToken
+    while (!nextToken().also { next = it }.isEOF) action(next)
+}
+
+inline fun TokenStream.forEach(action: (AntlrToken) -> Unit) {
+    var next: AntlrToken
+    while (!LT(1).also { next = it }.isEOF) {
+        action(next)
+        consume()
+    }
+}
+
 @JvmInline
+@Deprecated("For now it's badly inefficient: https://youtrack.jetbrains.com/issue/KT-84300/Iterator-value-classes-are-boxed-on-each-iteration")
 value class TokenStreamIterator(val stream: TokenStream) : Iterator<AntlrToken> {
     override fun hasNext(): Boolean = !stream.LT(1).isEOF
     override fun next(): AntlrToken = stream.LT(1).also {

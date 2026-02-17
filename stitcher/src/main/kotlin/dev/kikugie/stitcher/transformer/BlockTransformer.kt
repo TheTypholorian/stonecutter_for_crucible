@@ -1,20 +1,13 @@
 package dev.kikugie.stitcher.transformer
 
-import dev.kikugie.stitcher.antlr.AntlrToken
-import dev.kikugie.stitcher.antlr.InlineErrorListener
-import dev.kikugie.stitcher.antlr.InlineTokenStream
-import dev.kikugie.stitcher.antlr.TokenStreamIterator
-import dev.kikugie.stitcher.antlr.charStream
+import dev.kikugie.stitcher.antlr.*
 import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.ProblemLocation
-import dev.kikugie.stitcher.issue.location
+import dev.kikugie.stitcher.issue.locate
 import dev.kikugie.stitcher.issue.runMarked
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.layout.LayoutParser
 import dev.kikugie.stitcher.replacement.executor.CompositeReplacementExecutor
-import dev.kikugie.stitcher.replacement.executor.EmptyReplacementExecutor
-import dev.kikugie.stitcher.replacement.executor.ReplacementExecutor
-import dev.kikugie.stitcher.replacement.executor.SimpleReplacementExecutor
 import dev.kikugie.stitcher.replacement.template.findInsertionPlaces
 import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.eval.join
@@ -24,19 +17,8 @@ import dev.kikugie.stitcher.token.impl.ExpressionToken
 import dev.kikugie.stitcher.token.impl.LeafToken
 import dev.kikugie.stitcher.transformer.visitor.ExpressionEvaluator
 import dev.kikugie.stitcher.transformer.visitor.ParameterChecker
-import dev.kikugie.stitcher.util.buildString
-import dev.kikugie.stitcher.util.closerStr
-import dev.kikugie.stitcher.util.create
-import dev.kikugie.stitcher.util.errorListener
-import dev.kikugie.stitcher.util.hasLineBreak
-import dev.kikugie.stitcher.util.id
-import dev.kikugie.stitcher.util.openerStr
-import dev.kikugie.stitcher.util.unquote
-import org.antlr.v4.runtime.CharStream
-import org.antlr.v4.runtime.CommonTokenFactory
-import org.antlr.v4.runtime.CommonTokenStream
-import org.antlr.v4.runtime.ListTokenSource
-import org.antlr.v4.runtime.TokenSource
+import dev.kikugie.stitcher.util.*
+import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.Pair
 
 class BlockTransformer private constructor(val factory: StitcherTokenFactory, private val state: TransformerStateImpl) :
@@ -182,9 +164,10 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
         val stream = UncommentedTokenSource(this, context, reparse).let(::CommonTokenStream)
         val factory = StitcherTokenFactory.Inline(first().start)
         return problems.runMarked({ LayoutParser.parse(stream, input, factory, problems) }) { root, ok ->
-            if (ok) return@runMarked root.scope.reprocess()
-            checker.check(root)
-            root.scope
+            if (ok) root.scope.reprocess() else {
+                checker.check(root)
+                root.scope
+            }
         }
     }
 
@@ -221,6 +204,7 @@ private class TransformerStateImpl(
 }
 
 private class UncommentedTokenSource(tokens: Iterable<BlockToken>, state: TransformerStateV2, val reparse: Boolean): ListTokenSource(mutableListOf()) {
+    private val listener: StitcherErrorListener = StitcherErrorListener(state.problems)
     private val list: MutableList<AntlrToken>
         inline get() = tokens as MutableList<AntlrToken>
 
@@ -232,12 +216,12 @@ private class UncommentedTokenSource(tokens: Iterable<BlockToken>, state: Transf
 
     inner class TokenListBuilder(val source: Pair<TokenSource?, CharStream?>, state: TransformerStateV2) : BlockToken.Visitor<Unit>, TransformerStateV2 by state {
         override fun visitContent(content: BlockToken.Content) {
-            if (reparse) acceptReparsed(content.leaf.text, problems.location(content))
-            else list += CommonTokenFactory.DEFAULT.create(source, content.leaf, problems)
+            if (reparse) acceptReparsed(content.leaf.text, problems.locate(content))
+            else list += tokenFactory.create(source, content.leaf, problems)
         }
 
         override fun visitComment(comment: BlockToken.Comment) {
-            val location = problems.location(comment.body)
+            val location = problems.locate(comment.body)
             val content = parameters.uncomment(comment.body.text, comment.openerStr, comment.closerStr)
             acceptReparsed(content, location)
         }
@@ -251,12 +235,14 @@ private class UncommentedTokenSource(tokens: Iterable<BlockToken>, state: Transf
         }
 
         private fun acceptReparsed(text: String, location: ProblemLocation) {
-            val content = text.charStream(input.sourceName)
-            val scanner = parameters.create(content, problems).apply {
-                scanner.errorListener = InlineErrorListener(location, problems)
+            assert(location.fileIndex > 0) { "Incomplete location $location" }
+            val input = text.charStream()
+            val scanner = parameters.create(input, problems).apply {
+                scanner.errorListener = listener
+                scanner.tokenFactory = InlineTokenFactory(location.lineIndex, location.charOffset)
             }
-            for (token in InlineTokenStream(source, CommonTokenStream(scanner), location).let(::TokenStreamIterator))
-                list += token
+
+            scanner.forEach(list::plusAssign)
         }
     }
 }

@@ -1,6 +1,6 @@
 package dev.kikugie.stitcher
 
-import dev.kikugie.stitcher.antlr.InlineErrorListener
+import dev.kikugie.stitcher.antlr.StitcherErrorListener
 import dev.kikugie.stitcher.antlr.charStream
 import dev.kikugie.stitcher.issue.*
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
@@ -17,7 +17,7 @@ fun process(file: Path, contents: String, parameters: TransformParameters, consu
     val input = contents.charStream(file.absolutePathString())
     val problems = ProblemReporterImpl(file, contents, consumer)
     val source = parameters.adapter.create(input, problems).apply {
-        scanner.errorListener = InlineErrorListener(problems.location(0, 0, 0), problems)
+        scanner.errorListener = StitcherErrorListener(problems)
     }
 
     val layout = problems.runMarked({ LayoutParser.parse(CommonTokenStream(source), input, StitcherTokenFactory, problems) }) { root, ok ->

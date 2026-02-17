@@ -2,6 +2,7 @@
 
 package dev.kikugie.stitcher.issue
 
+import dev.kikugie.stitcher.issue.lines.LineIndex
 import java.nio.file.Path
 
 @DslMarker
@@ -36,9 +37,11 @@ interface FileProblemReporter : ProblemReporter {
      * File associated with all reported problems
      */
     val file: Path
-
-    fun locate(index: Int): ProblemLocation
+    val index: LineIndex
 }
+
+inline fun FileProblemReporter.locate(index: Int): ProblemLocation =
+    this.index.locate(file, index)
 
 /**
  * Creates a location within the associated [file][FileProblemReporter.file] using [line], [column], and [index]

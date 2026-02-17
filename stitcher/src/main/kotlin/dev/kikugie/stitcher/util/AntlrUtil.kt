@@ -14,14 +14,14 @@ import org.antlr.v4.runtime.misc.Pair
 
 internal fun <T : AntlrToken> TokenFactory<T>.create(
     src: TokenSource,
-    type: Int,
+    input: CharStream?,
+    type: StitcherType,
     start: Int,
     stop: Int,
     line: Int,
     offset: Int,
-    input: CharStream? = null
 ): T =
-    create(Pair(src, input), type, null, AntlrToken.DEFAULT_CHANNEL, start, stop, line, offset)
+    create(Pair(src, input), type.value, null, AntlrToken.DEFAULT_CHANNEL, start, stop, line, offset)
 
 internal fun <T : AntlrToken> TokenFactory<T>.create(
     src: Pair<TokenSource?, CharStream?>,
@@ -29,7 +29,7 @@ internal fun <T : AntlrToken> TokenFactory<T>.create(
     problems: FileProblemReporter,
     type: StitcherType = token.type
 ): T {
-    val location = problems.locate(token.start)
+    val location = problems.index.locate(token.start)
     return create(
         src,
         type.value,

@@ -3,17 +3,15 @@ package dev.kikugie.stitcher.parser.adapter
 import dev.kikugie.commons.collections.FixedQueue
 import dev.kikugie.commons.then
 import dev.kikugie.stitcher.antlr.AntlrToken
+import dev.kikugie.stitcher.antlr.endIndex
 import dev.kikugie.stitcher.antlr.indexedName
 import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.ProblemID
 import dev.kikugie.stitcher.issue.report
-import dev.kikugie.stitcher.token.NativeStitcherType
+import dev.kikugie.stitcher.token.NativeStitcherType.*
 import dev.kikugie.stitcher.token.StitcherType
-import org.antlr.v4.runtime.CharStream
-import org.antlr.v4.runtime.Lexer
-import org.antlr.v4.runtime.TokenSource
-import org.antlr.v4.runtime.Vocabulary
-import org.antlr.v4.runtime.misc.Pair
+import dev.kikugie.stitcher.util.create
+import org.antlr.v4.runtime.*
 import java.io.Serializable
 
 private val SCANNER_GROUP: ProblemID = ProblemID("scanner-adapter")
@@ -51,8 +49,7 @@ class ScannerAdapter(
     private val openers: IntArray,
     private val closers: IntArray,
     private val problems: FileProblemReporter
-) : TokenSource by scanner{
-
+) : TokenSource by scanner {
     /**
      * Encapsulates the creation of a [ScannerAdapter] configured with
      * a specific [Lexer], [openers][ScannerAdapter.openers] and [closers][ScannerAdapter.closers].
@@ -61,11 +58,7 @@ class ScannerAdapter(
         fun create(input: CharStream, problems: FileProblemReporter): ScannerAdapter
     }
 
-    private data class Checkpoint(val cursor: Int, val line: Int, val offset: Int, val comment: Boolean)
-
     private val queue: FixedQueue<AntlrToken> = FixedQueue(4)
-    private var checkpoint: Checkpoint = Checkpoint(0, 0, 0, false)
-
     private val scannerName: String by lazy {
         scanner.grammarFileName
             ?: scanner::class.qualifiedName?.takeIf { "org.antlr" !in it }
@@ -73,6 +66,7 @@ class ScannerAdapter(
     }
     private val scannerVocab: Vocabulary
         inline get() = scanner.vocabulary
+    private lateinit var checkpoint: CommonToken
 
     override fun getLine(): Int =
         if (scanner._hitEOF) scanner.line else queue.peek()?.line ?: 0
@@ -89,6 +83,8 @@ class ScannerAdapter(
     private fun next(): AntlrToken = queue.run { remove(); first() }
 
     private fun advance() {
+        if (!::checkpoint.isInitialized) checkpoint = tokenFactory
+            .create(scanner, inputStream, CONTENT, 0, 0, 1, 0) as CommonToken
         if (checkpoint.line < 0) throw NoSuchElementException()
         do {
             val next = scanner.nextToken()
@@ -102,30 +98,26 @@ class ScannerAdapter(
     }
 
     private fun handleEOF(token: AntlrToken): Boolean {
-        if (checkpoint.comment) handleCommentEnd(token)
-        else if (checkpoint.cursor < token.startIndex)
-            push(NativeStitcherType.CONTENT, token.startIndex)
+        if (checkpoint.isComment) handleCommentEnd(token)
+        else token.pushCheckpoint(COMMENT_BODY)
+        checkpoint.line = -1
         queue += token
-        checkpoint = Checkpoint(-1, -1, -1, false)
         return true
     }
 
     private fun handleCommentStart(token: AntlrToken): Boolean {
-        if (checkpoint.comment)
+        if (checkpoint.isComment)
             return reportInvalidOpener(token) then false
-        if (checkpoint.cursor < token.startIndex)
-            push(NativeStitcherType.CONTENT, token.startIndex)
-        push(NativeStitcherType.COMMENT_OPEN, token)
-        checkpoint = Checkpoint(token, true)
+        token.pushCheckpoint(COMMENT_BODY)
+        token.pushAs(COMMENT_OPEN)
         return true
     }
 
     private fun handleCommentEnd(token: AntlrToken): Boolean {
-        if (!checkpoint.comment)
+        if (!checkpoint.isComment)
             return reportInvalidCloser(token) then false
-        push(NativeStitcherType.COMMENT_BODY, token.startIndex)
-        push(NativeStitcherType.COMMENT_CLOSE, token)
-        checkpoint = Checkpoint(token, false)
+        token.pushCheckpoint(CONTENT)
+        token.pushAs(COMMENT_CLOSE)
         return true
     }
 
@@ -149,23 +141,26 @@ class ScannerAdapter(
         docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-counting"
     }
 
-    private fun push(type: StitcherType, endExclusive: Int): Unit =
-        push(type, checkpoint.cursor, endExclusive)
-
-    private fun push(type: StitcherType, start: Int, endExclusive: Int) {
-        queue += tokenFactory.create(
-            Pair(this, inputStream), type.value, null, AntlrToken.DEFAULT_CHANNEL,
-            start, endExclusive - 1, checkpoint.line, checkpoint.offset
-        )
+    private fun AntlrToken.pushCheckpoint(type: StitcherType) {
+        if (type == CONTENT || checkpoint.startIndex < startIndex) queue += checkpoint.apply {
+            endIndex = this@pushCheckpoint.startIndex
+            text = null
+        }
+        checkpoint = CommonToken(this).apply {
+            this.type = type.value
+            startIndex = this@pushCheckpoint.endIndex
+            line = scanner.line
+            charPositionInLine = scanner.charPositionInLine
+        }
     }
 
-    private fun push(type: StitcherType, host: AntlrToken) {
-        queue += tokenFactory.create(
-            Pair(this, inputStream), type.value, if (host.type == AntlrToken.EOF) "" else null, AntlrToken.DEFAULT_CHANNEL,
-            host.startIndex, host.stopIndex, host.line, host.charPositionInLine
-        )
+    private fun AntlrToken.pushAs(type: StitcherType) {
+        queue += CommonToken(this).apply {
+            this.type = type.value
+            if (this@pushAs.type == AntlrToken.EOF) text = ""
+        }
     }
 
-    private fun Checkpoint(token: AntlrToken, comment: Boolean): Checkpoint =
-        Checkpoint(token.stopIndex + 1, scanner.line, scanner.charPositionInLine, comment)
+    private val AntlrToken.isComment: Boolean
+        inline get() = type == COMMENT_BODY.value
 }

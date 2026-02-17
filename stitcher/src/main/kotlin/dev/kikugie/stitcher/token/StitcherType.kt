@@ -10,9 +10,15 @@ sealed interface StitcherType {
 
     companion object {
         fun of(type: Int): StitcherType =
-            if (type < INIT_TYPE) AntlrStitcherType.of(type)
+            if (type == -1) EOFStitcherType
+            else if (type < INIT_TYPE) AntlrStitcherType.of(type)
             else NativeStitcherType.of(type)
     }
+}
+
+data object EOFStitcherType : StitcherType {
+    override val value: Int = -1
+    override val name: String = "<EOF>"
 }
 
 @ConsistentCopyVisibility
