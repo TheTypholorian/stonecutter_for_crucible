@@ -21,31 +21,19 @@ import dev.kikugie.stitcher.transformer.impl.StarRemoveCommentStrategy
 import dev.kikugie.stitcher.transformer.strategy.CommentingStrategy
 import dev.kikugie.stitcher.transformer.strategy.SwappingStrategy
 import dev.kikugie.stitcher.transformer.strategy.UncommentingStrategy
-import io.kotest.core.TestConfiguration
-import io.kotest.engine.spec.tempfile
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.Lexer
 import org.intellij.lang.annotations.Language
-import java.nio.file.StandardOpenOption
 import kotlin.io.path.Path
-import kotlin.io.path.writeText
 
 val IMMEDIATE_THROW: (ProblemReport) -> Unit = { report: ProblemReport ->
     System.err.println(report.accept(FullProblemFormatter))
     throw AssertionError(report.accept(ShortProblemFormatter))
 }
 
-inline fun processRaw(contents: String, parameters: TransformParametersBuilder.() -> Unit = {}) : String {
+inline fun process(contents: String, parameters: TransformParametersBuilder.() -> Unit = {}): String {
     val parameters = TransformParametersBuilder().apply(parameters).build()
     return process(Path(""), contents, parameters, IMMEDIATE_THROW)
-}
-
-inline fun TestConfiguration.process(contents: String, parameters: TransformParametersBuilder.() -> Unit = {}): String {
-    val file = tempfile().toPath()
-    file.writeText(contents, Charsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
-
-    val parameters = TransformParametersBuilder().apply(parameters).build()
-    return process(file, contents, parameters, IMMEDIATE_THROW)
 }
 
 class TransformParametersBuilder {

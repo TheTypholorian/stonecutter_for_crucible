@@ -179,9 +179,7 @@ class TransformTest : FreeSpec({
                 a.2.3.d.e
                 //~}
             """.trimIndent()
-            process(content) {
-                constants["true"] = true
-            } shouldBe expected
+            process(content) shouldBe expected
         }
 
         "nested local replacement" {
@@ -203,9 +201,7 @@ class TransformTest : FreeSpec({
                 a.2.3.d.e
                 //~}
             """.trimIndent()
-            process(content) {
-                constants["true"] = true
-            } shouldBe expected
+            process(content) shouldBe expected
         }
 
         "overwrite global replacements" {
@@ -220,9 +216,21 @@ class TransformTest : FreeSpec({
                 a.6.9.d.e
             """.trimIndent()
             process(content) {
-                constants["true"] = true
                 replacements.string("b.c", "2.3")
             } shouldBe expected
+        }
+
+        // https://codeberg.org/stonecutter/stonecutter/issues/40
+        "ignore replaced patterns" {
+            val content = """
+                //~ if true RenderType -> RenderTypes
+                RenderTypes
+            """.trimIndent()
+            val expected = """
+                //~ if true RenderType -> RenderTypes
+                RenderTypes
+            """.trimIndent()
+            process(content) shouldBe expected
         }
     }
 
@@ -380,9 +388,11 @@ class TransformTest : FreeSpec({
 
         "oob placeholder" {
             val content = "/*$ id 'hello' {*/.../*$}*/"
-            shouldFail { process(content) {
-                swaps["id"] = "$1 $2"
-            } }
+            shouldFail {
+                process(content) {
+                    swaps["id"] = "$1 $2"
+                }
+            }
         }
 
         // https://codeberg.org/stonecutter/stonecutter/issues/34
