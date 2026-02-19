@@ -20,4 +20,8 @@ class ExtPropsTest : GradleTest, ShouldSpec({
     should("append new properties") { _, build ->
         build.run()
     }
+
+    should("use diff props") { _ , build ->
+        build.run()
+    }
 })

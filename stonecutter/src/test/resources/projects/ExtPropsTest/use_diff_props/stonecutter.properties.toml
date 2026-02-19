@@ -1,0 +1,5 @@
+["1.21-fabric"]
+deps.minecraft="1.21.1"
+
+["26.1-snapshot-7-fabric"]
+deps.minecraft="26.1-snapshot-7"
