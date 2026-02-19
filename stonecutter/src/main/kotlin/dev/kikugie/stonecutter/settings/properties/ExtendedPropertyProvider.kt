@@ -31,7 +31,7 @@ public interface ExtendedPropertyProvider {
 }
 
 @OptIn(StonecutterExperimentalAPI::class)
-internal abstract class ExtendedPropertyConfigImpl @Inject constructor(
+internal class ExtendedPropertyConfigImpl(
     val hierarchy: ProjectHierarchy,
     val ext: ExtraPropertiesExtension,
     val props: ExtendedPropertiesStorage,

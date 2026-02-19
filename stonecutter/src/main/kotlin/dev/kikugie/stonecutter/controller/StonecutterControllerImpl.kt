@@ -93,8 +93,8 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
 private fun setupDefaultProperties(project: Project, objects: ObjectFactory): ExtendedPropertyProvider.ExtendedPropertyConfig = with(project) {
     val ext = gradle.the<ExtendedPropertiesStorage>()
     ext.load(layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), hierarchy)
-        ?.apply(hierarchy, extra)
-    objects.newInstance<ExtendedPropertyConfigImpl>(hierarchy, extra, ext)
+    ext.apply(hierarchy, extra)
+    ExtendedPropertyConfigImpl(hierarchy, extra, ext, objects)
 }
 
 private fun constructTree(root: Project): ProjectTreeImpl {

@@ -29,7 +29,7 @@ internal abstract class ExtendedPropertiesStorage @Inject constructor(val object
         val path = file.asFile.absolutePath
         LOGGER.debug("Loading properties for {} from {}", hierarchy, path)
         if (path in container.names) container.named(path) { projects += hierarchy }.get()
-        else loadNew(file, hierarchy).also(container::add)
+        else loadNew(file, hierarchy)?.also(container::add)
     }
 
     private fun loadNew(file: RegularFile, hierarchy: ProjectHierarchy): ExtendedProjectProperties? =

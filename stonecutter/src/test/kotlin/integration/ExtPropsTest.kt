@@ -24,4 +24,8 @@ class ExtPropsTest : GradleTest, ShouldSpec({
     should("use diff props") { _ , build ->
         build.run()
     }
+
+    should("use property tags") { _ , build ->
+        build.run()
+    }
 })

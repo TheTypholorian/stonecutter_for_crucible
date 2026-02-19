@@ -105,7 +105,7 @@ private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): 
     val ext = gradle.extensions.create<ExtendedPropertiesStorage>("ExtendedProperties")
     ext.load(layout.settingsDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), hierarchy)
         ?.apply(hierarchy, extra)
-    objects.newInstance<ExtendedPropertyConfigImpl>(hierarchy, extra, ext)
+    ExtendedPropertyConfigImpl(hierarchy, extra, ext, objects)
 }
 
 private fun createIdeaTask(gradle: Gradle) {
