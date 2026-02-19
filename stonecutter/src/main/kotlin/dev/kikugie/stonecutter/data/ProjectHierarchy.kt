@@ -78,4 +78,7 @@ public value class ProjectHierarchy(@PublishedApi internal val path: String) : C
 public fun ProjectHierarchy.startsWith(other: ProjectHierarchy): Boolean =
     path == other.path || path.startsWith(other.path) && path.getOrDefault(other.path.lastIndex) == ':'
 
+public fun ProjectHierarchy.resolve(key: String): ProjectHierarchy =
+    if (key.startsWith(':')) ProjectHierarchy(key) else this + key
+
 private val String.segments: Sequence<String> get() = substring(1).splitToSequence(':')

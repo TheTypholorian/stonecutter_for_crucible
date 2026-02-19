@@ -1,5 +1,8 @@
 package dev.kikugie.stonecutter.controller
 
+import dev.kikugie.semver.data.Version
+import dev.kikugie.stonecutter.StonecutterExperimentalAPI
+import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager.Companion.getController
@@ -20,28 +23,21 @@ import dev.kikugie.stonecutter.data.tree.ProjectNodeImpl
 import dev.kikugie.stonecutter.data.tree.ProjectTreeImpl
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyConfigImpl
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.BranchBuilderImpl
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderContainer
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.isIdeaSync
 import dev.kikugie.stonecutter.util.requestTasks
-import dev.kikugie.semver.data.Version
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
-import dev.kikugie.stonecutter.StonecutterPlugin
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage.Companion.mergeTo
-import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFile
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
-import org.gradle.kotlin.dsl.apply
-import org.gradle.kotlin.dsl.extra
-import org.gradle.kotlin.dsl.named
-import org.gradle.kotlin.dsl.newInstance
-import org.gradle.kotlin.dsl.the
+import org.gradle.kotlin.dsl.*
 import java.io.File
 import java.nio.file.Path
 import javax.inject.Inject
@@ -54,13 +50,13 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     override val flags: StonecutterFlagsImpl = StonecutterFlagStorage { root.findProperty("dev.kikugie.stonecutter.${it.key}")?.toString() }
         .let(::StonecutterFlagsImpl)
     override val handlers: FileHandlerContainer = root.gradle.getContainer()
+    override val properties: ExtendedPropertyProvider.ExtendedPropertyConfig = setupDefaultProperties(root, objects)
 
     private val nodeContainer: ProjectNodeContainer = root.gradle.getContainer<ProjectNodeContainer>().also { it += tree }
     private val configContainer: BuildConfigurationContainer = root.gradle.getContainer()
     private var hasInitialized: Boolean = false
 
     init {
-        initializeExtendedProperties()
         root.afterEvaluate {
             if (!hasInitialized) {
                 val function =
@@ -91,17 +87,14 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     override fun parameters(action: Action<StonecutterBuildExtension>) {
         configContainer[tree] = action
     }
+}
 
-    override fun properties(file: File) {
-        val entries = root.gradle.the<ExtendedPropertiesStorage>().load(file.toRegularFile(objects), tree.hierarchy)
-        entries?.emit(tree.hierarchy)?.mergeTo(root.extra)
-    }
-
-    private fun initializeExtendedProperties() {
-        val ext = root.gradle.the<ExtendedPropertiesStorage>()
-        ext.load(root.layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), tree.hierarchy)
-        ext[tree.hierarchy].mergeTo(root.extra)
-    }
+@OptIn(StonecutterExperimentalAPI::class)
+private fun setupDefaultProperties(project: Project, objects: ObjectFactory): ExtendedPropertyProvider.ExtendedPropertyConfig = with(project) {
+    val ext = gradle.the<ExtendedPropertiesStorage>()
+    ext.load(layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), hierarchy)
+        ?.apply(hierarchy, extra)
+    objects.newInstance<ExtendedPropertyConfigImpl>(hierarchy, extra, ext)
 }
 
 private fun constructTree(root: Project): ProjectTreeImpl {

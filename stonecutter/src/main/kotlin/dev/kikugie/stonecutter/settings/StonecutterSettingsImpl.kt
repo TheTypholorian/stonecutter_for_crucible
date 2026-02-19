@@ -11,13 +11,14 @@ import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.configureDefaults
 import dev.kikugie.stonecutter.controller.tree.ProjectNodeContainer
-import dev.kikugie.stonecutter.data.ProjectHierarchy
+import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.createContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage.Companion.mergeTo
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyConfigImpl
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.TreeBuilder
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderContainer
@@ -25,7 +26,6 @@ import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.isIdeaSync
 import dev.kikugie.stonecutter.util.projectDirectory
 import dev.kikugie.stonecutter.util.requestTasks
-import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.logging.Logger
@@ -34,22 +34,12 @@ import org.gradle.api.model.ObjectFactory
 import org.gradle.build.event.BuildEventsListenerRegistry
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.extra
+import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.registerIfAbsent
-import org.gradle.kotlin.dsl.the
-import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
-import kotlin.Boolean
-import kotlin.OptIn
-import kotlin.String
-import kotlin.Suppress
-import kotlin.Unit
-import kotlin.also
 import kotlin.getValue
-import kotlin.lazy
-import kotlin.let
-import kotlin.with
 
 @OptIn(StonecutterExperimentalAPI::class)
 internal abstract class StonecutterSettingsImpl @Inject constructor(
@@ -57,6 +47,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     registry: BuildEventsListenerRegistry,
     objects: ObjectFactory,
 ) : StonecutterSettingsExtension(objects), VersionOperations<Version> by LenientOperations {
+    override val properties: ExtendedPropertyProvider.ExtendedPropertyConfig = setupDefaultProperties(settings, objects)
 
     internal val treeBuilderContainer: TreeBuilderContainer = settings.gradle.createContainer()
     internal val isHardMode: Boolean by lazy {
@@ -64,9 +55,9 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     }
     private var usesGroovy: Boolean = false
 
+
     init {
         LOGGER.lifecycle("Running Stonecutter ${StonecutterPlugin.VERSION}")
-        configureExtendedPropertiesExt()
         // This is the ugliest configuration block I have
         with(settings.gradle) {
             createContainer<ProjectNodeContainer>()
@@ -99,25 +90,22 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     override fun create(ref: ProjectReference, builder: TreeBuilder) =
         builder.takeAs<TreeBuilderImpl>().createWith(this, ref)
 
-    override fun properties(file: File) {
-        val entries = settings.gradle.the<ExtendedPropertiesStorage>().load(file.toRegularFile(objects), ProjectHierarchy.ROOT)
-        entries?.emit(ProjectHierarchy.ROOT)?.mergeTo(settings.extra)
-    }
-
     internal fun checkGroovy(file: String): String = file.also {
         usesGroovy = usesGroovy || it.endsWith(".gradle")
-    }
-
-    @Suppress("UnstableApiUsage")
-    private fun configureExtendedPropertiesExt() {
-        val ext = settings.gradle.extensions.create<ExtendedPropertiesStorage>("ExtendedProperties")
-        val entries = ext.load(settings.layout.settingsDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), ProjectHierarchy.ROOT)
-        entries?.emit(ProjectHierarchy.ROOT)?.mergeTo(settings.extra)
     }
 
     private companion object {
         val LOGGER = Logging.getLogger("StonecutterSettings")
     }
+}
+
+@OptIn(StonecutterExperimentalAPI::class) @Suppress("UnstableApiUsage")
+private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): ExtendedPropertyProvider.ExtendedPropertyConfig = with(settings) {
+    val hierarchy = rootProject.hierarchy
+    val ext = gradle.extensions.create<ExtendedPropertiesStorage>("ExtendedProperties")
+    ext.load(layout.settingsDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), hierarchy)
+        ?.apply(hierarchy, extra)
+    objects.newInstance<ExtendedPropertyConfigImpl>(hierarchy, extra, ext)
 }
 
 private fun createIdeaTask(gradle: Gradle) {

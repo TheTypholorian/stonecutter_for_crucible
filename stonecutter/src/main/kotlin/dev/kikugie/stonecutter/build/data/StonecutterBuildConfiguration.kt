@@ -22,15 +22,17 @@ import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsView
 import dev.kikugie.stonecutter.controller.tree.ParametersModel
+import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage.Companion.mergeTo
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyConfigImpl
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
 import dev.kikugie.stonecutter.util.overwriteText
-import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Named
+import org.gradle.api.Project
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.util.PatternFilterable
@@ -46,7 +48,7 @@ import javax.inject.Inject
 internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override val node: ProjectNode,
     factory: ProviderFactory,
-    private val objects: ObjectFactory
+    objects: ObjectFactory
 ) : Named, StonecutterBuildExtension, VersionOperations<Version> by LenientOperations {
     internal val controller: StonecutterControllerExtension = node.tree.project.the()
     internal val data: StonecutterBuildData = objects.newInstance(controller, current.version, factory)
@@ -56,6 +58,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override val dependencies: DependencyContainer = objects.newInstance(data.dependencies)
     override val replacements: ReplacementContainerImpl = objects.newInstance(data::addString, data::addRegex)
     override val filters: PatternFilterable = PatternSet()
+    override val properties: ExtendedPropertyProvider.ExtendedPropertyConfig = setupDefaultProperties(node.project, objects)
 
     override val flags: StonecutterFlagsView = controller.flags
     override val tasks: StonecutterBuildTasks
@@ -83,10 +86,12 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
         output.overwriteText(contents, true)
         return output
     }
+}
 
-    override fun properties(file: File) {
-        val project = node.project
-        val entries = project.gradle.the<ExtendedPropertiesStorage>().load(file.toRegularFile(objects), node.hierarchy)
-        entries?.emit(node.hierarchy)?.mergeTo(project.extra)
-    }
+@OptIn(StonecutterExperimentalAPI::class)
+private fun setupDefaultProperties(project: Project, objects: ObjectFactory): ExtendedPropertyProvider.ExtendedPropertyConfig = with(project) {
+    val ext = gradle.the<ExtendedPropertiesStorage>()
+    ext.load(layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), hierarchy)
+        ?.apply(hierarchy, extra)
+    objects.newInstance<ExtendedPropertyConfigImpl>(hierarchy, extra, ext)
 }
