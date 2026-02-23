@@ -9,29 +9,37 @@ import dev.kikugie.stitcher.transformer.impl.StarRemoveCommentStrategy
 internal fun FileHandlerContainer.configureDefaults() {
     configureJava()
     configureKotlin()
+    configureShader()
     configureHash()
 }
 
-private fun FileHandlerContainer.configureJava() = configure("java", "scala", "sc", "groovy", "gradle", "fsh", "vsh", "json5") {
-    scanner {
-        lexer.set(::SlashStyleScanner)
-        openers(SlashStyleScanner.SLASH_COMMENT_START, SlashStyleScanner.STAR_COMMENT_START)
-        closers(SlashStyleScanner.SLASH_COMMENT_END, SlashStyleScanner.STAR_COMMENT_END)
-    }
+private fun FileHandlerContainer.configureJava() = configure("java", "scala", "sc", "groovy", "gradle", "json5") {
+    useSlashScanner(nested = false)
 
     commenter.set(SlashStarCommentStrategy(true))
     uncommenter.set(StarRemoveCommentStrategy)
 }
 
 private fun FileHandlerContainer.configureKotlin() = configure("kt", "kts") {
-    scanner {
-        lexer.set { SlashStyleScanner(it).apply { nestMultiLineComments = true } }
-        openers(SlashStyleScanner.SLASH_COMMENT_START, SlashStyleScanner.STAR_COMMENT_START)
-        closers(SlashStyleScanner.SLASH_COMMENT_END, SlashStyleScanner.STAR_COMMENT_END)
-    }
+    useSlashScanner(nested = true)
 
     commenter.set(SlashStarCommentStrategy(false))
     uncommenter.set(StarRemoveCommentStrategy)
+}
+
+private fun FileHandlerContainer.configureShader() = configure("fsh", "vsh") {
+    useSlashScanner(nested = false)
+
+    commenter.set(line("//"))
+    uncommenter.set(StarRemoveCommentStrategy)
+}
+
+private fun HandlerBuilder.useSlashScanner(nested: Boolean) = scanner {
+    if (!nested) lexer.set(::SlashStyleScanner)
+    else lexer.set { SlashStyleScanner(it).apply { nestMultiLineComments = true } }
+
+    openers(SlashStyleScanner.SLASH_COMMENT_START, SlashStyleScanner.STAR_COMMENT_START)
+    closers(SlashStyleScanner.SLASH_COMMENT_END, SlashStyleScanner.STAR_COMMENT_END)
 }
 
 private fun FileHandlerContainer.configureHash() = configure("cfg", "aw", "accesswidener", "ct", "classtweaker", "yml", "yaml") {
@@ -41,5 +49,5 @@ private fun FileHandlerContainer.configureHash() = configure("cfg", "aw", "acces
         closers(HashStyleScanner.HASH_COMMENT_END)
     }
 
-    commenter.set(LineCommentStrategy("#"))
+    commenter.set(line("#"))
 }
