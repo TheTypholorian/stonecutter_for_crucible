@@ -1,0 +1,39 @@
+name: Run tests
+on:
+  push:
+  pull_request:
+    branches:
+      - "0.*"
+    paths:
+      - "stitcher/src/**"
+      - "stonecutter/src/**"
+      - ".forgejo/workflows/run-tests-yaml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        gradle-version: ["9.0.0", "current", "release-candidate"]
+      fail-fast: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: ${{ matrix.gradle-version }}
+      - name: Run tests
+        run: gradle test --configuration-cache --build-cache
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-gradle-${{ matrix.gradle-version }}
+          path: |
+            **/build/reports/tests/
+            **/build/test-results/
