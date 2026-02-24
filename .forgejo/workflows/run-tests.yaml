@@ -11,7 +11,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: [own-forgejo]
     strategy:
       matrix:
         gradle-version: ["9.0.0", "current", "release-candidate"]
