@@ -1,17 +1,11 @@
 name: Run tests
-on:
-  push:
-  pull_request:
-    branches:
-      - "0.*"
-    paths:
-      - "stitcher/src/**"
-      - "stonecutter/src/**"
-      - ".forgejo/workflows/run-tests-yaml"
+on: [push]
 
 jobs:
   test:
     runs-on: [own-forgejo]
+    container:
+      image: ubuntu:latest
     strategy:
       matrix:
         gradle-version: ["9.0.0", "current", "release-candidate"]
