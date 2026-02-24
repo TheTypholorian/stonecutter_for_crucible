@@ -1,20 +1,21 @@
 package dev.kikugie.stonecutter.settings
 
+import dev.kikugie.semver.data.SemanticVersion
+import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
 import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
 import dev.kikugie.stonecutter.settings.tree.SerializedTree
 import dev.kikugie.stonecutter.settings.tree.TreeBuilder
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.SCJSON
-import dev.kikugie.semver.data.SemanticVersion
-import dev.kikugie.semver.data.Version
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
+import dev.kikugie.stonecutter.util.toRegularFile
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.json.decodeFromStream
 import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.ProviderFactory
 import org.gradle.kotlin.dsl.newInstance
 import java.io.File
 
@@ -31,7 +32,10 @@ private annotation class SettingsDsl
  * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings">Wiki #2</a>
  */
 @SettingsDsl
-public abstract class StonecutterSettingsExtension(protected val objects: ObjectFactory) : VersionOperations<Version>, ExtendedPropertyProvider {
+public abstract class StonecutterSettingsExtension(
+    protected val objects: ObjectFactory,
+    protected val providers: ProviderFactory
+) : VersionOperations<Version>, ExtendedPropertyProvider {
     /**
      * Defines a shared [Action] for configuring instances of [TreeBuilder].
      *
@@ -126,15 +130,17 @@ public abstract class StonecutterSettingsExtension(protected val objects: Object
 
     /* Base configuration */
     protected abstract fun create(ref: ProjectReference, builder: TreeBuilder)
-}
 
-@OptIn(ExperimentalSerializationApi::class)
-private fun readTreeSettings(file: File, action: Action<TreeBuilder>): Action<TreeBuilder> {
-    require(file.extension.let { it == "json" || it == "json5" }) {
-        "Version setup file must be in JSON or JSON5 format.\nSee https://stonecutter.kikugie.dev/wiki/config/projects."
-    }
-    return Action {
-        file.inputStream().use { SCJSON.decodeFromStream<SerializedTree>(it) }.applyTo(this)
-        action.execute(this)
+    @OptIn(ExperimentalSerializationApi::class)
+    private fun readTreeSettings(file: File, action: Action<TreeBuilder>): Action<TreeBuilder> {
+        require(file.extension.let { it == "json" || it == "json5" }) {
+            "Version setup file must be in JSON or JSON5 format.\nSee https://stonecutter.kikugie.dev/wiki/config/projects."
+        }
+        val provider = providers.fileContents(file.toRegularFile(objects))
+            .asText.map<SerializedTree>(SCJSON::decodeFromString)
+        return Action {
+            provider.orNull?.applyTo(this)
+            action.execute(this)
+        }
     }
 }

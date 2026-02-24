@@ -34,19 +34,17 @@ import org.gradle.api.model.ObjectFactory
 import org.gradle.build.event.BuildEventsListenerRegistry
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.extra
-import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.registerIfAbsent
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
-import kotlin.getValue
 
 @OptIn(StonecutterExperimentalAPI::class)
 internal abstract class StonecutterSettingsImpl @Inject constructor(
     internal val settings: Settings,
     registry: BuildEventsListenerRegistry,
     objects: ObjectFactory,
-) : StonecutterSettingsExtension(objects), VersionOperations<Version> by LenientOperations {
+) : StonecutterSettingsExtension(objects, settings.providers), VersionOperations<Version> by LenientOperations {
     override val properties: ExtendedPropertyProvider.ExtendedPropertyConfig = setupDefaultProperties(settings, objects)
 
     internal val treeBuilderContainer: TreeBuilderContainer = settings.gradle.createContainer()
