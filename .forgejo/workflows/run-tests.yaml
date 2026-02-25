@@ -21,6 +21,14 @@ jobs:
           gradle-version: current
       - name: Build project
         run: gradle build --configuration-cache --build-cache -x test
+      - name: Upload build outputs
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-output
+          path: |
+            **/build/libs/
+            **/build/classes/
+            **/build/resources/
   test:
     name: Test on ${{ matrix.gradle-version }}
     runs-on: own-forgejo
@@ -34,10 +42,11 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 1
-      - name: Download built artifacts
+      - name: Download built outputs
         uses: actions/download-artifact@v3
         with:
-          name: built-project
+          name: build-output
+          path: .
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
