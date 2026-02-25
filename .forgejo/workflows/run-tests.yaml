@@ -2,12 +2,9 @@ name: Run tests
 on: [push]
 
 jobs:
-  test:
+  build:
+    name: Build shared binaries
     runs-on: own-forgejo
-    strategy:
-      matrix:
-        gradle-version: ["9.0.0", "current", "release-candidate"]
-      fail-fast: false
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -21,12 +18,40 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
         with:
+          gradle-version: current
+      - name: Build project
+        run: gradle build --configuration-cache --build-cache -x test
+  test:
+    name: Test on ${{ matrix.gradle-version }}
+    runs-on: own-forgejo
+    needs: build
+    strategy:
+      matrix:
+        gradle-version: ["9.0.0", "current", "release-candidate"]
+      fail-fast: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Download built artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: built-project
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
           gradle-version: ${{ matrix.gradle-version }}
       - name: Run tests
         run: gradle test --configuration-cache --build-cache
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: test-reports-gradle-${{ matrix.gradle-version }}
           path: |
