@@ -621,6 +621,7 @@ public final class dev/kikugie/stonecutter/data/ProjectHierarchy$Companion {
 }
 
 public final class dev/kikugie/stonecutter/data/ProjectHierarchyKt {
+	public static final fun resolve-Hpi6V8w (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 	public static final fun startsWith-2t9Hcuc (Ljava/lang/String;Ljava/lang/String;)Z
 }
 
@@ -750,7 +751,7 @@ public final class dev/kikugie/stonecutter/data/whatever/TaskProviderMap : java/
 }
 
 public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider {
-	public fun <init> (Lorg/gradle/api/model/ObjectFactory;)V
+	public fun <init> (Lorg/gradle/api/model/ObjectFactory;Lorg/gradle/api/provider/ProviderFactory;)V
 	public final fun create (Ljava/lang/Iterable;)V
 	public final fun create (Ljava/lang/Iterable;Ljava/io/File;)V
 	public final fun create (Ljava/lang/Iterable;Ljava/io/File;Lorg/gradle/api/Action;)V
@@ -773,13 +774,21 @@ public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtens
 	public abstract fun getCentralScript ()Lorg/gradle/api/provider/Property;
 	public abstract fun getKotlinController ()Lorg/gradle/api/provider/Property;
 	protected final fun getObjects ()Lorg/gradle/api/model/ObjectFactory;
+	protected final fun getProviders ()Lorg/gradle/api/provider/ProviderFactory;
 	public final fun getSemantics ()Ldev/kikugie/stonecutter/data/version/VersionOperations;
 	public final fun getShared ()Lorg/gradle/api/Action;
 	public final fun shared (Lorg/gradle/api/Action;)V
 }
 
 public abstract interface class dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider {
-	public abstract fun properties (Ljava/io/File;)V
+	public abstract fun getProperties ()Ldev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider$ExtendedPropertyConfig;
+	public fun properties (Ljava/io/File;)V
+	public fun properties (Lorg/gradle/api/Action;)V
+}
+
+public abstract interface class dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider$ExtendedPropertyConfig {
+	public abstract fun load (Ljava/io/File;)V
+	public abstract fun tags ([Ljava/lang/String;)V
 }
 
 public abstract class dev/kikugie/stonecutter/settings/task/StonecutterIdeaConfigTask : org/gradle/api/DefaultTask {
