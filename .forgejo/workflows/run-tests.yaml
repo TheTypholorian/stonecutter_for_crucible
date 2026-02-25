@@ -2,30 +2,9 @@ name: Run tests
 on: [push]
 
 jobs:
-  build:
-    name: Build shared binaries
-    runs-on: own-forgejo
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 1
-          token: ${{ secrets.CB_TOKEN }}
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          cache: gradle
-          java-version: "21"
-          distribution: "temurin"
-      - name: Build project
-        uses: https://github.com/burrunan/gradle-cache-action@v3
-        with:
-          arguments: build --configuration-cache --build-cache -x test
-          gradle-version: current
   test:
     name: Test on ${{ matrix.gradle-version }}
     runs-on: own-forgejo
-    needs: build
     strategy:
       matrix:
         gradle-version: ["9.0.0", current, rc]
