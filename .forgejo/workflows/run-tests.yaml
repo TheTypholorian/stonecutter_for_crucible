@@ -15,12 +15,11 @@ jobs:
         with:
           java-version: "21"
           distribution: "temurin"
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
-        with:
-          gradle-version: current
       - name: Build project
-        run: gradle build --configuration-cache --build-cache -x test
+        uses: burrunan/gradle-cache-action@v3
+        with:
+          arguments: build --configuration-cache --build-cache -x test
+          gradle-version: current
       - name: Upload build outputs
         uses: actions/upload-artifact@v3
         with:
@@ -52,12 +51,11 @@ jobs:
         with:
           java-version: "21"
           distribution: "temurin"
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
-        with:
-          gradle-version: ${{ matrix.gradle-version }}
       - name: Run tests
-        run: gradle test --configuration-cache --build-cache
+        uses: burrunan/gradle-cache-action@v3
+        with:
+          arguments: test --configuration-cache --build-cache
+          gradle-version: ${{ matrix.gradle-version }}
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v3
