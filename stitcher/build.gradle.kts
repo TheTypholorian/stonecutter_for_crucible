@@ -29,6 +29,7 @@ tasks {
     }
 
     compileTestKotlin {
+        mustRunAfter("generateTestGrammarSource")
         compilerOptions {
             freeCompilerArgs.add("-Xcontext-parameters")
         }
