@@ -16,7 +16,7 @@ jobs:
           java-version: "21"
           distribution: "temurin"
       - name: Build project
-        uses: burrunan/gradle-cache-action@v3
+        uses: https://github.com/burrunan/gradle-cache-action@v3
         with:
           arguments: build --configuration-cache --build-cache -x test
           gradle-version: current
@@ -52,7 +52,7 @@ jobs:
           java-version: "21"
           distribution: "temurin"
       - name: Run tests
-        uses: burrunan/gradle-cache-action@v3
+        uses: https://github.com/burrunan/gradle-cache-action@v3
         with:
           arguments: test --configuration-cache --build-cache
           gradle-version: ${{ matrix.gradle-version }}
