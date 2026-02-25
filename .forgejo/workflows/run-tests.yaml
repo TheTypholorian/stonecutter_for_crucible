@@ -3,7 +3,7 @@ on: [push]
 
 jobs:
   test:
-    runs-on: [own-forgejo, docker]
+    runs-on: [docker]
     strategy:
       matrix:
         gradle-version: ["9.0.0", "current", "release-candidate"]
