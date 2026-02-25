@@ -24,6 +24,10 @@ antlr {
 }
 
 tasks {
+    compileKotlin {
+        mustRunAfter("generateGrammarSource")
+    }
+
     compileTestKotlin {
         compilerOptions {
             freeCompilerArgs.add("-Xcontext-parameters")
