@@ -6,12 +6,15 @@ jobs:
     name: Test on ${{ matrix.gradle-version }}
     runs-on: own-forgejo
     container:
-      image: eclipse-temurin:21-jdk
+      image: eclipse-temurin:21-jdk-alpine
     strategy:
       matrix:
         gradle-version: ["9.0.0", current, rc]
       fail-fast: false
     steps:
+      - name: Install deps
+        run: |
+          apk add --no-cache nodejs zstd
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
@@ -22,7 +25,7 @@ jobs:
         with:
           concurrent: true
           job-id: test-${{ matrix.gradle-version }}
-          arguments: test --configuration-cache --build-cache
+          arguments: test --configuration-cache
           gradle-version: ${{ matrix.gradle-version }}
       - name: Upload test reports
         if: always()
