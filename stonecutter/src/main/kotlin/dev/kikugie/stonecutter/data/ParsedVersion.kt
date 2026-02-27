@@ -12,7 +12,7 @@ import kotlin.compareTo
  */
 public class ParsedVersion(public val value: Version) : Comparable<Any> {
     /**Creates a parsed version from a string [value]. Throws if the version is invalid.*/
-    public constructor(value: AnyVersion) : this(Version.parse(value))
+    public constructor(value: AnyVersion) : this(LenientOperations.parse(value))
 
     /**
      * Compares this version to the [other].

@@ -5,6 +5,8 @@ jobs:
   test:
     name: Test on ${{ matrix.gradle-version }}
     runs-on: own-forgejo
+    container:
+      image: eclipse-temurin:21-jdk
     strategy:
       matrix:
         gradle-version: ["9.0.0", current, rc]
@@ -15,12 +17,6 @@ jobs:
         with:
           fetch-depth: 1
           token: ${{ secrets.CB_TOKEN }}
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          cache: gradle
-          java-version: "21"
-          distribution: "temurin"
       - name: Run tests
         uses: https://github.com/burrunan/gradle-cache-action@v3
         with:
