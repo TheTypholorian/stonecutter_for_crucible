@@ -9,24 +9,24 @@ jobs:
       image: eclipse-temurin:21-jdk-alpine
     strategy:
       matrix:
-        gradle-version: ["9.0.0", current, rc]
+        gradle-version: ["9.0.0", current, release-candidate]
       fail-fast: false
     steps:
       - name: Install deps
         run: |
-          apk add --no-cache nodejs zstd tar
+          apk add --no-cache nodejs
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
           fetch-depth: 1
           token: ${{ secrets.CB_TOKEN }}
-      - name: Run tests
-        uses: https://github.com/burrunan/gradle-cache-action@v3
+      - name: Setup Gradle
+        uses: https://github.com/gradle/actions/setup-gradle@v5
         with:
-          concurrent: true
-          job-id: test-${{ matrix.gradle-version }}
-          arguments: test --configuration-cache
           gradle-version: ${{ matrix.gradle-version }}
+      - name: Run tests
+        run: |
+          gradle test --build-cache --configuration-cache
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v3
