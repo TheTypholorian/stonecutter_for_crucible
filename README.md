@@ -36,7 +36,7 @@ func()
 func()
 ```
 
-And much more! See the [Documentation website](https://stonecutter.kikugie.dev/stonecutter/introduction.html) for a detailed guide.
+And much more! See the [Documentation website](https://stonecutter.kikugie.dev/wiki/start/) for a detailed guide.
 
 ### Performance
 Even though the Stitcher parser is optimised on itself, Stonecutter caches both the produced ASTs and transformed files to speed up version switching.
@@ -66,7 +66,7 @@ Stonecutter also has inline comment support, which allows doing this:
 target.call(arg1, arg2, /*? if dependency: >=0.2 >>*//*arg3,*/ arg4)
 ```
 
-There are even more features, described as usual on the [Documentation website](https://stonecutter.kikugie.dev/stonecutter/introduction.html).
+There are even more features, described as usual on the [Documentation website](https://stonecutter.kikugie.dev/wiki/start/).
 
 ## Roadmap
 Stonecutter already went through countless hours of development and research, but there is still more to go.  
