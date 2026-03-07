@@ -102,6 +102,5 @@ public interface StonecutterBuildExtension : VersionOperations<Version>, Extende
      *
      * @return The processed file location
      */
-    @StonecutterExperimentalAPI
     public fun process(file: File, destination: String): File
 }

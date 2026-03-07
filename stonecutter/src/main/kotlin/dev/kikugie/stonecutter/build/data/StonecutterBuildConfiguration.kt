@@ -31,6 +31,7 @@ import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyConfigImpl
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
 import dev.kikugie.stonecutter.util.overwriteText
+import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Named
 import org.gradle.api.Project
 import org.gradle.api.model.ObjectFactory
@@ -42,6 +43,7 @@ import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.the
 import java.io.File
+import java.nio.file.NoSuchFileException
 import javax.inject.Inject
 
 @OptIn(StonecutterInternalAPI::class, StonecutterExperimentalAPI::class)
@@ -65,11 +67,8 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
         get() = throw UnsupportedOperationException("Build tasks are not available in the controller")
 
     override fun process(file: File, destination: String): File {
-        // Jankiest code ever
         val project = node.project
-        val handlers = project.gradle.getContainer<FileHandlerContainer>()
-            .handlers[file.extension.lowercase()].let { mapOf(it.name to HandlerModel(it)) }
-        val parameters: TransformParameters = ParametersModel(data).forFile(file.toPath(), handlers)!!
+        val parameters = collectTransformParams(file, project, data)
         val problems: MutableCollection<ProblemReport> = mutableListOf()
         val reporter: ProblemConsumer = {
             if (it.severity == ProblemSeverity.ERROR) problems += it
@@ -77,7 +76,9 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
         }
 
         val contents = try {
-            dev.kikugie.stitcher.process(file.toPath(), file.readText(), parameters, reporter)
+            val text = project.providers.fileContents(file.toRegularFile(project.objects)).asText.orNull
+                ?: throw NoSuchFileException(file.absolutePath)
+            dev.kikugie.stitcher.process(file.toPath(), text, parameters, reporter)
         } catch (_: BailException) {
             problems.collect()
         }
@@ -94,4 +95,10 @@ private fun setupDefaultProperties(project: Project, objects: ObjectFactory): Ex
     ext.load(layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), hierarchy)
     ext.apply(hierarchy, extra)
     ExtendedPropertyConfigImpl(hierarchy, extra, ext, objects)
+}
+
+private fun collectTransformParams(file: File, project: Project, data: StonecutterBuildData): TransformParameters {
+    val handlers = project.gradle.getContainer<FileHandlerContainer>()
+        .handlers[file.extension.lowercase()].let { mapOf(it.name to HandlerModel(it)) }
+    return ParametersModel(data).forFile(file.toPath(), handlers)!!
 }
