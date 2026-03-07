@@ -17,10 +17,10 @@ plugins {
     id("shared-setup")
 }
 
-sourceSets {
-    main {
-        files("src/main/entrypoint").builtBy(":updateVersion").let(kotlin::srcDir)
-    }
+version = property("version") as String
+
+sourceSets.main {
+    kotlin.srcDir(files("build/generated/ver/main/kotlin").builtBy("generateVersion"))
 }
 
 dependencies {
@@ -58,6 +58,10 @@ kotlin {
 }
 
 tasks {
+    compileKotlin {
+        mustRunAfter("generateVersion")
+    }
+
     compileTestKotlin {
         compilerOptions {
             freeCompilerArgs.add("-Xcontext-parameters")
@@ -74,6 +78,11 @@ tasks {
         exclude("kotlin/**", "com/ibm/**", "org/jetbrains/**", "**/*.knm", "**/*.pro", "commonMain/**", "nativeMain/**")
     }
 
+    register<GenerateVersionTask>("generateVersion") {
+        version = project.version as String
+        file = file("build/generated/ver/main/kotlin/dev/kikugie/stonecutter/__version.kt")
+    }
+
     register<ShadowJar>("slimJar") {
         group = "build"
         archiveClassifier = "slim"
@@ -87,7 +96,7 @@ tasks {
 }
 
 gradlePlugin {
-    website = "https://stonecutter.codeberg.page/"
+    website = "https://stonecutter.kikugie.dev/"
     vcsUrl = "https://codeberg.org/stonecutter/stonecutter"
 
     plugins {

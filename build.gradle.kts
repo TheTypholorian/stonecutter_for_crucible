@@ -1,6 +1,3 @@
-import org.gradle.kotlin.dsl.register
-import tasks.UpdateVersionTask
-
 plugins {
     alias(common.plugins.kotlin.jvm) apply false
     alias(common.plugins.kotlin.serialization) apply false
@@ -16,15 +13,13 @@ repositories {
 dependencies {
     dokka(project(":stonecutter"))
     dokka(project(":stitcher"))
-
-    dokkaHtmlPlugin(libs.dokka.versioning)
 }
 
 dokka {
     moduleName = "Stonecutter KDoc"
 
     pluginsConfiguration.html {
-        homepageLink = "https://stonecutter.codeberg.page/"
+        homepageLink = "https://stonecutter.kikugie.dev"
         footerMessage = "(c) 2026 KikuGie"
     }
 
@@ -38,16 +33,4 @@ configurations.configureEach {
         GradlePluginApiVersion.GRADLE_PLUGIN_API_VERSION_ATTRIBUTE,
         objects.named(GradleVersion.current().version)
     )
-}
-
-tasks {
-    register<UpdateVersionTask>("updateVersion") {
-        group = "documentation"
-
-        val ver = project.version.toString().removeSuffix("-SNAPSHOT")
-        version = ver
-        replacements {
-            file("stonecutter/src/main/entrypoint/dev/kikugie/stonecutter/StonecutterPlugin.kt") replace "VERSION: String = \".+\"" with "VERSION: String = \"$ver\""
-        }
-    }
 }

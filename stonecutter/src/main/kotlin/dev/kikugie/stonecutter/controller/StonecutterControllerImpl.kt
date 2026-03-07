@@ -42,7 +42,7 @@ import java.io.File
 import java.nio.file.Path
 import javax.inject.Inject
 
-@StonecutterExperimentalAPI
+@OptIn(StonecutterExperimentalAPI::class)
 internal abstract class StonecutterControllerImpl @Inject constructor(val root: Project, private val objects: ObjectFactory) :
     StonecutterControllerExtension, VersionOperations<Version> by LenientOperations {
     override val tree: ProjectTreeImpl = constructTree(root)
