@@ -122,14 +122,23 @@ private fun createIdeaTask(gradle: Gradle) {
 
 private fun Logger.reportGroovyComplaint(): Unit = warn(
     """
-    NOTICE: Limited Groovy DSL support for Stonecutter
+    Warning: Stonecutter is used with Groovy buildscripts
+    ------------------------------------------------------------------------------------
+    Stonecutter requires a more complex Gradle setup than typical Java projects.
+    While Groovy DSL works, Kotlin DSL offers significant advantages:
+    - The type-safe model prevents silent failures and Groovy's dynamic typing
+      shenanigans that are hell to debug.
+    - Full IDE support with code completion, documentation and source navigation.
+    - Kotlin-exclusive operator functions for simpler configurations.
+    ------------------------------------------------------------------------------------
+    For more information see:
+    - https://stonecutter.kikugie.dev/wiki/faq#groovy-support
+    - https://docs.gradle.org/current/userguide/migrating_from_groovy_to_kotlin_dsl.html
     
-    While functional, the plugin's features are limited 
-    by the Groovy syntax and it has reduced IDE support.
-    For the best experience, including enhanced syntax, autocompletion, 
-    documentation lookup and debugging, it's recommended to use Kotlin DSL.
-    
-    For more information see: 
-    - https://stonecutter.codeberg.page/wiki/faq#groovy-support
+    To acknowledge and disable this warning add to the `gradle.properties`:
+    ```
+    dev.kikugie.stonecutter.hard_mode=true
+    ```
+    ------------------------------------------------------------------------------------
     """.trimIndent()
 )
