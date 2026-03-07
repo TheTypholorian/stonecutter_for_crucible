@@ -43,11 +43,11 @@ class SettingsExtensionTest : GradleTest, ShouldSpec({
         }
 
         should("print groovy compatibility warning") { _, build ->
-            build.run().output shouldContain "NOTICE:"
+            build.run().output shouldContain "Warning:"
         }
 
         should("mute compat warning with property") { _, build ->
-            build.run().output shouldNotContain "NOTICE:"
+            build.run().output shouldNotContain "Warning:"
         }
     }
 
