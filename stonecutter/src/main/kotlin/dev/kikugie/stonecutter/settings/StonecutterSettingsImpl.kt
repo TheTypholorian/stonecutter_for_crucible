@@ -60,27 +60,12 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
         with(settings.gradle) {
             createContainer<ProjectNodeContainer>()
             createContainer<BuildConfigurationContainer>()
-            settingsEvaluated {
-                if (usesGroovy && !isHardMode) LOGGER.reportGroovyComplaint()
-            }
-            projectsLoaded {
-                createIdeaTask(this)
-            }
-
             val handlers = createContainer<FileHandlerContainer>()
             handlers.configureDefaults()
-            projectsEvaluated {
-                sharedServices.registerIfAbsent(FileHandlerService.NAME, FileHandlerService::class) {
-                    parameters.handlers.value(handlers.build()).finalizeValue()
-                }
-
-                sharedServices.registerIfAbsent(StonecutterErrorsService.NAME, StonecutterErrorsService::class) {
-                    val trees = gradle.getContainer<ProjectNodeContainer>().values.asSequence().map { it.tree }.toSet()
-                    for (tree in trees) {
-                        val active = tree.current ?: tree.versions.first()
-                        for (node in tree.nodes) parameters.active.put(node.hierarchy.toString(), node.metadata == active)
-                    }
-                }.let(registry::onTaskCompletion)
+            configureSyncTask()
+            configureServices(handlers, registry)
+            settingsEvaluated {
+                if (usesGroovy && !isHardMode) LOGGER.reportGroovyComplaint()
             }
         }
     }
@@ -97,6 +82,35 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     }
 }
 
+private fun Gradle.configureSyncTask() {
+    projectsLoaded {
+        val root = rootProject
+        val task = root.tasks.register<StonecutterIdeaConfigTask>("stonecutterIdea") {
+            group = "stonecutter-impl"
+            description = "Generates IntelliJ IDEA run configurations for version switch tasks"
+
+            projects.set(ConcurrentHashMap())
+            configurations.from(root.projectDirectory.resolve(".idea/runConfigurations"))
+                .include { it.file.name.startsWith("Stonecutter") }
+        }
+        if (isIdeaSync)
+            requestTasks(listOf(task.name), root.path, root.projectDir)
+    }
+}
+
+private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: BuildEventsListenerRegistry) = projectsEvaluated {
+    sharedServices.registerIfAbsent(FileHandlerService.NAME, FileHandlerService::class) {
+        parameters.handlers.value(handlers.build()).finalizeValue()
+    }
+    sharedServices.registerIfAbsent(StonecutterErrorsService.NAME, StonecutterErrorsService::class) {
+        val trees = gradle.getContainer<ProjectNodeContainer>().values.asSequence().map { it.tree }.toSet()
+        for (tree in trees) {
+            val active = tree.current ?: tree.versions.first()
+            for (node in tree.nodes) parameters.active.put(node.hierarchy.toString(), node.metadata == active)
+        }
+    }.let(registry::onTaskCompletion)
+}
+
 @OptIn(StonecutterExperimentalAPI::class) @Suppress("UnstableApiUsage")
 private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): ExtendedPropertyProvider.ExtendedPropertyConfig = with(settings) {
     val hierarchy = rootProject.hierarchy
@@ -104,20 +118,6 @@ private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): 
     ext.load(layout.settingsDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), hierarchy)
         ?.apply(hierarchy, extra)
     ExtendedPropertyConfigImpl(hierarchy, extra, ext, objects)
-}
-
-private fun createIdeaTask(gradle: Gradle) {
-    val root = gradle.rootProject
-    val task = root.tasks.register<StonecutterIdeaConfigTask>("stonecutterIdea") {
-        group = "stonecutter-impl"
-        description = "Generates IntelliJ IDEA run configurations for version switch tasks"
-
-        projects.set(ConcurrentHashMap())
-        configurations.from(root.projectDirectory.resolve(".idea/runConfigurations"))
-            .include { it.file.name.startsWith("Stonecutter") }
-    }
-    if (isIdeaSync)
-        gradle.requestTasks(listOf(task.name), root.path, root.projectDir)
 }
 
 private fun Logger.reportGroovyComplaint(): Unit = warn(
