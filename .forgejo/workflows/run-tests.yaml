@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Install deps
         run: |
-          apk add --no-cache nodejs
+          apk add --no-cache nodejs tar
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
