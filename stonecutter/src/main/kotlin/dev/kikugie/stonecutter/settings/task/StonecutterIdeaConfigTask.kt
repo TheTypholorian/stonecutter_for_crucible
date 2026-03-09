@@ -7,11 +7,13 @@ import dev.kikugie.stonecutter.StonecutterPlugin
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileTree
 import org.gradle.api.provider.MapProperty
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputFiles
 import org.gradle.api.tasks.TaskAction
 
 /**Creates IntelliJ IDEA run configurations for version switch tasks.*/
+@CacheableTask
 public abstract class StonecutterIdeaConfigTask : DefaultTask() {
     /**Registered project trees and their nodes.*/
     @get:Input

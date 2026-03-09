@@ -5,6 +5,7 @@ import dev.kikugie.stonecutter.util.toPath
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.StopExecutionException
@@ -18,6 +19,7 @@ import kotlin.io.path.absolutePathString
  * [ProjectNode][dev.kikugie.stonecutter.data.tree.ProjectNode]
  * data to `build/stonecutter-cache/<>.json` for third-party access.
  */
+@CacheableTask
 public abstract class StonecutterModelTask : DefaultTask() {
     /**The saved JSON data.*/
     @get:Input

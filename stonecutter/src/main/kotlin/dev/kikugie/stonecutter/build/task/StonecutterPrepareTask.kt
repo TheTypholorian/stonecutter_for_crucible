@@ -34,6 +34,7 @@ import kotlin.io.path.extension
 import kotlin.io.path.readText
 
 /**The task responsible for processing Stonecutter comments in files.*/
+@CacheableTask
 public abstract class StonecutterPrepareTask : DefaultTask() {
     @get:Nested
     internal abstract val params: Property<StonecutterBuildData>
@@ -43,7 +44,8 @@ public abstract class StonecutterPrepareTask : DefaultTask() {
     public abstract val root: Property<File>
 
     /**The filtered source set files.*/
-    @get:InputFiles @get:Incremental @get:IgnoreEmptyDirectories
+    @get:InputFiles @get:Incremental
+    @get:IgnoreEmptyDirectories @get:PathSensitive(PathSensitivity.RELATIVE)
     public abstract val source: ConfigurableFileCollection
 
     /**The output directory at `build/stonecutter-cache/`.*/
