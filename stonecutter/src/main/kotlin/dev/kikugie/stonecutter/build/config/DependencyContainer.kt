@@ -20,15 +20,51 @@ private annotation class DependencyDsl
 @DependencyDsl
 public abstract class DependencyContainer @Inject constructor(private val delegate: MapProperty<Identifier, AnyVersion>) :
     ExtendedMapProperty<Identifier, AnyVersion>, MapProperty<Identifier, AnyVersion> by delegate {
+    /**
+     * Defines the [key] as a dependency with the provided [value].
+     *
+     * @param key Dependency key matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
+     * @param value Version string that can be parsed as either
+     *        [SemanticVersion][dev.kikugie.semver.data.SemanticVersion] or
+     *        [StringVersion][dev.kikugie.semver.data.StringVersion]
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#dependency-specification">Dependency Documentation</a>
+     */
     override fun put(key: Identifier, value: AnyVersion): Unit =
         check(key, value) then delegate.put(key, value)
 
+    /**
+     * Defines a dependency by the [key] with the value lazily provided by [providerOfValue].
+     *
+     * @param key Dependency key matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
+     * @param providerOfValue Provider supplying a version that can be parsed as either
+     *        [SemanticVersion][dev.kikugie.semver.data.SemanticVersion] or
+     *        [StringVersion][dev.kikugie.semver.data.StringVersion]
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#dependency-specification">Dependency Documentation</a>
+     */
     override fun put(key: Identifier, providerOfValue: Provider<out AnyVersion>): Unit =
         check(key) then delegate.put(key, providerOfValue.map { check(key, it); it })
 
+    /**
+     * Defines multiple dependencies from the provided [entries].
+     *
+     * @param entries Map of dependencies with keys matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
+     *        and values that can be parsed as either
+     *        [SemanticVersion][dev.kikugie.semver.data.SemanticVersion] or
+     *        [StringVersion][dev.kikugie.semver.data.StringVersion]
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#dependency-specification">Dependency Documentation</a>
+     */
     override fun putAll(entries: Map<out Identifier, AnyVersion>): Unit =
         entries.forEach(::check) then delegate.putAll(entries)
 
+    /**
+     * Defines multiple dependencies from the map lazily provided by [provider].
+     *
+     * @param provider Provider supplying a map of dependencies with keys matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
+     *        and values that can be parsed as either
+     *        [SemanticVersion][dev.kikugie.semver.data.SemanticVersion] or
+     *        [StringVersion][dev.kikugie.semver.data.StringVersion]
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#dependency-specification">Dependency Documentation</a>
+     */
     override fun putAll(provider: Provider<out Map<out Identifier, AnyVersion>>): Unit =
         delegate.putAll(provider.map { it.forEach(::check); it })
 

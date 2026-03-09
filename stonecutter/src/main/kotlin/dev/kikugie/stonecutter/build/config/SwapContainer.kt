@@ -17,15 +17,39 @@ private annotation class SwapDsl
 public abstract class SwapContainer @Inject constructor(private val delegate: MapProperty<Identifier, String>) :
     ExtendedMapProperty<Identifier, String>, MapProperty<Identifier, String> by delegate {
 
+    /**
+     * Defines a swap entry by the [key] with the provided [value].
+     *
+     * @param key Swap key matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#swap-specification">Swap Documentation</a>
+     */
     override fun put(key: Identifier, value: String): Unit =
         check(key) then delegate.put(key, value)
 
+    /**
+     * Defines a swap entry by the [key] with the value lazily provided by [providerOfValue].
+     *
+     * @param key Swap key matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#swap-specification">Swap Documentation</a>
+     */
     override fun put(key: Identifier, providerOfValue: Provider<out String>): Unit =
         check(key) then delegate.put(key, providerOfValue)
 
+    /**
+     * Defines multiple swap entries from the provided [entries].
+     *
+     * @param entries Map of swap entries with keys matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#swap-specification">Swap Documentation</a>
+     */
     override fun putAll(entries: Map<out Identifier, String>): Unit =
         entries.keys.forEach(::check) then delegate.putAll(entries)
 
+    /**
+     * Defines multiple swap entries from the map lazily provided by [provider].
+     *
+     * @param provider Provider supplying a map of swap entries with keys matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#swap-specification">Swap Documentation</a>
+     */
     override fun putAll(provider: Provider<out Map<out Identifier, String>>): Unit =
         delegate.putAll(provider.map { it.keys.forEach(::check); it })
 

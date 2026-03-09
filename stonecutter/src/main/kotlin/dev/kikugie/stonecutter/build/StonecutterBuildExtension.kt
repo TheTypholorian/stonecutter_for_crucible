@@ -1,5 +1,7 @@
 package dev.kikugie.stonecutter.build
 
+import dev.kikugie.semver.data.SemanticVersion
+import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.build.config.ConstantContainer
 import dev.kikugie.stonecutter.build.config.DependencyContainer
 import dev.kikugie.stonecutter.build.config.ReplacementContainer
@@ -12,9 +14,6 @@ import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.semver.data.SemanticVersion
-import dev.kikugie.semver.data.Version
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
 import org.gradle.api.Action
 import org.gradle.api.tasks.util.PatternFilterable
@@ -34,40 +33,117 @@ private annotation class BuildDsl
  */
 @BuildDsl
 public interface StonecutterBuildExtension : VersionOperations<Version>, ExtendedPropertyProvider {
-    /**The associated Stonecutter project node.*/
+    /**
+     * Node associated with the applied Gradle [Project][org.gradle.api.Project].
+     *
+     * Project nodes provide type-safe navigation of the sibling projects,
+     * and can be safely used in task configuration as they don't
+     * contain Gradle [Project][org.gradle.api.Project] references.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#project-branches">Project Structure Documentation</a>
+     */
     public val node: ProjectNode
 
-    /**The containing Stonecutter project branch.*/
+    /**
+     * Branch associated with the [node].
+     *
+     * Project branches are used to group versioned projects by module or mod loader.
+     * In standard use cases the root branch is used, which points to the same project
+     * as the [tree].
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#project-branches">Project Structure Documentation</a>
+     */
     public val branch: ProjectBranch get() = node.branch
 
-    /**The containing Stonecutter project tree.*/
+    /**
+     * Tree associated with the [node].
+     *
+     * The project tree corresponds to the subprojects initially registered
+     * with `stonecutter.create()` in `settings.gradle(.kts)`.
+     * The tree instance provides access to shared properties, such as
+     * the active and VCS versions and all existing nodes.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#project-branches">Project Structure Documentation</a>
+     */
     public val tree: ProjectTree get() = branch.tree
 
-    /**The active project assigned in `stonecutter.gradle(.kts)`.*/
+    /**
+     * Project descriptor of the active version assigned in `stonecutter.gradle(.kts)`.
+     *
+     * The active subproject has its sources linked to the shared `src/` directory.
+     * This property follows the implication:
+     * ```kotlin
+     * assert(sc.current.isActive == (sc.current == sc.active))
+     * ```
+     */
     public val active: StonecutterProject? get() = tree.current
 
-    /**The project processed in this buildscript instance.*/
+    /**
+     * Project descriptor of the applied Gradle [Project][org.gradle.api.Project].
+     *
+     * The descriptor provides quick access to the project's last path segment
+     * and the registered associated version.
+     * It is often used to add conditional behaviour to the build script:
+     * ```kotlin
+     * if (sc.current.isActive) {
+     *     // ...
+     * }
+     *
+     * if (sc.current.parsed >= "2.0") {
+     *     // ...
+     * }
+     * ```
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/build#built-in-operations">Version Operations Documentation</a>
+     */
     public val current: StonecutterProject get() = node.metadata
 
-    /**All projects registered in the [branch].*/
+    /**
+     * Set of all project descriptors in the [branch].
+     */
     public val versions: Collection<StonecutterProject> get() = branch.versions
 
-    /**Utility extension for strictly parsing and comparing semantic versions.*/
+    /**
+     * Accessor for strictly-SemVer version evaluation.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/build#arbitrary-operations">Semantic Operations Documentation</a>
+     */
     public val semantics: VersionOperations<SemanticVersion> get() = SemanticOperations
 
-    /**[Stonecutter swap](https://stonecutter.kikugie.dev/wiki/config/params#string-swaps) configuration extension.*/
+    /**
+     * Swap configuration extension.
+     * 
+     * Swaps provide ways to substitute code fragments with predefined templates during file preprocessing.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#string-swaps">Swaps Documentation</a>
+     */
     public val swaps: SwapContainer
 
-    /**[Stonecutter constant](https://stonecutter.kikugie.dev/wiki/config/params#condition-constants) configuration extension.*/
+    /**
+     * Constant configuration extension.
+     *
+     * Constants define keywords used in preprocessed conditions that evaluate to a predefined boolean value.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#condition-constants">Constants Documentation</a>
+     */
     public val constants: ConstantContainer
 
-    /**[Stonecutter dependency](https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies) configuration extension.*/
+    /**
+     * Dependency configuration extension.
+     *
+     * Dependencies define named versions, which can be checked against predicates in preprocessed conditions.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies">Dependencies Documentation</a>
+     */
     public val dependencies: DependencyContainer
 
-    /**[Stonecutter replacement](https://stonecutter.kikugie.dev/wiki/config/params#replacements) configuration extension.*/
+    /**
+     * Replacement configuration extension.
+     *
+     * Replacements define string and regex patterns that are substituted with provided values across all files.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#replacements">Replacements Documentation</a>
+     */
     public val replacements: ReplacementContainer
 
-    /**Per-[SourceSet][org.gradle.api.tasks.SourceSet] file filters. **Should only be used to exclude files**.*/
+    /**
+     * Per-[SourceSet][org.gradle.api.tasks.SourceSet] file filters.
+     *
+     * Filters are used to exclude files from the preprocessing step.
+     * Patterns are resolved relative to each `src/.../` directory.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/handlers#file-filtering">File Filter Documentation</a>
+     */
     public val filters: PatternFilterable
 
     /**Immutable Stonecutter configuration flag extension.*/
@@ -76,16 +152,36 @@ public interface StonecutterBuildExtension : VersionOperations<Version>, Extende
     /**Stonecutter file processing task access extension.*/
     public val tasks: StonecutterBuildTasks
 
-    /**Configures [Stonecutter swaps](https://stonecutter.kikugie.dev/wiki/config/params#string-swaps).*/
+    /**
+     * Configures the swaps extension.
+     *
+     * Swaps provide ways to substitute code fragments with predefined templates during file preprocessing.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#string-swaps">Swaps Documentation</a>
+     */
     public infix fun swaps(action: Action<SwapContainer>): Unit = action.execute(swaps)
 
-    /**Configures [Stonecutter constants](https://stonecutter.kikugie.dev/wiki/config/params#condition-constants).*/
+    /**
+     * Configures the constants extension.
+     *
+     * Constants define keywords used in preprocessed conditions that evaluate to a predefined boolean value.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#condition-constants">Constants Documentation</a>
+     */
     public infix fun constants(action: Action<ConstantContainer>): Unit = action.execute(constants)
 
-    /**Configures [Stonecutter dependencies](https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies).*/
+    /**
+     * Configures the dependencies extension.
+     *
+     * Dependencies define named versions, which can be checked against predicates in preprocessed conditions.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies">Dependencies Documentation</a>
+     */
     public infix fun dependencies(action: Action<DependencyContainer>): Unit = action.execute(dependencies)
 
-    /**Configures [Stonecutter replacements](https://stonecutter.kikugie.dev/wiki/config/params#replacements).*/
+    /**
+     * Configures the replacements extension.
+     *
+     * Replacements define string and regex patterns that are substituted with provided values across all files.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#replacements">Replacements Documentation</a>
+     */
     public infix fun replacements(action: Action<ReplacementContainer>): Unit = action.execute(replacements)
 
     /**Configures the [flags] extension.*/

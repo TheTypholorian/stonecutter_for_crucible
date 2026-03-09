@@ -3,8 +3,6 @@ package dev.kikugie.stonecutter.build.config
 import dev.kikugie.stitcher.replacement.RegexReplacement
 import dev.kikugie.stitcher.replacement.Replacement
 import dev.kikugie.stitcher.replacement.StringReplacement
-import dev.kikugie.stitcher.util.IDENTIFIER_PATTERN
-import dev.kikugie.stitcher.util.isValidIdentifier
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.build.config.ReplacementContainer.RegexReplacementSpec
 import dev.kikugie.stonecutter.build.config.ReplacementContainer.StringReplacementSpec
@@ -23,66 +21,77 @@ private annotation class ReplacementSpecDsl
 /**[Stonecutter replacement](https://stonecutter.kikugie.dev/wiki/config/params#replacements) configuration extension.*/
 @ReplacementDsl
 public sealed interface ReplacementContainer {
-    /**Creates and configures a new [string replacement](https://stonecutter.kikugie.dev/wiki/config/params#string-replacements).*/
+    /**
+     * Defines a new string replacement with the [StringReplacementSpec].
+     *
+     * The configuration [action] must define the replacement
+     * [direction][StringReplacementSpec.direction] in the lambda body.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#string-replacements">String Replacement Documentation</a>
+     */
     public fun string(action: Action<StringReplacementSpec>)
 
-    /**Creates and configures a new [string replacement](https://stonecutter.kikugie.dev/wiki/config/params#string-replacements).*/
     public fun string(direction: Boolean, action: Action<StringReplacementSpec>): Unit =
         string { this.direction.set(direction); action.execute(this) }
 
-    /**Creates and configures a new [string replacement](https://stonecutter.kikugie.dev/wiki/config/params#string-replacements).*/
     public fun string(direction: Boolean, id: Identifier, action: Action<StringReplacementSpec>): Unit =
         string { this.direction.set(direction); this.id.set(id); action.execute(this) }
 
-    /**Creates and configures a new [string replacement](https://stonecutter.kikugie.dev/wiki/config/params#string-replacements).*/
     @Deprecated("Use the direction-first variant", replaceWith = ReplaceWith("string(direction, id, action)"))
     public fun string(id: Identifier, direction: Boolean? = null, action: Action<StringReplacementSpec>): Unit =
         string { this.id.set(id); this.direction.set(direction); action.execute(this) }
 
-    /**Creates and configures a new [regex replacement](https://stonecutter.kikugie.dev/wiki/config/params#string-replacements).*/
     public fun regex(action: Action<RegexReplacementSpec>)
 
-    /**Creates and configures a new [regex replacement](https://stonecutter.kikugie.dev/wiki/config/params#string-replacements).*/
     public fun regex(direction: Boolean, action: Action<RegexReplacementSpec>): Unit =
         regex { this.direction.set(direction); action.execute(this) }
 
-    /**Creates and configures a new [regex replacement](https://stonecutter.kikugie.dev/wiki/config/params#string-replacements).*/
     public fun regex(direction: Boolean, id: Identifier, action: Action<RegexReplacementSpec>): Unit =
         regex { this.direction.set(direction); this.id.set(id); action.execute(this) }
 
-    /**Creates and configures a new [regex replacement](https://stonecutter.kikugie.dev/wiki/config/params#string-replacements).*/
     @Deprecated("Use the direction-first variant", replaceWith = ReplaceWith("regex(direction, id, action)"))
     public fun regex(id: Identifier, direction: Boolean? = null, action: Action<RegexReplacementSpec>): Unit =
         regex { this.id.set(id); this.direction.set(direction); action.execute(this) }
 
     /**
-     * [String replacement](https://stonecutter.kikugie.dev/wiki/config/params#string-replacements) configuration extension.
+     * String replacement configuration extension.
      *
-     * Replacements are registered by using the [replace] function,
-     * or implicitly if [from] and [to] properties are defined.
+     * String replacements must have a defined [direction] and optionally an [id].
+     * Replaced values are added with the [replace] function or [from] and [to] properties.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#string-replacements">String Replacement Documentation</a>
      */
     @ReplacementSpecDsl
     public interface StringReplacementSpec {
         /**
-         * Specifies the direction of replaced values.
+         * Ordering of the replaced values.
          *
-         * When `true` - [from] is replaced with [to],
-         * or in reverse otherwise.
+         * When:
+         * - `true`: [from] is replaced with [to]
+         * - `false`: [to] is replaced with [from]
+         * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#string-replacements">String Replacement Documentation</a>
          */
         public val direction: Property<Boolean>
 
         /**
-         * Specifies the replacement identifiers.
+         * Optional identifier for the replacement.
          *
-         * If not `null`, replacement will require a
-         * `~ id` comment to be effective for the file.
+         * When:
+         * - `null`: replacement is always performed
+         * - non-null: replacement must be explicitly enabled by the id
+         * - prefixed with '!': replacement is active by default and can be disabled by the id
+         *
+         * The identifier must match `[_a-zA-Z][_\-a-zA-Z0-9]*.
+         * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#replacement-identifiers">Replacement Identifier Documentation</a>
          */
         public val id: Property<Identifier>
 
-        /**The searched pattern. Must not be empty.*/
+        /**
+         * Original value to be replaced. Must not be empty.
+         */
         public val from: Property<String>
 
-        /**The replaced value. Must not be empty.*/
+        /**
+         * Replacement value to use. Must not be empty.
+         */
         public val to: Property<String>
 
         /**
@@ -94,49 +103,75 @@ public sealed interface ReplacementContainer {
     }
 
     /**
-     * [Regex replacement](https://stonecutter.kikugie.dev/wiki/config/params#regex-replacements) configuration extension.
+     * Regex replacement configuration extension.
      *
-     * Replacements are registered by using the [replace] function,
-     * or implicitly if pattern properties are defined.
+     * Regex replacements must have a defined [direction] and optionally an [id].
+     * Replaced values are added with the [replace] function or corresponding properties.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#regex-replacements">Regex Replacement Documentation</a>
      */
     @ReplacementSpecDsl
     public interface RegexReplacementSpec {
         /**
-         * Specifies the direction of replaced values.
+         * Selector for the replaced values.
          *
-         * When `true` - [fromPattern] is replaced with [toValue],
-         * or [reversePattern] with [reverseValue] otherwise.
+         * When:
+         * - `true`: [fromPattern] is replaced with [toValue]
+         * - `false`: [reversePattern] is replaced with [reverseValue]
+         * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#regex-replacements">Regex Replacement Documentation</a>
          */
         public val direction: Property<Boolean>
 
         /**
-         * Specifies the replacement identifiers.
+         * Optional identifier for the replacement.
          *
-         * If not `null`, replacement will require a
-         * `~ id` comment to be effective for the file.
+         * When:
+         * - `null`: replacement is always performed
+         * - non-null: replacement must be explicitly enabled by the id
+         * - prefixed with '!': replacement is active by default and can be disabled by the id
+         *
+         * The identifier must match `[_a-zA-Z][_\-a-zA-Z0-9]*.
+         * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#replacement-identifiers">Replacement Identifier Documentation</a>
          */
         public val id: Property<Identifier>
 
-        /**The searched regex pattern if [direction] is `true`. Must not be empty.*/
+        /**
+         * Regex pattern to match against when replacing content in the forward direction.
+         */
         public val fromPattern: Property<String>
 
-        /**The replaced value if [direction] is `true`. Must not be empty.*/
+        /**
+         * Replacement value for forward direction regex matching.
+         */
         public val toValue: Property<String>
 
-        /**The searched regex pattern if [direction] is `false`. Must not be empty.*/
+        /**
+         * Regex pattern for matching strings to be replaced when processing files in reverse direction.
+         */
         public val reversePattern: Property<String>
 
-        /**The replaced value if [direction] is `false`. Must not be empty.*/
+        /**
+         * The replacement value to use when performing reverse regex transformations.
+         */
         public val reverseValue: Property<String>
 
-        /**Assigns [fromPattern] and [toValue] properties from [from] and [to] parameters.*/
+        /**
+         * Defines a regex replacement pattern for the direct transformation.
+         *
+         * @param from Regex pattern assigned to [fromPattern]
+         * @param to Replacement value assigned to [toValue]
+         */
         @Deprecated("Use the combined function")
         public fun replace(from: String, to: String) {
             fromPattern.value(from).disallowChanges()
             toValue.value(to).disallowChanges()
         }
 
-        /**Assigns [reversePattern] and [reverseValue] properties from [from] and [to] parameters.*/
+        /**
+         * Defines a regex replacement pattern for the reverse transformation.
+         *
+         * @param from Regex pattern assigned to [reversePattern]
+         * @param to Replacement value assigned to [reverseValue]
+         */
         @Deprecated("Use the combined function")
         public fun reverse(from: String, to: String) {
             reversePattern.value(from).disallowChanges()
