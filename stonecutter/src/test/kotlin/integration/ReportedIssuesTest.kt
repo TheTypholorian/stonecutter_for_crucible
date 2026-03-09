@@ -52,4 +52,24 @@ class ReportedIssuesTest : GradleTest, ShouldSpec({
             //public class Example { }*/
         """.trimIndent()
     }
+
+    should("propagate replacement tags") {dir, build ->
+        build.run("stonecutterSwitchTo1")
+        dir read "src/main/java/Example.java" shouldBe """
+            public class Example {
+                String value1 = "abc";
+                //~ !my_id
+                String value1 = "abc";
+            }
+        """.trimIndent()
+
+        build.run("stonecutterSwitchTo2")
+        dir read "src/main/java/Example.java" shouldBe """
+            public class Example {
+                String value1 = "cde";
+                //~ !my_id
+                String value1 = "abc";
+            }
+        """.trimIndent()
+    }
 })

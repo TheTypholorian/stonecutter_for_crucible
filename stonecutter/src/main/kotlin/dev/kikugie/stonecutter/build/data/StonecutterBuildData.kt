@@ -10,6 +10,7 @@ import dev.kikugie.stonecutter.controller.StonecutterControllerExtension
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.util.newInstance
 import dev.kikugie.stitcher.replacement.RegexReplacement
+import dev.kikugie.stitcher.replacement.Replacement
 import dev.kikugie.stitcher.replacement.ReplacementBuilder
 import dev.kikugie.stitcher.replacement.StringReplacement
 import org.gradle.api.GradleException
@@ -30,12 +31,12 @@ internal abstract class StonecutterBuildData @Inject constructor(
     current: Identifier,
     providers: ProviderFactory
 ) {
-    @get:Input public abstract val constants: MapProperty<Identifier, Boolean>
-    @get:Input public abstract val swaps: MapProperty<Identifier, String>
-    @get:Input public abstract val dependencies: MapProperty<Identifier, AnyVersion>
+    @get:Input abstract val constants: MapProperty<Identifier, Boolean>
+    @get:Input abstract val swaps: MapProperty<Identifier, String>
+    @get:Input abstract val dependencies: MapProperty<Identifier, AnyVersion>
 
-    @get:Nested public abstract val stringReplacements: ListProperty<StringReplacementSpec>
-    @get:Nested public abstract val regexReplacements: ListProperty<RegexReplacementSpec>
+    @get:Nested abstract val stringReplacements: ListProperty<StringReplacementSpec>
+    @get:Nested abstract val regexReplacements: ListProperty<RegexReplacementSpec>
 
     @get:Internal internal abstract val dummyDependencies: MapProperty<Identifier, AnyVersion>
 
@@ -55,37 +56,39 @@ internal abstract class StonecutterBuildData @Inject constructor(
         regexReplacements.set(providers.provider { regexReplacementBuilder.build().map(objects::regexSpec) })
     }
 
-    internal fun addString(repl: StringReplacement): Unit {
+    internal fun addString(repl: StringReplacement) {
         stringReplacementBuilder.add(repl)?.thr()
     }
-    internal fun addRegex(repl: RegexReplacement): Unit {
+    internal fun addRegex(repl: RegexReplacement) {
         regexReplacementBuilder.add(repl)?.thr()
     }
 
-    public interface StringReplacementSpec {
-        @get:Input public val target: Property<String>
-        @get:Input public val sources: SetProperty<String>
-        @get:Input @get:Optional public val identifier: Property<Identifier>
+    interface StringReplacementSpec {
+        @get:Input val target: Property<String>
+        @get:Input val sources: SetProperty<String>
+        @get:Input @get:Optional val identifier: Property<Identifier>
+        @get:Input @get:Optional val tags: SetProperty<Replacement.Tag>
 
-        public fun build(): StringReplacement =
-            StringReplacement(target.get(), sources.get(), identifier.orNull)
+        fun build(): StringReplacement =
+            StringReplacement(target.get(), sources.get(), identifier.orNull, tags.getOrElse(emptySet()))
     }
 
-    public interface RegexReplacementSpec {
-        @get:Input public val target: Property<String>
-        @get:Input public val pattern: Property<String>
-        @get:Input @get:Optional public val identifier: Property<Identifier>
+    interface RegexReplacementSpec {
+        @get:Input val target: Property<String>
+        @get:Input val pattern: Property<String>
+        @get:Input @get:Optional val identifier: Property<Identifier>
+        @get:Input @get:Optional val tags: SetProperty<Replacement.Tag>
 
-        public fun build(): RegexReplacement =
-            RegexReplacement(target.get(), pattern.get(), identifier.orNull)
+        fun build(): RegexReplacement =
+            RegexReplacement(target.get(), pattern.get(), identifier.orNull, tags.getOrElse(emptySet()))
     }
 }
 
 private fun ObjectFactory.stringSpec(repl: StringReplacement): StonecutterBuildData.StringReplacementSpec =
-    newInstance { target.set(repl.target); sources.set(repl.sources); identifier.set(repl.identifier) }
+    newInstance { target.set(repl.target); sources.set(repl.sources); identifier.set(repl.identifier); tags.addAll(repl.tags) }
 
 private fun ObjectFactory.regexSpec(repl: RegexReplacement): StonecutterBuildData.RegexReplacementSpec =
-    newInstance { target.set(repl.target); pattern.set(repl.pattern); identifier.set(repl.identifier) }
+    newInstance { target.set(repl.target); pattern.set(repl.pattern); identifier.set(repl.identifier); tags.addAll(repl.tags) }
 
 private fun patchImplicitDependency(
     prop: MapProperty<Identifier, AnyVersion>,
