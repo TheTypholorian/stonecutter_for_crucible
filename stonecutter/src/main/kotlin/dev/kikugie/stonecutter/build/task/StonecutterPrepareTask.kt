@@ -3,6 +3,7 @@ package dev.kikugie.stonecutter.build.task
 import dev.kikugie.stitcher.issue.*
 import dev.kikugie.stitcher.process
 import dev.kikugie.stitcher.transformer.TransformParameters
+import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.HandlerModel
@@ -33,8 +34,13 @@ import kotlin.io.path.exists
 import kotlin.io.path.extension
 import kotlin.io.path.readText
 
-/**The task responsible for processing Stonecutter comments in files.*/
-@CacheableTask
+/**
+ * Task responsible for preprocessing files for a given [SourceSet].
+ *
+ * This task should be considered an internal implementation
+ * and only be configured directly in rare edge cases.
+ */
+@CacheableTask @StonecutterInternalAPI
 public abstract class StonecutterPrepareTask : DefaultTask() {
     @get:Nested
     internal abstract val params: Property<StonecutterBuildData>

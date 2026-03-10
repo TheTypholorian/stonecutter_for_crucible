@@ -25,11 +25,11 @@ private annotation class BuildDsl
 /**
  * Extension interface applied to versioned Stonecutter buildscripts.
  *
- * The extension provides configuration options for parameters using in file preprocesings,
+ * The extension provides configuration options for parameters using in file preprocessing,
  * as well as utilities for configuring version-specific buildscript actions.
  *
- * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params">Wiki #1</a>
- * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings">Wiki #2</a>
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/config/build">Build Utilities Documentation</a>
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params">Preprocessor Configuration Documentation</a>
  */
 @BuildDsl
 public interface StonecutterBuildExtension : VersionOperations<Version>, ExtendedPropertyProvider {
@@ -100,7 +100,7 @@ public interface StonecutterBuildExtension : VersionOperations<Version>, Extende
     public val versions: Collection<StonecutterProject> get() = branch.versions
 
     /**
-     * Accessor for strictly-SemVer version evaluation.
+     * Accessor for strictly SemVer version evaluation.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/build#arbitrary-operations">Semantic Operations Documentation</a>
      */
     public val semantics: VersionOperations<SemanticVersion> get() = SemanticOperations
@@ -146,7 +146,13 @@ public interface StonecutterBuildExtension : VersionOperations<Version>, Extende
      */
     public val filters: PatternFilterable
 
-    /**Immutable Stonecutter configuration flag extension.*/
+    /**
+     * Immutable view of Stonecutter configuration flags.
+     *
+     * Flags are defined in `stonecutter.gradle(.kts)` and used internally to modify the plugin behaviour.
+     * This property allows inspecting the flags for advanced cases.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/controller#flags">Flags Documentation</a>
+     */
     public val flags: StonecutterFlagsView
 
     /**Stonecutter file processing task access extension.*/
@@ -184,7 +190,13 @@ public interface StonecutterBuildExtension : VersionOperations<Version>, Extende
      */
     public infix fun replacements(action: Action<ReplacementContainer>): Unit = action.execute(replacements)
 
-    /**Configures the [flags] extension.*/
+    /**
+     * Executes the [action] in context of the immutable Stonecutter flag view.
+     *
+     * Flags are defined in `stonecutter.gradle(.kts)` and used internally to modify the plugin behaviour.
+     * This property allows inspecting the flags for advanced cases.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/controller#flags">Flags Documentation</a>
+     */
     public infix fun flags(action: Action<StonecutterFlagsView>): Unit = action.execute(flags)
 
     /**Configures the [tasks] extension.*/

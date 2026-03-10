@@ -22,27 +22,62 @@ private annotation class ControllerDsl
  * The extension provides active version configuration, task aggregation utilities,
  * and custom file format registration.
  *
- * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params">Wiki #1</a>
- * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings">Wiki #2</a>
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/config/controller">Controller Utilities Documentation</a>
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params">Preprocessor Configuration Documentation</a>
  */
 @ControllerDsl
 public interface StonecutterControllerExtension : VersionOperations<Version>, ExtendedPropertyProvider {
-    /**The associated project tree.*/
+    /**
+     * Tree associated with the applied Gradle [Project][org.gradle.api.Project]..
+     *
+     * The project tree corresponds to the subprojects initially registered
+     * with `stonecutter.create()` in `settings.gradle(.kts)`.
+     * The tree instance provides access to shared properties, such as
+     * the active and VCS versions and all existing nodes.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#project-branches">Project Structure Documentation</a>
+     */
     public val tree: ProjectTree
 
-    /**The active version. Must be assigned with the [active] function.*/
+    /**
+     * Project descriptor for the version assigned with the [active] function.
+     *
+     * The active subproject has its sources linked to the shared `src/` directory.
+     */
     public val current: StonecutterProject? get() = tree.current
 
-    /**The version representing the version control reset point.*/
+    /**
+     * Project descriptor for the VCS reset version.
+     *
+     * The VCS version can be switched to with the `Reset active project` task,
+     * which modifies the shared `src/` directory to be in a consistent state
+     * before submitting a commit.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings#the-vcs-reset-point">VCS Version Documentation</a>
+     */
     public val vcsVersion: StonecutterProject get() = tree.vcs
 
-    /**All unique versions across all branches.*/
+    /**
+     * Set of all unique project descriptors in the [tree].
+     *
+     * Each branch may contain a different set of defined descriptors,
+     * which are however consistent by their [project][StonecutterProject.project]
+     * and [version][StonecutterProject.version].
+     * This property can be used to iterate on each possible descriptor exactly once.
+     */
     public val versions: Set<StonecutterProject> get() = tree.versions
 
-    /**Utility extension for strictly parsing and comparing semantic versions.*/
+    /**
+     * Accessor for strictly SemVer version evaluation.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/build#arbitrary-operations">Semantic Operations Documentation</a>
+     */
     public val semantics: VersionOperations<SemanticVersion> get() = SemanticOperations
 
-    /**Immutable Stonecutter configuration flag extension. **Should be configured before the [active] call**.*/
+    /**
+     * Mutable view of Stonecutter configuration flags.
+     *
+     * Flags are used to configure the internal behaviour of the plugin.
+     * **The flags should be configured before the [active] call.**
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/controller#flags">Flags Documentation</a>
+     */
     public val flags: StonecutterFlags
 
     /**Stonecutter version switch tasks and aggregation utility extension.*/
@@ -56,23 +91,37 @@ public interface StonecutterControllerExtension : VersionOperations<Version>, Ex
      * **Must be called exactly once**.
      *
      * The [provider] can be:
-     * - A **literal** [String] passed directly to the function.
-     * - A [File][java.io.File] containing the active version text.
-     * - `null`, which initializes the plugin in detached source mode.
-     *
-     * TODO: Add wiki link
+     * - [String]: A string **literal** (not a variable reference!)
+     *   that is modified by version switching tasks.
+     * - [File][java.io.File]: A file that contains the active version string.
+     *   The file is expected to be in UTF-8 encoding and must only contain the version text,
+     *   with an optional line break.
+     * - `null`: Initializes the plugin in detached source mode.
+     *   In this mode the shared `src/` directory is not attached as a project source.
+     *   Instead its contents are processed as each version's generated sources.
+     *   This mode can be used in CI workflows that build the project with multiple runners.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/controller#active-version">Active Version Documentation</a>
      */
     public infix fun active(provider: Any?)
 
     /**
-     * Configures the [StonecutterBuildExtension] for all subprojects.
+     * Configures the code preprocessor parameters for all nodes.
      *
-     * This function should be used instead of [subprojects { }][org.gradle.api.Project.subprojects],
-     * as it doesn't influence project evaluation order.
+     * This function should be used in favour of [subprojects { }][org.gradle.api.Project.subprojects],
+     * as it's evaluated lazily when the plugin is applied to the versioned build script.
+     *
+     * However, it **must be used only for Stonecutter configuration**. It's safe to access project properties,
+     * but other plugins may not be applied when the [action] is executed.
      */
     public infix fun parameters(action: Action<StonecutterBuildExtension>)
 
-    /**Configures the [flags] extension.*/
+    /**
+     * Configures Stonecutter configuration flags.
+     *
+     * Flags are used to configure the internal behaviour of the plugin.
+     * **The flags should be configured before the [active] call.**
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/controller#flags">Flags Documentation</a>
+     */
     public infix fun flags(action: Action<StonecutterFlags>): Unit = action.execute(flags)
 
     /**Configures the [tasks] extension.*/

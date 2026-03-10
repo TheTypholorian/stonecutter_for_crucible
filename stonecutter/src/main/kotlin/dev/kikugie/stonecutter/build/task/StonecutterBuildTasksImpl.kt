@@ -8,7 +8,6 @@ import dev.kikugie.stonecutter.controller.tree.NodeModel
 import dev.kikugie.stonecutter.data.whatever.TaskProviderMap
 import dev.kikugie.stonecutter.util.SCJSON
 import dev.kikugie.stonecutter.util.allSources
-import dev.kikugie.stonecutter.util.buildDirectory
 import dev.kikugie.stonecutter.util.set
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.logging.Logger

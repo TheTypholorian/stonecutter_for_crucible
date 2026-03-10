@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.build.task
 
+import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.data.whatever.TaskProviderMap
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.Copy
@@ -13,24 +14,35 @@ private annotation class BuildTasksDsl
 @BuildTasksDsl
 public interface StonecutterBuildTasks {
     /**
-     * Per-[SourceSet] file processing tasks.
+     * Tasks responsible for preprocessing files for each [SourceSet].
      *
-     * Processes comments in files and saves changed ones to the [processedCacheDir].
+     * The processed files are stored in the [processedCacheDir].
+     *
+     * These tasks should be considered an internal implementation
+     * and only be configured directly in rare edge cases.
      */
+    @StonecutterInternalAPI
     public val prepare: TaskProviderMap<StonecutterPrepareTask>
 
     /**
-     * Per-[SourceSet] code generation tasks.
+     * Tasks responsible for combining [preprocessed sources][prepare]
+     * with unchanged and overridden files for each [SourceSet].
      *
-     * Merges modified files produced by the [prepare] task with
-     * versioned overrides and the shared source to the [generatedSourcesDir].
+     * The combined files are used as generated sources for multi-project builds.
+     * The files are stored in [generatedSourcesDir].
+     *
+     * These tasks should be considered an internal implementation
+     * and only be configured directly in rare edge cases.
      */
+    @StonecutterInternalAPI
     public val generate: TaskProviderMap<Sync>
 
     /**
-     * Per-[SourceSet] version switching tasks.
+     * Tasks responsible for copying [generated sources][generate]
+     * into the shared source directory when switching the active version.
      *
-     * Copies processed [generatedSourcesDir] into the shared `src/`.
+     * These tasks should be considered an internal implementation
+     * and only be configured directly in rare edge cases.
      */
     public val merge: TaskProviderMap<Copy>
 
