@@ -14,6 +14,7 @@ dependencies {
 
     testImplementation(common.kotest.runner)
     testImplementation(common.kotest.assertions)
+    testImplementation(common.kotlin.serialization.json)
 }
 
 antlr {

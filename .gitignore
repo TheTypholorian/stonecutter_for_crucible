@@ -30,3 +30,4 @@ run
 /docs/.vitepress/dist/
 /stitcher/src/main/gen/
 /stitcher/src/main/antlr/**/gen/
+/profile/
