@@ -18,17 +18,21 @@ import dev.kikugie.stitcher.token.impl.LeafToken
 import dev.kikugie.stitcher.transformer.visitor.ExpressionEvaluator
 import dev.kikugie.stitcher.transformer.visitor.ParameterChecker
 import dev.kikugie.stitcher.util.*
-import org.antlr.v4.runtime.*
+import org.antlr.v4.runtime.CharStream
+import org.antlr.v4.runtime.CommonTokenStream
+import org.antlr.v4.runtime.ListTokenSource
+import org.antlr.v4.runtime.TokenSource
 import org.antlr.v4.runtime.misc.Pair
 
 class BlockTransformer private constructor(val factory: StitcherTokenFactory, private val state: TransformerStateImpl) :
-    BlockToken.Visitor<BlockToken>, TransformerStateV2 by state {
+    BlockToken.Visitor<BlockToken>, TransformerState by state {
     constructor(
         parameters: TransformParameters,
         problems: FileProblemReporter,
         input: CharStream,
         factory: StitcherTokenFactory = StitcherTokenFactory,
     ) : this(factory, TransformerStateImpl(parameters, problems, input))
+
     internal var conditionCarry: Boolean = false
 
     override fun visitRoot(root: BlockToken.Root): BlockToken =
@@ -56,7 +60,7 @@ class BlockTransformer private constructor(val factory: StitcherTokenFactory, pr
 }
 
 private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTransformer) :
-    DefinitionToken.Visitor<List<BlockToken>>, TransformerStateV2 by context {
+    DefinitionToken.Visitor<List<BlockToken>>, TransformerState by context {
     override fun visitSwapLocal(swap: DefinitionToken.SwapLocal): List<BlockToken> {
         if (!checker.check(swap)) return code.scope
 
@@ -94,7 +98,7 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
 
         val enable = mutableSetOf<String>()
         val disable = mutableSetOf<String>()
-        for ((op, id) in repl.entries) when(op) {
+        for ((op, id) in repl.entries) when (op) {
             null -> enable += id.text
             else -> disable += id.text
         }
@@ -140,7 +144,7 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
         context.conditionCarry = enable || context.conditionCarry
 
         val commented = code.scope.isCommented()
-        return when(enable) {
+        return when (enable) {
             true if commented -> code.scope.uncomment(reparse = false)
             false if !commented -> code.scope.comment()
             else -> code.scope.reprocess()
@@ -177,7 +181,7 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
     }
 }
 
-interface TransformerStateV2 {
+private interface TransformerState {
     val parameters: TransformParameters
     val problems: FileProblemReporter
     val input: CharStream
@@ -194,7 +198,7 @@ private class TransformerStateImpl(
     override val parameters: TransformParameters,
     override val problems: FileProblemReporter,
     override val input: CharStream,
-) : TransformerStateV2 {
+) : TransformerState {
     val evaluator: ExpressionEvaluator = ExpressionEvaluator(parameters)
     override val checker: ParameterChecker = ParameterChecker(parameters, problems)
     override val replacer: CompositeReplacementExecutor = CompositeReplacementExecutor(parameters.replacements)
@@ -203,7 +207,8 @@ private class TransformerStateImpl(
     override fun String.applyReplacements(): String = let(replacer::replace)
 }
 
-private class UncommentedTokenSource(tokens: Iterable<BlockToken>, state: TransformerStateV2, val reparse: Boolean): ListTokenSource(mutableListOf()) {
+private class UncommentedTokenSource(tokens: Iterable<BlockToken>, state: TransformerState, val reparse: Boolean) :
+    ListTokenSource(mutableListOf()) {
     private val listener: StitcherErrorListener = StitcherErrorListener(state.problems)
     private val list: MutableList<AntlrToken>
         inline get() = tokens as MutableList<AntlrToken>
@@ -214,7 +219,8 @@ private class UncommentedTokenSource(tokens: Iterable<BlockToken>, state: Transf
         for (token in tokens) token.accept(builder)
     }
 
-    inner class TokenListBuilder(val source: Pair<TokenSource?, CharStream?>, state: TransformerStateV2) : BlockToken.Visitor<Unit>, TransformerStateV2 by state {
+    inner class TokenListBuilder(val source: Pair<TokenSource?, CharStream?>, state: TransformerState) :
+        BlockToken.Visitor<Unit>, TransformerState by state {
         override fun visitContent(content: BlockToken.Content) {
             if (reparse) acceptReparsed(content.leaf.text, problems.locate(content))
             else list += tokenFactory.create(source, content.leaf, problems)
