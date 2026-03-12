@@ -43,12 +43,13 @@ swapExtension: elseSugar conditionExpression literal;
 
 replacementEntry: OP_NOT? IDENTIFIER;
 
+// This is order-sensitive
 conditionExpression
-    : conditionExpression op=(OP_AND | OP_OR) conditionExpression # binaryExpression
+    : IDENTIFIER                                                  # constantExpression
+    | (IDENTIFIER OP_ASSIGN)? versionPredicate+                   # assignmentExpression
     | OP_NOT conditionExpression                                  # unaryExpression
     | LEFT_BRACE conditionExpression RIGHT_BRACE                  # groupExpression
-    | IDENTIFIER                                                  # constantExpression
-    | (IDENTIFIER OP_ASSIGN)? versionPredicate+                   # assignmentExpression
+    | conditionExpression op=(OP_AND | OP_OR) conditionExpression # binaryExpression
     ;
 
 versionPredicate

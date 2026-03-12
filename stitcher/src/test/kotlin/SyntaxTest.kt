@@ -1,3 +1,4 @@
+import dev.kikugie.semver.data.SemanticVersion
 import io.kotest.assertions.shouldFail
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
@@ -339,5 +340,16 @@ class SyntaxTest : FreeSpec({
             """.trimIndent()
             process(content) shouldBe expected
         }
+    }
+
+    "operator associativity" {
+        val content = """
+            //? !neoforge || <1.20.5
+            ---
+        """.trimIndent()
+        process(content) {
+            constants["neoforge"] = false
+            dependencies[""] = SemanticVersion(1, 20, 1)
+        } shouldBe content
     }
 })
