@@ -4,27 +4,19 @@ import dev.kikugie.stitcher.replacement.RegexReplacement
 import dev.kikugie.stitcher.replacement.Replacement
 import dev.kikugie.stitcher.replacement.StringReplacement
 import dev.kikugie.stitcher.replacement.search.*
-import dev.kikugie.stitcher.util.buildString
 
 interface ReplacementExecutor {
     fun update(enabled: Collection<String> = emptySet(), disabled: Collection<String> = emptySet())
     fun collect(text: CharSequence, queue: SearchEmitQueue<SearchData>)
-
-    fun replace(text: String): String {
-        val queue = SearchEmitQueue<SearchData>().also { collect(text, it) }
-        return if (queue.isEmpty()) text else buildString(text) {
-            var offset = 0
-            for (emit in queue)
-                offset += emit.apply(this, offset)
-        }
-    }
 }
 
-object EmptyReplacementExecutor : ReplacementExecutor {
-    override fun update(enabled: Collection<String>, disabled: Collection<String>): Unit = Unit
-    override fun collect(text: CharSequence, queue: SearchEmitQueue<SearchData>): Unit = Unit
+fun ReplacementExecutor.replaceIn(builder: StringBuilder) {
+    val queue = SearchEmitQueue<SearchData>()
+        .also { collect(builder, it) }
 
-    override fun replace(text: String): String = text
+    var offset = 0
+    for (emit in queue)
+        offset += emit.apply(builder, offset)
 }
 
 class CompositeReplacementExecutor(replacements: List<Replacement>) : ReplacementExecutor {

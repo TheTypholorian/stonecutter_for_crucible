@@ -232,6 +232,19 @@ class TransformTest : FreeSpec({
             """.trimIndent()
             process(content) shouldBe expected
         }
+
+        // https://codeberg.org/stonecutter/stonecutter/issues/43
+        "replace across comments" {
+            val content = """
+                My/*Map*/Codec
+            """.trimIndent()
+            val expected = """
+                MyMapCodec
+            """.trimIndent()
+            process(content) {
+                replacements.string("/*Map*/Codec", "MapCodec")
+            } shouldBe expected
+        }
     }
 
     "conditions" - {

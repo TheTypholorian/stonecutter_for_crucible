@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.transformer
 
+import dev.kikugie.commons.then
 import dev.kikugie.stitcher.antlr.*
 import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.ProblemLocation
@@ -24,6 +25,8 @@ import org.antlr.v4.runtime.ListTokenSource
 import org.antlr.v4.runtime.TokenSource
 import org.antlr.v4.runtime.misc.Pair
 
+private typealias BlockTokenList = List<BlockToken>
+
 class BlockTransformer private constructor(val factory: StitcherTokenFactory, private val state: TransformerStateImpl) :
     BlockToken.Visitor<BlockToken>, TransformerState by state {
     constructor(
@@ -34,66 +37,69 @@ class BlockTransformer private constructor(val factory: StitcherTokenFactory, pr
     ) : this(factory, TransformerStateImpl(parameters, problems, input))
 
     internal var conditionCarry: Boolean = false
+    private val blockCollector: BlockCollector = BlockCollector(replacer)
 
-    override fun visitRoot(root: BlockToken.Root): BlockToken =
-        root.copy(scope = root.scope.map { it.accept(this) })
+    override fun visitRoot(root: BlockToken.Root): BlockToken {
+        for (it in root.scope)
+            it.accept(this).accept(blockCollector)
+        blockCollector.submit()
+        return BlockToken.Root(blockCollector.list)
+    }
 
-    override fun visitCode(code: BlockToken.Code): BlockToken =
-        code.copy(scope = code.definition.accept(ScopeTransformer(code, this)))
+    override fun visitCode(code: BlockToken.Code): BlockToken {
+        blockCollector.submit()
+        val result = code.definition.accept(ScopeTransformer(code, this))
+        return code.copy(scope = result)
+    }
 
     override fun visitContent(content: BlockToken.Content): BlockToken =
-        content.copy(leaf = content.leaf.copyWithReplacements())
+        content
 
     override fun visitComment(comment: BlockToken.Comment): BlockToken {
-        if (comment.opener != null && comment.closer != null)
-            return comment.copy(body = comment.body.copyWithReplacements())
+        if (comment.opener != null && comment.closer != null) return comment
 
-        val body = parameters.comment(comment.body.text, false).applyReplacements()
+        val body = parameters.comment(comment.body.text, false)
         val token = factory.create(NativeStitcherType.COMMENT_BODY, comment.start, comment.end, body)
         return BlockToken.Comment(null, token, comment.closer?.takeIf { it.text.hasLineBreak() })
     }
 
     internal fun copy(): BlockTransformer = BlockTransformer(factory, state)
-
-    private fun LeafToken.copyWithReplacements(): LeafToken =
-        copy(text = text.applyReplacements())
 }
 
 private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTransformer) :
-    DefinitionToken.Visitor<List<BlockToken>>, TransformerState by context {
-    override fun visitSwapLocal(swap: DefinitionToken.SwapLocal): List<BlockToken> {
+    DefinitionToken.Visitor<BlockTokenList>, TransformerState by context {
+    override fun visitSwapLocal(swap: DefinitionToken.SwapLocal): BlockTokenList {
         if (!checker.check(swap)) return code.scope
 
         val variant = swap.entries.first { eval(it.expression) }
         return wrapSwapReplacement(variant.literal.unquote())
     }
 
-    override fun visitSwapOpener(swap: DefinitionToken.SwapOpener): List<BlockToken> {
+    override fun visitSwapOpener(swap: DefinitionToken.SwapOpener): BlockTokenList {
         if (!checker.check(swap)) return code.scope
 
         val replacement = processTemplate(parameters.swaps[swap.id]!!, swap.arguments)
         return wrapSwapReplacement(replacement)
     }
 
-    override fun visitSwapCloser(swap: DefinitionToken.SwapCloser): List<BlockToken> = emptyList()
+    override fun visitSwapCloser(swap: DefinitionToken.SwapCloser): BlockTokenList =
+        emptyList()
 
-    override fun visitConditionOpener(cond: DefinitionToken.ConditionOpener): List<BlockToken> {
+    override fun visitConditionOpener(cond: DefinitionToken.ConditionOpener): BlockTokenList {
         context.conditionCarry = false
         return if (!checker.check(cond)) code.scope
         else processCondition(cond.expression)
     }
 
-    override fun visitConditionExtension(cond: DefinitionToken.ConditionExtension): List<BlockToken> {
+    override fun visitConditionExtension(cond: DefinitionToken.ConditionExtension): BlockTokenList {
         return if (!checker.check(cond)) code.scope
         else processCondition(cond.expression)
     }
 
-    override fun visitConditionCloser(cond: DefinitionToken.ConditionCloser): List<BlockToken> {
-        context.conditionCarry = false
-        return emptyList()
-    }
+    override fun visitConditionCloser(cond: DefinitionToken.ConditionCloser): BlockTokenList =
+        emptyList<BlockToken>().also { context.conditionCarry = false }
 
-    override fun visitReplacementToggle(repl: DefinitionToken.ReplacementToggle): List<BlockToken> {
+    override fun visitReplacementToggle(repl: DefinitionToken.ReplacementToggle): BlockTokenList {
         checker.check(repl)
 
         val enable = mutableSetOf<String>()
@@ -107,27 +113,26 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
         return emptyList()
     }
 
-    override fun visitReplacementLocal(repl: DefinitionToken.ReplacementLocal): List<BlockToken> {
+    override fun visitReplacementLocal(repl: DefinitionToken.ReplacementLocal): BlockTokenList {
         if (!checker.check(repl)) return code.scope.reprocess()
 
         val direction = eval(repl.expression)
         val (source, target) = if (direction) repl.source to repl.target else repl.target to repl.source
         replacer.localExecutor.push(source.unquote(), target.unquote())
-        return code.scope.reprocess()
-            .also { replacer.localExecutor.pop() }
+        return code.scope.reprocess().also { replacer.localExecutor.pop() }
     }
 
-    override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser): List<BlockToken> =
+    override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser): BlockTokenList =
         emptyList()
 
-    private fun wrapSwapReplacement(replacement: String): List<BlockToken> {
+    private fun wrapSwapReplacement(replacement: String): BlockTokenList {
         val content = parameters.replace(code.scope.join(), replacement)
         val start = code.scope.firstOrNull()?.start ?: code.host.end
         val end = code.scope.lastOrNull()?.end ?: code.host.end
 
         val token = context.factory.create(NativeStitcherType.CONTENT, start, end, content).let(BlockToken::Content)
         // FIXME: Issues inside substituted values will have incorrect context
-        return listOf(token).uncomment(reparse = true)
+        return listOf(token).uncomment(reparse = true).reprocess()
     }
 
     private fun processTemplate(template: String, tokens: List<LeafToken>): String {
@@ -139,8 +144,8 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
         }
     }
 
-    private fun processCondition(expr: ExpressionToken?): List<BlockToken> {
-        val enable = eval(expr) && !context.conditionCarry
+    private fun processCondition(expr: ExpressionToken?): BlockTokenList {
+        val enable = !context.conditionCarry && eval(expr)
         context.conditionCarry = enable || context.conditionCarry
 
         val commented = code.scope.isCommented()
@@ -154,30 +159,28 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
     private fun List<BlockToken>.isCommented(): Boolean =
         all { it is BlockToken.Comment || (it is BlockToken.Content && it.isBlank()) }
 
-    private fun List<BlockToken>.comment(): List<BlockToken> {
+    private fun List<BlockToken>.comment(): BlockTokenList {
         if (isEmpty()) return emptyList()
 
-        // TODO: Is reprocessing needed if the reformat task is going to be added?
         val content = parameters.comment(reprocess().join(), code.definition.opener == null)
-        return listOf(context.factory.create(NativeStitcherType.CONTENT, first().start, last().end, content).let(BlockToken::Content))
+        val block = BlockToken.Content(context.factory.create(NativeStitcherType.CONTENT, first().start, last().end, content))
+        return listOf(block)
     }
 
-    private fun List<BlockToken>.uncomment(reparse: Boolean): List<BlockToken> {
+    private fun List<BlockToken>.uncomment(reparse: Boolean): BlockTokenList {
         if (isEmpty()) return emptyList()
 
         val stream = UncommentedTokenSource(this, context, reparse).let(::CommonTokenStream)
         val factory = StitcherTokenFactory.Inline(first().start)
         return problems.runMarked({ LayoutParser.parse(stream, input, factory, problems) }) { root, ok ->
-            if (ok) root.scope.reprocess() else {
-                checker.check(root)
-                root.scope
-            }
+            if (ok) root.scope.reprocess() else checker.check(root) then root.scope
         }
     }
 
-    private fun List<BlockToken>.reprocess(): List<BlockToken> = if (isEmpty()) emptyList() else {
-        val copy = context.copy()
-        map { it.accept(copy) }
+    private fun List<BlockToken>.reprocess(): BlockTokenList {
+        if (isEmpty()) return emptyList()
+        val block = BlockToken.Root(this).accept(context.copy()) as BlockToken.Root
+        return block.scope
     }
 }
 
@@ -190,8 +193,6 @@ private interface TransformerState {
     val replacer: CompositeReplacementExecutor
 
     fun eval(expr: ExpressionToken?): Boolean
-
-    fun String.applyReplacements(): String
 }
 
 private class TransformerStateImpl(
@@ -204,7 +205,6 @@ private class TransformerStateImpl(
     override val replacer: CompositeReplacementExecutor = CompositeReplacementExecutor(parameters.replacements)
 
     override fun eval(expr: ExpressionToken?): Boolean = expr?.accept(evaluator) ?: true
-    override fun String.applyReplacements(): String = let(replacer::replace)
 }
 
 private class UncommentedTokenSource(tokens: Iterable<BlockToken>, state: TransformerState, val reparse: Boolean) :
