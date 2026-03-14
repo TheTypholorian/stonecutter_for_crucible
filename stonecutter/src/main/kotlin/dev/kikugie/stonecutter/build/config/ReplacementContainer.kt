@@ -9,6 +9,7 @@ import dev.kikugie.stonecutter.build.config.ReplacementContainer.StringReplaceme
 import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.newInstance
 import javax.inject.Inject
 
@@ -208,13 +209,12 @@ internal abstract class ReplacementContainerImpl @Inject constructor(
 }
 
 internal abstract class StringSpecImpl @Inject constructor(val consumer: (StringReplacement) -> Unit) : StringReplacementSpec {
+    private var usedImmediateAnonymousAssignment: Boolean = false
+
     override fun replace(from: String, to: String) {
         val tags = mutableSetOf<Replacement.Tag>()
-        val id = id.orNull?.let {
-            if (!it.startsWith('!')) return@let it
-            tags += Replacement.Tag.DEFAULT_ENABLED
-            it.removePrefix("!")
-        }
+        val id = id.unwrapWith(tags)
+        if (id == null) usedImmediateAnonymousAssignment = true
 
         val replacement =
             if (direction.get()) StringReplacement(to, setOf(from), id, tags)
@@ -223,18 +223,20 @@ internal abstract class StringSpecImpl @Inject constructor(val consumer: (String
     }
 
     fun finalise() {
+        if (usedImmediateAnonymousAssignment && id.isPresent)
+            error("String replacement id '${id.get()}' was assigned after replacements were registered")
+
         if (from.isPresent || to.isPresent) replace(from.get(), to.get())
     }
 }
 
 internal abstract class RegexSpecImpl @Inject constructor(val consumer: (RegexReplacement) -> Unit) : RegexReplacementSpec {
+    private var usedImmediateAnonymousAssignment: Boolean = false
+
     override fun replace(direct: Pair<String, String>, reverse: Pair<String, String>) {
         val tags = mutableSetOf<Replacement.Tag>()
-        val id = id.orNull?.let {
-            if (!it.startsWith('!')) return@let it
-            tags += Replacement.Tag.DEFAULT_ENABLED
-            it.removePrefix("!")
-        }
+        val id = id.unwrapWith(tags)
+        if (id == null) usedImmediateAnonymousAssignment = true
 
         val replacement =
             if (direction.get()) RegexReplacement(direct.second, direct.first, id, tags)
@@ -243,7 +245,16 @@ internal abstract class RegexSpecImpl @Inject constructor(val consumer: (RegexRe
     }
 
     fun finalise() {
+        if (usedImmediateAnonymousAssignment && id.isPresent)
+            error("Regex replacement id '${id.get()}' was assigned after replacements were registered")
+
         if (fromPattern.isPresent || toValue.isPresent || reversePattern.isPresent || reverseValue.isPresent)
             replace(fromPattern.get() to toValue.get(), reversePattern.get() to reverseValue.get())
     }
+}
+
+private fun Provider<Identifier>.unwrapWith(tags: MutableSet<Replacement.Tag>): Identifier? = orNull?.let {
+    if (!it.startsWith('!')) return@let it
+    tags += Replacement.Tag.DEFAULT_ENABLED
+    it.removePrefix("!")
 }

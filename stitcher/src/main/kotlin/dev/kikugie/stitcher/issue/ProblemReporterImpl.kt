@@ -14,7 +14,7 @@ class ProblemReporterImpl(override val file: Path, override val index: LineIndex
         consumer(report)
     }
 
-    private inner class ProblemMarkerImpl(val checkpoint: Int) : ProblemMarker {
+    private inner class ProblemMarkerImpl(private val checkpoint: Int) : ProblemMarker {
         override val isDirty: Boolean get() = checkpoint < this@ProblemReporterImpl.counter
     }
 }
