@@ -86,11 +86,11 @@ public abstract class BranchBuilder {
     @Deprecated("Not fully supported :P")
     public abstract val branchScript: Property<String>
 
-    @Deprecated("Use the fully-spelled variant", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("version(value)"))
+    @Deprecated("Use the fully-spelled variant `version()`", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("version(value)"))
     public fun vers(value: AnyVersion): NodeBuilder =
         version(value)
 
-    @Deprecated("Use the fully-spelled variant", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("version(project, value)"))
+    @Deprecated("Use the fully-spelled variant `version()`", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("version(project, value)"))
     public fun vers(project: Identifier, value: AnyVersion): NodeBuilder =
         version(project, value)
 

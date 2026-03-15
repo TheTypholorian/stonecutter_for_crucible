@@ -11,6 +11,7 @@ import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.newInstance
+import org.intellij.lang.annotations.Language
 import javax.inject.Inject
 
 @DslMarker @Retention(AnnotationRetention.BINARY)
@@ -37,7 +38,7 @@ public sealed interface ReplacementContainer {
     public fun string(direction: Boolean, id: Identifier, action: Action<StringReplacementSpec>): Unit =
         string { this.direction.set(direction); this.id.set(id); action.execute(this) }
 
-    @Deprecated("Use the direction-first variant", replaceWith = ReplaceWith("string(direction, id, action)"))
+    @Deprecated("Use the direction-first variant `string(direction, id)`", replaceWith = ReplaceWith("string(direction, id, action)"))
     public fun string(id: Identifier, direction: Boolean? = null, action: Action<StringReplacementSpec>): Unit =
         string { this.id.set(id); this.direction.set(direction); action.execute(this) }
 
@@ -49,7 +50,7 @@ public sealed interface ReplacementContainer {
     public fun regex(direction: Boolean, id: Identifier, action: Action<RegexReplacementSpec>): Unit =
         regex { this.direction.set(direction); this.id.set(id); action.execute(this) }
 
-    @Deprecated("Use the direction-first variant", replaceWith = ReplaceWith("regex(direction, id, action)"))
+    @Deprecated("Use the direction-first variant `regex(direction, id)`", replaceWith = ReplaceWith("regex(direction, id, action)"))
     public fun regex(id: Identifier, direction: Boolean? = null, action: Action<RegexReplacementSpec>): Unit =
         regex { this.id.set(id); this.direction.set(direction); action.execute(this) }
 
@@ -161,7 +162,7 @@ public sealed interface ReplacementContainer {
          * @param from Regex pattern assigned to [fromPattern]
          * @param to Replacement value assigned to [toValue]
          */
-        @Deprecated("Use the combined function")
+        @Deprecated("Use the combined function `replace(pA, vA, pB, vB)`")
         public fun replace(from: String, to: String) {
             fromPattern.value(from).disallowChanges()
             toValue.value(to).disallowChanges()
@@ -173,7 +174,7 @@ public sealed interface ReplacementContainer {
          * @param from Regex pattern assigned to [reversePattern]
          * @param to Replacement value assigned to [reverseValue]
          */
-        @Deprecated("Use the combined function")
+        @Deprecated("Use the combined function `replace(pA, vA, pB, vB)`")
         public fun reverse(from: String, to: String) {
             reversePattern.value(from).disallowChanges()
             reverseValue.value(to).disallowChanges()
@@ -191,8 +192,12 @@ public sealed interface ReplacementContainer {
          * using the [direction] and [id] defined in the extension.
          * Can be called multiple times.
          */
-        public fun replace(directPattern: String, directReplacement: String, reversePattern: String, reverseReplacement: String): Unit =
-            replace(directPattern to directReplacement, reversePattern to reverseReplacement)
+        public fun replace(
+            @Language("RegExp") directPattern: String,
+            directReplacement: String,
+            @Language("RegExp") reversePattern: String,
+            reverseReplacement: String
+        ): Unit = replace(directPattern to directReplacement, reversePattern to reverseReplacement)
     }
 }
 
