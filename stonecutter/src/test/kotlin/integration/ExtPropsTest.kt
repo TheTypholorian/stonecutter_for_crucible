@@ -28,4 +28,9 @@ class ExtPropsTest : GradleTest, ShouldSpec({
     should("use property tags") { _ , build ->
         build.run()
     }
+
+    // https://codeberg.org/stonecutter/stonecutter/issues/44
+    should("use nested property tags") { _ , build ->
+        build.run()
+    }
 })

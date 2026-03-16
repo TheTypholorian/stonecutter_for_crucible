@@ -72,6 +72,10 @@ tasks {
         dependOnPublishTasks()
     }
 
+    publish {
+        finalizedBy(publishToMavenLocal)
+    }
+
     shadowJar {
         archiveClassifier = ""
         minimize()

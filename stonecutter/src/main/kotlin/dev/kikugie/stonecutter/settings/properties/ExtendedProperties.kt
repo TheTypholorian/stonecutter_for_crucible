@@ -68,16 +68,15 @@ private data class TomlVisitor(
     }
 
     private fun visitEntry(key: String, value: TomlElement, consumer: (String, String) -> Unit): Unit = when(value) {
-        is TomlTable -> run {
+        is TomlTable -> {
             val project = source.resolve(prefix + key)
-            if (target.startsWith(project))
-                return@run copy(source = project).visitTable(value, consumer)
-
-            if (tags.isEmpty())
-                return@run copy(prefix = "$prefix$key.").visitTable(value, consumer)
-
-            if (key in tags)
-                return@run visitTable(value, consumer)
+            val copy = when {
+                target.startsWith(project) -> copy(source = project)
+                tags.isEmpty() -> copy(prefix = "$prefix$key.")
+                key in tags -> copy(tags = emptySet())
+                else -> null
+            }
+            copy?.visitTable(value, consumer) ?: Unit
         }
 
         is TomlLiteral -> {
