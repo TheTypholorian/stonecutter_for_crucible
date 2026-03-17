@@ -26,7 +26,7 @@ jobs:
           gradle-version: ${{ matrix.gradle-version }}
       - name: Run tests
         run: |
-          gradle test validatePlugins --build-cache --configuration-cache
+          gradle check --build-cache --configuration-cache
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v3
