@@ -3,5 +3,5 @@ plugins {
 }
 
 stonecutter {
-    create(rootProject, file("versions.yml"))
+    create(rootProject, file("versions.txt"))
 }

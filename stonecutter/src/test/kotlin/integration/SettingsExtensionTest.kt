@@ -98,7 +98,9 @@ class SettingsExtensionTest : GradleTest, ShouldSpec({
     context("tree deserialization") {
         should("accept json files") { _, build -> build.run() }
         should("accept json5 files") { _, build -> build.run() }
-        should("reject non-json files") { _, build -> build.fail() }
+        should("accept toml files") { _, build -> build.run() }
+        should("accept yaml files") { _, build -> build.run() }
+        should("reject unknown files") { _, build -> build.fail() }
         should("define project branches") { _, build -> build.run() }
         should("define inverted branches") { _, build -> build.run() }
         should("define extended nodes") { _, build -> build.run() }

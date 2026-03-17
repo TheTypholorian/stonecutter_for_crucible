@@ -37,4 +37,12 @@ class ExtPropsTest : GradleTest, ShouldSpec({
     should("use nested property tags") { _ , build ->
         build.run()
     }
+
+    should("accept json files") { _, build ->
+        build.run()
+    }
+
+    should("accept yaml files") { _, build ->
+        build.run()
+    }
 })
