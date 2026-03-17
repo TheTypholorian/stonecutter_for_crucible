@@ -32,6 +32,7 @@ import dev.kikugie.stonecutter.settings.tree.TreeBuilderContainer
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.isIdeaSync
 import dev.kikugie.stonecutter.util.requestTasks
+import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFile
@@ -130,7 +131,9 @@ private fun ProjectTreeImpl.assignActive(root: Project, tasks: StonecutterContro
     }
 
     is File -> {
-        current = findByName(provider.readText().trim())
+        val contents = provider.toRegularFile(root.objects).let(root.providers::fileContents).asText.orNull
+            ?: throw NoSuchFileException(provider)
+        current = findByName(contents.trim())
         for (it in versions) tasks.registerExternalSwitchTask(it.project, provider)
     }
 
