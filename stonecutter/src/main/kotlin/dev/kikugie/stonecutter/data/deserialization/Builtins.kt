@@ -7,6 +7,7 @@ import dev.eav.tomlkt.*
 import dev.eav.tomlkt.TomlLiteral.Type
 import dev.kikugie.commons.collections.present
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
+import dev.kikugie.stonecutter.util.SCJSON
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.*
 import java.io.File
@@ -36,15 +37,7 @@ internal fun determineConverter(
 }
 
 internal object Json2JsonConverter : JsonConverter {
-    val SPEC = Json {
-        ignoreUnknownKeys = true
-        coerceInputValues = true
-        isLenient = true
-        allowComments = true
-        allowTrailingComma = true
-        prettyPrint = true
-        prettyPrintIndent = "  "
-    }
+    val SPEC = SCJSON
 
     override fun convert(text: String): JsonObject =
         SPEC.decodeFromString(text)

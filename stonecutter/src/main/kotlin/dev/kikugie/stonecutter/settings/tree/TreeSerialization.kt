@@ -5,6 +5,7 @@ package dev.kikugie.stonecutter.settings.tree
 
 import dev.kikugie.stonecutter.AnyVersion
 import dev.kikugie.stonecutter.Identifier
+import dev.kikugie.stonecutter.util.SCJSON
 import kotlinx.serialization.*
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -55,13 +56,13 @@ internal data class SerializedTree(
         }
 
         private fun deserializeByVersions(decoder: JsonDecoder, element: JsonElement): TreeScheme = when (element) {
-            is JsonObject -> Json.decodeFromJsonElement(TreeScheme.Inverted.serializer(), element)
-            is JsonArray -> Json.decodeFromJsonElement(TreeScheme.Plain.serializer(), element)
+            is JsonObject -> SCJSON.decodeFromJsonElement(TreeScheme.Inverted.serializer(), element)
+            is JsonArray -> SCJSON.decodeFromJsonElement(TreeScheme.Plain.serializer(), element)
             else -> throw SerializationException("Unable to decode tree from ${element::class.simpleName}")
         }
 
         private fun deserializeByBranches(decoder: JsonDecoder, element: JsonElement): TreeScheme =
-            Json.decodeFromJsonElement(TreeScheme.Branched.serializer(), element)
+            SCJSON.decodeFromJsonElement(TreeScheme.Branched.serializer(), element)
     }
 }
 
