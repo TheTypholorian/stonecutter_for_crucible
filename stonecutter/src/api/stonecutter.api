@@ -655,6 +655,10 @@ public final class dev/kikugie/stonecutter/data/StonecutterProject$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
+public abstract interface class dev/kikugie/stonecutter/data/deserialization/JsonConverter {
+	public abstract fun convert (Ljava/lang/String;)Lkotlinx/serialization/json/JsonObject;
+}
+
 public abstract interface class dev/kikugie/stonecutter/data/tree/GradleMember {
 	public abstract fun getHierarchy-L6On-oY ()Ljava/lang/String;
 	public abstract fun getLocation ()Ljava/nio/file/Path;
@@ -754,21 +758,30 @@ public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtens
 	public fun <init> (Lorg/gradle/api/model/ObjectFactory;Lorg/gradle/api/provider/ProviderFactory;)V
 	public final fun create (Ljava/lang/Iterable;)V
 	public final fun create (Ljava/lang/Iterable;Ljava/io/File;)V
+	public final fun create (Ljava/lang/Iterable;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
+	public final fun create (Ljava/lang/Iterable;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;Lorg/gradle/api/Action;)V
 	public final fun create (Ljava/lang/Iterable;Ljava/io/File;Lorg/gradle/api/Action;)V
 	public final fun create (Ljava/lang/Iterable;Lorg/gradle/api/Action;)V
 	public final fun create (Ljava/lang/Object;)V
 	protected abstract fun create (Ljava/lang/Object;Ldev/kikugie/stonecutter/settings/tree/TreeBuilder;)V
 	public final fun create (Ljava/lang/Object;Ljava/io/File;)V
+	public final fun create (Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
+	public final fun create (Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;Lorg/gradle/api/Action;)V
 	public final fun create (Ljava/lang/Object;Ljava/io/File;Lorg/gradle/api/Action;)V
 	public final fun create (Ljava/lang/Object;Lorg/gradle/api/Action;)V
 	public final fun create ([Ljava/lang/Object;)V
 	public final fun create ([Ljava/lang/Object;Ljava/io/File;)V
+	public final fun create ([Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
+	public final fun create ([Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;Lorg/gradle/api/Action;)V
 	public final fun create ([Ljava/lang/Object;Ljava/io/File;Lorg/gradle/api/Action;)V
 	public final fun create ([Ljava/lang/Object;Lorg/gradle/api/Action;)V
+	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;Ljava/lang/Iterable;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;Ljava/lang/Iterable;Ljava/io/File;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;Ljava/lang/Iterable;Lorg/gradle/api/Action;ILjava/lang/Object;)V
+	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;Ljava/lang/Object;Ljava/io/File;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;Ljava/lang/Object;Lorg/gradle/api/Action;ILjava/lang/Object;)V
+	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;[Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;[Ljava/lang/Object;Ljava/io/File;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;[Ljava/lang/Object;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public abstract fun getCentralScript ()Lorg/gradle/api/provider/Property;
@@ -783,11 +796,14 @@ public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtens
 public abstract interface class dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider {
 	public abstract fun getProperties ()Ldev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider$ExtendedPropertyConfig;
 	public fun properties (Ljava/io/File;)V
+	public fun properties (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
 	public fun properties (Lorg/gradle/api/Action;)V
 }
 
-public abstract interface class dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider$ExtendedPropertyConfig {
-	public abstract fun load (Ljava/io/File;)V
+public abstract class dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider$ExtendedPropertyConfig {
+	public fun <init> ()V
+	public abstract fun load (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
+	public static synthetic fun load$default (Ldev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider$ExtendedPropertyConfig;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;ILjava/lang/Object;)V
 	public abstract fun tags ([Ljava/lang/String;)V
 }
 
