@@ -2,16 +2,11 @@
 
 package dev.kikugie.stonecutter.settings.properties
 
-import dev.eav.tomlkt.Toml
-import dev.eav.tomlkt.TomlElement
-import dev.eav.tomlkt.TomlLiteral
-import dev.eav.tomlkt.TomlTable
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.deserialization.JsonConverter
 import dev.kikugie.stonecutter.data.resolve
 import dev.kikugie.stonecutter.data.startsWith
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -63,7 +58,7 @@ internal class ExtendedProjectProperties(
 
     fun apply(target: ProjectHierarchy, ext: ExtraPropertiesExtension, tags: Set<String> = emptySet()) {
         for (source in projects) if (target.startsWith(source))
-            JsonVisitor(source, target, tags = tags).visitObject(obj, consumer = ext::set)
+            JsonVisitor(source, target, tags = tags).visit(obj, ext::set)
     }
 }
 
@@ -73,12 +68,11 @@ private data class JsonVisitor(
     val prefix: String = "",
     val tags: Set<String> = emptySet()
 ) {
-    fun visitObject(obj: JsonObject, key: String? = null, consumer: (String, String) -> Unit) {
-        if (key == null) {
-            for ((k, v) in obj) v.accept(k, consumer)
-            return
-        }
+    fun visit(obj: JsonObject, consumer: (String, String) -> Unit) {
+        for ((k, v) in obj) v.accept(k, consumer)
+    }
 
+    private fun visitObject(obj: JsonObject, key: String, consumer: (String, String) -> Unit) {
         val project = source.resolve(prefix + key)
         val copy = when {
             target.startsWith(project) -> copy(source = project)
@@ -87,15 +81,14 @@ private data class JsonVisitor(
             else -> null
         }
 
-        if (copy != null)
-            obj.accept(key, consumer)
+        copy?.visit(obj, consumer)
     }
 
-    fun visitPrimitive(prim: JsonPrimitive, key: String?, consumer: (String, String) -> Unit) {
+    private fun visitPrimitive(prim: JsonPrimitive, key: String, consumer: (String, String) -> Unit) {
         consumer("$prefix$key", prim.content)
     }
 
-    private fun JsonElement.accept(key: String?, consumer: (String, String) -> Unit) = when (this) {
+    private fun JsonElement.accept(key: String, consumer: (String, String) -> Unit): Unit = when (this) {
         is JsonObject -> visitObject(this, key, consumer)
         is JsonPrimitive -> visitPrimitive(this, key, consumer)
         else -> {
