@@ -14,11 +14,10 @@ import org.gradle.api.plugins.ExtraPropertiesExtension
 import java.io.File
 import java.io.FileNotFoundException
 
-// TODO: Write the converter method docs
 public interface ExtendedPropertyProvider {
     /**
      * Configuration holder for extended Gradle properties.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties">Wiki link</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties">Centralized Properties Documentation</a>
      */
     public val properties: ExtendedPropertyConfig
 
@@ -26,47 +25,178 @@ public interface ExtendedPropertyProvider {
     public infix fun properties(action: Action<ExtendedPropertyConfig>): Unit = action.execute(properties)
 
     /**
-     * Loads additional properties from a TOML [file].
+     * Loads additional properties from a [file].
      *
-     * Unlike `.properties` format, TOML files support tables with nested values.
-     * During evaluation, table keys are interpreted in one of the following ways:
-     * - If a table key is a subproject name, its entries are only loaded if the subproject
-     *   is a parent of the querying project.
-     *   For example, `"1.21.1".my_property` is only added to `:1.21.1` project as `"my_property"`.
-     * - If a table key is a tag added with [sc.properties.tags()][ExtendedPropertyConfig.tags],
-     *   its children are added without the tag prefix.
-     *   For example, `example_tag.my_property` with `tags("example_tag")` is added as `"my_property"`.
-     * - Other table keys are flattened with dot separators.
-     *   For example, `deps.kotlin = "..."` is added as `"deps.kotlin"`, as well as when declared as:
-     *   ```toml
-     *   [deps]
-     *   kotlin = "..."
-     *   ```
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties">Wiki link</a>
+     * Unlike the `.properties` format, this extension supports nested keys,
+     * which are resolved in the following ways relative to the project invoking this function:
+     * - If a map key is a subproject name, its entries are only loaded
+     * if this project is a child of the project that requested the file:
+     * ```toml
+     * [subproject]
+     * my_property = "Hello World"
+     * ```
+     * ```kt
+     * // settings.gradle.kts
+     * sc.properties(file("properties.toml"), Toml2JsonConverter)
+     * sc.create(rootProject) { versions("subproject") }
+     *
+     * assert(findProperty("my_property") == null)
+     * assert(findProperty("subproject.my_property") != null)
+     * ```
+     * ```
+     * // build.gradle.kts
+     * assert(findProperty("my_property") != null)
+     * ```
+     * - Map keys registered with [sc.properties.tags()][ExtendedPropertyConfig.tags]
+     * are skipped during the flattening:
+     * ```toml
+     * [my_tag]
+     * my_property = "Hello World"
+     * ```
+     * ```kt
+     * assert(findProperty("my_property") == null)
+     * assert(findProperty("my_tag.my_property") != null)
+     *
+     * sc.properties.tags("my_tag")
+     * assert(findProperty("my_property") != null)
+     * ```
+     * - Other keys are flattened:
+     * ```toml
+     * key1.value = "Hello"
+     * key2 = {
+     *   value = "World"
+     * }
+     * ```
+     * ```kt
+     * // build.gradle.kts
+     * assert(findProperty("key1.value") != null)
+     * assert(findProperty("key2.value") != null)
+     * ```
+     *
+     * The default supported formats are `toml`, `json`, `json5`, `yml` and `yaml`,
+     * which are automatically resolved based on the [file] extension.
+     * Additional formats can be supported by providing a [JsonConverter] to the
+     * overloaded function.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties">Centralized Properties Documentation</a>
      */
     public infix fun properties(file: File): Unit = properties.load(file)
 
+    /**
+     * Loads additional properties from a [file] with the custom [converter].
+     *
+     * Unlike the `.properties` format, this extension supports nested keys,
+     * which are resolved in the following ways relative to the project invoking this function:
+     * - If a map key is a subproject name, its entries are only loaded
+     * if this project is a child of the project that requested the file:
+     * ```toml
+     * [subproject]
+     * my_property = "Hello World"
+     * ```
+     * ```kt
+     * // settings.gradle.kts
+     * sc.properties(file("properties.toml"), Toml2JsonConverter)
+     * sc.create(rootProject) { versions("subproject") }
+     *
+     * assert(findProperty("my_property") == null)
+     * assert(findProperty("subproject.my_property") != null)
+     * ```
+     * ```
+     * // build.gradle.kts
+     * assert(findProperty("my_property") != null)
+     * ```
+     * - Map keys registered with [sc.properties.tags()][ExtendedPropertyConfig.tags]
+     * are skipped during the flattening:
+     * ```toml
+     * [my_tag]
+     * my_property = "Hello World"
+     * ```
+     * ```kt
+     * assert(findProperty("my_property") == null)
+     * assert(findProperty("my_tag.my_property") != null)
+     *
+     * sc.properties.tags("my_tag")
+     * assert(findProperty("my_property") != null)
+     * ```
+     * - Other keys are flattened:
+     * ```toml
+     * key1.value = "Hello"
+     * key2 = {
+     *   value = "World"
+     * }
+     * ```
+     * ```kt
+     * // build.gradle.kts
+     * assert(findProperty("key1.value") != null)
+     * assert(findProperty("key2.value") != null)
+     * ```
+     *
+     * The default supported formats are `toml`, `json`, `json5`, `yml` and `yaml`,
+     * which are automatically resolved when using the [properties] function without
+     * the [converter] parameter.
+     *
+     * In other cases, a custom converter can be implemented as long as the underlying format
+     * is compatible with Json types.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties">Centralized Properties Documentation</a>
+     */
     public fun properties(file: File, converter: JsonConverter): Unit = properties.load(file, converter)
 
     public abstract class ExtendedPropertyConfig {
         /**
-         * Loads additional properties from a TOML [file].
+         * Loads additional properties from a [file] with the custom [converter].
          *
-         * Unlike `.properties` format, TOML files support tables with nested values.
-         * During evaluation, table keys are interpreted in one of the following ways:
-         * - If a table key is a subproject name, its entries are only loaded if the subproject
-         *   is a parent of the querying project.
-         *   For example, `"1.21.1".my_property` is only added to `:1.21.1` project as `"my_property"`.
-         * - If a table key is a tag added with [sc.properties.tags()][ExtendedPropertyConfig.tags],
-         *   its children are added without the tag prefix.
-         *   For example, `example_tag.my_property` with `tags("example_tag")` is added as `"my_property"`.
-         * - Other table keys are flattened with dot separators.
-         *   For example, `deps.kotlin = "..."` is added as `"deps.kotlin"`, as well as when declared as:
-         *   ```toml
-         *   [deps]
-         *   kotlin = "..."
-         *   ```
-         * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties">Wiki link</a>
+         * Unlike the `.properties` format, this extension supports nested keys,
+         * which are resolved in the following ways relative to the project invoking this function:
+         * - If a map key is a subproject name, its entries are only loaded
+         * if this project is a child of the project that requested the file:
+         * ```toml
+         * [subproject]
+         * my_property = "Hello World"
+         * ```
+         * ```kt
+         * // settings.gradle.kts
+         * sc.properties(file("properties.toml"), Toml2JsonConverter)
+         * sc.create(rootProject) { versions("subproject") }
+         *
+         * assert(findProperty("my_property") == null)
+         * assert(findProperty("subproject.my_property") != null)
+         * ```
+         * ```
+         * // build.gradle.kts
+         * assert(findProperty("my_property") != null)
+         * ```
+         * - Map keys registered with [sc.properties.tags()][ExtendedPropertyConfig.tags]
+         * are skipped during the flattening:
+         * ```toml
+         * [my_tag]
+         * my_property = "Hello World"
+         * ```
+         * ```kt
+         * assert(findProperty("my_property") == null)
+         * assert(findProperty("my_tag.my_property") != null)
+         *
+         * sc.properties.tags("my_tag")
+         * assert(findProperty("my_property") != null)
+         * ```
+         * - Other keys are flattened:
+         * ```toml
+         * key1.value = "Hello"
+         * key2 = {
+         *   value = "World"
+         * }
+         * ```
+         * ```kt
+         * // build.gradle.kts
+         * assert(findProperty("key1.value") != null)
+         * assert(findProperty("key2.value") != null)
+         * ```
+         *
+         * The default supported formats are `toml`, `json`, `json5`, `yml` and `yaml`,
+         * which are automatically resolved when using the [properties] function without
+         * the [converter] parameter.
+         *
+         * In other cases, a custom converter can be implemented as long as the underlying format
+         * is compatible with Json types.
+         * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties">Centralized Properties Documentation</a>
          */
         public abstract fun load(file: File, converter: JsonConverter = determineConverter(file))
 
@@ -76,7 +206,7 @@ public interface ExtendedPropertyProvider {
          * Tags represent table keys, which should not be flattened as described in the [load] specification.
          *
          * Tags are applied both to already loaded and future property files.
-         * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#property-tags">Wiki link</a>
+         * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#property-tags">Property Tags Documentation</a>
          */
         public abstract fun tags(vararg tags: String)
     }

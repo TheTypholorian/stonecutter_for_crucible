@@ -34,14 +34,13 @@ private annotation class SettingsDsl
  * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params">Wiki #1</a>
  * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings">Wiki #2</a>
  */
-// TODO: Write the converter method docs
 @SettingsDsl @OptIn(StonecutterExperimentalAPI::class)
 public abstract class StonecutterSettingsExtension(
     protected val objects: ObjectFactory,
     protected val providers: ProviderFactory
 ) : VersionOperations<Version>, ExtendedPropertyProvider {
     /**
-     * Defines a shared [Action] for configuring instances of [TreeBuilder].
+     * Shared [Action] for configuring instances of [TreeBuilder].
      *
      * This action is applied when using [create] methods with no explicit configuration,
      * and can be added manually with `shared.execute(this)` in a [TreeBuilder] scope.
@@ -50,25 +49,33 @@ public abstract class StonecutterSettingsExtension(
         private set
 
     /**
-     * Defines the name for the shared buildscript for all versions.
-     * It cannot be set to `stonecutter.gradle[.kts]`.
-     * When unset, prefers `build.gradle.kts`, but uses `build.gradle` if it already exists.
+     * Name for the shared build script across all subprojects.
      *
-     * This value applies to all registered trees, and can be overridden with [TreeBuilder.centralScript], [TreeBuilder.mapBuilds]
-     * or [NodeBuilder.buildscript][dev.kikugie.stonecutter.settings.tree.NodeBuilder.buildscript].
+     * Can't be set to `stonecutter.gradle(.kts)`.
+     * Defaults to `build.gradle.kts`, but uses `build.gradle` if the file already exists.
+     *
+     * This value applies to all registered project trees, and can be overridden with (by increasing priority):
+     * 1. [TreeBuilder.centralScript]
+     * 2. [TreeBuilder.mapBuilds]
+     * 3. [NodeBuilder.buildscript][dev.kikugie.stonecutter.settings.tree.NodeBuilder.buildscript]
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#buildscript-mapping">Build Script Mapping Documentation</a>
      */
     public abstract val centralScript: Property<String>
 
     /**
-     * Configures whenever `stonecutter.gradle.kts` or `stonecutter.gradle` is used.
-     * When unset, prefers the `.kts` variant, but uses `.gradle` one if it already exists.
+     * Kotlin DSL switch for `stonecutter.gradle.kts`/`stonecutter.gradle`.
      *
-     * This value applies to all registered trees, and can be overridden with
+     * Defaults to `true`, and respectively `stonecutter.gradle.kts`.
+     *
+     * This value applies to all registered project trees, and can be overridden with
      * [TreeBuilder.kotlinController]
      */
     public abstract val kotlinController: Property<Boolean>
 
-    /**Utility extension for strictly parsing and comparing semantic versions.*/
+    /**
+     * Accessor for strictly SemVer version evaluation.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/build#arbitrary-operations">Semantic Operations Documentation</a>
+     */
     public val semantics: VersionOperations<SemanticVersion> get() = SemanticOperations
 
     /* Shared configuration */
@@ -84,61 +91,127 @@ public abstract class StonecutterSettingsExtension(
 
     /* File configuration */
     /**
-     * Configures the specified [project] to be versioned with setup provided by [file].
-     * @see ProjectReference
+     * Registers the given [project] as multi-versioned with Stonecutter.
+     *
+     * The subprojects and their associated versions are provided by the [file] contents.
+     * The supported formats are `toml`, `json`, `json5`, `yml` and `yaml`.
+     *
+     * The file's parameters may be overridden with the [action] parameter or the [shared]
+     * configuration.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
     public fun create(project: ProjectReference, file: File, action: Action<TreeBuilder> = shared): Unit =
         create(listOf(project), readTreeSettings(file, determineConverter(file), action))
 
+    /**
+     * Registers the given [project] as multi-versioned with Stonecutter.
+     *
+     * The subprojects and their associated versions are provided by the [file] contents.
+     * The data is converted to Json types with the custom [converter].
+     * For default-supported formats use the overload without the converter parameter.
+     *
+     * The file's parameters may be overridden with the [action] parameter or the [shared]
+     * configuration.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
+     */
     @JvmOverloads
     public fun create(project: ProjectReference, file: File, converter: JsonConverter, action: Action<TreeBuilder> = shared): Unit =
         create(listOf(project), readTreeSettings(file, converter, action))
 
     /**
-     * Configures the specified [projects] to be versioned with setup provided by [file].
-     * @see ProjectReference
+     * Registers the given [projects] as multi-versioned with Stonecutter.
+     *
+     * The subprojects and their associated versions are provided by the [file] contents.
+     * The supported formats are `toml`, `json`, `json5`, `yml` and `yaml`.
+     *
+     * The file's parameters may be overridden with the [action] parameter or the [shared]
+     * configuration.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
     public fun create(vararg projects: ProjectReference, file: File, action: Action<TreeBuilder> = shared): Unit =
         create(projects.asIterable(), readTreeSettings(file, determineConverter(file), action))
 
+    /**
+     * Registers the given [projects] as multi-versioned with Stonecutter.
+     *
+     * The subprojects and their associated versions are provided by the [file] contents.
+     * The data is converted to Json types with the custom [converter].
+     * For default-supported formats use the overload without the converter parameter.
+     *
+     * The file's parameters may be overridden with the [action] parameter or the [shared]
+     * configuration.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
+     */
     @JvmOverloads
     public fun create(vararg projects: ProjectReference, file: File, converter: JsonConverter, action: Action<TreeBuilder> = shared): Unit =
         create(projects.asIterable(), readTreeSettings(file, converter, action))
 
     /**
-     * Configures the specified [projects] to be versioned with setup provided by [file].
-     * @see ProjectReference
+     * Registers the given [projects] as multi-versioned with Stonecutter.
+     *
+     * The subprojects and their associated versions are provided by the [file] contents.
+     * The supported formats are `toml`, `json`, `json5`, `yml` and `yaml`.
+     *
+     * The file's parameters may be overridden with the [action] parameter or the [shared]
+     * configuration.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
     public fun create(projects: Iterable<ProjectReference>, file: File, action: Action<TreeBuilder> = shared): Unit =
         create(projects, readTreeSettings(file, determineConverter(file), action))
 
+    /**
+     * Registers the given [projects] as multi-versioned with Stonecutter.
+     *
+     * The subprojects and their associated versions are provided by the [file] contents.
+     * The data is converted to Json types with the custom [converter].
+     * For default-supported formats use the overload without the converter parameter.
+     *
+     * The file's parameters may be overridden with the [action] parameter or the [shared]
+     * configuration.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
+     */
     @JvmOverloads
     public fun create(projects: Iterable<ProjectReference>, file: File, converter: JsonConverter, action: Action<TreeBuilder> = shared): Unit =
         create(projects, readTreeSettings(file, converter, action))
 
     /* Action configuration */
     /**
-     * Configures the specified [project] to be versioned with setup provided by [action] or [shared].
-     * @see ProjectReference
+     * Registers the given [project] as multi-versioned with Stonecutter.
+     *
+     * The subprojects and their associated versions are configured in the provided [action],
+     * or the [shared] one.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
      */
     @JvmOverloads
     public fun create(project: ProjectReference, action: Action<TreeBuilder> = shared): Unit =
         create(listOf(project), action)
 
     /**
-     * Configures the specified [projects] to be versioned with setup provided by [action] or [shared].
-     * @see ProjectReference
+     * Registers the given [projects] as multi-versioned with Stonecutter.
+     *
+     * The subprojects and their associated versions are configured in the provided [action],
+     * or the [shared] one.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
      */
     @JvmOverloads
     public fun create(vararg projects: ProjectReference, action: Action<TreeBuilder> = shared): Unit =
         create(projects.asIterable(), action)
 
     /**
-     * Configures the specified [projects] to be versioned with setup provided by [action] or [shared].
-     * @see ProjectReference
+     * Registers the given [projects] as multi-versioned with Stonecutter.
+     *
+     * The subprojects and their associated versions are configured in the provided [action],
+     * or the [shared] one.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
      */
     @JvmOverloads
     public fun create(projects: Iterable<ProjectReference>, action: Action<TreeBuilder> = shared): Unit =
