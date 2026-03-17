@@ -32,6 +32,9 @@ public sealed interface ReplacementContainer {
      */
     public fun string(action: Action<StringReplacementSpec>)
 
+    public fun string(id: Identifier, action: Action<StringReplacementSpec>): Unit =
+        string { this.id.set(id); action.execute(this) }
+
     public fun string(direction: Boolean, action: Action<StringReplacementSpec>): Unit =
         string { this.direction.set(direction); action.execute(this) }
 
@@ -39,10 +42,13 @@ public sealed interface ReplacementContainer {
         string { this.direction.set(direction); this.id.set(id); action.execute(this) }
 
     @Deprecated("Use the direction-first variant `string(direction, id)`", replaceWith = ReplaceWith("string(direction, id, action)"))
-    public fun string(id: Identifier, direction: Boolean? = null, action: Action<StringReplacementSpec>): Unit =
+    public fun string(id: Identifier, direction: Boolean?, action: Action<StringReplacementSpec>): Unit =
         string { this.id.set(id); this.direction.set(direction); action.execute(this) }
 
     public fun regex(action: Action<RegexReplacementSpec>)
+
+    public fun regex(id: Identifier, action: Action<RegexReplacementSpec>): Unit =
+        regex { this.id.set(id); action.execute(this) }
 
     public fun regex(direction: Boolean, action: Action<RegexReplacementSpec>): Unit =
         regex { this.direction.set(direction); action.execute(this) }
@@ -51,7 +57,7 @@ public sealed interface ReplacementContainer {
         regex { this.direction.set(direction); this.id.set(id); action.execute(this) }
 
     @Deprecated("Use the direction-first variant `regex(direction, id)`", replaceWith = ReplaceWith("regex(direction, id, action)"))
-    public fun regex(id: Identifier, direction: Boolean? = null, action: Action<RegexReplacementSpec>): Unit =
+    public fun regex(id: Identifier, direction: Boolean?, action: Action<RegexReplacementSpec>): Unit =
         regex { this.id.set(id); this.direction.set(direction); action.execute(this) }
 
     /**

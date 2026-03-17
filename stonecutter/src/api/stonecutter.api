@@ -125,15 +125,15 @@ public abstract class dev/kikugie/stonecutter/build/config/DependencyContainer :
 
 public abstract interface class dev/kikugie/stonecutter/build/config/ReplacementContainer {
 	public fun regex (Ljava/lang/String;Ljava/lang/Boolean;Lorg/gradle/api/Action;)V
+	public fun regex (Ljava/lang/String;Lorg/gradle/api/Action;)V
 	public abstract fun regex (Lorg/gradle/api/Action;)V
 	public fun regex (ZLjava/lang/String;Lorg/gradle/api/Action;)V
 	public fun regex (ZLorg/gradle/api/Action;)V
-	public static synthetic fun regex$default (Ldev/kikugie/stonecutter/build/config/ReplacementContainer;Ljava/lang/String;Ljava/lang/Boolean;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public fun string (Ljava/lang/String;Ljava/lang/Boolean;Lorg/gradle/api/Action;)V
+	public fun string (Ljava/lang/String;Lorg/gradle/api/Action;)V
 	public abstract fun string (Lorg/gradle/api/Action;)V
 	public fun string (ZLjava/lang/String;Lorg/gradle/api/Action;)V
 	public fun string (ZLorg/gradle/api/Action;)V
-	public static synthetic fun string$default (Ldev/kikugie/stonecutter/build/config/ReplacementContainer;Ljava/lang/String;Ljava/lang/Boolean;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 }
 
 public abstract interface class dev/kikugie/stonecutter/build/config/ReplacementContainer$RegexReplacementSpec {
@@ -801,6 +801,8 @@ public abstract class dev/kikugie/stonecutter/settings/tree/BranchBuilder {
 	public fun <init> ()V
 	public abstract fun getBranchScript ()Lorg/gradle/api/provider/Property;
 	public abstract fun inherit ()V
+	public final fun vers (Ljava/lang/String;)Ldev/kikugie/stonecutter/settings/tree/NodeBuilder;
+	public final fun vers (Ljava/lang/String;Ljava/lang/String;)Ldev/kikugie/stonecutter/settings/tree/NodeBuilder;
 	public final fun version (Ljava/lang/String;)Ldev/kikugie/stonecutter/settings/tree/NodeBuilder;
 	public final fun version (Ljava/lang/String;Ljava/lang/String;)Ldev/kikugie/stonecutter/settings/tree/NodeBuilder;
 	public final fun versionPairs (Ljava/lang/Iterable;)Ldev/kikugie/stonecutter/settings/tree/NodeBuilder;
