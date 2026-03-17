@@ -13,6 +13,10 @@ class ExtPropsTest : GradleTest, ShouldSpec({
         build.run()
     }
 
+    should("read default in parameters") { _, build ->
+        build.run()
+    }
+
     should("read default in build") { _, build ->
         build.run()
     }
