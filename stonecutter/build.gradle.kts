@@ -32,6 +32,7 @@ dependencies {
     implementation(common.kotlin.serialization)
     implementation(common.kotlin.serialization.json)
     implementation(common.kotlin.serialization.toml)
+    implementation(common.kotlin.serialization.yaml)
 
     testImplementation(gradleTestKit())
     testImplementation(common.kotest.runner)

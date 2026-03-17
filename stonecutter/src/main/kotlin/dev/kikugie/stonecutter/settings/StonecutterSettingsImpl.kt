@@ -3,6 +3,7 @@ package dev.kikugie.stonecutter.settings
 import dev.kikugie.commons.takeAs
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
+import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
@@ -13,6 +14,7 @@ import dev.kikugie.stonecutter.controller.tree.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.createContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
+import dev.kikugie.stonecutter.data.deserialization.Toml2JsonConverter
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
@@ -109,11 +111,12 @@ private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: B
     }.let(registry::onTaskCompletion)
 }
 
+@OptIn(StonecutterExperimentalAPI::class)
 @Suppress("UnstableApiUsage")
 private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): ExtendedPropertyProvider.ExtendedPropertyConfig = with(settings) {
     val hierarchy = rootProject.hierarchy
     val ext = gradle.extensions.create<ExtendedPropertiesStorage>("ExtendedProperties")
-    ext.load(layout.settingsDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), hierarchy)
+    ext.load(layout.settingsDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), Toml2JsonConverter, hierarchy)
         ?.apply(hierarchy, extra)
     ExtendedPropertyConfigImpl(hierarchy, extra, ext, objects)
 }

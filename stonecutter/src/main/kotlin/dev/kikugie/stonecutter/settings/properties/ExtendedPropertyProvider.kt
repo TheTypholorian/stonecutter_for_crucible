@@ -1,6 +1,11 @@
+@file:OptIn(StonecutterExperimentalAPI::class)
+
 package dev.kikugie.stonecutter.settings.properties
 
+import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.ProjectHierarchy
+import dev.kikugie.stonecutter.data.deserialization.JsonConverter
+import dev.kikugie.stonecutter.data.deserialization.determineConverter
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider.ExtendedPropertyConfig
 import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Action
@@ -9,6 +14,7 @@ import org.gradle.api.plugins.ExtraPropertiesExtension
 import java.io.File
 import java.io.FileNotFoundException
 
+// TODO: Write the converter method docs
 public interface ExtendedPropertyProvider {
     /**
      * Configuration holder for extended Gradle properties.
@@ -40,7 +46,9 @@ public interface ExtendedPropertyProvider {
      */
     public infix fun properties(file: File): Unit = properties.load(file)
 
-    public interface ExtendedPropertyConfig {
+    public fun properties(file: File, converter: JsonConverter): Unit = properties.load(file, converter)
+
+    public abstract class ExtendedPropertyConfig {
         /**
          * Loads additional properties from a TOML [file].
          *
@@ -60,7 +68,7 @@ public interface ExtendedPropertyProvider {
          *   ```
          * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties">Wiki link</a>
          */
-        public fun load(file: File)
+        public abstract fun load(file: File, converter: JsonConverter = determineConverter(file))
 
         /**
          * Adds a list of tags to the config.
@@ -70,7 +78,7 @@ public interface ExtendedPropertyProvider {
          * Tags are applied both to already loaded and future property files.
          * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#property-tags">Wiki link</a>
          */
-        public fun tags(vararg tags: String)
+        public abstract fun tags(vararg tags: String)
     }
 }
 
@@ -79,7 +87,7 @@ internal class ExtendedPropertyConfigImpl(
     val ext: ExtraPropertiesExtension,
     val props: ExtendedPropertiesStorage,
     val objects: ObjectFactory,
-) : ExtendedPropertyConfig {
+) : ExtendedPropertyConfig() {
     private val tags: MutableSet<String> = mutableSetOf()
 
     override fun tags(vararg tags: String) {
@@ -87,8 +95,8 @@ internal class ExtendedPropertyConfigImpl(
         this.tags += tags
     }
 
-    override fun load(file: File) {
-        val result = props.load(file.toRegularFile(objects), hierarchy)
+    override fun load(file: File, converter: JsonConverter) {
+        val result = props.load(file.toRegularFile(objects), converter, hierarchy)
             ?: throw FileNotFoundException(file.path)
         result.apply(hierarchy, ext, tags)
     }

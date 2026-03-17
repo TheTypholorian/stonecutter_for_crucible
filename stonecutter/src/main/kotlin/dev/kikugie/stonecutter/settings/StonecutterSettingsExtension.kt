@@ -3,13 +3,16 @@ package dev.kikugie.stonecutter.settings
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
+import dev.kikugie.stonecutter.StonecutterExperimentalAPI
+import dev.kikugie.stonecutter.data.deserialization.JsonConverter
+import dev.kikugie.stonecutter.data.deserialization.deserialize
+import dev.kikugie.stonecutter.data.deserialization.determineConverter
 import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
 import dev.kikugie.stonecutter.settings.tree.SerializedTree
 import dev.kikugie.stonecutter.settings.tree.TreeBuilder
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
-import dev.kikugie.stonecutter.util.SCJSON
 import dev.kikugie.stonecutter.util.toRegularFile
 import kotlinx.serialization.ExperimentalSerializationApi
 import org.gradle.api.Action
@@ -31,7 +34,8 @@ private annotation class SettingsDsl
  * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params">Wiki #1</a>
  * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings">Wiki #2</a>
  */
-@SettingsDsl
+// TODO: Write the converter method docs
+@SettingsDsl @OptIn(StonecutterExperimentalAPI::class)
 public abstract class StonecutterSettingsExtension(
     protected val objects: ObjectFactory,
     protected val providers: ProviderFactory
@@ -85,7 +89,11 @@ public abstract class StonecutterSettingsExtension(
      */
     @JvmOverloads
     public fun create(project: ProjectReference, file: File, action: Action<TreeBuilder> = shared): Unit =
-        create(listOf(project), readTreeSettings(file, action))
+        create(listOf(project), readTreeSettings(file, determineConverter(file), action))
+
+    @JvmOverloads
+    public fun create(project: ProjectReference, file: File, converter: JsonConverter, action: Action<TreeBuilder> = shared): Unit =
+        create(listOf(project), readTreeSettings(file, converter, action))
 
     /**
      * Configures the specified [projects] to be versioned with setup provided by [file].
@@ -93,7 +101,11 @@ public abstract class StonecutterSettingsExtension(
      */
     @JvmOverloads
     public fun create(vararg projects: ProjectReference, file: File, action: Action<TreeBuilder> = shared): Unit =
-        create(projects.asIterable(), readTreeSettings(file, action))
+        create(projects.asIterable(), readTreeSettings(file, determineConverter(file), action))
+
+    @JvmOverloads
+    public fun create(vararg projects: ProjectReference, file: File, converter: JsonConverter, action: Action<TreeBuilder> = shared): Unit =
+        create(projects.asIterable(), readTreeSettings(file, converter, action))
 
     /**
      * Configures the specified [projects] to be versioned with setup provided by [file].
@@ -101,7 +113,11 @@ public abstract class StonecutterSettingsExtension(
      */
     @JvmOverloads
     public fun create(projects: Iterable<ProjectReference>, file: File, action: Action<TreeBuilder> = shared): Unit =
-        create(projects, readTreeSettings(file, action))
+        create(projects, readTreeSettings(file, determineConverter(file), action))
+
+    @JvmOverloads
+    public fun create(projects: Iterable<ProjectReference>, file: File, converter: JsonConverter, action: Action<TreeBuilder> = shared): Unit =
+        create(projects, readTreeSettings(file, converter, action))
 
     /* Action configuration */
     /**
@@ -132,14 +148,12 @@ public abstract class StonecutterSettingsExtension(
     protected abstract fun create(ref: ProjectReference, builder: TreeBuilder)
 
     @OptIn(ExperimentalSerializationApi::class)
-    private fun readTreeSettings(file: File, action: Action<TreeBuilder>): Action<TreeBuilder> {
-        require(file.extension.let { it == "json" || it == "json5" }) {
-            "Version setup file must be in JSON or JSON5 format.\nSee https://stonecutter.kikugie.dev/wiki/config/projects."
-        }
-        val provider = providers.fileContents(file.toRegularFile(objects))
-            .asText.map<SerializedTree>(SCJSON::decodeFromString)
+    private fun readTreeSettings(file: File, converter: JsonConverter, action: Action<TreeBuilder>): Action<TreeBuilder> {
+        val contents = providers.fileContents(file.toRegularFile(objects)).asText.orNull
+            ?: throw NoSuchFileException(file)
+        val tree: SerializedTree = converter.deserialize(contents)
         return Action {
-            provider.orNull?.applyTo(this)
+            tree.applyTo(this)
             action.execute(this)
         }
     }

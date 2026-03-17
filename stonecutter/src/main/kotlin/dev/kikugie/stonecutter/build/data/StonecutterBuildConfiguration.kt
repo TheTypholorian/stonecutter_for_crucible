@@ -6,6 +6,7 @@ import dev.kikugie.stitcher.issue.ProblemConsumer
 import dev.kikugie.stitcher.issue.ProblemReport
 import dev.kikugie.stitcher.issue.ProblemSeverity
 import dev.kikugie.stitcher.transformer.TransformParameters
+import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.build.config.ConstantContainer
@@ -23,6 +24,7 @@ import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsView
 import dev.kikugie.stonecutter.controller.tree.ParametersModel
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
+import dev.kikugie.stonecutter.data.deserialization.Toml2JsonConverter
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
@@ -88,9 +90,10 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     }
 }
 
+@OptIn(StonecutterExperimentalAPI::class)
 private fun setupDefaultProperties(project: Project, objects: ObjectFactory): ExtendedPropertyProvider.ExtendedPropertyConfig = with(project) {
     val ext = gradle.the<ExtendedPropertiesStorage>()
-    ext.load(layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), hierarchy)
+    ext.load(layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), Toml2JsonConverter, hierarchy)
     ext.apply(hierarchy, extra)
     ExtendedPropertyConfigImpl(hierarchy, extra, ext, objects)
 }
