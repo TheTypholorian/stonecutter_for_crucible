@@ -3,7 +3,6 @@ package dev.kikugie.stonecutter.settings
 import dev.kikugie.commons.takeAs
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
@@ -39,7 +38,6 @@ import org.gradle.kotlin.dsl.registerIfAbsent
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
-@OptIn(StonecutterExperimentalAPI::class)
 internal abstract class StonecutterSettingsImpl @Inject constructor(
     internal val settings: Settings,
     registry: BuildEventsListenerRegistry,
@@ -111,7 +109,7 @@ private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: B
     }.let(registry::onTaskCompletion)
 }
 
-@OptIn(StonecutterExperimentalAPI::class) @Suppress("UnstableApiUsage")
+@Suppress("UnstableApiUsage")
 private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): ExtendedPropertyProvider.ExtendedPropertyConfig = with(settings) {
     val hierarchy = rootProject.hierarchy
     val ext = gradle.extensions.create<ExtendedPropertiesStorage>("ExtendedProperties")

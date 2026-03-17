@@ -6,7 +6,6 @@ import dev.kikugie.stitcher.issue.ProblemConsumer
 import dev.kikugie.stitcher.issue.ProblemReport
 import dev.kikugie.stitcher.issue.ProblemSeverity
 import dev.kikugie.stitcher.transformer.TransformParameters
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.build.config.ConstantContainer
@@ -46,7 +45,7 @@ import java.io.File
 import java.nio.file.NoSuchFileException
 import javax.inject.Inject
 
-@OptIn(StonecutterInternalAPI::class, StonecutterExperimentalAPI::class)
+@OptIn(StonecutterInternalAPI::class)
 internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override val node: ProjectNode,
     factory: ProviderFactory,
@@ -89,7 +88,6 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     }
 }
 
-@OptIn(StonecutterExperimentalAPI::class)
 private fun setupDefaultProperties(project: Project, objects: ObjectFactory): ExtendedPropertyProvider.ExtendedPropertyConfig = with(project) {
     val ext = gradle.the<ExtendedPropertiesStorage>()
     ext.load(layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), hierarchy)

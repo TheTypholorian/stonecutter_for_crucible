@@ -1,6 +1,5 @@
 package dev.kikugie.stonecutter.settings.properties
 
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider.ExtendedPropertyConfig
 import dev.kikugie.stonecutter.util.toRegularFile
@@ -10,7 +9,6 @@ import org.gradle.api.plugins.ExtraPropertiesExtension
 import java.io.File
 import java.io.FileNotFoundException
 
-@OptIn(StonecutterExperimentalAPI::class)
 public interface ExtendedPropertyProvider {
     /**
      * Configuration holder for extended Gradle properties.
@@ -40,10 +38,8 @@ public interface ExtendedPropertyProvider {
      *   ```
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties">Wiki link</a>
      */
-    @StonecutterExperimentalAPI
     public infix fun properties(file: File): Unit = properties.load(file)
 
-    @StonecutterExperimentalAPI
     public interface ExtendedPropertyConfig {
         /**
          * Loads additional properties from a TOML [file].
@@ -78,7 +74,6 @@ public interface ExtendedPropertyProvider {
     }
 }
 
-@OptIn(StonecutterExperimentalAPI::class)
 internal class ExtendedPropertyConfigImpl(
     val hierarchy: ProjectHierarchy,
     val ext: ExtraPropertiesExtension,
