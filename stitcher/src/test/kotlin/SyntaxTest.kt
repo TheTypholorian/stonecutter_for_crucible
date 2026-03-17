@@ -267,78 +267,25 @@ class SyntaxTest : FreeSpec({
         }
     }
 
-    // TODO: https://codeberg.org/stonecutter/stonecutter/issues/23
-    "read-only comments".config(enabled = false) - {
-        "html javadoc" {
-            @Language("JAVA") val content = """
-                //? if false {
-                /**
-                 * Example docs.
-                 */
-                public void example();
-                //?}
-            """.trimIndent()
-            @Language("JAVA") val expected = """
-                //? if false {
-                /**
-                 * Example docs.
-                 */
-                /*public void example();
-                *///?}
-            """.trimIndent()
-            process(content) shouldBe expected
+    "token grouping" - {
+        "version core spaces" {
+            val content = "//? 1 . 1 \nok"
+            shouldFail { process(content) { dependencies[""] = SemanticVersion(1, 0) } }
         }
 
-        "markdown javadoc" {
-            @Language("JAVA") val content = """
-                //? if false {
-                /// Example docs.
-                public void example();
-                //?}
-            """.trimIndent()
-            @Language("JAVA") val expected = """
-                //? if false {
-                /// Example docs.
-                /*public void example();
-                *///?}
-            """.trimIndent()
-            process(content) shouldBe expected
+        "pre-release spaces" {
+            val content = "//? 1.1-alpha . beta \nok"
+            shouldFail { process(content) { dependencies[""] = SemanticVersion(1, 0) } }
         }
 
-        "scope extension" {
-            @Language("JAVA") val content = """
-                //? if false
-                /// Example docs.
-                public void example();
-            """.trimIndent()
-            @Language("JAVA") val expected = """
-                //? if false
-                /// Example docs.
-                /*public void example();*/
-            """.trimIndent()
-            process(content) shouldBe expected
+        "build metadata spaces" {
+            val content = "//? 1.1+alpha . beta \nok"
+            shouldFail { process(content) { dependencies[""] = SemanticVersion(1, 0) } }
         }
 
-        "long scopes" {
-            @Language("JAVA") val content = """
-                //? if false {
-                /// Example docs #1.
-                public void example1();
-                
-                /// Example docs #2.
-                public void example2();
-                //?}
-            """.trimIndent()
-            @Language("JAVA") val expected = """
-                //? if false {
-                /// Example docs #1.
-                /*public void example1();
-                
-                *//// Example docs #2.
-                /*public void example2();
-                *///?}
-            """.trimIndent()
-            process(content) shouldBe expected
+        "semver components spaces" {
+            val content = "//? 1.1 - pre-release + build-metadata \nok"
+            shouldFail { process(content) { dependencies[""] = SemanticVersion(1, 0) } }
         }
     }
 
