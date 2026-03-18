@@ -5,11 +5,10 @@ package dev.kikugie.stonecutter.settings.properties
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.deserialization.JsonConverter
-import dev.kikugie.stonecutter.data.resolve
+import dev.kikugie.stonecutter.data.deserialization.JsonVisitor
+import dev.kikugie.stonecutter.data.deserialization.accept
 import dev.kikugie.stonecutter.data.startsWith
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.gradle.api.Named
@@ -20,6 +19,7 @@ import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.ExtraPropertiesExtension
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.kotlin.dsl.namedDomainObjectList
+import java.util.*
 import javax.inject.Inject
 
 internal abstract class ExtendedPropertiesStorage @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory) {
@@ -60,45 +60,61 @@ internal class ExtendedProjectProperties(
 
     fun apply(target: ProjectHierarchy, ext: ExtraPropertiesExtension, tags: Set<String> = emptySet()) {
         for (source in projects) if (target.startsWith(source))
-            JsonVisitor(source, target, ext::set, tags).visit(obj)
+            obj.accept(JsonPropertyCollector(source, target, tags, ext::set), ArrayDeque())
     }
 }
 
-private data class JsonVisitor(
-    val source: ProjectHierarchy,
-    val target: ProjectHierarchy,
+internal class JsonPropertyCollector(
+    val segments: List<String>,
+    val tags: Set<String>,
     val consumer: (String, String) -> Unit,
-    val tags: Set<String> = emptySet(),
-    val prefix: String = "",
-) {
-    fun visit(obj: JsonObject) {
-        for ((k, v) in obj) v.accept(k)
+) : JsonVisitor<Deque<String>, Unit> {
+    constructor(source: ProjectHierarchy, target: ProjectHierarchy, tags: Set<String>, consumer: (String, String) -> Unit)
+        : this(source.relativize(target).split(':'), tags, consumer)
+
+    override fun visitObject(obj: JsonObject, data: Deque<String>) {
+        for ((k, v) in obj) data.with(k) {
+            v.accept(this, it)
+        }
     }
 
-    private fun visitObject(obj: JsonObject, key: String) {
-        val project = source.resolve(prefix + key)
-        val copy = when {
-            target.startsWith(project) -> copy(source = project)
-            tags.isEmpty() -> copy(prefix = "$prefix$key.")
-            key in tags -> copy(tags = emptySet())
-            else -> return visitPrimitive(JsonPrimitive(obj.toString()), key)
+    override fun visitArray(arr: JsonArray, data: Deque<String>) {
+        JsonPrimitive(arr.toString()).accept(this, data)
+    }
+
+    override fun visitPrimitive(prim: JsonPrimitive, data: Deque<String>) {
+        val path = resolve(data)
+        if (path.isNotEmpty()) consumer(path, prim.content)
+    }
+
+    override fun visitNull(data: Deque<String>) {
+        // Don't add nulls
+    }
+
+    internal fun copy(
+        consumer: (String, String) -> Unit = this.consumer,
+        tags: Set<String> = this.tags
+    ) = JsonPropertyCollector(this.segments, tags, consumer)
+
+    private fun resolve(path: Deque<String>): String = buildString {
+        var cursor = 0
+        for (element in path) when (element) {
+            segments.getOrNull(cursor) -> cursor++
+            in tags -> {
+                if (cursor > 0) cursor = -1
+            }
+            else -> {
+                append(element); append('.')
+                cursor = -1
+            }
         }
 
-        copy.visit(obj)
+        if (isNotEmpty()) deleteAt(lastIndex)
     }
 
-    private fun visitArray(arr: JsonArray, key: String) {
-        visitPrimitive(JsonPrimitive(arr.toString()), key)
-    }
-
-    private fun visitPrimitive(prim: JsonPrimitive, key: String) {
-        consumer("$prefix$key", prim.content)
-    }
-
-    private fun JsonElement.accept(key: String): Unit = when (this) {
-        is JsonObject -> visitObject(this, key)
-        is JsonPrimitive -> visitPrimitive(this, key)
-        is JsonArray -> visitArray(this, key)
-        JsonNull -> {}
+    private inline fun <T> Deque<T>.with(element: T, action: (Deque<T>) -> Unit) {
+        addLast(element)
+        action(this)
+        check(removeLast() == element) { "Invalid deque state" }
     }
 }
