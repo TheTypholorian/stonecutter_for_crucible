@@ -8,11 +8,13 @@ import dev.kikugie.stonecutter.data.deserialization.JsonConverter
 import dev.kikugie.stonecutter.data.deserialization.determineConverter
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider.ExtendedPropertyConfig
 import dev.kikugie.stonecutter.util.toRegularFile
+import kotlinx.serialization.json.JsonElement
 import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.ExtraPropertiesExtension
 import java.io.File
 import java.io.FileNotFoundException
+import kotlin.reflect.KClass
 
 public interface ExtendedPropertyProvider {
     /**
@@ -209,6 +211,25 @@ public interface ExtendedPropertyProvider {
          * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#property-tags">Property Tags Documentation</a>
          */
         public abstract fun tags(vararg tags: String)
+
+        @StonecutterExperimentalAPI
+        public abstract fun getOrNull(vararg segments: String): JsonElement?
+
+        @StonecutterExperimentalAPI
+        public operator fun get(vararg segments: String): JsonElement = requireNotNull(getOrNull(*segments)) {
+            "No element at path '${segments.joinToString(":")}'"
+        }
+
+        @StonecutterExperimentalAPI
+        public inline fun <reified T : Any> getAs(name: String): T =
+            getTypedImpl(name, T::class).getOrThrow()
+
+        @StonecutterExperimentalAPI
+        public inline fun <reified T : Any> getAsOrNull(name: String): T? =
+            getTypedImpl(name, T::class).getOrNull()
+
+        @PublishedApi
+        internal abstract fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): Result<T>
     }
 }
 
@@ -219,6 +240,13 @@ internal class ExtendedPropertyConfigImpl(
     val objects: ObjectFactory,
 ) : ExtendedPropertyConfig() {
     private val tags: MutableSet<String> = mutableSetOf()
+
+    override fun getOrNull(vararg segments: String): JsonElement? =
+        props.get(hierarchy, tags, segments.toList())
+
+    override fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): Result<T> = runCatching {
+        requireNotNull(ext[name]) { "No such property '$name'" }.toString().mapTo(cls)
+    }
 
     override fun tags(vararg tags: String) {
         props.apply(hierarchy, ext, tags.toSet() - this.tags)
@@ -231,3 +259,15 @@ internal class ExtendedPropertyConfigImpl(
         result.apply(hierarchy, ext, tags)
     }
 }
+
+@Suppress("UNCHECKED_CAST")
+private fun <T : Any> String.mapTo(cls: KClass<T>): T = when (cls) {
+    Boolean::class -> toBoolean()
+    Int::class -> toInt()
+    Long::class -> toLong()
+    Short::class -> toShort()
+    Double::class -> toDouble()
+    Float::class -> toFloat()
+    String::class -> this
+    else -> throw IllegalArgumentException("Unsupported type: $cls")
+} as T
