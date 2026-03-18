@@ -212,18 +212,103 @@ public interface ExtendedPropertyProvider {
          */
         public abstract fun tags(vararg tags: String)
 
+        /**
+         * Retrieves the property as a converted [JsonElement] by the path [segments],
+         * throwing [IllegalArgumentException] if no element is found.
+         *
+         * This function works **only** on property files registered via Stonecutter (such as in Json, Toml, or Yaml formats).
+         * The structure of those formats is internally converted to Json elements.
+         *
+         * When querying the element, the segments are evaluated as follows:
+         * - Each segment must be map key or an array index:
+         * ```toml
+         * items = [true, "1"]
+         * ```
+         * ```kt
+         * val first: JsonPrimitive = sc.properties.raw("items", "0").jsonPrimitive
+         * assert(first.toString() == "true")
+         *
+         * val second: JsonPrimitive = properties.raw("items", "1").jsonPrimitive
+         * assert(second.toString() == "\"1\"")
+         * assert(second.removeSurrounding("\").toInt() == 1)
+         * ```
+         * - Project paths and tags are skipped:
+         * ```toml
+         * ["1.21.1"]
+         * tag.item = "Hello!"
+         * ```
+         * ```kt
+         * assert(sc.current.project == "1.21.1")
+         *
+         * sc.properties.tags("tag")
+         *
+         * val item: JsonPrimitive = sc.properties.raw("item").jsonPrimitive
+         * assert(item.toString() == "\"Hello!\"")
+         * ```
+         * - The deepest match wins:
+         * ```toml
+         * item = "Hello!"
+         *
+         * ["1.21.1"]
+         * item = [1, 2, 3]
+         * ```
+         * ```kt
+         * assert(sc.current.project == "1.21.1")
+         *
+         * val item: JsonElement = sc.properties.raw("item")
+         * assert(item is JsonArray)
+         * ```
+         *
+         * Note that this function is intended to be used to pass serializable values
+         * from properties to tasks. All returned elements can be converted to valid
+         * Json with [JsonElement.toString].
+         * ```
+         */
         @StonecutterExperimentalAPI
         public fun raw(vararg segments: String): JsonElement = requireNotNull(rawOrNull(*segments)) {
             "No element at path '${segments.joinToString(":")}'"
         }
 
+        /**
+         * Retrieves the property as a converted [JsonElement] by the path [segments],
+         * returning `null` if no element is found.
+         *
+         * This function works **only** on property files registered via Stonecutter (such as in Json, Toml, or Yaml formats).
+         * The structure of those formats is internally converted to Json elements.
+         *
+         * For the element resolution specifics, read the non-nullable [raw] function documentation.
+         *
+         * Note that this function is intended to be used to pass serializable values
+         * from properties to tasks. All returned elements can be converted to valid
+         * Json with [JsonElement.toString].
+         * ```
+         */
         @StonecutterExperimentalAPI
         public abstract fun rawOrNull(vararg segments: String): JsonElement?
 
+        /**
+         * Retrieves a property with the given [name], converted to the [T] **primitive** type.
+         *
+         * This function operates on the [ExtraPropertiesExtension], meaning even properties
+         * defined via Gradle's regular mechanisms are available.
+         *
+         * To convert the returned value, it's stringified and then parsed as the required type.
+         * The function throws [IllegalArgumentException] or [NumberFormatException]
+         * if the property doesn't exist or can't be converted.
+         */
         @StonecutterExperimentalAPI
         public inline operator fun <reified T : Any> get(name: String): T =
             getTypedImpl(name, T::class).getOrThrow()
 
+        /**
+         * Retrieves a property with the given [name], converted to the [T] **primitive** type.
+         *
+         * This function operates on the [ExtraPropertiesExtension], meaning even properties
+         * defined via Gradle's regular mechanisms are available.
+         *
+         * To convert the returned value, it's stringified and then parsed as the required type.
+         * The function throws returns `null` if the property doesn't exist or can't be converted.
+         */
         @StonecutterExperimentalAPI
         public inline fun <reified T : Any> getOrNull(name: String): T? =
             getTypedImpl(name, T::class).getOrNull()
@@ -261,7 +346,7 @@ internal class ExtendedPropertyConfigImpl(
 
     @Suppress("UNCHECKED_CAST")
     private fun <T : Any> String.mapTo(cls: KClass<T>): T = when (cls) {
-        Boolean::class -> toBoolean()
+        Boolean::class -> toBooleanStrict()
         Int::class -> toInt()
         Long::class -> toLong()
         Short::class -> toShort()
