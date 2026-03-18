@@ -8,9 +8,8 @@ import dev.kikugie.stonecutter.data.deserialization.JsonConverter
 import dev.kikugie.stonecutter.data.deserialization.JsonVisitor
 import dev.kikugie.stonecutter.data.deserialization.accept
 import dev.kikugie.stonecutter.data.startsWith
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
+import dev.kikugie.stonecutter.settings.properties.JsonElementRetriever.GetJsonResult
+import kotlinx.serialization.json.*
 import org.gradle.api.Named
 import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.file.RegularFile
@@ -58,17 +57,24 @@ internal class ExtendedProjectProperties(
 
     override fun getName(): String = path
 
+    fun get(target: ProjectHierarchy, tags: Set<String>, path: List<String>): JsonElement? {
+        var candidate = GetJsonResult(0)
+        for (source in projects) if (target.startsWith(source)) {
+            val result = obj.accept(JsonElementRetriever(source, target, tags, path), ArrayDeque())
+            if (candidate.element == null && result.element == null) candidate = result
+            else if (result.element != null && result.depth >= candidate.depth) candidate = result
+        }
+        return candidate.element
+    }
+
     fun apply(target: ProjectHierarchy, ext: ExtraPropertiesExtension, tags: Set<String> = emptySet()) {
         for (source in projects) if (target.startsWith(source))
             obj.accept(JsonPropertyCollector(source, target, tags, ext::set), ArrayDeque())
     }
 }
 
-internal class JsonPropertyCollector(
-    val segments: List<String>,
-    val tags: Set<String>,
-    val consumer: (String, String) -> Unit,
-) : JsonVisitor<Deque<String>, Unit> {
+internal class JsonPropertyCollector(val segments: List<String>, val tags: Set<String>, val consumer: (String, String) -> Unit) :
+    JsonVisitor<Deque<String>, Unit> {
     constructor(source: ProjectHierarchy, target: ProjectHierarchy, tags: Set<String>, consumer: (String, String) -> Unit)
         : this(source.relativize(target).split(':'), tags, consumer)
 
@@ -83,7 +89,7 @@ internal class JsonPropertyCollector(
     }
 
     override fun visitPrimitive(prim: JsonPrimitive, data: Deque<String>) {
-        val path = resolve(data)
+        val path = data.toPath()
         if (path.isNotEmpty()) consumer(path, prim.content)
     }
 
@@ -91,18 +97,14 @@ internal class JsonPropertyCollector(
         // Don't add nulls
     }
 
-    internal fun copy(
-        consumer: (String, String) -> Unit = this.consumer,
-        tags: Set<String> = this.tags
-    ) = JsonPropertyCollector(this.segments, tags, consumer)
-
-    private fun resolve(path: Deque<String>): String = buildString {
+    private fun Deque<String>.toPath(): String = buildString {
         var cursor = 0
-        for (element in path) when (element) {
+        for (element in this@toPath) when (element) {
             segments.getOrNull(cursor) -> cursor++
             in tags -> {
                 if (cursor > 0) cursor = -1
             }
+
             else -> {
                 append(element); append('.')
                 cursor = -1
@@ -111,10 +113,86 @@ internal class JsonPropertyCollector(
 
         if (isNotEmpty()) deleteAt(lastIndex)
     }
+}
 
-    private inline fun <T> Deque<T>.with(element: T, action: (Deque<T>) -> Unit) {
-        addLast(element)
-        action(this)
-        check(removeLast() == element) { "Invalid deque state" }
+internal class JsonElementRetriever(val segments: List<String>, val tags: Set<String>, val path: List<String>) :
+    JsonVisitor<Deque<String>, GetJsonResult> {
+    constructor(source: ProjectHierarchy, target: ProjectHierarchy, tags: Set<String>, path: List<String>)
+        : this(source.relativize(target).split(':'), tags, path)
+
+    data class GetJsonResult(val depth: Int, val element: JsonElement? = null)
+
+    override fun visitObject(obj: JsonObject, data: Deque<String>): GetJsonResult {
+        var candidate = GetJsonResult(data.lastIndex, obj.takeIf { data.hasArrived() })
+        for ((k, v) in obj) data.with(k) {
+            val result = v.accept(this, it)
+            if (candidate.element == null && result.element == null) candidate = result
+            else if (result.element != null && result.depth >= candidate.depth) candidate = result
+        }
+
+        return candidate
+    }
+
+    override fun visitArray(arr: JsonArray, data: Deque<String>): GetJsonResult {
+        var candidate = GetJsonResult(data.lastIndex, arr.takeIf { data.hasArrived() })
+        for ((i, e) in arr.withIndex()) data.with(i.toString()) {
+            val result = e.accept(this, it)
+            if (candidate.element == null && result.element == null) candidate = result
+            else if (result.element != null && result.depth >= candidate.depth) candidate = result
+        }
+
+        return candidate
+    }
+
+    override fun visitPrimitive(prim: JsonPrimitive, data: Deque<String>): GetJsonResult {
+        return GetJsonResult(data.lastIndex, prim.takeIf { data.hasArrived() })
+    }
+
+    override fun visitNull(data: Deque<String>): GetJsonResult {
+        return GetJsonResult(data.lastIndex, JsonNull.takeIf { data.hasArrived() })
+    }
+
+    private fun Deque<String>.hasArrived(): Boolean {
+        var count = 0
+        var cursor = 0
+        var state = ProgressState.INIT_WALK
+        for (element in this) when(element.also { count++ }) {
+            in tags if (state == ProgressState.INIT_WALK) -> {
+                if (cursor > 0) cursor = -1
+                count--
+            }
+
+            segments.getOrNull(cursor) if (state == ProgressState.INIT_WALK) -> {
+                cursor++
+                count--
+            }
+
+            path.first() if (state == ProgressState.INIT_WALK) -> {
+                state = ProgressState.PATH_WALK
+                cursor = 1
+            }
+
+            path.getOrNull(cursor) if (state == ProgressState.PATH_WALK) -> {
+                cursor++
+            }
+
+            else -> break
+        }
+
+        return state == ProgressState.PATH_WALK && count == path.size
+    }
+
+    private enum class ProgressState {
+        INIT_WALK, PATH_WALK
     }
 }
+
+private inline val Deque<*>.lastIndex: Int
+    get() = size - 1
+
+private inline fun <T> Deque<T>.with(element: T, action: (Deque<T>) -> Unit) {
+    addLast(element)
+    action(this)
+    check(removeLast() == element) { "Invalid deque state" }
+}
+

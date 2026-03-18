@@ -67,6 +67,9 @@ private val DO_NOTHING: (String, String) -> Unit = { _, _ -> }
 private fun visitor(source: String, target: String, vararg tags: String): JsonPropertyCollector =
     JsonPropertyCollector(ProjectHierarchy(source), ProjectHierarchy(target), tags.toSet(), DO_NOTHING)
 
+private fun JsonPropertyCollector.copy(consumer: (String, String) -> Unit) =
+    JsonPropertyCollector(this.segments, this.tags, consumer)
+
 private infix fun JsonPropertyCollector.with(@Language("JSON") json: String): Map<String, String> = buildMap {
     val copy = copy(consumer = ::set)
     SCJSON.decodeFromString<JsonObject>(json).accept(copy, ArrayDeque())
