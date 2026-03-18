@@ -213,19 +213,19 @@ public interface ExtendedPropertyProvider {
         public abstract fun tags(vararg tags: String)
 
         @StonecutterExperimentalAPI
-        public abstract fun getOrNull(vararg segments: String): JsonElement?
-
-        @StonecutterExperimentalAPI
-        public operator fun get(vararg segments: String): JsonElement = requireNotNull(getOrNull(*segments)) {
+        public fun raw(vararg segments: String): JsonElement = requireNotNull(rawOrNull(*segments)) {
             "No element at path '${segments.joinToString(":")}'"
         }
 
         @StonecutterExperimentalAPI
-        public inline fun <reified T : Any> getAs(name: String): T =
+        public abstract fun rawOrNull(vararg segments: String): JsonElement?
+
+        @StonecutterExperimentalAPI
+        public inline operator fun <reified T : Any> get(name: String): T =
             getTypedImpl(name, T::class).getOrThrow()
 
         @StonecutterExperimentalAPI
-        public inline fun <reified T : Any> getAsOrNull(name: String): T? =
+        public inline fun <reified T : Any> getOrNull(name: String): T? =
             getTypedImpl(name, T::class).getOrNull()
 
         @PublishedApi
@@ -241,7 +241,7 @@ internal class ExtendedPropertyConfigImpl(
 ) : ExtendedPropertyConfig() {
     private val tags: MutableSet<String> = mutableSetOf()
 
-    override fun getOrNull(vararg segments: String): JsonElement? =
+    override fun rawOrNull(vararg segments: String): JsonElement? =
         props.get(hierarchy, tags, segments.toList())
 
     override fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): Result<T> = runCatching {
@@ -258,16 +258,16 @@ internal class ExtendedPropertyConfigImpl(
             ?: throw FileNotFoundException(file.path)
         result.apply(hierarchy, ext, tags)
     }
-}
 
-@Suppress("UNCHECKED_CAST")
-private fun <T : Any> String.mapTo(cls: KClass<T>): T = when (cls) {
-    Boolean::class -> toBoolean()
-    Int::class -> toInt()
-    Long::class -> toLong()
-    Short::class -> toShort()
-    Double::class -> toDouble()
-    Float::class -> toFloat()
-    String::class -> this
-    else -> throw IllegalArgumentException("Unsupported type: $cls")
-} as T
+    @Suppress("UNCHECKED_CAST")
+    private fun <T : Any> String.mapTo(cls: KClass<T>): T = when (cls) {
+        Boolean::class -> toBoolean()
+        Int::class -> toInt()
+        Long::class -> toLong()
+        Short::class -> toShort()
+        Double::class -> toDouble()
+        Float::class -> toFloat()
+        String::class -> this
+        else -> throw IllegalArgumentException("Unsupported type: $cls")
+    } as T
+}
