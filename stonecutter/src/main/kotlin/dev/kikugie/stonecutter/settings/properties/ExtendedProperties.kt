@@ -28,6 +28,11 @@ internal abstract class ExtendedPropertiesStorage @Inject constructor(val object
         for (it in container) it.apply(target, ext, tags)
     }
 
+    fun get(target: ProjectHierarchy, tags: Set<String>, path: List<String>): JsonElement? {
+        val result = container.findCandidate { it.get(target, tags, path) }
+        return result.element
+    }
+
     fun load(file: RegularFile, converter: JsonConverter, hierarchy: ProjectHierarchy): ExtendedProjectProperties? = synchronized(container) {
         val path = file.asFile.absolutePath
         LOGGER.debug("Loading properties for {} from {}", hierarchy, path)
@@ -57,14 +62,9 @@ internal class ExtendedProjectProperties(
 
     override fun getName(): String = path
 
-    fun get(target: ProjectHierarchy, tags: Set<String>, path: List<String>): JsonElement? {
-        var candidate = GetJsonResult(0)
-        for (source in projects) if (target.startsWith(source)) {
-            val result = obj.accept(JsonElementRetriever(source, target, tags, path), ArrayDeque())
-            if (candidate.element == null && result.element == null) candidate = result
-            else if (result.element != null && result.depth >= candidate.depth) candidate = result
-        }
-        return candidate.element
+    fun get(target: ProjectHierarchy, tags: Set<String>, path: List<String>): GetJsonResult = projects.findCandidate {
+        if (!target.startsWith(it)) null
+        else obj.accept(JsonElementRetriever(it, target, tags, path), ArrayDeque())
     }
 
     fun apply(target: ProjectHierarchy, ext: ExtraPropertiesExtension, tags: Set<String> = emptySet()) {
@@ -113,9 +113,6 @@ internal class JsonPropertyCollector(val segments: List<String>, val tags: Set<S
 
         if (isNotEmpty()) deleteAt(lastIndex)
     }
-
-    private fun JsonPrimitive.unwrapContent(): String =
-        if (isString) content.removeSurrounding("\"") else content
 }
 
 internal class JsonElementRetriever(val segments: List<String>, val tags: Set<String>, val path: List<String>) :
@@ -125,27 +122,13 @@ internal class JsonElementRetriever(val segments: List<String>, val tags: Set<St
 
     data class GetJsonResult(val depth: Int, val element: JsonElement? = null)
 
-    override fun visitObject(obj: JsonObject, data: Deque<String>): GetJsonResult {
-        var candidate = GetJsonResult(data.lastIndex, obj.takeIf { data.hasArrived() })
-        for ((k, v) in obj) data.with(k) {
-            val result = v.accept(this, it)
-            if (candidate.element == null && result.element == null) candidate = result
-            else if (result.element != null && result.depth >= candidate.depth) candidate = result
-        }
+    override fun visitObject(obj: JsonObject, data: Deque<String>): GetJsonResult = obj.entries.findCandidate(
+        GetJsonResult(data.lastIndex, obj.takeIf { data.hasArrived() })
+    ) { (k, v) -> data.with(k) { v.accept(this, it) } }
 
-        return candidate
-    }
-
-    override fun visitArray(arr: JsonArray, data: Deque<String>): GetJsonResult {
-        var candidate = GetJsonResult(data.lastIndex, arr.takeIf { data.hasArrived() })
-        for ((i, e) in arr.withIndex()) data.with(i.toString()) {
-            val result = e.accept(this, it)
-            if (candidate.element == null && result.element == null) candidate = result
-            else if (result.element != null && result.depth >= candidate.depth) candidate = result
-        }
-
-        return candidate
-    }
+    override fun visitArray(arr: JsonArray, data: Deque<String>): GetJsonResult = arr.withIndex().findCandidate(
+        GetJsonResult(data.lastIndex, arr.takeIf { data.hasArrived() })
+    ) { (i, e) -> data.with(i.toString()) { e.accept(this, it) } }
 
     override fun visitPrimitive(prim: JsonPrimitive, data: Deque<String>): GetJsonResult {
         return GetJsonResult(data.lastIndex, prim.takeIf { data.hasArrived() })
@@ -190,12 +173,23 @@ internal class JsonElementRetriever(val segments: List<String>, val tags: Set<St
     }
 }
 
+internal fun JsonPrimitive.unwrapContent(): String =
+    if (isString) content.removeSurrounding("\"") else content
+
 private inline val Deque<*>.lastIndex: Int
     get() = size - 1
 
-private inline fun <T> Deque<T>.with(element: T, action: (Deque<T>) -> Unit) {
+private inline fun <T, R> Deque<T>.with(element: T, action: (Deque<T>) -> R): R {
     addLast(element)
-    action(this)
-    check(removeLast() == element) { "Invalid deque state" }
+    return action(this).also { check(removeLast() == element) { "Invalid deque state" } }
 }
 
+private inline fun <T> Iterable<T>.findCandidate(initial: GetJsonResult = GetJsonResult(0), mapping: (T) -> GetJsonResult?): GetJsonResult {
+    var candidate = initial
+    for (element in this) {
+        val result = mapping(element) ?: continue
+        if (candidate.element == null && result.element == null) candidate = result
+        else if (result.element != null && result.depth >= candidate.depth) candidate = result
+    }
+    return candidate
+}
