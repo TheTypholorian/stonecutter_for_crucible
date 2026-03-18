@@ -7,7 +7,9 @@ import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.deserialization.JsonConverter
 import dev.kikugie.stonecutter.data.resolve
 import dev.kikugie.stonecutter.data.startsWith
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.gradle.api.Named
@@ -58,41 +60,45 @@ internal class ExtendedProjectProperties(
 
     fun apply(target: ProjectHierarchy, ext: ExtraPropertiesExtension, tags: Set<String> = emptySet()) {
         for (source in projects) if (target.startsWith(source))
-            JsonVisitor(source, target, tags = tags).visit(obj, ext::set)
+            JsonVisitor(source, target, ext::set, tags).visit(obj)
     }
 }
 
 private data class JsonVisitor(
     val source: ProjectHierarchy,
     val target: ProjectHierarchy,
+    val consumer: (String, String) -> Unit,
+    val tags: Set<String> = emptySet(),
     val prefix: String = "",
-    val tags: Set<String> = emptySet()
 ) {
-    fun visit(obj: JsonObject, consumer: (String, String) -> Unit) {
-        for ((k, v) in obj) v.accept(k, consumer)
+    fun visit(obj: JsonObject) {
+        for ((k, v) in obj) v.accept(k)
     }
 
-    private fun visitObject(obj: JsonObject, key: String, consumer: (String, String) -> Unit) {
+    private fun visitObject(obj: JsonObject, key: String) {
         val project = source.resolve(prefix + key)
         val copy = when {
             target.startsWith(project) -> copy(source = project)
             tags.isEmpty() -> copy(prefix = "$prefix$key.")
             key in tags -> copy(tags = emptySet())
-            else -> null
+            else -> return visitPrimitive(JsonPrimitive(obj.toString()), key)
         }
 
-        copy?.visit(obj, consumer)
+        copy.visit(obj)
     }
 
-    private fun visitPrimitive(prim: JsonPrimitive, key: String, consumer: (String, String) -> Unit) {
+    private fun visitArray(arr: JsonArray, key: String) {
+        visitPrimitive(JsonPrimitive(arr.toString()), key)
+    }
+
+    private fun visitPrimitive(prim: JsonPrimitive, key: String) {
         consumer("$prefix$key", prim.content)
     }
 
-    private fun JsonElement.accept(key: String, consumer: (String, String) -> Unit): Unit = when (this) {
-        is JsonObject -> visitObject(this, key, consumer)
-        is JsonPrimitive -> visitPrimitive(this, key, consumer)
-        else -> {
-            // do nothing, I guess
-        }
+    private fun JsonElement.accept(key: String): Unit = when (this) {
+        is JsonObject -> visitObject(this, key)
+        is JsonPrimitive -> visitPrimitive(this, key)
+        is JsonArray -> visitArray(this, key)
+        JsonNull -> {}
     }
 }
