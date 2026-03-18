@@ -90,7 +90,7 @@ internal class JsonPropertyCollector(val segments: List<String>, val tags: Set<S
 
     override fun visitPrimitive(prim: JsonPrimitive, data: Deque<String>) {
         val path = data.toPath()
-        if (path.isNotEmpty()) consumer(path, prim.content)
+        if (path.isNotEmpty()) consumer(path, prim.unwrapContent())
     }
 
     override fun visitNull(data: Deque<String>) {
@@ -113,6 +113,9 @@ internal class JsonPropertyCollector(val segments: List<String>, val tags: Set<S
 
         if (isNotEmpty()) deleteAt(lastIndex)
     }
+
+    private fun JsonPrimitive.unwrapContent(): String =
+        if (isString) content.removeSurrounding("\"") else content
 }
 
 internal class JsonElementRetriever(val segments: List<String>, val tags: Set<String>, val path: List<String>) :
