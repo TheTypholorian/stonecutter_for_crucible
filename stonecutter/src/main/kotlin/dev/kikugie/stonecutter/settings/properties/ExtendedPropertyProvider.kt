@@ -262,7 +262,6 @@ public interface ExtendedPropertyProvider {
          * Note that this function is intended to be used to pass serializable values
          * from properties to tasks. All returned elements can be converted to valid
          * Json with [JsonElement.toString].
-         * ```
          */
         @StonecutterExperimentalAPI
         public fun raw(vararg segments: String): JsonElement = requireNotNull(rawOrNull(*segments)) {
@@ -281,7 +280,6 @@ public interface ExtendedPropertyProvider {
          * Note that this function is intended to be used to pass serializable values
          * from properties to tasks. All returned elements can be converted to valid
          * Json with [JsonElement.toString].
-         * ```
          */
         @StonecutterExperimentalAPI
         public abstract fun rawOrNull(vararg segments: String): JsonElement?
