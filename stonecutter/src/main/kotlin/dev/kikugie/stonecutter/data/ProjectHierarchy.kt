@@ -37,7 +37,8 @@ public value class ProjectHierarchy(@PublishedApi internal val path: String) : C
 
     public fun orBlank(): String = if (isEmpty()) "" else path
     public fun relativize(child: ProjectHierarchy): String =
-        child.path.removePrefix(path).removePrefix(":")
+        if (child.startsWith(this)) child.path.removePrefix(this.path).removePrefix(":")
+        else this.path
     public operator fun plus(child: String): ProjectHierarchy =
         if (child.isBlank()) this else ProjectHierarchy("${orBlank()}:$child")
     public operator fun minus(child: String): ProjectHierarchy {

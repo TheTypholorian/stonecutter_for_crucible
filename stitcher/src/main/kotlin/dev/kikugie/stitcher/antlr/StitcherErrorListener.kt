@@ -1,11 +1,13 @@
 package dev.kikugie.stitcher.antlr
 
+import dev.kikugie.commons.collections.present
 import dev.kikugie.stitcher.antlr.StitcherLexer.*
 import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.location
 import dev.kikugie.stitcher.issue.report
 import dev.kikugie.stitcher.parser.SYNTAX_GROUP
 import org.antlr.v4.runtime.*
+import org.antlr.v4.runtime.misc.IntervalSet
 
 internal class StitcherErrorListener(val problems: FileProblemReporter) : BaseErrorListener() {
     override fun syntaxError(recognizer: Recognizer<*, *>, symbol: Any?, line: Int, charPositionInLine: Int, msg: String?, e: RecognitionException?) {
@@ -35,12 +37,42 @@ internal object StitcherErrorStrategy : DefaultErrorStrategy() {
     private val INTERPRETERS = listOf(EOF_INTR, ID_INTR, NUM_INTR, COMP_INTR)
 
     override fun reportInputMismatch(recognizer: Parser, err: InputMismatchException) {
-        val options = buildOptions(recognizer, err.expectedTokens.toSet())
-        val message = "Mismatched input${getTokenErrorDisplay(err.offendingToken)}\nExpected tokens: [${options.joinToString()}]"
+        val options = buildOptions(recognizer, err.expectedTokens)
+        val message = "Mismatched input ${getTokenErrorDisplay(err.offendingToken)}\nExpected tokens: ${options.present()}"
         recognizer.notifyErrorListeners(err.offendingToken, message, err)
     }
 
-    private fun buildOptions(parser: Parser, set: MutableSet<Int>): Set<String> = buildSet {
+    override fun reportUnwantedToken(recognizer: Parser) {
+        if (inErrorRecoveryMode(recognizer)) return
+        beginErrorCondition(recognizer)
+
+        val options = buildOptions(recognizer, getExpectedTokens(recognizer))
+        val message = "Extraneous input ${getTokenErrorDisplay(recognizer.currentToken)}\nExpected tokens: ${options.present()}"
+        recognizer.notifyErrorListeners(recognizer.currentToken, message, null)
+    }
+
+    override fun reportMissingToken(recognizer: Parser) {
+        if (inErrorRecoveryMode(recognizer)) return
+        beginErrorCondition(recognizer)
+
+        val options = buildOptions(recognizer, getExpectedTokens(recognizer))
+        val message = "Missing token\nExpected tokens: ${options.present()}"
+        recognizer.notifyErrorListeners(recognizer.currentToken, message, null)
+    }
+
+    override fun reportNoViableAlternative(recognizer: Parser, err: NoViableAltException) {
+        val message = "No viable alternative\nThe parser is unable to find a valid matching path"
+        recognizer.notifyErrorListeners(err.offendingToken, message, err)
+    }
+
+    override fun reportFailedPredicate(recognizer: Parser, err: FailedPredicateException) {
+        val rule = recognizer.ruleNames[recognizer.ruleContext.ruleIndex]
+        val message = "Unsatisfied parser predicate\nOccurred at rule $rule for ${err.predicate}"
+        recognizer.notifyErrorListeners(err.offendingToken, message, err)
+    }
+
+    private fun buildOptions(parser: Parser, intervals: IntervalSet): Set<String> = buildSet {
+        val set: MutableSet<Int> = intervals.toSet()
         for (intr in INTERPRETERS) intr.consume(set)?.let(this::add)
         for (rem in set) this += parser.vocabulary.getDisplayName(rem)
     }

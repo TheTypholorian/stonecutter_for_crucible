@@ -1,6 +1,7 @@
 package dev.kikugie.stonecutter.controller
 
 import dev.kikugie.semver.data.Version
+import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
@@ -17,6 +18,7 @@ import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
+import dev.kikugie.stonecutter.data.deserialization.Toml2JsonConverter
 import dev.kikugie.stonecutter.data.tree.ProjectBranchImpl
 import dev.kikugie.stonecutter.data.tree.ProjectNodeImpl
 import dev.kikugie.stonecutter.data.tree.ProjectTreeImpl
@@ -88,9 +90,10 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     }
 }
 
+@OptIn(StonecutterExperimentalAPI::class)
 private fun setupDefaultProperties(project: Project, objects: ObjectFactory): ExtendedPropertyProvider.ExtendedPropertyConfig = with(project) {
     val ext = gradle.the<ExtendedPropertiesStorage>()
-    ext.load(layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), hierarchy)
+    ext.load(layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), Toml2JsonConverter, hierarchy)
     ext.apply(hierarchy, extra)
     ExtendedPropertyConfigImpl(hierarchy, extra, ext, objects)
 }
