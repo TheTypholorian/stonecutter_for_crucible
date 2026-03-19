@@ -86,7 +86,9 @@ internal class JsonPropertyCollector(val segments: List<String>, val tags: Set<S
     }
 
     override fun visitArray(arr: JsonArray, data: Deque<String>) {
-        JsonPrimitive(arr.toString()).accept(this, data)
+        for ((i, e) in arr.withIndex()) data.with(i.toString()) {
+            e.accept(this, it)
+        }
     }
 
     override fun visitPrimitive(prim: JsonPrimitive, data: Deque<String>) {

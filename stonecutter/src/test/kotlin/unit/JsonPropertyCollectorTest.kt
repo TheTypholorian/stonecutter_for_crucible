@@ -73,6 +73,16 @@ class JsonPropertyCollectorTest : ShouldSpec({
         """.trimIndent()
         properties.shouldContainKey("inter.tag")
     }
+
+    should("flatten array indexes") {
+        val properties = visitor(":", ":1.21") with """
+            {
+              "list": [1, 2, 3]
+            }
+        """.trimIndent()
+        properties.shouldNotContainKey("list")
+        properties.shouldContainKeys("list.0", "list.1", "list.2")
+    }
 })
 
 private val DO_NOTHING: (String, String) -> Unit = { _, _ -> }
