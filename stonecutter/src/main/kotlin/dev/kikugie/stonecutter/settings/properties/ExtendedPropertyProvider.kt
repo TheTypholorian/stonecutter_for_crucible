@@ -325,8 +325,9 @@ public interface ExtendedPropertyProvider {
          * @throws [VersionParsingException] If [T] is a [Version] and the value can't be parsed as such
          */
         @StonecutterExperimentalAPI
-        public inline operator fun <reified T : Any> get(name: String): T =
-            getTypedImpl(name, T::class).getOrThrow()
+        public inline operator fun <reified T : Any> get(name: String): T = requireNotNull(getTypedImpl(name, T::class)) {
+            "No such property '$name'"
+        }
 
         /**
          * Retrieves a property with the given [name], converted to the [T] type if it exists.
@@ -351,10 +352,10 @@ public interface ExtendedPropertyProvider {
          */
         @StonecutterExperimentalAPI
         public inline fun <reified T : Any> getOrNull(name: String): T? =
-            getTypedImpl(name, T::class).getOrNull()
+            getTypedImpl(name, T::class)
 
-        @PublishedApi
-        internal abstract fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): Result<T>
+        @PublishedApi @JvmSynthetic
+        internal abstract fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): T?
     }
 }
 
@@ -369,9 +370,8 @@ internal class ExtendedPropertyConfigImpl(
     override fun rawOrNull(vararg segments: String): JsonElement? =
         props.get(hierarchy, tags, segments.toList())
 
-    override fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): Result<T> = kotlin
-        .runCatching { requireNotNull(ext[name]) { "No such property '$name'" } }
-        .map { it.toString().mapTo(cls) }
+    override fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): T? =
+        ext[name]?.toString()?.mapTo(cls)
 
     override fun tags(vararg tags: String) {
         props.apply(hierarchy, ext, tags.toSet() - this.tags)
