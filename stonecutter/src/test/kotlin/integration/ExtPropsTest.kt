@@ -45,4 +45,8 @@ class ExtPropsTest : GradleTest, ShouldSpec({
     should("accept yaml files") { _, build ->
         build.run()
     }
+
+    should("use typed properties") { _, build ->
+        build.run()
+    }
 })

@@ -2,6 +2,7 @@
 
 package dev.kikugie.stonecutter.settings.properties
 
+import dev.kikugie.commons.collections.present
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.deserialization.JsonConverter
@@ -101,13 +102,13 @@ internal class JsonPropertyCollector(val segments: List<String>, val tags: Set<S
         var cursor = 0
         for (element in this@toPath) when (element) {
             segments.getOrNull(cursor) -> cursor++
-            in tags -> {
+            in tags if (cursor != -2) -> {
                 if (cursor > 0) cursor = -1
             }
 
             else -> {
                 append(element); append('.')
-                cursor = -1
+                cursor = -2
             }
         }
 
@@ -142,28 +143,32 @@ internal class JsonElementRetriever(val segments: List<String>, val tags: Set<St
         var count = 0
         var cursor = 0
         var state = ProgressState.INIT_WALK
-        for (element in this) when(element.also { count++ }) {
-            in tags if (state == ProgressState.INIT_WALK) -> {
-                if (cursor > 0) cursor = -1
-                count--
+        for (element in this) when (state.also { count++ }) {
+            ProgressState.INIT_WALK -> when (element) {
+                path.first() -> {
+                    state = ProgressState.PATH_WALK
+                    cursor = 1
+                }
+
+                in tags -> {
+                    if (cursor > 0) cursor = -1
+                    count--
+                }
+
+                segments.getOrNull(cursor) -> {
+                    cursor++
+                    count--
+                }
             }
 
-            segments.getOrNull(cursor) if (state == ProgressState.INIT_WALK) -> {
-                cursor++
-                count--
-            }
-
-            path.first() if (state == ProgressState.INIT_WALK) -> {
-                state = ProgressState.PATH_WALK
-                cursor = 1
-            }
-
-            path.getOrNull(cursor) if (state == ProgressState.PATH_WALK) -> {
+            ProgressState.PATH_WALK -> if (element == path.getOrNull(cursor)) {
                 cursor++
             }
         }
 
-        return state == ProgressState.PATH_WALK && count == path.size
+        return (state == ProgressState.PATH_WALK && count == path.size).also {
+            println("${present()}: $it ($state, $count, ${path.size})")
+        }
     }
 
     private enum class ProgressState {
