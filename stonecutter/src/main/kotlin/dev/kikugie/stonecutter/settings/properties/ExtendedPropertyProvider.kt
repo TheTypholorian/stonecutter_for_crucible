@@ -2,10 +2,16 @@
 
 package dev.kikugie.stonecutter.settings.properties
 
+import dev.kikugie.semver.data.SemanticVersion
+import dev.kikugie.semver.data.StringVersion
+import dev.kikugie.semver.data.Version
+import dev.kikugie.semver.impl.VersionParsingException
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.deserialization.JsonConverter
 import dev.kikugie.stonecutter.data.deserialization.determineConverter
+import dev.kikugie.stonecutter.data.version.LenientOperations
+import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider.ExtendedPropertyConfig
 import dev.kikugie.stonecutter.util.toRegularFile
 import kotlinx.serialization.json.JsonElement
@@ -14,6 +20,7 @@ import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.ExtraPropertiesExtension
 import java.io.File
 import java.io.FileNotFoundException
+import java.util.Locale
 import kotlin.reflect.KClass
 
 public interface ExtendedPropertyProvider {
@@ -213,11 +220,11 @@ public interface ExtendedPropertyProvider {
         public abstract fun tags(vararg tags: String)
 
         /**
-         * Retrieves the property as a converted [JsonElement] by the path [segments],
-         * throwing [IllegalArgumentException] if no element is found.
+         * Retrieves the structured property as converted [JsonConverter]
+         * at the path defined by [segments].
          *
-         * This function works **only** on property files registered via Stonecutter (such as in Json, Toml, or Yaml formats).
-         * The structure of those formats is internally converted to Json elements.
+         * Values are only queried from files registered with the [load] function.
+         * Gradle's native properties are **not included**.
          *
          * When querying the element, the segments are evaluated as follows:
          * - Each segment must be map key or an array index:
@@ -262,6 +269,12 @@ public interface ExtendedPropertyProvider {
          * Note that this function is intended to be used to pass serializable values
          * from properties to tasks. All returned elements can be converted to valid
          * Json with [JsonElement.toString].
+         *
+         * @param segments Path to the required element;
+         * each segment represents a map key or an array index
+         * @return [JsonElement] located at the path;
+         * other formats are converted to Json during deserialization
+         * @throws IllegalArgumentException If there's no element at the provided path
          */
         @StonecutterExperimentalAPI
         public fun raw(vararg segments: String): JsonElement = requireNotNull(rawOrNull(*segments)) {
@@ -269,43 +282,72 @@ public interface ExtendedPropertyProvider {
         }
 
         /**
-         * Retrieves the property as a converted [JsonElement] by the path [segments],
-         * returning `null` if no element is found.
+         * Retrieves the structured property as converted [JsonConverter]
+         * at the path defined by [segments].
          *
-         * This function works **only** on property files registered via Stonecutter (such as in Json, Toml, or Yaml formats).
-         * The structure of those formats is internally converted to Json elements.
+         * Values are only queried from files registered with the [load] function.
+         * Gradle's native properties are **not included**.
          *
-         * For the element resolution specifics, read the non-nullable [raw] function documentation.
+         * Elements are queried the same way as in the non-nullable [raw] function.
          *
          * Note that this function is intended to be used to pass serializable values
          * from properties to tasks. All returned elements can be converted to valid
          * Json with [JsonElement.toString].
+         *
+         * @param segments Path to the required element;
+         * each segment represents a map key or an array index
+         * @return [JsonElement] located at the path or `null` if it's not found;
+         * other formats are converted to Json during deserialization
          */
         @StonecutterExperimentalAPI
         public abstract fun rawOrNull(vararg segments: String): JsonElement?
 
         /**
-         * Retrieves a property with the given [name], converted to the [T] **primitive** type.
+         * Retrieves a property with the given [name], converted to the [T] type.
          *
-         * This function operates on the [ExtraPropertiesExtension], meaning even properties
-         * defined via Gradle's regular mechanisms are available.
+         * Properties are queried from [ExtraPropertiesExtension], making use
+         * of ones defined with Gradle's regular mechanisms as well.
          *
-         * To convert the returned value, it's stringified and then parsed as the required type.
-         * The function throws [IllegalArgumentException] or [NumberFormatException]
-         * if the property doesn't exist or can't be converted.
+         * The conversion process first stringifies the property value,
+         * and then parses it as the requested type.
+         *
+         * @return Property [name] converted to [T]
+         * @param T Requested value type; may be one of:
+         * - [Boolean]: case-insensitive `"true"` or `"false"`
+         * - [Short], [Int], [Long], [Float], [Double]:
+         *   parsed with `java.lang.<type>.parse<type>()`
+         * - [Version], [StringVersion], [SemanticVersion]:
+         *   parsed with the corresponding [Version.parse] override
+         * @throws [IllegalArgumentException] If the property with this [name] is not defined
+         * @throws [IllegalArgumentException] If [T] is not one of the listed supported types
+         * @throws [IllegalArgumentException] If [T] is [Boolean] and the value can't be parsed as such
+         * @throws [NumberFormatException] If [T] is a [Number] and the value can't be parsed as such
+         * @throws [VersionParsingException] If [T] is a [Version] and the value can't be parsed as such
          */
         @StonecutterExperimentalAPI
         public inline operator fun <reified T : Any> get(name: String): T =
             getTypedImpl(name, T::class).getOrThrow()
 
         /**
-         * Retrieves a property with the given [name], converted to the [T] **primitive** type.
+         * Retrieves a property with the given [name], converted to the [T] type if it exists.
          *
-         * This function operates on the [ExtraPropertiesExtension], meaning even properties
-         * defined via Gradle's regular mechanisms are available.
+         * Properties are queried from [ExtraPropertiesExtension], making use
+         * of ones defined with Gradle's regular mechanisms as well.
          *
-         * To convert the returned value, it's stringified and then parsed as the required type.
-         * The function throws returns `null` if the property doesn't exist or can't be converted.
+         * The conversion process first stringifies the property value,
+         * and then parses it as the requested type.
+         *
+         * @return Property [name] converted to [T] or `null` if it's not defined.
+         * @param T Requested value type; may be one of:
+         * - [Boolean]: case-insensitive `"true"` or `"false"`
+         * - [Short], [Int], [Long], [Float], [Double]:
+         *   parsed with `java.lang.<type>.parse<type>()`
+         * - [Version], [StringVersion], [SemanticVersion]:
+         *   parsed with the corresponding [Version.parse] override
+         * @throws [IllegalArgumentException] If [T] is not one of the listed supported types
+         * @throws [IllegalArgumentException] If [T] is [Boolean] and the value can't be parsed as such
+         * @throws [NumberFormatException] If [T] is a [Number] and the value can't be parsed as such
+         * @throws [VersionParsingException] If [T] is a [Version] and the value can't be parsed as such
          */
         @StonecutterExperimentalAPI
         public inline fun <reified T : Any> getOrNull(name: String): T? =
@@ -327,9 +369,9 @@ internal class ExtendedPropertyConfigImpl(
     override fun rawOrNull(vararg segments: String): JsonElement? =
         props.get(hierarchy, tags, segments.toList())
 
-    override fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): Result<T> = runCatching {
-        requireNotNull(ext[name]) { "No such property '$name'" }.toString().mapTo(cls)
-    }
+    override fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): Result<T> = kotlin
+        .runCatching { requireNotNull(ext[name]) { "No such property '$name'" } }
+        .map { it.toString().mapTo(cls) }
 
     override fun tags(vararg tags: String) {
         props.apply(hierarchy, ext, tags.toSet() - this.tags)
@@ -343,14 +385,17 @@ internal class ExtendedPropertyConfigImpl(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun <T : Any> String.mapTo(cls: KClass<T>): T = when (cls) {
-        Boolean::class -> toBooleanStrict()
-        Int::class -> toInt()
-        Long::class -> toLong()
-        Short::class -> toShort()
-        Double::class -> toDouble()
-        Float::class -> toFloat()
-        String::class -> this
-        else -> throw IllegalArgumentException("Unsupported type: $cls")
+    private fun <T : Any> String.mapTo(cls: KClass<T>): T = when (cls.java) {
+        Boolean::class.java -> lowercase(Locale.US).toBooleanStrict()
+        Int::class.java -> toInt()
+        Long::class.java -> toLong()
+        Short::class.java -> toShort()
+        Double::class.java -> toDouble()
+        Float::class.java -> toFloat()
+        String::class.java -> this
+        Version::class.java -> LenientOperations.tryParse(this).getOrThrow()
+        StringVersion::class.java -> StringVersion.parse(this)
+        SemanticVersion::class.java -> SemanticOperations.tryParse(this).getOrThrow()
+        else -> throw IllegalArgumentException("Unsupported type: ${cls.simpleName}")
     } as T
 }
