@@ -386,13 +386,13 @@ internal class ExtendedPropertyConfigImpl(
 
     @Suppress("UNCHECKED_CAST")
     private fun <T : Any> String.mapTo(cls: KClass<T>): T = when (cls.java) {
+        String::class.java -> this
         Boolean::class.java -> lowercase(Locale.US).toBooleanStrict()
         Int::class.java -> toInt()
         Long::class.java -> toLong()
         Short::class.java -> toShort()
         Double::class.java -> toDouble()
         Float::class.java -> toFloat()
-        String::class.java -> this
         Version::class.java -> LenientOperations.tryParse(this).getOrThrow()
         StringVersion::class.java -> StringVersion.parse(this)
         SemanticVersion::class.java -> SemanticOperations.tryParse(this).getOrThrow()
