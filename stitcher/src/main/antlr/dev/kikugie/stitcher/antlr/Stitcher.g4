@@ -4,6 +4,29 @@ grammar Stitcher;
 package dev.kikugie.stitcher.antlr;
 }
 
+@parser::members {
+private boolean noSpacesAround() {
+    CommonTokenStream tokens = (CommonTokenStream) _input;
+    Token current = getCurrentToken();
+
+    boolean result = true;
+    result = checkHiddenSpaces(tokens.getHiddenTokensToLeft(current.getTokenIndex()), current) && result;
+    result = checkHiddenSpaces(tokens.getHiddenTokensToRight(current.getTokenIndex()), current) && result;
+    return result;
+}
+
+private boolean checkHiddenSpaces(List<Token> hidden, Token current) {
+    if (hidden == null || hidden.isEmpty()) return true;
+
+    if (hidden.getFirst().getType() == WHITESPACE) {
+        if (_errHandler instanceof StitcherErrorStrategy handler)
+            handler.reportUnwantedWhitespace(this, hidden.getFirst());
+        else return false;
+    }
+    return true;
+}
+}
+
 /* PARSER */
 definition
     : COND_MARK condition EOF   # conditionDefinition
@@ -58,7 +81,7 @@ versionPredicate
     ;
 
 semanticVersion
-    : versionCore (DASH preRelease)? (PLUS buildMetadata)?
+    : versionCore (adjacentDash preRelease)? (adjacentPlus buildMetadata)?
     ;
 
 stringVersion
@@ -79,12 +102,16 @@ stringComparator
     | COMP_GLESS
     ;
 
-versionCore: NUMERIC (DOT NUMERIC)*;
-preRelease: metadata (DOT metadata)*;
-buildMetadata: metadata (DOT metadata)*;
+versionCore: NUMERIC (adjacentDot NUMERIC)*;
+preRelease: metadata (adjacentDot metadata)*;
+buildMetadata: metadata (adjacentDot metadata)*;
 
 metadata: NUMERIC | IDENTIFIER;
 literal: IDENTIFIER | QUOTED;
+
+adjacentDot: {noSpacesAround()}? DOT;
+adjacentDash: {noSpacesAround()}? DASH;
+adjacentPlus: {noSpacesAround()}? PLUS;
 
 /* LEXER */
 fragment NUMBER: '0'|[1-9][0-9]*;

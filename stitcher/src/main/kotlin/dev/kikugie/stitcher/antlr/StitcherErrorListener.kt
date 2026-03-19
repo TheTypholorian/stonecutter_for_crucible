@@ -10,11 +10,16 @@ import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.IntervalSet
 
 internal class StitcherErrorListener(val problems: FileProblemReporter) : BaseErrorListener() {
+    private val reported: MutableSet<ErrorID> = mutableSetOf()
+
     override fun syntaxError(recognizer: Recognizer<*, *>, symbol: Any?, line: Int, charPositionInLine: Int, msg: String?, e: RecognitionException?) {
         val index = if (symbol is AntlrToken) symbol.startIndex else problems.index.reverse(line - 1, charPositionInLine)
+        var (primary, secondary) = unmangle(msg).let { (a, b) -> (a ?: e?.message ?: "Unknown error") to b }
+        if (!reported.add(ErrorID(primary, index)))
+            return
+
         problems.report(SYNTAX_GROUP.child("antlr-error"), problems.location(line - 1, charPositionInLine, index)) {
-            val (primary, secondary) = unmangle(msg)
-            label = primary ?: e?.message ?: "Unknown error"
+            label = primary
             if (secondary != null) details = secondary
         }
     }
@@ -23,6 +28,8 @@ internal class StitcherErrorListener(val problems: FileProblemReporter) : BaseEr
         val split = message?.split('\n', limit = 2) ?: return null to null
         return split.firstOrNull() to split.lastOrNull()
     }
+
+    private data class ErrorID(val name: String, val position: Int)
 }
 
 // TODO: Add hints and doc links
@@ -69,6 +76,11 @@ internal object StitcherErrorStrategy : DefaultErrorStrategy() {
         val rule = recognizer.ruleNames[recognizer.ruleContext.ruleIndex]
         val message = "Unsatisfied parser predicate\nOccurred at rule $rule for ${err.predicate}"
         recognizer.notifyErrorListeners(err.offendingToken, message, err)
+    }
+
+    fun reportUnwantedWhitespace(recognizer: Parser, token: AntlrToken) {
+        val message = "Invalid whitespace\nWhitespaces are not allowed around ${getTokenErrorDisplay(recognizer.currentToken)}"
+        recognizer.notifyErrorListeners(token, message, null)
     }
 
     private fun buildOptions(parser: Parser, intervals: IntervalSet): Set<String> = buildSet {
