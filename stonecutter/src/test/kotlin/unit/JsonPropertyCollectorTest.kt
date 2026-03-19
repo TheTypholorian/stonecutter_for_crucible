@@ -60,6 +60,19 @@ class JsonPropertyCollectorTest : ShouldSpec({
         properties.shouldNotContainKey("nest")
         properties.shouldContainKey("1.21.nest")
     }
+
+    should("ignore late tag keys") {
+        val properties = visitor(":", ":1.21", "tag") with """
+            {
+              "1.21": {
+                "inter": {
+                  "tag": "Hello"
+                }
+              }
+            }
+        """.trimIndent()
+        properties.shouldContainKey("inter.tag")
+    }
 })
 
 private val DO_NOTHING: (String, String) -> Unit = { _, _ -> }
