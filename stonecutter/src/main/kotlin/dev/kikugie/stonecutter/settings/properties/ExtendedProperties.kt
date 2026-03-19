@@ -161,8 +161,6 @@ internal class JsonElementRetriever(val segments: List<String>, val tags: Set<St
             path.getOrNull(cursor) if (state == ProgressState.PATH_WALK) -> {
                 cursor++
             }
-
-            else -> break
         }
 
         return state == ProgressState.PATH_WALK && count == path.size
