@@ -390,6 +390,7 @@ internal class ExtendedPropertyConfigImpl(
         Boolean::class.java -> lowercase(Locale.US).toBooleanStrict()
         Int::class.java -> toInt()
         Long::class.java -> toLong()
+        Byte::class.java -> toByte()
         Short::class.java -> toShort()
         Double::class.java -> toDouble()
         Float::class.java -> toFloat()
