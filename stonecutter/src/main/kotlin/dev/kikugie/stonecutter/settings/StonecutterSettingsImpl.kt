@@ -117,7 +117,7 @@ private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): 
     val hierarchy = rootProject.hierarchy
     val ext = gradle.extensions.create<ExtendedPropertiesStorage>("ExtendedProperties")
     ext.load(layout.settingsDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), Toml2JsonConverter, hierarchy)
-        ?.apply(hierarchy, extra)
+        ?.apply(hierarchy, emptySet(), extra::set)
     ExtendedPropertyConfigImpl(hierarchy, extra, ext, objects)
 }
 

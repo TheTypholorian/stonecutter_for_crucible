@@ -2,6 +2,7 @@ package unit
 
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.deserialization.accept
+import dev.kikugie.stonecutter.settings.properties.JsonPathStack
 import dev.kikugie.stonecutter.settings.properties.JsonPropertyCollector
 import dev.kikugie.stonecutter.util.SCJSON
 import io.kotest.core.spec.style.ShouldSpec
@@ -10,7 +11,6 @@ import io.kotest.matchers.maps.shouldContainKeys
 import io.kotest.matchers.maps.shouldNotContainKey
 import kotlinx.serialization.json.JsonObject
 import org.intellij.lang.annotations.Language
-import java.util.*
 
 class JsonPropertyCollectorTest : ShouldSpec({
     should("resolve project paths") {
@@ -83,17 +83,28 @@ class JsonPropertyCollectorTest : ShouldSpec({
         properties.shouldNotContainKey("list")
         properties.shouldContainKeys("list.0", "list.1", "list.2")
     }
+
+    should("resolve semicolon paths") {
+        val properties = visitor(":", ":fabric:1.21") with """
+            {
+              "fabric:1.21": {
+                "item": "Hello!"
+              }
+            }
+        """.trimIndent()
+        properties.shouldContainKey("item")
+    }
 })
 
-private val DO_NOTHING: (String, String) -> Unit = { _, _ -> }
+private fun visitor(source: String, target: String, vararg tags: String): JsonPropertyCollectorPreset =
+    JsonPropertyCollectorPreset(source, target, *tags)
 
-private fun visitor(source: String, target: String, vararg tags: String): JsonPropertyCollector =
-    JsonPropertyCollector(ProjectHierarchy(source), ProjectHierarchy(target), tags.toSet(), DO_NOTHING)
+private class JsonPropertyCollectorPreset(val segments: List<String>, val tags: Set<String>) {
+    constructor(source: String, target: String, vararg tags: String) : this(ProjectHierarchy(source).relativize(ProjectHierarchy(target)).split(':'), tags.toSet())
 
-private fun JsonPropertyCollector.copy(consumer: (String, String) -> Unit) =
-    JsonPropertyCollector(this.segments, this.tags, consumer)
-
-private infix fun JsonPropertyCollector.with(@Language("JSON") json: String): Map<String, String> = buildMap {
-    val copy = copy(consumer = ::set)
-    SCJSON.decodeFromString<JsonObject>(json).accept(copy, ArrayDeque())
+    infix fun with(@Language("JSON") json: String): Map<String, String> = buildMap {
+        val collector = JsonPropertyCollector(::set)
+        val stack = JsonPathStack(segments, tags)
+        SCJSON.decodeFromString<JsonObject>(json).accept(collector, stack)
+    }
 }

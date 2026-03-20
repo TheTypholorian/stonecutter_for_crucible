@@ -381,7 +381,7 @@ internal class ExtendedPropertyConfigImpl(
     override fun load(file: File, converter: JsonConverter) {
         val result = props.load(file.toRegularFile(objects), converter, hierarchy)
             ?: throw FileNotFoundException(file.path)
-        result.apply(hierarchy, ext, tags)
+        result.apply(hierarchy, tags, ext::set)
     }
 
     @Suppress("UNCHECKED_CAST")

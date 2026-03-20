@@ -3,6 +3,7 @@ package unit
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.deserialization.accept
 import dev.kikugie.stonecutter.settings.properties.JsonElementRetriever
+import dev.kikugie.stonecutter.settings.properties.JsonPathStack
 import dev.kikugie.stonecutter.util.SCJSON
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -12,7 +13,6 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.intellij.lang.annotations.Language
-import java.util.*
 
 class JsonElementRetrieverTest : ShouldSpec({
     should("retrieve primitives") {
@@ -56,7 +56,7 @@ class JsonElementRetrieverTest : ShouldSpec({
         }
     }
 
-    should("resolve paths") {
+    should("resolve projects") {
         val result = visitor(":", ":1.21", emptySet(), "it") with """
             {
               "it": "Wrong!",
@@ -70,10 +70,29 @@ class JsonElementRetrieverTest : ShouldSpec({
             toString() shouldBe "\"OK\""
         }
     }
+
+    should("resolve semicolon paths") {
+        val result = visitor(":", ":fabric:1.21", emptySet(), "item") with """
+            {
+              "fabric:1.21": {
+                "item": "Hello!"
+              }
+            }
+        """.trimIndent()
+        result.element.shouldNotBeNull {
+            shouldBeInstanceOf<JsonPrimitive>()
+        }
+    }
 })
 
-private fun visitor(source: String, target: String, tags: Set<String>, vararg segments: String): JsonElementRetriever =
-    JsonElementRetriever(ProjectHierarchy(source), ProjectHierarchy(target), tags, segments.toList())
+private fun visitor(source: String, target: String, tags: Set<String>, vararg segments: String): JsonElementRetrieverPreset =
+    JsonElementRetrieverPreset(source, target, tags, segments.toList())
 
-private infix fun JsonElementRetriever.with(@Language("JSON") json: String): JsonElementRetriever.GetJsonResult =
-    SCJSON.decodeFromString<JsonObject>(json).accept(this, ArrayDeque())
+private class JsonElementRetrieverPreset(val segments: List<String>, val tags: Set<String>, val retriever: JsonElementRetriever) {
+    constructor(source: String, target: String, tags: Set<String>, keys: List<String>) : this(
+        ProjectHierarchy(source).relativize(ProjectHierarchy(target)).split(':'), tags, JsonElementRetriever(keys)
+    )
+
+    infix fun with(@Language("JSON") json: String): JsonElementRetriever.GetJsonResult =
+        SCJSON.decodeFromString<JsonObject>(json).accept(retriever, JsonPathStack(segments, tags))
+}
