@@ -227,7 +227,10 @@ public interface ExtendedPropertyProvider {
          * Gradle's native properties are **not included**.
          *
          * When querying the element, the segments are evaluated as follows:
-         * - Each segment must be map key or an array index:
+         * - Each segment must be a map key or an array index.
+         * Alternatively, segments may be joined with `:`
+         * (e.g. `"a", "b"` is the same as `"a:b"`).
+         * **Empty segments are ignored**.
          * ```toml
          * items = [true, "1"]
          * ```
@@ -235,7 +238,7 @@ public interface ExtendedPropertyProvider {
          * val first: JsonPrimitive = sc.properties.raw("items", "0").jsonPrimitive
          * assert(first.toString() == "true")
          *
-         * val second: JsonPrimitive = properties.raw("items", "1").jsonPrimitive
+         * val second: JsonPrimitive = properties.raw("items:1").jsonPrimitive
          * assert(second.toString() == "\"1\"")
          * assert(second.removeSurrounding("\").toInt() == 1)
          * ```
@@ -367,8 +370,10 @@ internal class ExtendedPropertyConfigImpl(
 ) : ExtendedPropertyConfig() {
     private val tags: MutableSet<String> = mutableSetOf()
 
-    override fun rawOrNull(vararg segments: String): JsonElement? =
-        props.get(hierarchy, tags, segments.toList())
+    override fun rawOrNull(vararg segments: String): JsonElement? {
+        val unwrapped = segments.flatMap { it.split(':') }.filter(String::isNotEmpty)
+        return props.get(hierarchy, tags, unwrapped)
+    }
 
     override fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): T? =
         ext[name]?.toString()?.mapTo(cls)
