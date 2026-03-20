@@ -1,110 +1,108 @@
 package unit
 
+import com.github.ajalt.mordant.rendering.TextColors
+import dev.kikugie.commons.collections.present
 import dev.kikugie.stonecutter.data.ProjectHierarchy
+import dev.kikugie.stonecutter.data.deserialization.Toml2JsonConverter
 import dev.kikugie.stonecutter.data.deserialization.accept
 import dev.kikugie.stonecutter.settings.properties.JsonPathStack
 import dev.kikugie.stonecutter.settings.properties.JsonPropertyCollector
-import dev.kikugie.stonecutter.util.SCJSON
 import io.kotest.core.spec.style.ShouldSpec
-import io.kotest.matchers.maps.shouldContainKey
+import io.kotest.core.test.TestScope
 import io.kotest.matchers.maps.shouldContainKeys
-import io.kotest.matchers.maps.shouldNotContainKey
-import kotlinx.serialization.json.JsonObject
+import io.kotest.matchers.maps.shouldNotContainKeys
 import org.intellij.lang.annotations.Language
+import util.TestSetup
+import util.config
 
 class JsonPropertyCollectorTest : ShouldSpec({
-    should("resolve project paths") {
-        val properties = visitor(":", ":1.21") with """
-            {
-              "base": "Hello",
-              "1.21": {
-                "nest": "World"
-              }
-            }
+    should("flatten keys").config<CollectorSetup> {
+        target = ":1.0"
+        data = """
+            key = "Hello"
+            nested.key = "World"
+            nested.list = [1, 2]
         """.trimIndent()
-        properties.shouldContainKeys("base", "nest")
+        shouldHave += listOf("key", "nested.key", "nested.list.0", "nested.list.1")
+        shouldNotHave += listOf("nested", "nested.list")
     }
 
-    should("resolve tags and paths") {
-        val properties = visitor(":", ":1.21", "tag") with """
-            {
-              "tag": {
-                "base": "Hello",
-                "1.21": {
-                  "baser": "?"
-                }
-              },
-              "1.21": {
-                "nest": "World",
-                "tag": {
-                  "deep": "!"
-                }
-              }
-            }
+    should("resolve tags").config<CollectorSetup> {
+        target = ":1.0"
+        data = """
+            key = "Hello"
+            tag1.tag2.key2 = "World"
         """.trimIndent()
-        properties.shouldContainKeys("base", "nest", "deep", "baser")
+        tags += listOf("tag1", "tag2")
+        shouldHave += listOf("key", "key2")
+        shouldNotHave += listOf("tag1.tag2.key2", "tag2.key2")
     }
 
-    should("interrupt paths by tags") {
-        val properties = visitor(":", ":fabric:1.21", "tag") with """
-            {
-              "fabric": {
-                "tag": {
-                  "1.21": {
-                    "nest": "Hello"
-                  }
-                }
-              }
-            }
+    should("resolve projects").config<CollectorSetup> {
+        target = ":common:1.0"
+        data = """
+            key = 1
+            
+            [common]
+            common_key = 2
+            
+            [common."1.0"]
+            dot_nested_key = 3
+            
+            ["common:1.0"]
+            colon_nested_key = 3
         """.trimIndent()
-        properties.shouldNotContainKey("nest")
-        properties.shouldContainKey("1.21.nest")
+        shouldHave += listOf("key", "common_key", "dot_nested_key", "colon_nested_key")
+        shouldNotHave += listOf("common.1.0.dot_nested_key", "common:1.0.colon_nested_key")
     }
 
-    should("ignore late tag keys") {
-        val properties = visitor(":", ":1.21", "tag") with """
-            {
-              "1.21": {
-                "inter": {
-                  "tag": "Hello"
-                }
-              }
-            }
+    should("combine projects and keys").config<CollectorSetup> {
+        target = ":common:1.0"
+        data = """
+            [common]
+            tag.key1 = 1
+            tag."1.0".key2 = 2
+            
+            [tag]
+            common."1.0".key3 = 3
         """.trimIndent()
-        properties.shouldContainKey("inter.tag")
+        tags += "tag"
+        shouldHave += listOf("key1", "1.0.key2", "key3")
+        shouldNotHave += listOf("key2")
     }
 
-    should("flatten array indexes") {
-        val properties = visitor(":", ":1.21") with """
-            {
-              "list": [1, 2, 3]
-            }
+    should("ignore late tags").config<CollectorSetup> {
+        target = ":common:1.0"
+        data = """
+            [common]
+            nest.tag = 1
         """.trimIndent()
-        properties.shouldNotContainKey("list")
-        properties.shouldContainKeys("list.0", "list.1", "list.2")
-    }
-
-    should("resolve semicolon paths") {
-        val properties = visitor(":", ":fabric:1.21") with """
-            {
-              "fabric:1.21": {
-                "item": "Hello!"
-              }
-            }
-        """.trimIndent()
-        properties.shouldContainKey("item")
+        tags += "tag"
+        shouldHave += listOf("nest.tag")
+        shouldNotHave += listOf("nest")
     }
 })
 
-private fun visitor(source: String, target: String, vararg tags: String): JsonPropertyCollectorPreset =
-    JsonPropertyCollectorPreset(source, target, *tags)
+private class CollectorSetup : TestSetup {
+    @Language("toml") lateinit var data: String
+    lateinit var target: String
+    var source: String = ":"
 
-private class JsonPropertyCollectorPreset(val segments: List<String>, val tags: Set<String>) {
-    constructor(source: String, target: String, vararg tags: String) : this(ProjectHierarchy(source).relativize(ProjectHierarchy(target)).split(':'), tags.toSet())
+    val tags: MutableSet<String> = mutableSetOf()
+    val shouldHave: MutableSet<String> = mutableSetOf()
+    val shouldNotHave: MutableSet<String> = mutableSetOf()
 
-    infix fun with(@Language("JSON") json: String): Map<String, String> = buildMap {
+    override suspend fun TestScope.invoke() {
+        val map = collect()
+
+        println(TextColors.magenta(map.present()))
+        if (shouldHave.isNotEmpty()) map.shouldContainKeys(*shouldHave.toTypedArray())
+        if (shouldNotHave.isNotEmpty()) map.shouldNotContainKeys(*shouldNotHave.toTypedArray())
+    }
+
+    private fun collect(): Map<String, String> = buildMap {
         val collector = JsonPropertyCollector(::set)
-        val stack = JsonPathStack(segments, tags)
-        SCJSON.decodeFromString<JsonObject>(json).accept(collector, stack)
+        val stack = JsonPathStack(ProjectHierarchy(source).relativize(ProjectHierarchy(target)).split(':'), tags)
+        Toml2JsonConverter.convert(data).accept(collector, stack)
     }
 }
