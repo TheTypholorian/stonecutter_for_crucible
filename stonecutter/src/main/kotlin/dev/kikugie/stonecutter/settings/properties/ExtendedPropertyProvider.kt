@@ -387,7 +387,7 @@ internal class ExtendedPropertyConfigImpl(
 
     override fun tags(vararg tags: String) {
         val new = tags
-            .filter { it.isNotBlank() && it !in tags }
+            .filter { it.isNotBlank() && it !in this.tags }
             .onEach { require(isValidPath(it)) { "Invalid tag '$it'" } }
             .ifEmpty { return }
             .toSet()
