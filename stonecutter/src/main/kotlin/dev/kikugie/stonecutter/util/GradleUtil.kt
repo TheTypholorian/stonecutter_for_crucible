@@ -72,3 +72,8 @@ internal fun File.toRegularFile(objects: ObjectFactory): RegularFile {
     }
     return property.get()
 }
+
+internal inline fun <T : Any> Action<T>.doFirst(crossinline other: T.() -> Unit): Action<T> = Action {
+    other(this)
+    this@doFirst.execute(this)
+}

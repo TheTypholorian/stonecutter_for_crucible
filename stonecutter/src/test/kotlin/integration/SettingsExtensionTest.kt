@@ -104,5 +104,6 @@ class SettingsExtensionTest : GradleTest, ShouldSpec({
         should("define project branches") { _, build -> build.run() }
         should("define inverted branches") { _, build -> build.run() }
         should("define extended nodes") { _, build -> build.run() }
+        should("load_files_in_action") { _, build -> build.run() }
     }
 })

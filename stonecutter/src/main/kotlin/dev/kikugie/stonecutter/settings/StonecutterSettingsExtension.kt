@@ -5,16 +5,12 @@ import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.deserialization.JsonConverter
-import dev.kikugie.stonecutter.data.deserialization.deserialize
-import dev.kikugie.stonecutter.data.deserialization.determineConverter
 import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
-import dev.kikugie.stonecutter.settings.tree.SerializedTree
 import dev.kikugie.stonecutter.settings.tree.TreeBuilder
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
-import dev.kikugie.stonecutter.util.toRegularFile
-import kotlinx.serialization.ExperimentalSerializationApi
+import dev.kikugie.stonecutter.util.doFirst
 import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
@@ -103,7 +99,7 @@ public abstract class StonecutterSettingsExtension(
      */
     @JvmOverloads
     public fun create(project: ProjectReference, file: File, action: Action<TreeBuilder> = shared): Unit =
-        create(listOf(project), readTreeSettings(file, determineConverter(file), action))
+        create(listOf(project), action.doFirst { load(file) })
 
     /**
      * Registers the given [project] as multi-versioned with Stonecutter.
@@ -119,7 +115,7 @@ public abstract class StonecutterSettingsExtension(
      */
     @JvmOverloads
     public fun create(project: ProjectReference, file: File, converter: JsonConverter, action: Action<TreeBuilder> = shared): Unit =
-        create(listOf(project), readTreeSettings(file, converter, action))
+        create(listOf(project), action.doFirst { load(file, converter) })
 
     /**
      * Registers the given [projects] as multi-versioned with Stonecutter.
@@ -134,7 +130,7 @@ public abstract class StonecutterSettingsExtension(
      */
     @JvmOverloads
     public fun create(vararg projects: ProjectReference, file: File, action: Action<TreeBuilder> = shared): Unit =
-        create(projects.asIterable(), readTreeSettings(file, determineConverter(file), action))
+        create(projects.asIterable(), action.doFirst { load(file) })
 
     /**
      * Registers the given [projects] as multi-versioned with Stonecutter.
@@ -150,7 +146,7 @@ public abstract class StonecutterSettingsExtension(
      */
     @JvmOverloads
     public fun create(vararg projects: ProjectReference, file: File, converter: JsonConverter, action: Action<TreeBuilder> = shared): Unit =
-        create(projects.asIterable(), readTreeSettings(file, converter, action))
+        create(projects.asIterable(), action.doFirst { load(file, converter) })
 
     /**
      * Registers the given [projects] as multi-versioned with Stonecutter.
@@ -165,7 +161,7 @@ public abstract class StonecutterSettingsExtension(
      */
     @JvmOverloads
     public fun create(projects: Iterable<ProjectReference>, file: File, action: Action<TreeBuilder> = shared): Unit =
-        create(projects, readTreeSettings(file, determineConverter(file), action))
+        create(projects, action.doFirst { load(file) })
 
     /**
      * Registers the given [projects] as multi-versioned with Stonecutter.
@@ -181,7 +177,7 @@ public abstract class StonecutterSettingsExtension(
      */
     @JvmOverloads
     public fun create(projects: Iterable<ProjectReference>, file: File, converter: JsonConverter, action: Action<TreeBuilder> = shared): Unit =
-        create(projects, readTreeSettings(file, converter, action))
+        create(projects, action.doFirst { load(file, converter) })
 
     /* Action configuration */
     /**
@@ -215,19 +211,8 @@ public abstract class StonecutterSettingsExtension(
      */
     @JvmOverloads
     public fun create(projects: Iterable<ProjectReference>, action: Action<TreeBuilder> = shared): Unit =
-        projects.forEach { create(it, objects.newInstance<TreeBuilderImpl>().also(action::execute)) }
+        projects.forEach { create(it, objects.newInstance<TreeBuilderImpl>(providers).also(action::execute)) }
 
     /* Base configuration */
     protected abstract fun create(ref: ProjectReference, builder: TreeBuilder)
-
-    @OptIn(ExperimentalSerializationApi::class)
-    private fun readTreeSettings(file: File, converter: JsonConverter, action: Action<TreeBuilder>): Action<TreeBuilder> {
-        val contents = providers.fileContents(file.toRegularFile(objects)).asText.orNull
-            ?: throw NoSuchFileException(file)
-        val tree: SerializedTree = converter.deserialize(contents)
-        return Action {
-            tree.applyTo(this)
-            action.execute(this)
-        }
-    }
 }

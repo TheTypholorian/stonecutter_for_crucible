@@ -848,6 +848,10 @@ public abstract class dev/kikugie/stonecutter/settings/tree/TreeBuilder : dev/ki
 	public abstract fun getKotlinController ()Lorg/gradle/api/provider/Property;
 	public abstract fun getVcsVersion ()Lorg/gradle/api/provider/Property;
 	public synthetic fun inherit ()V
+	public final fun load (Ljava/io/File;)V
+	public final fun load (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
+	public static synthetic fun load$default (Ldev/kikugie/stonecutter/settings/tree/TreeBuilder;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;ILjava/lang/Object;)V
+	protected abstract fun loadImpl (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
 	public abstract fun mapBuilds (Lkotlin/jvm/functions/Function2;)V
 }
 

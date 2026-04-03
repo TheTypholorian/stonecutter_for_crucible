@@ -1,10 +1,16 @@
+@file:OptIn(StonecutterExperimentalAPI::class)
+
 package dev.kikugie.stonecutter.settings.tree
 
 import dev.kikugie.stonecutter.AnyVersion
 import dev.kikugie.stonecutter.Identifier
+import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.StonecutterProject
+import dev.kikugie.stonecutter.data.deserialization.JsonConverter
+import dev.kikugie.stonecutter.data.deserialization.determineConverter
 import org.gradle.api.Action
 import org.gradle.api.provider.Property
+import java.io.File
 
 @DslMarker @Retention(AnnotationRetention.BINARY)
 private annotation class TreeBuilderDsl
@@ -46,6 +52,17 @@ public abstract class TreeBuilder : BranchBuilder() {
     override fun inherit(): Unit = throw UnsupportedOperationException()
 
     /**
+     * Loads the serialized project tree from the given [file]
+     * with an optional [converter].
+     *
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
+     */
+    @JvmOverloads
+    public fun load(file: File, converter: JsonConverter = determineConverter(file)): Unit =
+        loadImpl(file, converter)
+
+    /**
      * Creates a new project branch with the given [name], copying all already registered versions.
      *
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/branches">Wiki</a>
@@ -68,6 +85,8 @@ public abstract class TreeBuilder : BranchBuilder() {
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#naming-strategy">Wiki</a>
      */
     public abstract fun mapBuilds(mapping: (branch: Identifier, node: StonecutterProject) -> String)
+
+    protected abstract fun loadImpl(file: File, converter: JsonConverter)
 }
 
 /**
