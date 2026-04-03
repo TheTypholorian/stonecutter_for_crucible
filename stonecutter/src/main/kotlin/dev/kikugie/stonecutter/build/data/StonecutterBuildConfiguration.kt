@@ -92,8 +92,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
 @OptIn(StonecutterExperimentalAPI::class)
 private fun setupDefaultProperties(node: ProjectNode, objects: ObjectFactory): ExtendedPropertyConfig {
     val impl = ExtendedPropertyConfigImpl(node.project, objects)
-    if (node.branch.id.isEmpty()) impl.tags(node.metadata.project)
-    else impl.tags(node.branch.id, join(node.branch.id, node.metadata.project, ":"))
+    impl.tags(node.branch.id, node.metadata.project)
     impl.loadImpl(node.project.layout.projectDirectory.file(PROPERTIES_FILENAME), Toml2JsonConverter)
     return impl
 }

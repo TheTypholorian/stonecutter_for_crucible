@@ -9,9 +9,6 @@ import dev.kikugie.stonecutter.util.unwrap
 import kotlinx.serialization.json.*
 
 internal abstract class PropertiesVisitor<T>(private val tags: Set<String>) : JsonVisitor<String, T> {
-    protected fun check(key: String): Boolean =
-        !(key.isEmpty() || key.startsWith(':') || key.endsWith(':') || "::" in key)
-
     protected fun cut(path: String): String {
         var offset = 0
         val builder = StringBuilder(path)
@@ -52,7 +49,7 @@ internal abstract class PropertiesVisitor<T>(private val tags: Set<String>) : Js
 internal class PropertiesCollector(tags: Set<String>, private val consumer: (String, String) -> Unit) : PropertiesVisitor<Unit>(tags) {
     override fun visitObject(obj: JsonObject, data: String) {
         for ((k, v) in obj) join(data, k, ":").let {
-            if (check(k)) v.accept(this, it)
+            if (isValidPath(k)) v.accept(this, it)
             else PROPERTIES_LOGGER.warn("Invalid property path '$it'")
         }
     }
@@ -106,3 +103,6 @@ internal inline fun <T> findCandidate(iter: Iterable<T>, initial: Result = Resul
     }
     return candidate
 }
+
+internal fun isValidPath(key: String): Boolean =
+    !(key.isEmpty() || key.startsWith(':') || key.endsWith(':') || "::" in key)

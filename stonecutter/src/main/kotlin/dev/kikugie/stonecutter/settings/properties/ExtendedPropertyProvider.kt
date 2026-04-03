@@ -386,8 +386,11 @@ internal class ExtendedPropertyConfigImpl(
         extra[name]?.toString()?.mapTo(cls)
 
     override fun tags(vararg tags: String) {
-        val new = tags.toSet() - this.tags
-        if (new.isEmpty()) return
+        val new = tags
+            .filter { it.isNotBlank() && it !in tags }
+            .onEach { require(isValidPath(it)) { "Invalid tag '$it'" } }
+            .ifEmpty { return }
+            .toSet()
 
         loader.apply(extra, new)
         this.tags += new
