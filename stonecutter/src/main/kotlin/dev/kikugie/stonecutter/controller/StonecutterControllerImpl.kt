@@ -19,14 +19,15 @@ import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
 import dev.kikugie.stonecutter.data.deserialization.Toml2JsonConverter
+import dev.kikugie.stonecutter.settings.properties.PROPERTIES_FILENAME
 import dev.kikugie.stonecutter.data.tree.ProjectBranchImpl
 import dev.kikugie.stonecutter.data.tree.ProjectNodeImpl
+import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.tree.ProjectTreeImpl
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyConfigImpl
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider.ExtendedPropertyConfig
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.BranchBuilderImpl
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderContainer
@@ -39,7 +40,9 @@ import org.gradle.api.Project
 import org.gradle.api.file.RegularFile
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
-import org.gradle.kotlin.dsl.*
+import org.gradle.kotlin.dsl.apply
+import org.gradle.kotlin.dsl.named
+import org.gradle.kotlin.dsl.newInstance
 import java.io.File
 import java.nio.file.Path
 import javax.inject.Inject
@@ -51,7 +54,7 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     override val flags: StonecutterFlagsImpl = StonecutterFlagStorage { root.findProperty("dev.kikugie.stonecutter.${it.key}")?.toString() }
         .let(::StonecutterFlagsImpl)
     override val handlers: FileHandlerContainer = root.gradle.getContainer()
-    override val properties: ExtendedPropertyProvider.ExtendedPropertyConfig = setupDefaultProperties(root, objects)
+    override val properties: ExtendedPropertyConfig = setupDefaultProperties(tree, objects)
 
     private val nodeContainer: ProjectNodeContainer = root.gradle.getContainer<ProjectNodeContainer>().also { it += tree }
     private val configContainer: BuildConfigurationContainer = root.gradle.getContainer()
@@ -91,11 +94,10 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
 }
 
 @OptIn(StonecutterExperimentalAPI::class)
-private fun setupDefaultProperties(project: Project, objects: ObjectFactory): ExtendedPropertyProvider.ExtendedPropertyConfig = with(project) {
-    val ext = gradle.the<ExtendedPropertiesStorage>()
-    ext.load(layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), Toml2JsonConverter, hierarchy)
-    ext.apply(hierarchy, extra)
-    ExtendedPropertyConfigImpl(hierarchy, extra, ext, objects)
+private fun setupDefaultProperties(tree: ProjectTree, objects: ObjectFactory): ExtendedPropertyConfig {
+    val impl = ExtendedPropertyConfigImpl(tree.project, objects)
+    impl.loadImpl(tree.project.layout.projectDirectory.file(PROPERTIES_FILENAME), Toml2JsonConverter, emptySet())
+    return impl
 }
 
 private fun constructTree(root: Project): ProjectTreeImpl {

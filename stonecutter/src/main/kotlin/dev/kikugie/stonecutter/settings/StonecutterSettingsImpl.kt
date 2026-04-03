@@ -11,15 +11,15 @@ import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.configureDefaults
 import dev.kikugie.stonecutter.controller.tree.ProjectNodeContainer
-import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.createContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
 import dev.kikugie.stonecutter.data.deserialization.Toml2JsonConverter
+import dev.kikugie.stonecutter.settings.properties.PROPERTIES_FILENAME
+import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesLoader
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyConfigImpl
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
+import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider.ExtendedPropertyConfig
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.TreeBuilder
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderContainer
@@ -45,7 +45,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     registry: BuildEventsListenerRegistry,
     objects: ObjectFactory,
 ) : StonecutterSettingsExtension(objects, settings.providers), VersionOperations<Version> by LenientOperations {
-    override val properties: ExtendedPropertyProvider.ExtendedPropertyConfig = setupDefaultProperties(settings, objects)
+    override val properties: ExtendedPropertyConfig = setupDefaultProperties(settings, objects)
 
     internal val treeBuilderContainer: TreeBuilderContainer = settings.gradle.createContainer()
     internal val isHardMode: Boolean by lazy {
@@ -111,14 +111,12 @@ private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: B
     }.let(registry::onTaskCompletion)
 }
 
-@OptIn(StonecutterExperimentalAPI::class)
-@Suppress("UnstableApiUsage")
-private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): ExtendedPropertyProvider.ExtendedPropertyConfig = with(settings) {
-    val hierarchy = rootProject.hierarchy
-    val ext = gradle.extensions.create<ExtendedPropertiesStorage>("ExtendedProperties")
-    ext.load(layout.settingsDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), Toml2JsonConverter, hierarchy)
-        ?.apply(hierarchy, emptySet(), extra::set)
-    ExtendedPropertyConfigImpl(hierarchy, extra, ext, objects)
+@OptIn(StonecutterExperimentalAPI::class) @Suppress("UnstableApiUsage")
+private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): ExtendedPropertyConfig {
+    val loader: StructuredPropertiesLoader = settings.gradle.extensions.create("StructuredProperties")
+    val impl = ExtendedPropertyConfigImpl(settings.extra, loader, objects)
+    impl.loadImpl(settings.layout.settingsDirectory.file(PROPERTIES_FILENAME), Toml2JsonConverter, emptySet())
+    return impl
 }
 
 private fun Logger.reportGroovyComplaint(): Unit = warn(

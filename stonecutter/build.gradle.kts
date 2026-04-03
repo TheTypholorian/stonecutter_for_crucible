@@ -59,6 +59,10 @@ kotlin {
 }
 
 tasks {
+    test {
+        useJUnitPlatform()
+    }
+
     compileKotlin {
         mustRunAfter("generateVersion")
     }

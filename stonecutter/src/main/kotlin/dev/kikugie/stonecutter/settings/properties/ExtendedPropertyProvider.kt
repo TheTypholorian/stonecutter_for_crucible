@@ -7,7 +7,6 @@ import dev.kikugie.semver.data.StringVersion
 import dev.kikugie.semver.data.Version
 import dev.kikugie.semver.impl.VersionParsingException
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
-import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.deserialization.JsonConverter
 import dev.kikugie.stonecutter.data.deserialization.determineConverter
 import dev.kikugie.stonecutter.data.version.LenientOperations
@@ -16,8 +15,12 @@ import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider.Exte
 import dev.kikugie.stonecutter.util.toRegularFile
 import kotlinx.serialization.json.JsonElement
 import org.gradle.api.Action
+import org.gradle.api.Project
+import org.gradle.api.file.RegularFile
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.ExtraPropertiesExtension
+import org.gradle.internal.extensions.core.extra
+import org.gradle.kotlin.dsl.the
 import java.io.File
 import java.io.FileNotFoundException
 import java.util.Locale
@@ -149,7 +152,7 @@ public interface ExtendedPropertyProvider {
      */
     public fun properties(file: File, converter: JsonConverter): Unit = properties.load(file, converter)
 
-    public abstract class ExtendedPropertyConfig {
+    public abstract class ExtendedPropertyConfig protected constructor(protected val objects: ObjectFactory) {
         /**
          * Loads additional properties from a [file] with the custom [converter].
          *
@@ -207,7 +210,9 @@ public interface ExtendedPropertyProvider {
          * is compatible with Json types.
          * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties">Centralized Properties Documentation</a>
          */
-        public abstract fun load(file: File, converter: JsonConverter = determineConverter(file))
+        @JvmOverloads
+        public fun load(file: File, converter: JsonConverter = determineConverter(file), tags: Set<String> = emptySet()): Unit =
+            loadImpl(file.toRegularFile(objects), converter, tags)
 
         /**
          * Adds a list of tags to the config.
@@ -359,34 +364,37 @@ public interface ExtendedPropertyProvider {
 
         @PublishedApi @JvmSynthetic
         internal abstract fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): T?
+
+        @JvmSynthetic
+        internal abstract fun loadImpl(file: RegularFile, converter: JsonConverter, tags: Set<String>)
     }
 }
 
 internal class ExtendedPropertyConfigImpl(
-    val hierarchy: ProjectHierarchy,
-    val ext: ExtraPropertiesExtension,
-    val props: ExtendedPropertiesStorage,
-    val objects: ObjectFactory,
-) : ExtendedPropertyConfig() {
+    val extra: ExtraPropertiesExtension,
+    val loader: StructuredPropertiesLoader,
+    objects: ObjectFactory,
+) : ExtendedPropertyConfig(objects) {
+    constructor(project: Project, objects: ObjectFactory) : this(project.extra, project.gradle.the(), objects)
+
     private val tags: MutableSet<String> = mutableSetOf()
 
-    override fun rawOrNull(vararg segments: String): JsonElement? {
-        val unwrapped = segments.flatMap { it.split(':') }.filter(String::isNotEmpty)
-        return props.get(hierarchy, tags, unwrapped)
-    }
+    override fun rawOrNull(vararg segments: String): JsonElement? =
+        loader.get(segments.joinToString(":"), this.tags).element
 
     override fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): T? =
-        ext[name]?.toString()?.mapTo(cls)
+        extra[name]?.toString()?.mapTo(cls)
 
     override fun tags(vararg tags: String) {
-        props.apply(hierarchy, ext, tags.toSet() - this.tags)
         this.tags += tags
+        loader.apply(extra, tags.toSet() - this.tags)
     }
 
-    override fun load(file: File, converter: JsonConverter) {
-        val result = props.load(file.toRegularFile(objects), converter, hierarchy)
-            ?: throw FileNotFoundException(file.path)
-        result.apply(hierarchy, tags, ext::set)
+    override fun loadImpl(file: RegularFile, converter: JsonConverter, tags: Set<String>) {
+        this.tags += tags
+        val entry = loader.load(file, converter)
+            ?: throw FileNotFoundException(file.asFile.path)
+        entry.apply(PropertiesCollector(this.tags, extra::set))
     }
 
     @Suppress("UNCHECKED_CAST")
