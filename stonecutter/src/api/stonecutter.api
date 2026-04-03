@@ -801,9 +801,11 @@ public abstract interface class dev/kikugie/stonecutter/settings/properties/Exte
 }
 
 public abstract class dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider$ExtendedPropertyConfig {
-	public fun <init> ()V
+	protected fun <init> (Lorg/gradle/api/model/ObjectFactory;)V
+	protected final fun getObjects ()Lorg/gradle/api/model/ObjectFactory;
 	public abstract synthetic fun getTypedImpl (Ljava/lang/String;Lkotlin/reflect/KClass;)Ljava/lang/Object;
-	public abstract fun load (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
+	public final fun load (Ljava/io/File;)V
+	public final fun load (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
 	public static synthetic fun load$default (Ldev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider$ExtendedPropertyConfig;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;ILjava/lang/Object;)V
 	public final fun raw ([Ljava/lang/String;)Lkotlinx/serialization/json/JsonElement;
 	public abstract fun rawOrNull ([Ljava/lang/String;)Lkotlinx/serialization/json/JsonElement;
@@ -847,5 +849,9 @@ public abstract class dev/kikugie/stonecutter/settings/tree/TreeBuilder : dev/ki
 	public abstract fun getVcsVersion ()Lorg/gradle/api/provider/Property;
 	public synthetic fun inherit ()V
 	public abstract fun mapBuilds (Lkotlin/jvm/functions/Function2;)V
+}
+
+public final class dev/kikugie/stonecutter/util/StringUtilKt {
+	public static final fun unwrap (Lkotlinx/serialization/json/JsonPrimitive;)Ljava/lang/String;
 }
 
