@@ -1,0 +1,31 @@
+name: Build KDoc
+on:
+  push:
+    branches:
+      - "0.*"
+
+jobs:
+  test:
+    name: Build docs
+    runs-on: own-forgejo
+    container:
+      image: eclipse-temurin:21-jdk-alpine
+    steps:
+      - name: Install deps
+        run: |
+          apk add --no-cache nodejs tar
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.CB_TOKEN }}
+      - name: Setup Gradle
+        run: |
+          chmod +x ./gradlew
+      - name: Run Dokka
+        run: |
+          ./gradlew :dokkaGenerateHtml --no-daemon
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          path: build/dokka/html/*
