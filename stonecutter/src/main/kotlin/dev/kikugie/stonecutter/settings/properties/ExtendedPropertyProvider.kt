@@ -211,8 +211,8 @@ public interface ExtendedPropertyProvider {
          * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties">Centralized Properties Documentation</a>
          */
         @JvmOverloads
-        public fun load(file: File, converter: JsonConverter = determineConverter(file), tags: Set<String> = emptySet()): Unit =
-            loadImpl(file.toRegularFile(objects), converter, tags)
+        public fun load(file: File, converter: JsonConverter = determineConverter(file)): Unit =
+            loadImpl(file.toRegularFile(objects), converter).getOrThrow()
 
         /**
          * Adds a list of tags to the config.
@@ -366,7 +366,7 @@ public interface ExtendedPropertyProvider {
         internal abstract fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): T?
 
         @JvmSynthetic
-        internal abstract fun loadImpl(file: RegularFile, converter: JsonConverter, tags: Set<String>)
+        internal abstract fun loadImpl(file: RegularFile, converter: JsonConverter): Result<Unit>
     }
 }
 
@@ -386,15 +386,18 @@ internal class ExtendedPropertyConfigImpl(
         extra[name]?.toString()?.mapTo(cls)
 
     override fun tags(vararg tags: String) {
-        this.tags += tags
-        loader.apply(extra, tags.toSet() - this.tags)
+        val new = tags.toSet() - this.tags
+        if (new.isEmpty()) return
+
+        loader.apply(extra, new)
+        this.tags += new
     }
 
-    override fun loadImpl(file: RegularFile, converter: JsonConverter, tags: Set<String>) {
-        this.tags += tags
+    override fun loadImpl(file: RegularFile, converter: JsonConverter): Result<Unit> {
         val entry = loader.load(file, converter)
-            ?: throw FileNotFoundException(file.asFile.path)
-        entry.apply(PropertiesCollector(this.tags, extra::set))
+            ?: return Result.failure(FileNotFoundException(file.asFile.absolutePath))
+        entry.apply(PropertiesCollector(tags, extra::set))
+        return Result.success(Unit)
     }
 
     @Suppress("UNCHECKED_CAST")

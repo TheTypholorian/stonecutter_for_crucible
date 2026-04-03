@@ -96,7 +96,7 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
 @OptIn(StonecutterExperimentalAPI::class)
 private fun setupDefaultProperties(tree: ProjectTree, objects: ObjectFactory): ExtendedPropertyConfig {
     val impl = ExtendedPropertyConfigImpl(tree.project, objects)
-    impl.loadImpl(tree.project.layout.projectDirectory.file(PROPERTIES_FILENAME), Toml2JsonConverter, emptySet())
+    impl.loadImpl(tree.project.layout.projectDirectory.file(PROPERTIES_FILENAME), Toml2JsonConverter)
     return impl
 }
 

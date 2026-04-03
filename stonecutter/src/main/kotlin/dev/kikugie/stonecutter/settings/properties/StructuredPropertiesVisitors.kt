@@ -30,7 +30,7 @@ internal abstract class PropertiesVisitor<T>(private val tags: Set<String>) : Js
             }
         }
 
-        return builder.toString().replace(':', '.')
+        return builder.toString()
     }
 
     private fun StringBuilder.cutSegment(offset: Int, candidate: String, used: MutableSet<String>) {
@@ -63,7 +63,7 @@ internal class PropertiesCollector(tags: Set<String>, private val consumer: (Str
     }
 
     override fun visitPrimitive(prim: JsonPrimitive, data: String) {
-        consumer(cut(data), prim.unwrap())
+        consumer(cut(data).replace(':', '.'), prim.unwrap())
     }
 
     override fun visitNull(data: String) {
@@ -91,7 +91,10 @@ internal class PropertiesRetriever(tags: Set<String>, private val path: String) 
         Result(data.depth, JsonNull.takeIfValidPath(data))
 
     private val String.depth: Int get() = if (isEmpty()) 0 else count { it == ':' } + 1
-    private fun <T> T.takeIfValidPath(p: String): T? = takeIf { p == path }
+    private fun <T> T.takeIfValidPath(it: String): T? {
+        val short = cut(it)
+        return takeIf { short == path }
+    }
 }
 
 internal inline fun <T> findCandidate(iter: Iterable<T>, initial: Result = Result(0), mapping: (T) -> Result?): Result {

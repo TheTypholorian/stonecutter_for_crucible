@@ -115,7 +115,7 @@ private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: B
 private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): ExtendedPropertyConfig {
     val loader: StructuredPropertiesLoader = settings.gradle.extensions.create("StructuredProperties")
     val impl = ExtendedPropertyConfigImpl(settings.extra, loader, objects)
-    impl.loadImpl(settings.layout.settingsDirectory.file(PROPERTIES_FILENAME), Toml2JsonConverter, emptySet())
+    impl.loadImpl(settings.layout.settingsDirectory.file(PROPERTIES_FILENAME), Toml2JsonConverter)
     return impl
 }
 
