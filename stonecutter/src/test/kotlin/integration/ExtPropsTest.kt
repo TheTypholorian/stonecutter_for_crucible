@@ -1,58 +1,22 @@
 package integration
 
-import gradle.GradleTest
-import gradle.should
-import gradle.xshould
 import io.kotest.core.spec.style.ShouldSpec
+import util.GradleSetup
+import util.config
 
-class ExtPropsTest : GradleTest, ShouldSpec({
-    should("read default in settings") { _, build ->
-        build.run()
-    }
-
-    should("read default in controller") { _, build ->
-        build.run()
-    }
-
-    should("read default in parameters") { _, build ->
-        build.run()
-    }
-
-    should("read default in build") { _, build ->
-        build.run()
-    }
-
-    should("append new properties") { _, build ->
-        build.run()
-    }
-
-    should("use diff props") { _ , build ->
-        build.run()
-    }
-
-    should("use property tags") { _ , build ->
-        build.run()
-    }
-
+class ExtPropsTest : ShouldSpec({
+    should("read default in settings").config<GradleSetup> { build() }
+    should("read default in controller").config<GradleSetup> { build() }
+    should("read default in parameters").config<GradleSetup> { build() }
+    should("read default in build").config<GradleSetup> { build() }
+    should("append new properties").config<GradleSetup> { build() }
+    should("use diff props").config<GradleSetup> { build() }
+    should("use property tags").config<GradleSetup> { build() }
     // https://codeberg.org/stonecutter/stonecutter/issues/44
-    should("use nested property tags") { _ , build ->
-        build.run()
-    }
-
-    should("accept json files") { _, build ->
-        build.run()
-    }
-
-    should("accept yaml files") { _, build ->
-        build.run()
-    }
-
-    should("use typed properties") { _, build ->
-        build.run()
-    }
-
+    should("use nested property tags").config<GradleSetup> { build() }
+    should("accept json files").config<GradleSetup> { build() }
+    should("accept yaml files").config<GradleSetup> { build() }
+    should("use typed properties").config<GradleSetup> { build() }
     // For some reason this only fails in test env
-    xshould("parse property types") { _, build ->
-        build.run()
-    }
+    xshould("parse property types").config<GradleSetup> { build() }
 })

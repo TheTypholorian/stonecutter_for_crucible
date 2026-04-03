@@ -1,6 +1,4 @@
 // Taken for testing from https://github.com/pupbrained/drop-confirm/blob/c77dfecc546198a6c67deecc18ea8fcf78319a45/src/main/kotlin/xyz/pupbrained/drop_confirm/screens/PopupScreen.kt
-package projects.SyntaxTest.nested_conditions_2.src.main.kotlin
-
 //? if >=1.20.1 {
 import net.minecraft.client.gui.GuiGraphics as PoseStack
 //?} elif >=1.16.5 {
