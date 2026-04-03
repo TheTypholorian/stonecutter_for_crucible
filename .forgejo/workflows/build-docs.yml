@@ -1,8 +1,5 @@
 name: Build KDoc
-on:
-  push:
-    branches:
-      - "0.*"
+on: workflow_dispatch
 
 jobs:
   test:
@@ -13,7 +10,7 @@ jobs:
     steps:
       - name: Install deps
         run: |
-          apk add --no-cache nodejs tar
+          apk add --no-cache nodejs tar curl
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
@@ -25,7 +22,12 @@ jobs:
       - name: Run Dokka
         run: |
           ./gradlew :dokkaGenerateHtml --no-daemon
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          path: build/dokka/html/*
+      - name: Upload package
+        run: |
+          FILENAME="stonecutter-kdoc-${{ forgejo.ref_name }}.tar.xz"
+          tar -cJvf "$FILENAME" -C build/dokka/html/ .
+          curl -H "Authorization: token ${{ secrets.CB_TOKEN }}" -X DELETE \
+               "https://codeberg.org/api/packages/${{ forgejo.repository_owner }}/generic/stonecutter-kdoc/${{ forgejo.ref_name }}/"
+          curl -H "Authorization: token ${{ secrets.CB_TOKEN }}" \
+               --upload-file "$FILENAME" \
+               "https://codeberg.org/api/packages/${{ forgejo.repository_owner }}/generic/stonecutter-kdoc/${{ forgejo.ref_name }}/$FILENAME"
