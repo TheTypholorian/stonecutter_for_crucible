@@ -31,5 +31,6 @@ dokka {
 
     pluginsConfiguration.versioning {
         version = baseVersion
+        olderVersionsDir = file("kdoc-versions")
     }
 }
