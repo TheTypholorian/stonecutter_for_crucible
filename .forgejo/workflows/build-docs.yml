@@ -57,7 +57,7 @@ jobs:
       - name: Fetch versions
         run: |
           curl -s "https://codeberg.org/api/v1/packages/${{ forgejo.repository_owner }}?q=stonecutter-kdoc" \
-          | jq -r '.[] | select(.version != "${{ forgejo.ref_name }}" and .version != "merged") | .version` > versions.txt
+          | jq -r '.[] | select(.version != "${{ forgejo.ref_name }}" and .version != "merged") | .version' > versions.txt
       - name: Download doc packages
         run: |
           mkdir -p kdoc-versions
