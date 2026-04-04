@@ -1,3 +1,5 @@
+import java.net.URI
+
 plugins {
     antlr
     kotlin("jvm")
@@ -60,6 +62,12 @@ dokka {
 
         externalDocumentationLinks.register("kotlinx-serialization") {
             url("https://kotlinlang.org/api/kotlinx.serialization/")
+        }
+
+        externalDocumentationLinks.register("semver") {
+            val version = common.versions.misc.semver.get()
+            url("https://javadoc.io/static/dev.kikugie/semver/$version")
+            packageListUrl.set(URI.create("https://javadoc.io/static/dev.kikugie/semver/$version/semver/package-list"))
         }
     }
 }
