@@ -2,6 +2,7 @@
 @file:OptIn(ExperimentalPathApi::class)
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import java.net.URI
 import kotlin.io.path.ExperimentalPathApi
 
 plugins {
@@ -100,6 +101,11 @@ dokka {
             packageListUrl("https://docs.gradle.org/current/kotlin-dsl/gradle/package-list")
         }
 
+        externalDocumentationLinks.register("semver") {
+            val version = common.versions.misc.semver.get()
+            url("https://javadoc.io/static/dev.kikugie/semver/$version")
+            packageListUrl.set(URI.create("https://javadoc.io/static/dev.kikugie/semver/$version/semver/package-list"))
+        }
     }
 }
 
