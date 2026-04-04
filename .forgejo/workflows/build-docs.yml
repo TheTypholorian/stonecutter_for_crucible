@@ -16,11 +16,9 @@ jobs:
         with:
           fetch-depth: 1
           token: ${{ secrets.CB_TOKEN }}
-      - name: Setup Gradle
-        run: |
-          chmod +x ./gradlew
       - name: Run Dokka
         run: |
+          chmod +x ./gradlew
           ./gradlew :dokkaGenerateHtml --no-daemon
       - name: Upload package
         run: |
