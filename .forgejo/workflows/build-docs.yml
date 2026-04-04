@@ -1,12 +1,22 @@
 name: Build KDoc
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      run-own:
+        description: Build own docs
+        required: false
+        default: true
+        type: boolean
+
+env:
+  MAIN: '0.9'
 
 jobs:
-  test:
+  build-docs:
     name: Build docs
     runs-on: own-forgejo
-    container:
-      image: eclipse-temurin:21-jdk-alpine
+    container: eclipse-temurin:21-jdk-alpine
+    if: ${{ inputs.run-own }}
     steps:
       - name: Install deps
         run: |
@@ -23,9 +33,53 @@ jobs:
       - name: Upload package
         run: |
           FILENAME="stonecutter-kdoc-${{ forgejo.ref_name }}.tar.xz"
-          tar -cJvf "$FILENAME" -C build/dokka/html/ .
+          tar -cJf "$FILENAME" -C build/dokka/html/ .
           curl -H "Authorization: token ${{ secrets.CB_TOKEN }}" -X DELETE \
                "https://codeberg.org/api/packages/${{ forgejo.repository_owner }}/generic/stonecutter-kdoc/${{ forgejo.ref_name }}/"
           curl -H "Authorization: token ${{ secrets.CB_TOKEN }}" \
                --upload-file "$FILENAME" \
                "https://codeberg.org/api/packages/${{ forgejo.repository_owner }}/generic/stonecutter-kdoc/${{ forgejo.ref_name }}/$FILENAME"
+
+  merge-docs:
+    name: Build merged docs
+    runs-on: own-forgejo
+    container: eclipse-temurin:21-jdk-alpine
+    if: ${{ forgejo.ref_name == env.MAIN }}
+    steps:
+      - name: Install deps
+        run: |
+          apk add --no-cache nodejs tar xz curl
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.CB_TOKEN }}
+      - name: Fetch versions
+        run: |
+          curl -s "https://codeberg.org/api/v1/packages/${{ forgejo.repository_owner }}?q=stonecutter-kdoc" \
+          | jq -r '.[] | select(.version != "${{ forgejo.ref_name }}" and .version != "merged") | .version` > versions.txt
+      - name: Download doc packages
+        run: |
+          mkdir -p kdoc-versions
+          while read version; do
+            [ -z "$version" ] && continue
+            FILE="stonecutter-kdoc-${version}.tar.xz"
+            URL="https://codeberg.org/api/packages/${{ forgejo.repository_owner }}/generic/stonecutter-kdoc/${version}/${FILE}"
+          
+            mkdir -p "kdoc-versions/${version}"
+            curl -L -o "${FILE}" "${URL}"
+            tar -xJf "${FILE}" -C "kdoc-versions/${version}"
+          done < versions.txt
+      - name: Run Dokka (merged)
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :dokkaGenerateHtml --no-daemon
+      - name: Upload package (merged)
+        run: |
+          FILENAME="stonecutter-kdoc-merged.tar.xz"
+          tar -cJf "$FILENAME" -C build/dokka/html/ .
+          curl -H "Authorization: token ${{ secrets.CB_TOKEN }}" -X DELETE \
+               "https://codeberg.org/api/packages/${{ forgejo.repository_owner }}/generic/stonecutter-kdoc/merged/"
+          curl -H "Authorization: token ${{ secrets.CB_TOKEN }}" \
+               --upload-file "$FILENAME" \
+               "https://codeberg.org/api/packages/${{ forgejo.repository_owner }}/generic/stonecutter-kdoc/merged/$FILENAME"
