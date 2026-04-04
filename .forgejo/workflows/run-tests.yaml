@@ -1,12 +1,12 @@
 name: Run tests
-on: [push]
+on: push
 
 jobs:
   test:
     name: Run tests
     runs-on: own-forgejo
     container:
-      image: eclipse-temurin:21-jdk-alpine
+      image: eclipse-temurin:25-jdk-alpine
     steps:
       - name: Install deps
         run: |
