@@ -48,8 +48,8 @@ internal class PropertiesCollector(tags: Set<String>, private val consumer: (Str
         // Don't add nulls
     }
 
-    override fun visitLiteral(literal: SCLiteral, ctx: String) {
-        consumer(cut(ctx).replace(':', '.'), literal.toString())
+    override fun visitPrimitive(prim: SCPrimitive, ctx: String) {
+        consumer(cut(ctx).replace(':', '.'), prim.toString())
     }
 
     override fun visitList(list: SCList, ctx: String) {
@@ -71,8 +71,8 @@ internal class PropertiesRetriever(tags: Set<String>, private val path: String) 
     override fun visitNull(ctx: String): Result =
         Result(ctx.depth, SCNull.takeIfValidPath(ctx))
 
-    override fun visitLiteral(literal: SCLiteral, ctx: String): Result =
-        Result(ctx.depth, literal.takeIfValidPath(ctx))
+    override fun visitPrimitive(prim: SCPrimitive, ctx: String): Result =
+        Result(ctx.depth, prim.takeIfValidPath(ctx))
 
     override fun visitList(list: SCList, ctx: String): Result = findCandidate(
         list.withIndex(),

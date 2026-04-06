@@ -21,7 +21,7 @@ import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
-import dev.kikugie.stonecutter.data.deserialization.FromTomlConverter
+import dev.kikugie.stonecutter.data.deserialization.TomlConverter
 import dev.kikugie.stonecutter.settings.properties.PROPERTIES_FILENAME
 import dev.kikugie.stonecutter.data.tree.ProjectBranchImpl
 import dev.kikugie.stonecutter.data.tree.ProjectNodeImpl
@@ -99,7 +99,7 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
 @OptIn(StonecutterExperimentalAPI::class)
 private fun setupDefaultProperties(tree: ProjectTree, objects: ObjectFactory): ExtendedPropertyConfig {
     val impl = ExtendedPropertyConfigImpl(tree.project, objects)
-    impl.loadImpl(tree.project.layout.projectDirectory.file(PROPERTIES_FILENAME), FromTomlConverter)
+    impl.loadImpl(tree.project.layout.projectDirectory.file(PROPERTIES_FILENAME), TomlConverter)
     return impl
 }
 

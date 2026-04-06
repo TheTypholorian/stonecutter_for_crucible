@@ -9,13 +9,7 @@ import dev.kikugie.commons.takeAs
 import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.util.escape
-import dev.kikugie.stonecutter.util.toIntAutoRadix
-import dev.kikugie.stonecutter.util.toIntOrNullAutoRadix
-import dev.kikugie.stonecutter.util.toLongAutoRadix
-import dev.kikugie.stonecutter.util.toLongOrNullAutoRadix
-import dev.kikugie.stonecutter.util.toRadixString
 import kotlinx.serialization.json.JsonElement
-import java.util.Locale
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -29,13 +23,13 @@ public sealed class SCElement {
     public abstract override fun toString(): String
     public abstract fun <C, T> accept(visitor: Visitor<C, T>, ctx: C): T
 
-    public fun asLiteral(): SCLiteral {
-        contract { returns() implies (this@SCElement is SCLiteral) }
+    public fun asPrimitive(): SCPrimitive {
+        contract { returns() implies (this@SCElement is SCPrimitive) }
         return takeAs()
     }
 
-    public fun asLiteralOrNull(): SCLiteral? {
-        contract { returnsNotNull() implies (this@SCElement is SCLiteral) }
+    public fun asPrimitiveOrNull(): SCPrimitive? {
+        contract { returnsNotNull() implies (this@SCElement is SCPrimitive) }
         return takeAsOrNull()
     }
 
@@ -59,15 +53,15 @@ public sealed class SCElement {
         return takeAsOrNull()
     }
 
-    public fun toJson(): JsonElement = accept(ToJsonVisitor, null)
+    public fun toJson(): JsonElement = accept(JsonConverter, null)
 
-    public fun toToml(): TomlElement = accept(ToTomlVisitor, null)
+    public fun toToml(): TomlElement = accept(TomlConverter, null)
 
-    public fun toYaml(): YamlNode = accept(ToYamlVisitor, YamlPath.root)
+    public fun toYaml(): YamlNode = accept(YamlConverter, YamlPath.root)
 
     public interface Visitor<C, T> {
         public fun visitNull(ctx: C): T
-        public fun visitLiteral(literal: SCLiteral, ctx: C): T
+        public fun visitPrimitive(prim: SCPrimitive, ctx: C): T
         public fun visitList(list: SCList, ctx: C): T
         public fun visitMap(map: SCMap, ctx: C): T
     }
@@ -82,68 +76,55 @@ public object SCNull : SCElement() {
 }
 
 @SCStruct
-public class SCLiteral @StonecutterInternalAPI constructor(override val content: String, public val type: Type) : SCElement() {
+public class SCPrimitive private constructor(override val content: Any, public val kind: Kind) : SCElement() {
+    public constructor(value: Boolean) : this(value, Kind.Boolean)
+    public constructor(value: Int) : this(value.toLong(), Kind.Integer)
+    public constructor(value: Long) : this(value, Kind.Integer)
+    public constructor(value: Float) : this(value.toDouble(), Kind.Float)
+    public constructor(value: Double) : this(value, Kind.Float)
+    public constructor(value: CharSequence) : this(value.toString(), Kind.String)
+    public constructor(value: String) : this(value, Kind.String)
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is SCLiteral) return false
+        if (other !is SCPrimitive) return false
 
         if (content != other.content) return false
-        if (type != other.type) return false
+        if (kind != other.kind) return false
 
         return true
     }
 
     override fun hashCode(): Int {
         var result = content.hashCode()
-        result = 31 * result + type.hashCode()
+        result = 31 * result + kind.hashCode()
         return result
     }
 
-    override fun toString(): String = content
+    override fun toString(): String = content.toString()
+    override fun <C, T> accept(visitor: Visitor<C, T>, ctx: C): T = visitor.visitPrimitive(this, ctx)
 
-    override fun <C, T> accept(visitor: Visitor<C, T>, ctx: C): T = visitor.visitLiteral(this, ctx)
+    public fun toBoolean(): Boolean = of<Boolean>(Kind.Boolean)
+    public fun toBooleanOrNull(): Boolean? = content as? Boolean
 
-    public fun toBoolean(): Boolean = content.lowercase(Locale.US).toBooleanStrict()
+    public fun toInt(): Int = of<Long>(Kind.Integer).toInt()
+    public fun toIntOrNull(): Int? = content.takeAsOrNull<Long>()?.toInt()
 
-    public fun toBooleanOrNull(): Boolean? = content.lowercase(Locale.US).toBooleanStrictOrNull()
+    public fun toLong(): Long = of(Kind.Integer)
+    public fun toLongOrNull(): Long? = content as? Long
 
-    public fun toInt(): Int = content.toIntAutoRadix()
+    public fun toFloat(): Float = of<Double>(Kind.Float).toFloat()
+    public fun toFloatOrNull(): Float? = content.takeAsOrNull<Double>()?.toFloat()
 
-    public fun toIntOrNull(): Int? = content.toIntOrNullAutoRadix()
+    public fun toDouble(): Double = of(Kind.Float)
+    public fun toDoubleOrNull(): Double? = content as? Double
 
-    public fun toLong(): Long = content.toLongAutoRadix()
-
-    public fun toLongOrNull(): Long? = content.toLongOrNullAutoRadix()
-
-    public fun toFloat(): Float = when (content.lowercase(Locale.US)) {
-        "inf", "+inf" -> Float.POSITIVE_INFINITY
-        "-inf" -> Float.NEGATIVE_INFINITY
-        "nan" -> Float.NaN
-        else -> content.toFloat()
+    private inline fun <reified T> of(kind: Kind): T {
+        require(kind == this.kind) { "Value ${content::class.simpleName} is not of kind $kind" }
+        return content as T
     }
 
-    public fun toFloatOrNull(): Float? = when (content.lowercase(Locale.US)) {
-        "inf", "+inf" -> Float.POSITIVE_INFINITY
-        "-inf" -> Float.NEGATIVE_INFINITY
-        "nan" -> Float.NaN
-        else -> content.toFloatOrNull()
-    }
-
-    public fun toDouble(): Double = when (content.lowercase(Locale.US)) {
-        "inf", "+inf" -> Double.POSITIVE_INFINITY
-        "-inf" -> Double.NEGATIVE_INFINITY
-        "nan" -> Double.NaN
-        else -> content.toDouble()
-    }
-
-    public fun toDoubleOrNull(): Double? = when (content.lowercase(Locale.US)) {
-        "inf", "+inf" -> Double.POSITIVE_INFINITY
-        "-inf" -> Double.NEGATIVE_INFINITY
-        "nan" -> Double.NaN
-        else -> content.toDoubleOrNull()
-    }
-
-    public enum class Type {
+    public enum class Kind {
         Boolean, Integer, Float, String
     }
 }
@@ -188,10 +169,3 @@ public class SCMap(override val content: Map<String, SCElement>) : SCElement(), 
 
     override fun <C, T> accept(visitor: Visitor<C, T>, ctx: C): T = visitor.visitMap(this, ctx)
 }
-
-public fun Boolean.toSCLiteral(): SCLiteral = SCLiteral(toString(), SCLiteral.Type.Boolean)
-public fun String.toSCLiteral(): SCLiteral = SCLiteral(this, SCLiteral.Type.String)
-public fun Float.toSCLiteral(): SCLiteral = SCLiteral(toString(), SCLiteral.Type.Float)
-public fun Double.toSCLiteral(): SCLiteral = SCLiteral(toString(), SCLiteral.Type.Float)
-public fun Int.toSCLiteral(radix: Int = 10): SCLiteral = SCLiteral(toRadixString(radix), SCLiteral.Type.Integer)
-public fun Long.toSCLiteral(radix: Int = 10): SCLiteral = SCLiteral(toRadixString(radix), SCLiteral.Type.Integer)
