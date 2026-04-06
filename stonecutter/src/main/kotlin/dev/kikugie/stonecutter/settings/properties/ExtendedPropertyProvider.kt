@@ -50,7 +50,7 @@ public interface ExtendedPropertyProvider {
      * ```
      * ```kt
      * // settings.gradle.kts
-     * sc.properties(file("properties.toml"), Toml2JsonConverter)
+     * sc.properties(file("properties.toml"), TomlConverter)
      * sc.create(rootProject) { versions("subproject") }
      *
      * assert(findProperty("my_property") == null)
@@ -88,7 +88,7 @@ public interface ExtendedPropertyProvider {
      *
      * The default supported formats are `toml`, `json`, `json5`, `yml` and `yaml`,
      * which are automatically resolved based on the [file] extension.
-     * Additional formats can be supported by providing a [JsonConverter] to the
+     * Additional formats can be supported by providing a [SCConverter] to the
      * overloaded function.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties">Centralized Properties Documentation</a>
      */
@@ -167,7 +167,7 @@ public interface ExtendedPropertyProvider {
          * ```
          * ```kt
          * // settings.gradle.kts
-         * sc.properties(file("properties.toml"), Toml2JsonConverter)
+         * sc.properties(file("properties.toml"), TomlConverter)
          * sc.create(rootProject) { versions("subproject") }
          *
          * assert(findProperty("my_property") == null)
@@ -226,7 +226,7 @@ public interface ExtendedPropertyProvider {
         public abstract fun tags(vararg tags: String)
 
         /**
-         * Retrieves the structured property as converted [JsonConverter]
+         * Retrieves the structured property as converted [SCConverter]
          * at the path defined by [segments].
          *
          * Values are only queried from files registered with the [load] function.
@@ -291,7 +291,7 @@ public interface ExtendedPropertyProvider {
         }
 
         /**
-         * Retrieves the structured property as converted [JsonConverter]
+         * Retrieves the structured property as converted [SCConverter]
          * at the path defined by [segments].
          *
          * Values are only queried from files registered with the [load] function.

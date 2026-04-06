@@ -79,7 +79,7 @@ dokka {
     }
 
     dokkaSourceSets.named("main") {
-        reportUndocumented = false
+        reportUndocumented = true
         skipEmptyPackages = true
 
         sourceLink {
