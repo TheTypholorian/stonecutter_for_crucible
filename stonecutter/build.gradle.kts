@@ -25,7 +25,7 @@ val baseVersion: String = property("version").toString()
     .substringBefore('-').substringBeforeLast('.')
 
 sourceSets.main {
-    kotlin.srcDir(files("build/generated/ver/main/kotlin").builtBy("generateVersion"))
+    kotlin.srcDirs(files("build/generated/ver/main/kotlin").builtBy("generateVersion"), files("src/samples/kotlin"))
 }
 
 dependencies {

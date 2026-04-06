@@ -704,6 +704,7 @@ public abstract interface class dev/kikugie/stonecutter/data/version/VersionOper
 }
 
 public abstract interface class dev/kikugie/stonecutter/data/whatever/ExtendedMapProperty : org/gradle/api/provider/MapProperty {
+	public fun get (Ljava/lang/Object;)Ljava/lang/Object;
 	public fun set (Ljava/lang/Object;Ljava/lang/Object;)V
 	public fun set (Ljava/lang/Object;Lorg/gradle/api/provider/Provider;)V
 }
