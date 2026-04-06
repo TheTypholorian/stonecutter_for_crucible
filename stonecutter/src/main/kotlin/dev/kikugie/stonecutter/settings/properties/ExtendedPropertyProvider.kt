@@ -7,7 +7,8 @@ import dev.kikugie.semver.data.StringVersion
 import dev.kikugie.semver.data.Version
 import dev.kikugie.semver.impl.VersionParsingException
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
-import dev.kikugie.stonecutter.data.deserialization.JsonConverter
+import dev.kikugie.stonecutter.data.deserialization.SCConverter
+import dev.kikugie.stonecutter.data.deserialization.SCElement
 import dev.kikugie.stonecutter.data.deserialization.determineConverter
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.SemanticOperations
@@ -150,7 +151,7 @@ public interface ExtendedPropertyProvider {
      * is compatible with Json types.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties">Centralized Properties Documentation</a>
      */
-    public fun properties(file: File, converter: JsonConverter): Unit = properties.load(file, converter)
+    public fun properties(file: File, converter: SCConverter): Unit = properties.load(file, converter)
 
     public abstract class ExtendedPropertyConfig protected constructor(protected val objects: ObjectFactory) {
         /**
@@ -211,7 +212,7 @@ public interface ExtendedPropertyProvider {
          * @see <a href="https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties">Centralized Properties Documentation</a>
          */
         @JvmOverloads
-        public fun load(file: File, converter: JsonConverter = determineConverter(file)): Unit =
+        public fun load(file: File, converter: SCConverter = determineConverter(file)): Unit =
             loadImpl(file.toRegularFile(objects), converter).getOrThrow()
 
         /**
@@ -285,7 +286,7 @@ public interface ExtendedPropertyProvider {
          * @throws IllegalArgumentException If there's no element at the provided path
          */
         @StonecutterExperimentalAPI
-        public fun raw(vararg segments: String): JsonElement = requireNotNull(rawOrNull(*segments)) {
+        public fun raw(vararg segments: String): SCElement = requireNotNull(rawOrNull(*segments)) {
             "No element at path '${segments.joinToString(":")}'"
         }
 
@@ -308,7 +309,7 @@ public interface ExtendedPropertyProvider {
          * other formats are converted to Json during deserialization
          */
         @StonecutterExperimentalAPI
-        public abstract fun rawOrNull(vararg segments: String): JsonElement?
+        public abstract fun rawOrNull(vararg segments: String): SCElement?
 
         /**
          * Retrieves a property with the given [name], converted to the [T] type.
@@ -366,7 +367,7 @@ public interface ExtendedPropertyProvider {
         internal abstract fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): T?
 
         @JvmSynthetic
-        internal abstract fun loadImpl(file: RegularFile, converter: JsonConverter): Result<Unit>
+        internal abstract fun loadImpl(file: RegularFile, converter: SCConverter): Result<Unit>
     }
 }
 
@@ -379,7 +380,7 @@ internal class ExtendedPropertyConfigImpl(
 
     private val tags: MutableSet<String> = mutableSetOf()
 
-    override fun rawOrNull(vararg segments: String): JsonElement? =
+    override fun rawOrNull(vararg segments: String): SCElement? =
         loader.get(segments.joinToString(":"), this.tags).element
 
     override fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): T? =
@@ -396,7 +397,7 @@ internal class ExtendedPropertyConfigImpl(
         this.tags += new
     }
 
-    override fun loadImpl(file: RegularFile, converter: JsonConverter): Result<Unit> {
+    override fun loadImpl(file: RegularFile, converter: SCConverter): Result<Unit> {
         val entry = loader.load(file, converter)
             ?: return Result.failure(FileNotFoundException(file.asFile.absolutePath))
         entry.apply(PropertiesCollector(tags, extra::set))

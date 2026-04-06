@@ -1,7 +1,10 @@
+@file:OptIn(StonecutterInternalAPI::class)
+
 package dev.kikugie.stonecutter.controller
 
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
+import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
@@ -18,7 +21,7 @@ import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
-import dev.kikugie.stonecutter.data.deserialization.Toml2JsonConverter
+import dev.kikugie.stonecutter.data.deserialization.FromTomlConverter
 import dev.kikugie.stonecutter.settings.properties.PROPERTIES_FILENAME
 import dev.kikugie.stonecutter.data.tree.ProjectBranchImpl
 import dev.kikugie.stonecutter.data.tree.ProjectNodeImpl
@@ -96,7 +99,7 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
 @OptIn(StonecutterExperimentalAPI::class)
 private fun setupDefaultProperties(tree: ProjectTree, objects: ObjectFactory): ExtendedPropertyConfig {
     val impl = ExtendedPropertyConfigImpl(tree.project, objects)
-    impl.loadImpl(tree.project.layout.projectDirectory.file(PROPERTIES_FILENAME), Toml2JsonConverter)
+    impl.loadImpl(tree.project.layout.projectDirectory.file(PROPERTIES_FILENAME), FromTomlConverter)
     return impl
 }
 

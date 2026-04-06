@@ -1,14 +1,11 @@
 package dev.kikugie.stonecutter.settings.properties
 
 import dev.kikugie.commons.text.getOrDefault
-import dev.kikugie.stonecutter.data.deserialization.JsonVisitor
-import dev.kikugie.stonecutter.data.deserialization.accept
+import dev.kikugie.stonecutter.data.deserialization.*
 import dev.kikugie.stonecutter.settings.properties.PropertiesRetriever.Result
 import dev.kikugie.stonecutter.util.join
-import dev.kikugie.stonecutter.util.unwrap
-import kotlinx.serialization.json.*
 
-internal abstract class PropertiesVisitor<T>(private val tags: Set<String>) : JsonVisitor<String, T> {
+internal abstract class PropertiesVisitor<T>(private val tags: Set<String>) : SCElement.Visitor<String, T> {
     protected fun cut(path: String): String {
         var offset = 0
         val builder = StringBuilder(path)
@@ -47,45 +44,45 @@ internal abstract class PropertiesVisitor<T>(private val tags: Set<String>) : Js
 }
 
 internal class PropertiesCollector(tags: Set<String>, private val consumer: (String, String) -> Unit) : PropertiesVisitor<Unit>(tags) {
-    override fun visitObject(obj: JsonObject, data: String) {
-        for ((k, v) in obj) join(data, k, ":").let {
+    override fun visitNull(ctx: String) {
+        // Don't add nulls
+    }
+
+    override fun visitLiteral(literal: SCLiteral, ctx: String) {
+        consumer(cut(ctx).replace(':', '.'), literal.toString())
+    }
+
+    override fun visitList(list: SCList, ctx: String) {
+        for ((i, e) in list.withIndex())
+            e.accept(this, join(ctx, i.toString(), ":"))
+    }
+
+    override fun visitMap(map: SCMap, ctx: String) {
+        for ((k, v) in map) join(ctx, k, ":").let {
             if (isValidPath(k)) v.accept(this, it)
             else PROPERTIES_LOGGER.warn("Invalid property path '$it'")
         }
     }
-
-    override fun visitArray(arr: JsonArray, data: String) {
-        for ((i, e) in arr.withIndex())
-            e.accept(this, join(data, i.toString(), ":"))
-    }
-
-    override fun visitPrimitive(prim: JsonPrimitive, data: String) {
-        consumer(cut(data).replace(':', '.'), prim.unwrap())
-    }
-
-    override fun visitNull(data: String) {
-        // Don't add nulls
-    }
 }
 
 internal class PropertiesRetriever(tags: Set<String>, private val path: String) : PropertiesVisitor<Result>(tags) {
-    class Result(val depth: Int, val element: JsonElement? = null)
+    class Result(val depth: Int, val element: SCElement? = null)
 
-    override fun visitObject(obj: JsonObject, data: String): Result = findCandidate(
-        obj.entries,
-        Result(data.depth, obj.takeIfValidPath(data))
-    ) { (k, v) -> v.accept(this, join(data, k, ":")) }
+    override fun visitNull(ctx: String): Result =
+        Result(ctx.depth, SCNull.takeIfValidPath(ctx))
 
-    override fun visitArray(arr: JsonArray, data: String): Result = findCandidate(
-        arr.withIndex(),
-        Result(data.depth, arr.takeIfValidPath(data))
-    ) { (i, e) -> e.accept(this, join(data, i.toString(), ":")) }
+    override fun visitLiteral(literal: SCLiteral, ctx: String): Result =
+        Result(ctx.depth, literal.takeIfValidPath(ctx))
 
-    override fun visitPrimitive(prim: JsonPrimitive, data: String): Result =
-        Result(data.depth, prim.takeIfValidPath(data))
+    override fun visitList(list: SCList, ctx: String): Result = findCandidate(
+        list.withIndex(),
+        Result(ctx.depth, list.takeIfValidPath(ctx))
+    ) { (i, e) -> e.accept(this, join(ctx, i.toString(), ":")) }
 
-    override fun visitNull(data: String): Result =
-        Result(data.depth, JsonNull.takeIfValidPath(data))
+    override fun visitMap(map: SCMap, ctx: String): Result = findCandidate(
+        map.entries,
+        Result(ctx.depth, map.takeIfValidPath(ctx))
+    ) { (k, v) -> v.accept(this, join(ctx, k, ":")) }
 
     private val String.depth: Int get() = if (isEmpty()) 0 else count { it == ':' } + 1
     private fun <T> T.takeIfValidPath(it: String): T? {

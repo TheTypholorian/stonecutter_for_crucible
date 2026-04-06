@@ -1,9 +1,11 @@
+@file:OptIn(StonecutterInternalAPI::class)
+
 package unit
 
 import com.github.ajalt.mordant.rendering.TextColors
 import dev.kikugie.commons.collections.present
-import dev.kikugie.stonecutter.data.deserialization.Toml2JsonConverter
-import dev.kikugie.stonecutter.data.deserialization.accept
+import dev.kikugie.stonecutter.StonecutterInternalAPI
+import dev.kikugie.stonecutter.data.deserialization.FromTomlConverter
 import dev.kikugie.stonecutter.settings.properties.PropertiesCollector
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.core.test.TestScope
@@ -127,6 +129,6 @@ private class CollectorSetup : TestSetup {
 
     private fun collect(): Map<String, String> = buildMap {
         val collector = PropertiesCollector(tags, ::set)
-        Toml2JsonConverter.convert(data).accept(collector, "")
+        FromTomlConverter.convert(data).accept(collector, "")
     }
 }

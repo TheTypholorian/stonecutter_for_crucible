@@ -6,7 +6,7 @@ import dev.kikugie.stonecutter.AnyVersion
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.StonecutterProject
-import dev.kikugie.stonecutter.data.deserialization.JsonConverter
+import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.deserialization.determineConverter
 import org.gradle.api.Action
 import org.gradle.api.provider.Property
@@ -59,7 +59,7 @@ public abstract class TreeBuilder : BranchBuilder() {
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
-    public fun load(file: File, converter: JsonConverter = determineConverter(file)): Unit =
+    public fun load(file: File, converter: SCConverter = determineConverter(file)): Unit =
         loadImpl(file, converter)
 
     /**
@@ -86,7 +86,7 @@ public abstract class TreeBuilder : BranchBuilder() {
      */
     public abstract fun mapBuilds(mapping: (branch: Identifier, node: StonecutterProject) -> String)
 
-    protected abstract fun loadImpl(file: File, converter: JsonConverter)
+    protected abstract fun loadImpl(file: File, converter: SCConverter)
 }
 
 /**

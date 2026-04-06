@@ -3,9 +3,8 @@
 package dev.kikugie.stonecutter.settings.properties
 
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
-import dev.kikugie.stonecutter.data.deserialization.JsonConverter
-import dev.kikugie.stonecutter.data.deserialization.accept
-import kotlinx.serialization.json.JsonObject
+import dev.kikugie.stonecutter.data.deserialization.SCConverter
+import dev.kikugie.stonecutter.data.deserialization.SCElement
 import org.gradle.api.Named
 import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.file.RegularFile
@@ -32,23 +31,22 @@ internal abstract class StructuredPropertiesLoader @Inject constructor(val objec
         return findCandidate(container) { it.get(retriever) }
     }
 
-    fun load(file: RegularFile, converter: JsonConverter): StructuredPropertiesEntry? = synchronized(container) {
+    fun load(file: RegularFile, converter: SCConverter): StructuredPropertiesEntry? = synchronized(container) {
         val path  = file.asFile.absolutePath
         PROPERTIES_LOGGER.debug("Loading properties from {}", path)
         container.findByName(path) ?: loadNew(file, converter)?.also(container::add)
     }
 
-    private fun loadNew(file: RegularFile, converter: JsonConverter): StructuredPropertiesEntry? {
+    private fun loadNew(file: RegularFile, converter: SCConverter): StructuredPropertiesEntry? {
         val contents = providers.fileContents(file).asText.orNull ?: return null
         return StructuredPropertiesEntry(converter.convert(contents), file)
     }
 }
 
-internal class StructuredPropertiesEntry(val json: JsonObject, file: RegularFile) : Named {
+internal class StructuredPropertiesEntry(val entry: SCElement, file: RegularFile) : Named {
     private val path: String = file.asFile.absolutePath
 
     override fun getName(): String = path
-    fun apply(collector: PropertiesCollector) = json.accept(collector, "")
-    fun get(retriever: PropertiesRetriever): PropertiesRetriever.Result = json.accept(retriever, "")
+    fun apply(collector: PropertiesCollector) = entry.accept(collector, "")
+    fun get(retriever: PropertiesRetriever): PropertiesRetriever.Result = entry.accept(retriever, "")
 }
-

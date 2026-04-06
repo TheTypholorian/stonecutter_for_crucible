@@ -4,7 +4,7 @@ import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
-import dev.kikugie.stonecutter.data.deserialization.JsonConverter
+import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
@@ -114,7 +114,7 @@ public abstract class StonecutterSettingsExtension(
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
-    public fun create(project: ProjectReference, file: File, converter: JsonConverter, action: Action<TreeBuilder> = shared): Unit =
+    public fun create(project: ProjectReference, file: File, converter: SCConverter, action: Action<TreeBuilder> = shared): Unit =
         create(listOf(project), action.doFirst { load(file, converter) })
 
     /**
@@ -145,7 +145,7 @@ public abstract class StonecutterSettingsExtension(
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
-    public fun create(vararg projects: ProjectReference, file: File, converter: JsonConverter, action: Action<TreeBuilder> = shared): Unit =
+    public fun create(vararg projects: ProjectReference, file: File, converter: SCConverter, action: Action<TreeBuilder> = shared): Unit =
         create(projects.asIterable(), action.doFirst { load(file, converter) })
 
     /**
@@ -176,7 +176,7 @@ public abstract class StonecutterSettingsExtension(
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
-    public fun create(projects: Iterable<ProjectReference>, file: File, converter: JsonConverter, action: Action<TreeBuilder> = shared): Unit =
+    public fun create(projects: Iterable<ProjectReference>, file: File, converter: SCConverter, action: Action<TreeBuilder> = shared): Unit =
         create(projects, action.doFirst { load(file, converter) })
 
     /* Action configuration */

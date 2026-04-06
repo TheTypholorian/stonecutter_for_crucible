@@ -2,16 +2,16 @@
 
 package dev.kikugie.stonecutter.settings.tree
 
+import dev.kikugie.stitcher.util.isValidIdentifier
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.ProjectReference
+import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
-import dev.kikugie.stonecutter.settings.StonecutterSettingsImpl
-import dev.kikugie.stitcher.util.isValidIdentifier
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
-import dev.kikugie.stonecutter.data.deserialization.JsonConverter
+import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.deserialization.deserialize
+import dev.kikugie.stonecutter.settings.StonecutterSettingsImpl
 import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Action
 import org.gradle.api.initialization.ProjectDescriptor
@@ -49,7 +49,7 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
         localBuildScriptProvider = mapping
     }
 
-    override fun loadImpl(file: File, converter: JsonConverter) {
+    override fun loadImpl(file: File, converter: SCConverter) {
         val contents: String = providers.fileContents(file.toRegularFile(objects)).asText.orNull
             ?: throw NoSuchFileException(file)
         val tree: SerializedTree = converter.deserialize(contents)
