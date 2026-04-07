@@ -7,7 +7,7 @@ import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
+import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.settings.tree.TreeBuilder
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.doFirst
@@ -34,7 +34,7 @@ private annotation class SettingsDsl
 public abstract class StonecutterSettingsExtension(
     protected val objects: ObjectFactory,
     protected val providers: ProviderFactory
-) : VersionOperations<Version>, ExtendedPropertyProvider {
+) : VersionOperations<Version>, StructuredPropertiesProvider {
     /**
      * Shared [Action] for configuring instances of [TreeBuilder].
      *

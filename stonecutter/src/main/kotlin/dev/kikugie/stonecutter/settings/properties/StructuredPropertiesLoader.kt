@@ -13,10 +13,11 @@ import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.ExtraPropertiesExtension
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.kotlin.dsl.namedDomainObjectList
+import org.slf4j.Logger
 import javax.inject.Inject
 
-internal val PROPERTIES_LOGGER = Logging.getLogger("StructuredPropertiesLoader")
-internal const val PROPERTIES_FILENAME = "stonecutter.properties.toml"
+internal val PROPERTIES_LOGGER: Logger = Logging.getLogger("StructuredPropertiesLoader")
+internal const val PROPERTIES_FILENAME: String = "stonecutter.properties.toml"
 
 internal abstract class StructuredPropertiesLoader @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory) {
     private val container: NamedDomainObjectCollection<StructuredPropertiesEntry> = objects.namedDomainObjectList(StructuredPropertiesEntry::class)

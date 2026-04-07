@@ -1,8 +1,6 @@
 package dev.kikugie.stonecutter.util
 
-import dev.kikugie.commons.text.getOrDefault
 import dev.kikugie.commons.then
-import kotlinx.serialization.json.JsonPrimitive
 
 private val ASCII_ESCAPES: List<String> = buildList(128) {
     for (i in 0x00..0x0f) {
@@ -49,11 +47,11 @@ public fun String.unescape(): String {
     if (isBlank()) return this
 
     val builder = StringBuilder(length)
-    var index = 1
-    while (index < length - 1) {
+    var index = 0
+    while (index < length) {
         val char = get(index)
 
-        if (char != '\\' || index == length - 2) {
+        if (char != '\\' || index == length - 1) {
             builder.append(char)
             index++
             continue
@@ -62,60 +60,6 @@ public fun String.unescape(): String {
         index += builder.next(this, index, get(index + 1))
     }
     return builder.toString()
-}
-
-internal fun String.toIntAutoRadix(): Int = when (val radix = guessRadix()) {
-    10 -> toInt()
-    else -> removeRadix().toInt(radix)
-}
-
-internal fun String.toIntOrNullAutoRadix(): Int? = when (val radix = guessRadix()) {
-    10 -> toIntOrNull()
-    else -> removeRadix().toIntOrNull(radix)
-}
-
-internal fun String.toLongAutoRadix(): Long = when (val radix = guessRadix()) {
-    10 -> toLong()
-    else -> removeRadix().toLong(radix)
-}
-
-internal fun String.toLongOrNullAutoRadix(): Long? = when (val radix = guessRadix()) {
-    10 -> toLongOrNull()
-    else -> removeRadix().toLongOrNull(radix)
-}
-
-internal fun Int.toRadixString(radix: Int): String = when(radix) {
-    2 -> "0b${toString(2)}"
-    8 -> "0o${toString(8)}"
-    16 -> "0x${toString(16)}"
-    10 -> toString()
-    else -> throw IllegalArgumentException("Radix $radix can't be encoded into the string")
-}
-
-internal fun Long.toRadixString(radix: Int): String = when(radix) {
-    2 -> "0b${toString(2)}"
-    8 -> "0o${toString(8)}"
-    16 -> "0x${toString(16)}"
-    10 -> toString()
-    else -> throw IllegalArgumentException("Radix $radix can't be encoded into the string")
-}
-
-private fun String.guessRadix(): Int {
-    if (isBlank()) return 10
-
-    var offset = if (first().let { it == '+' || it == '-' }) 1 else 0
-    if (getOrDefault(offset) == '0') offset ++ else return 10
-    return when(getOrDefault(offset)) {
-        'b', 'B' -> 2
-        'o', 'O' -> 8
-        'x', 'X' -> 16
-        else -> 10
-    }
-}
-
-private fun String.removeRadix(): String {
-    val offset = if (first().let { it == '+' || it == '-' }) 3 else 2
-    return get(0) + drop(offset)
 }
 
 private fun StringBuilder.next(input: String, index: Int, it: Char): Int = when (it) {

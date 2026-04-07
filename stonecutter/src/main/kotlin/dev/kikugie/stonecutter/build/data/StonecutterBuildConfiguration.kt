@@ -30,7 +30,7 @@ import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyConfigImpl
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider.ExtendedPropertyConfig
+import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.settings.properties.PROPERTIES_FILENAME
 import dev.kikugie.stonecutter.util.overwriteText
 import dev.kikugie.stonecutter.util.toRegularFile
@@ -61,7 +61,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override val dependencies: DependencyContainer = objects.newInstance(data.dependencies)
     override val replacements: ReplacementContainerImpl = objects.newInstance(data::addString, data::addRegex)
     override val filters: PatternFilterable = PatternSet()
-    override val properties: ExtendedPropertyConfig = setupDefaultProperties(node, objects)
+    override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(node, objects)
 
     override val flags: StonecutterFlagsView = controller.flags
     override val tasks: StonecutterBuildTasks
@@ -91,7 +91,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
 }
 
 @OptIn(StonecutterExperimentalAPI::class)
-private fun setupDefaultProperties(node: ProjectNode, objects: ObjectFactory): ExtendedPropertyConfig {
+private fun setupDefaultProperties(node: ProjectNode, objects: ObjectFactory): StructuredPropertiesProvider.Config {
     val impl = ExtendedPropertyConfigImpl(node.project, objects)
     impl.tags(node.branch.id, node.metadata.project)
     impl.loadImpl(node.project.layout.projectDirectory.file(PROPERTIES_FILENAME), TomlConverter)

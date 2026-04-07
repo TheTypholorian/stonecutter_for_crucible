@@ -14,7 +14,7 @@ import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
+import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import org.gradle.api.Action
 import org.gradle.api.tasks.util.PatternFilterable
 import java.io.File
@@ -32,7 +32,7 @@ private annotation class BuildDsl
  * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params">Preprocessor Configuration Documentation</a>
  */
 @BuildDsl
-public interface StonecutterBuildExtension : VersionOperations<Version>, ExtendedPropertyProvider {
+public interface StonecutterBuildExtension : VersionOperations<Version>, StructuredPropertiesProvider {
     /**
      * Node associated with the applied Gradle [Project][org.gradle.api.Project].
      *
