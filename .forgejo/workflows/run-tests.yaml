@@ -2,8 +2,9 @@ name: Run tests
 on:
   push:
     paths:
-      - stitcher/src/*
-      - stonecutter/src/*
+      - stitcher/src/**
+      - stonecutter/src/**
+      - .forgejo/workflows/run-tests.yaml
 
 jobs:
   test:
