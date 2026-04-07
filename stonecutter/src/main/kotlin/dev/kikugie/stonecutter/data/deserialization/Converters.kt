@@ -15,8 +15,10 @@ import java.util.*
 
 internal val SUPPORTED_CONVERTIBLE: List<String> = listOf("json", "json5", "yml", "yaml", "toml")
 
-internal inline fun <reified T> SCConverter.deserialize(text: String): T =
-    JsonConverter.SPEC.decodeFromJsonElement(convert(text).toJson())
+internal inline fun <reified T> SCConverter.deserialize(text: String): T = when (this) {
+    is JsonConverter -> SPEC.decodeFromString(text)
+    else -> JsonConverter.SPEC.decodeFromJsonElement(convert(text).toJson())
+}
 
 internal fun File.defaultConverterOrNull(): SCConverter? = when (extension.lowercase(Locale.US)) {
     "json", "json5" -> JsonConverter

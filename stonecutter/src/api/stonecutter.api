@@ -682,6 +682,7 @@ public abstract class dev/kikugie/stonecutter/data/deserialization/SCElement {
 	public final fun asPrimitive ()Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive;
 	public final fun asPrimitiveOrNull ()Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive;
 	public abstract fun getContent ()Ljava/lang/Object;
+	public final fun to (Lkotlinx/serialization/DeserializationStrategy;)Ljava/lang/Object;
 	public final fun toJson ()Lkotlinx/serialization/json/JsonElement;
 	public abstract fun toString ()Ljava/lang/String;
 	public final fun toToml ()Ldev/eav/tomlkt/TomlElement;

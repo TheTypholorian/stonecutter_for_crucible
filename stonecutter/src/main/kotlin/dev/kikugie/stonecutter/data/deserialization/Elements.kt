@@ -9,7 +9,10 @@ import dev.kikugie.commons.takeAs
 import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.util.escape
+import kotlinx.serialization.DeserializationStrategy
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.decodeFromJsonElement
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -144,6 +147,32 @@ public sealed class SCElement {
      * is always line 1 and column 1.
      */
     public fun toYaml(): YamlNode = accept(YamlConverter, YamlPath.root)
+
+    /**
+     * Converts this element to [T] using its [DeserializationStrategy].
+     *
+     * Deserialization is done with [Json][kotlinx.serialization.json.Json],
+     * allowing the use of [JsonContentPolymorphicSerializer][kotlinx.serialization.json.JsonContentPolymorphicSerializer]s
+     * and [JsonTransformingSerializer][kotlinx.serialization.json.JsonTransformingSerializer]s.
+     *
+     * @throws [SerializationException] If the element is not serializable
+     * @throws [IllegalArgumentException] If the element can't be represented as [T] or contains star projections (i.e. `List<*>`)
+     */
+    public inline fun <reified T> to(): T =
+        JsonConverter.SPEC.decodeFromJsonElement(toJson())
+
+    /**
+     * Converts this element to [T] using its [deserializer].
+     *
+     * Deserialization is done with [Json][kotlinx.serialization.json.Json],
+     * allowing the use of [JsonContentPolymorphicSerializer][kotlinx.serialization.json.JsonContentPolymorphicSerializer]s
+     * and [JsonTransformingSerializer][kotlinx.serialization.json.JsonTransformingSerializer]s.
+     *
+     * @throws [SerializationException] If the element is not serializable
+     * @throws [IllegalArgumentException] If the element can't be represented as [T] or contains star projections (i.e. `List<*>`)
+     */
+    public fun <T> to(deserializer: DeserializationStrategy<T>): T =
+        JsonConverter.SPEC.decodeFromJsonElement(deserializer, toJson())
 
     /**
      * Visitor interface for [SCElement] traversal.
