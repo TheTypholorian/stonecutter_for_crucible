@@ -13,7 +13,7 @@ public abstract class dev/kikugie/stonecutter/StonecutterPlugin : org/gradle/api
 public final class dev/kikugie/stonecutter/StonecutterPlugin$Companion {
 }
 
-public abstract interface class dev/kikugie/stonecutter/build/StonecutterBuildExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider {
+public abstract interface class dev/kikugie/stonecutter/build/StonecutterBuildExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider {
 	public fun constants (Lorg/gradle/api/Action;)V
 	public fun dependencies (Lorg/gradle/api/Action;)V
 	public fun flags (Lorg/gradle/api/Action;)V
@@ -215,7 +215,7 @@ public abstract class dev/kikugie/stonecutter/build/task/StonecutterPrepareTask 
 	public abstract fun getSource ()Lorg/gradle/api/file/ConfigurableFileCollection;
 }
 
-public abstract interface class dev/kikugie/stonecutter/controller/StonecutterControllerExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider {
+public abstract interface class dev/kikugie/stonecutter/controller/StonecutterControllerExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider {
 	public abstract fun active (Ljava/lang/Object;)V
 	public fun flags (Lorg/gradle/api/Action;)V
 	public fun getCurrent ()Ldev/kikugie/stonecutter/data/StonecutterProject;
@@ -655,8 +655,216 @@ public final class dev/kikugie/stonecutter/data/StonecutterProject$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
-public abstract interface class dev/kikugie/stonecutter/data/deserialization/JsonConverter {
-	public abstract fun convert (Ljava/lang/String;)Lkotlinx/serialization/json/JsonObject;
+public final class dev/kikugie/stonecutter/data/deserialization/JsonConverter : dev/kikugie/stonecutter/data/deserialization/SCConverter, dev/kikugie/stonecutter/data/deserialization/SCElement$Visitor {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;
+	public static final field SPEC Lkotlinx/serialization/json/Json;
+	public fun convert (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public synthetic fun visitList (Ldev/kikugie/stonecutter/data/deserialization/SCList;Ljava/lang/Object;)Ljava/lang/Object;
+	public fun visitList (Ldev/kikugie/stonecutter/data/deserialization/SCList;Ljava/lang/Void;)Lkotlinx/serialization/json/JsonArray;
+	public synthetic fun visitMap (Ldev/kikugie/stonecutter/data/deserialization/SCMap;Ljava/lang/Object;)Ljava/lang/Object;
+	public fun visitMap (Ldev/kikugie/stonecutter/data/deserialization/SCMap;Ljava/lang/Void;)Lkotlinx/serialization/json/JsonObject;
+	public synthetic fun visitNull (Ljava/lang/Object;)Ljava/lang/Object;
+	public fun visitNull (Ljava/lang/Void;)Lkotlinx/serialization/json/JsonNull;
+	public synthetic fun visitPrimitive (Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive;Ljava/lang/Object;)Ljava/lang/Object;
+	public fun visitPrimitive (Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive;Ljava/lang/Void;)Lkotlinx/serialization/json/JsonPrimitive;
+}
+
+public abstract interface class dev/kikugie/stonecutter/data/deserialization/SCConverter {
+	public abstract fun convert (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+}
+
+public abstract class dev/kikugie/stonecutter/data/deserialization/SCElement {
+	public abstract fun accept (Ldev/kikugie/stonecutter/data/deserialization/SCElement$Visitor;Ljava/lang/Object;)Ljava/lang/Object;
+	public final fun asList ()Ldev/kikugie/stonecutter/data/deserialization/SCList;
+	public final fun asListOrNull ()Ldev/kikugie/stonecutter/data/deserialization/SCList;
+	public final fun asMap ()Ldev/kikugie/stonecutter/data/deserialization/SCMap;
+	public final fun asMapOrNull ()Ldev/kikugie/stonecutter/data/deserialization/SCMap;
+	public final fun asPrimitive ()Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive;
+	public final fun asPrimitiveOrNull ()Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive;
+	public abstract fun getContent ()Ljava/lang/Object;
+	public final fun toJson ()Lkotlinx/serialization/json/JsonElement;
+	public abstract fun toString ()Ljava/lang/String;
+	public final fun toToml ()Ldev/eav/tomlkt/TomlElement;
+	public final fun toYaml ()Lcom/charleskorn/kaml/YamlNode;
+}
+
+public abstract interface class dev/kikugie/stonecutter/data/deserialization/SCElement$Visitor {
+	public abstract fun visitList (Ldev/kikugie/stonecutter/data/deserialization/SCList;Ljava/lang/Object;)Ljava/lang/Object;
+	public abstract fun visitMap (Ldev/kikugie/stonecutter/data/deserialization/SCMap;Ljava/lang/Object;)Ljava/lang/Object;
+	public abstract fun visitNull (Ljava/lang/Object;)Ljava/lang/Object;
+	public abstract fun visitPrimitive (Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive;Ljava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class dev/kikugie/stonecutter/data/deserialization/SCList : dev/kikugie/stonecutter/data/deserialization/SCElement, java/util/List, kotlin/jvm/internal/markers/KMappedMarker {
+	public fun <init> (Ljava/util/List;)V
+	public fun accept (Ldev/kikugie/stonecutter/data/deserialization/SCElement$Visitor;Ljava/lang/Object;)Ljava/lang/Object;
+	public fun add (ILdev/kikugie/stonecutter/data/deserialization/SCElement;)V
+	public synthetic fun add (ILjava/lang/Object;)V
+	public fun add (Ldev/kikugie/stonecutter/data/deserialization/SCElement;)Z
+	public synthetic fun add (Ljava/lang/Object;)Z
+	public fun addAll (ILjava/util/Collection;)Z
+	public fun addAll (Ljava/util/Collection;)Z
+	public fun addFirst (Ldev/kikugie/stonecutter/data/deserialization/SCElement;)V
+	public synthetic fun addFirst (Ljava/lang/Object;)V
+	public fun addLast (Ldev/kikugie/stonecutter/data/deserialization/SCElement;)V
+	public synthetic fun addLast (Ljava/lang/Object;)V
+	public fun clear ()V
+	public fun contains (Ldev/kikugie/stonecutter/data/deserialization/SCElement;)Z
+	public final fun contains (Ljava/lang/Object;)Z
+	public fun containsAll (Ljava/util/Collection;)Z
+	public fun equals (Ljava/lang/Object;)Z
+	public fun get (I)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public synthetic fun get (I)Ljava/lang/Object;
+	public synthetic fun getContent ()Ljava/lang/Object;
+	public fun getContent ()Ljava/util/List;
+	public fun getSize ()I
+	public fun hashCode ()I
+	public fun indexOf (Ldev/kikugie/stonecutter/data/deserialization/SCElement;)I
+	public final fun indexOf (Ljava/lang/Object;)I
+	public fun isEmpty ()Z
+	public fun iterator ()Ljava/util/Iterator;
+	public fun lastIndexOf (Ldev/kikugie/stonecutter/data/deserialization/SCElement;)I
+	public final fun lastIndexOf (Ljava/lang/Object;)I
+	public fun listIterator ()Ljava/util/ListIterator;
+	public fun listIterator (I)Ljava/util/ListIterator;
+	public fun remove (I)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public synthetic fun remove (I)Ljava/lang/Object;
+	public fun remove (Ljava/lang/Object;)Z
+	public fun removeAll (Ljava/util/Collection;)Z
+	public fun removeFirst ()Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public synthetic fun removeFirst ()Ljava/lang/Object;
+	public fun removeLast ()Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public synthetic fun removeLast ()Ljava/lang/Object;
+	public fun replaceAll (Ljava/util/function/UnaryOperator;)V
+	public fun retainAll (Ljava/util/Collection;)Z
+	public fun set (ILdev/kikugie/stonecutter/data/deserialization/SCElement;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public synthetic fun set (ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun size ()I
+	public fun sort (Ljava/util/Comparator;)V
+	public fun subList (II)Ljava/util/List;
+	public fun toArray ()[Ljava/lang/Object;
+	public fun toArray ([Ljava/lang/Object;)[Ljava/lang/Object;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kikugie/stonecutter/data/deserialization/SCMap : dev/kikugie/stonecutter/data/deserialization/SCElement, java/util/Map, kotlin/jvm/internal/markers/KMappedMarker {
+	public fun <init> (Ljava/util/Map;)V
+	public fun accept (Ldev/kikugie/stonecutter/data/deserialization/SCElement$Visitor;Ljava/lang/Object;)Ljava/lang/Object;
+	public fun clear ()V
+	public synthetic fun compute (Ljava/lang/Object;Ljava/util/function/BiFunction;)Ljava/lang/Object;
+	public fun compute (Ljava/lang/String;Ljava/util/function/BiFunction;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public synthetic fun computeIfAbsent (Ljava/lang/Object;Ljava/util/function/Function;)Ljava/lang/Object;
+	public fun computeIfAbsent (Ljava/lang/String;Ljava/util/function/Function;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public synthetic fun computeIfPresent (Ljava/lang/Object;Ljava/util/function/BiFunction;)Ljava/lang/Object;
+	public fun computeIfPresent (Ljava/lang/String;Ljava/util/function/BiFunction;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public final fun containsKey (Ljava/lang/Object;)Z
+	public fun containsKey (Ljava/lang/String;)Z
+	public fun containsValue (Ldev/kikugie/stonecutter/data/deserialization/SCElement;)Z
+	public final fun containsValue (Ljava/lang/Object;)Z
+	public final fun entrySet ()Ljava/util/Set;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun get (Ljava/lang/Object;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public final synthetic fun get (Ljava/lang/Object;)Ljava/lang/Object;
+	public fun get (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public synthetic fun getContent ()Ljava/lang/Object;
+	public fun getContent ()Ljava/util/Map;
+	public fun getEntries ()Ljava/util/Set;
+	public fun getKeys ()Ljava/util/Set;
+	public fun getSize ()I
+	public fun getValues ()Ljava/util/Collection;
+	public fun hashCode ()I
+	public fun isEmpty ()Z
+	public final fun keySet ()Ljava/util/Set;
+	public synthetic fun merge (Ljava/lang/Object;Ljava/lang/Object;Ljava/util/function/BiFunction;)Ljava/lang/Object;
+	public fun merge (Ljava/lang/String;Ldev/kikugie/stonecutter/data/deserialization/SCElement;Ljava/util/function/BiFunction;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public synthetic fun put (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+	public fun put (Ljava/lang/String;Ldev/kikugie/stonecutter/data/deserialization/SCElement;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public fun putAll (Ljava/util/Map;)V
+	public synthetic fun putIfAbsent (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+	public fun putIfAbsent (Ljava/lang/String;Ldev/kikugie/stonecutter/data/deserialization/SCElement;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public fun remove (Ljava/lang/Object;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public synthetic fun remove (Ljava/lang/Object;)Ljava/lang/Object;
+	public fun remove (Ljava/lang/Object;Ljava/lang/Object;)Z
+	public synthetic fun replace (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+	public synthetic fun replace (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z
+	public fun replace (Ljava/lang/String;Ldev/kikugie/stonecutter/data/deserialization/SCElement;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public fun replace (Ljava/lang/String;Ldev/kikugie/stonecutter/data/deserialization/SCElement;Ldev/kikugie/stonecutter/data/deserialization/SCElement;)Z
+	public fun replaceAll (Ljava/util/function/BiFunction;)V
+	public final fun size ()I
+	public fun toString ()Ljava/lang/String;
+	public final fun values ()Ljava/util/Collection;
+}
+
+public final class dev/kikugie/stonecutter/data/deserialization/SCNull : dev/kikugie/stonecutter/data/deserialization/SCElement {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/data/deserialization/SCNull;
+	public fun accept (Ldev/kikugie/stonecutter/data/deserialization/SCElement$Visitor;Ljava/lang/Object;)Ljava/lang/Object;
+	public synthetic fun getContent ()Ljava/lang/Object;
+	public fun getContent ()Ljava/lang/Void;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kikugie/stonecutter/data/deserialization/SCPrimitive : dev/kikugie/stonecutter/data/deserialization/SCElement {
+	public fun <init> (D)V
+	public fun <init> (F)V
+	public fun <init> (I)V
+	public fun <init> (J)V
+	public fun <init> (Ljava/lang/CharSequence;)V
+	public fun <init> (Ljava/lang/String;)V
+	public fun <init> (Z)V
+	public fun accept (Ldev/kikugie/stonecutter/data/deserialization/SCElement$Visitor;Ljava/lang/Object;)Ljava/lang/Object;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getContent ()Ljava/lang/Object;
+	public final fun getKind ()Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive$Kind;
+	public fun hashCode ()I
+	public final fun toBoolean ()Z
+	public final fun toBooleanOrNull ()Ljava/lang/Boolean;
+	public final fun toDouble ()D
+	public final fun toDoubleOrNull ()Ljava/lang/Double;
+	public final fun toFloat ()F
+	public final fun toFloatOrNull ()Ljava/lang/Float;
+	public final fun toInt ()I
+	public final fun toIntOrNull ()Ljava/lang/Integer;
+	public final fun toLong ()J
+	public final fun toLongOrNull ()Ljava/lang/Long;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class dev/kikugie/stonecutter/data/deserialization/SCPrimitive$Kind : java/lang/Enum {
+	public static final field Boolean Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive$Kind;
+	public static final field Float Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive$Kind;
+	public static final field Integer Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive$Kind;
+	public static final field String Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive$Kind;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive$Kind;
+	public static fun values ()[Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive$Kind;
+}
+
+public final class dev/kikugie/stonecutter/data/deserialization/TomlConverter : dev/kikugie/stonecutter/data/deserialization/SCConverter, dev/kikugie/stonecutter/data/deserialization/SCElement$Visitor {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/data/deserialization/TomlConverter;
+	public static final field SPEC Ldev/eav/tomlkt/Toml;
+	public fun convert (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public synthetic fun visitList (Ldev/kikugie/stonecutter/data/deserialization/SCList;Ljava/lang/Object;)Ljava/lang/Object;
+	public fun visitList (Ldev/kikugie/stonecutter/data/deserialization/SCList;Ljava/lang/Void;)Ldev/eav/tomlkt/TomlArray;
+	public synthetic fun visitMap (Ldev/kikugie/stonecutter/data/deserialization/SCMap;Ljava/lang/Object;)Ljava/lang/Object;
+	public fun visitMap (Ldev/kikugie/stonecutter/data/deserialization/SCMap;Ljava/lang/Void;)Ldev/eav/tomlkt/TomlTable;
+	public synthetic fun visitNull (Ljava/lang/Object;)Ljava/lang/Object;
+	public fun visitNull (Ljava/lang/Void;)Ldev/eav/tomlkt/TomlNull;
+	public synthetic fun visitPrimitive (Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive;Ljava/lang/Object;)Ljava/lang/Object;
+	public fun visitPrimitive (Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive;Ljava/lang/Void;)Ldev/eav/tomlkt/TomlLiteral;
+}
+
+public final class dev/kikugie/stonecutter/data/deserialization/YamlConverter : dev/kikugie/stonecutter/data/deserialization/SCConverter, dev/kikugie/stonecutter/data/deserialization/SCElement$Visitor {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/data/deserialization/YamlConverter;
+	public static final field SPEC Lcom/charleskorn/kaml/Yaml;
+	public fun convert (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public fun visitList (Ldev/kikugie/stonecutter/data/deserialization/SCList;Lcom/charleskorn/kaml/YamlPath;)Lcom/charleskorn/kaml/YamlList;
+	public synthetic fun visitList (Ldev/kikugie/stonecutter/data/deserialization/SCList;Ljava/lang/Object;)Ljava/lang/Object;
+	public fun visitMap (Ldev/kikugie/stonecutter/data/deserialization/SCMap;Lcom/charleskorn/kaml/YamlPath;)Lcom/charleskorn/kaml/YamlMap;
+	public synthetic fun visitMap (Ldev/kikugie/stonecutter/data/deserialization/SCMap;Ljava/lang/Object;)Ljava/lang/Object;
+	public fun visitNull (Lcom/charleskorn/kaml/YamlPath;)Lcom/charleskorn/kaml/YamlNull;
+	public synthetic fun visitNull (Ljava/lang/Object;)Ljava/lang/Object;
+	public fun visitPrimitive (Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive;Lcom/charleskorn/kaml/YamlPath;)Lcom/charleskorn/kaml/YamlScalar;
+	public synthetic fun visitPrimitive (Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive;Ljava/lang/Object;)Ljava/lang/Object;
 }
 
 public abstract interface class dev/kikugie/stonecutter/data/tree/GradleMember {
@@ -755,34 +963,34 @@ public final class dev/kikugie/stonecutter/data/whatever/TaskProviderMap : java/
 	public final fun values ()Ljava/util/Collection;
 }
 
-public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider {
+public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider {
 	public fun <init> (Lorg/gradle/api/model/ObjectFactory;Lorg/gradle/api/provider/ProviderFactory;)V
 	public final fun create (Ljava/lang/Iterable;)V
 	public final fun create (Ljava/lang/Iterable;Ljava/io/File;)V
-	public final fun create (Ljava/lang/Iterable;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
-	public final fun create (Ljava/lang/Iterable;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;Lorg/gradle/api/Action;)V
+	public final fun create (Ljava/lang/Iterable;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public final fun create (Ljava/lang/Iterable;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;Lorg/gradle/api/Action;)V
 	public final fun create (Ljava/lang/Iterable;Ljava/io/File;Lorg/gradle/api/Action;)V
 	public final fun create (Ljava/lang/Iterable;Lorg/gradle/api/Action;)V
 	public final fun create (Ljava/lang/Object;)V
 	protected abstract fun create (Ljava/lang/Object;Ldev/kikugie/stonecutter/settings/tree/TreeBuilder;)V
 	public final fun create (Ljava/lang/Object;Ljava/io/File;)V
-	public final fun create (Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
-	public final fun create (Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;Lorg/gradle/api/Action;)V
+	public final fun create (Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public final fun create (Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;Lorg/gradle/api/Action;)V
 	public final fun create (Ljava/lang/Object;Ljava/io/File;Lorg/gradle/api/Action;)V
 	public final fun create (Ljava/lang/Object;Lorg/gradle/api/Action;)V
 	public final fun create ([Ljava/lang/Object;)V
 	public final fun create ([Ljava/lang/Object;Ljava/io/File;)V
-	public final fun create ([Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
-	public final fun create ([Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;Lorg/gradle/api/Action;)V
+	public final fun create ([Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public final fun create ([Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;Lorg/gradle/api/Action;)V
 	public final fun create ([Ljava/lang/Object;Ljava/io/File;Lorg/gradle/api/Action;)V
 	public final fun create ([Ljava/lang/Object;Lorg/gradle/api/Action;)V
-	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;Ljava/lang/Iterable;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;Lorg/gradle/api/Action;ILjava/lang/Object;)V
+	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;Ljava/lang/Iterable;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;Ljava/lang/Iterable;Ljava/io/File;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;Ljava/lang/Iterable;Lorg/gradle/api/Action;ILjava/lang/Object;)V
-	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;Lorg/gradle/api/Action;ILjava/lang/Object;)V
+	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;Ljava/lang/Object;Ljava/io/File;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;Ljava/lang/Object;Lorg/gradle/api/Action;ILjava/lang/Object;)V
-	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;[Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;Lorg/gradle/api/Action;ILjava/lang/Object;)V
+	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;[Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;[Ljava/lang/Object;Ljava/io/File;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;[Ljava/lang/Object;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public abstract fun getCentralScript ()Lorg/gradle/api/provider/Property;
@@ -794,22 +1002,22 @@ public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtens
 	public final fun shared (Lorg/gradle/api/Action;)V
 }
 
-public abstract interface class dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider {
-	public abstract fun getProperties ()Ldev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider$ExtendedPropertyConfig;
+public abstract interface class dev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider {
+	public abstract fun getProperties ()Ldev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider$Config;
 	public fun properties (Ljava/io/File;)V
-	public fun properties (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
+	public fun properties (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
 	public fun properties (Lorg/gradle/api/Action;)V
 }
 
-public abstract class dev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider$ExtendedPropertyConfig {
+public abstract class dev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider$Config {
 	protected fun <init> (Lorg/gradle/api/model/ObjectFactory;)V
 	protected final fun getObjects ()Lorg/gradle/api/model/ObjectFactory;
 	public abstract synthetic fun getTypedImpl (Ljava/lang/String;Lkotlin/reflect/KClass;)Ljava/lang/Object;
 	public final fun load (Ljava/io/File;)V
-	public final fun load (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
-	public static synthetic fun load$default (Ldev/kikugie/stonecutter/settings/properties/ExtendedPropertyProvider$ExtendedPropertyConfig;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;ILjava/lang/Object;)V
-	public final fun raw ([Ljava/lang/String;)Lkotlinx/serialization/json/JsonElement;
-	public abstract fun rawOrNull ([Ljava/lang/String;)Lkotlinx/serialization/json/JsonElement;
+	public final fun load (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public static synthetic fun load$default (Ldev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider$Config;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;ILjava/lang/Object;)V
+	public final fun raw ([Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public abstract fun rawOrNull ([Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
 	public abstract fun tags ([Ljava/lang/String;)V
 }
 
@@ -850,13 +1058,17 @@ public abstract class dev/kikugie/stonecutter/settings/tree/TreeBuilder : dev/ki
 	public abstract fun getVcsVersion ()Lorg/gradle/api/provider/Property;
 	public synthetic fun inherit ()V
 	public final fun load (Ljava/io/File;)V
-	public final fun load (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
-	public static synthetic fun load$default (Ldev/kikugie/stonecutter/settings/tree/TreeBuilder;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;ILjava/lang/Object;)V
-	protected abstract fun loadImpl (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/JsonConverter;)V
+	public final fun load (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public static synthetic fun load$default (Ldev/kikugie/stonecutter/settings/tree/TreeBuilder;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;ILjava/lang/Object;)V
+	protected abstract fun loadImpl (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
 	public abstract fun mapBuilds (Lkotlin/jvm/functions/Function2;)V
 }
 
 public final class dev/kikugie/stonecutter/util/StringUtilKt {
-	public static final fun unwrap (Lkotlinx/serialization/json/JsonPrimitive;)Ljava/lang/String;
+	public static final fun escape (CZ)Ljava/lang/String;
+	public static final fun escape (Ljava/lang/String;Z)Ljava/lang/String;
+	public static synthetic fun escape$default (CZILjava/lang/Object;)Ljava/lang/String;
+	public static synthetic fun escape$default (Ljava/lang/String;ZILjava/lang/Object;)Ljava/lang/String;
+	public static final fun unescape (Ljava/lang/String;)Ljava/lang/String;
 }
 
