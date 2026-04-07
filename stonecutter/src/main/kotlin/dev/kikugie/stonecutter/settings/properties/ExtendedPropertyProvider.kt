@@ -400,7 +400,7 @@ internal class ExtendedPropertyConfigImpl(
     override fun loadImpl(file: RegularFile, converter: SCConverter): Result<Unit> {
         val entry = loader.load(file, converter)
             ?: return Result.failure(FileNotFoundException(file.asFile.absolutePath))
-        entry.apply(PropertiesCollector(tags, extra::set))
+        entry.apply(extra, tags)
         return Result.success(Unit)
     }
 

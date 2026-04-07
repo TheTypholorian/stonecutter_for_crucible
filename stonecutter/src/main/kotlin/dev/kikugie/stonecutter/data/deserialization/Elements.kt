@@ -25,8 +25,8 @@ private annotation class SCStruct
  * The element itself is not serializable by design as it doesn't represent any
  * format but a common structure among them.
  *
- * In contrast to generic [Map<*, *>][Map], [List<*>][List<*>] and [Any?][Any],
- * it ensures a set of valid types and a [Visitor] interface to navigate them.
+ * In contrast to generic [Map<*, *>][Map], [List<*>][List] and [Any?][Any],
+ * it ensures a set of valid types and provides a [Visitor] interface to navigate them.
  */
 @SCStruct
 public sealed class SCElement {

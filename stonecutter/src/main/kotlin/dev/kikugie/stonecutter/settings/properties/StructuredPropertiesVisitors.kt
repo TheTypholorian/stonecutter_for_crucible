@@ -2,7 +2,6 @@ package dev.kikugie.stonecutter.settings.properties
 
 import dev.kikugie.commons.text.getOrDefault
 import dev.kikugie.stonecutter.data.deserialization.*
-import dev.kikugie.stonecutter.settings.properties.PropertiesRetriever.Result
 import dev.kikugie.stonecutter.util.join
 
 internal abstract class PropertiesVisitor<T>(private val tags: Set<String>) : SCElement.Visitor<String, T> {
@@ -43,13 +42,19 @@ internal abstract class PropertiesVisitor<T>(private val tags: Set<String>) : SC
     }
 }
 
-internal class PropertiesCollector(tags: Set<String>, private val consumer: (String, String) -> Unit) : PropertiesVisitor<Unit>(tags) {
+internal class PropertiesCollector(tags: Set<String>, private val consumer: Result.() -> Unit) : PropertiesVisitor<Unit>(tags) {
+    class Result(val key: String, val primitive: SCPrimitive, val depth: UInt)
+    private val depths: MutableMap<String, UInt> = mutableMapOf()
+
     override fun visitNull(ctx: String) {
         // Don't add nulls
     }
 
-    override fun visitPrimitive(prim: SCPrimitive, ctx: String) {
-        consumer(cut(ctx).replace(':', '.'), prim.toString())
+    override fun visitPrimitive(prim: SCPrimitive, ctx: String) = Result(cut(ctx), prim, ctx.pathDepth).run {
+        if (depths.getOrDefault(key, 0u) > depth) return@run
+
+        depths[key] = depth
+        consumer(this)
     }
 
     override fun visitList(list: SCList, ctx: String) {
@@ -65,41 +70,43 @@ internal class PropertiesCollector(tags: Set<String>, private val consumer: (Str
     }
 }
 
-internal class PropertiesRetriever(tags: Set<String>, private val path: String) : PropertiesVisitor<Result>(tags) {
-    class Result(val depth: Int, val element: SCElement? = null)
+internal class PropertiesRetriever(tags: Set<String>, private val path: String) : PropertiesVisitor<PropertiesRetriever.Result>(tags) {
+    class Result(val key: String, val element: SCElement?, val depth: UInt)
 
     override fun visitNull(ctx: String): Result =
-        Result(ctx.depth, SCNull.takeIfValidPath(ctx))
+        Result(ctx, SCNull)
 
     override fun visitPrimitive(prim: SCPrimitive, ctx: String): Result =
-        Result(ctx.depth, prim.takeIfValidPath(ctx))
+        Result(ctx, prim)
 
-    override fun visitList(list: SCList, ctx: String): Result = findCandidate(
-        list.withIndex(),
-        Result(ctx.depth, list.takeIfValidPath(ctx))
-    ) { (i, e) -> e.accept(this, join(ctx, i.toString(), ":")) }
+    override fun visitList(list: SCList, ctx: String): Result = list.withIndex().findCandidate(Result(ctx, list)) { (i, e) ->
+        e.accept(this, join(ctx, i.toString(), ":"))
+    }
 
-    override fun visitMap(map: SCMap, ctx: String): Result = findCandidate(
-        map.entries,
-        Result(ctx.depth, map.takeIfValidPath(ctx))
-    ) { (k, v) -> v.accept(this, join(ctx, k, ":")) }
+    override fun visitMap(map: SCMap, ctx: String): Result = map.entries.findCandidate(Result(ctx, map)) { (k, v) ->
+        v.accept(this, join(ctx, k, ":"))
+    }
 
-    private val String.depth: Int get() = if (isEmpty()) 0 else count { it == ':' } + 1
-    private fun <T> T.takeIfValidPath(it: String): T? {
-        val short = cut(it)
-        return takeIf { short == path }
+    private fun Result(ctx: String, element: SCElement?): Result {
+        val cut = cut(ctx)
+        return Result(cut, element.takeIf { cut == path }, ctx.pathDepth)
     }
 }
 
-internal inline fun <T> findCandidate(iter: Iterable<T>, initial: Result = Result(0), mapping: (T) -> Result?): Result {
+internal inline fun <T> Iterable<T>.findCandidate(
+    initial: PropertiesRetriever.Result = PropertiesRetriever.Result("", null, 0u),
+    mapping: (T) -> PropertiesRetriever.Result?
+): PropertiesRetriever.Result {
     var candidate = initial
-    for (element in iter) {
+    for (element in this) {
         val result = mapping(element) ?: continue
-        if (candidate.element == null && result.element == null) candidate = result
-        else if (result.element != null && result.depth >= candidate.depth) candidate = result
+        if (result.element != null && result.depth >= candidate.depth) candidate = result
     }
     return candidate
 }
+
+internal val String.pathDepth: UInt
+    get() = if (isEmpty()) 0u else count { it == ':' }.toUInt() + 1u
 
 internal fun isValidPath(key: String): Boolean =
     !(key.isEmpty() || key.startsWith(':') || key.endsWith(':') || "::" in key)

@@ -23,12 +23,12 @@ internal abstract class StructuredPropertiesLoader @Inject constructor(val objec
 
     fun apply(extra: ExtraPropertiesExtension, tags: Set<String> = emptySet()) {
         val collector = PropertiesCollector(tags, extra::set)
-        for (it in container) it.apply(collector)
+        for (it in container) it.entry.accept(collector, "")
     }
 
     fun get(path: String, tags: Set<String> = emptySet()): PropertiesRetriever.Result {
         val retriever = PropertiesRetriever(tags, path)
-        return findCandidate(container) { it.get(retriever) }
+        return container.findCandidate { it.entry.accept(retriever, "") }
     }
 
     fun load(file: RegularFile, converter: SCConverter): StructuredPropertiesEntry? = synchronized(container) {
@@ -47,6 +47,9 @@ internal class StructuredPropertiesEntry(val entry: SCElement, file: RegularFile
     private val path: String = file.asFile.absolutePath
 
     override fun getName(): String = path
-    fun apply(collector: PropertiesCollector) = entry.accept(collector, "")
-    fun get(retriever: PropertiesRetriever): PropertiesRetriever.Result = entry.accept(retriever, "")
+    fun apply(extra: ExtraPropertiesExtension, tags: Set<String> = emptySet()) = entry.accept(PropertiesCollector(tags, extra::set), "")
+    fun get(path: String, tags: Set<String> = emptySet()): PropertiesRetriever.Result = entry.accept(PropertiesRetriever(tags, path), "")
 }
+
+private fun ExtraPropertiesExtension.set(result: PropertiesCollector.Result): Unit =
+    set(result.key.replace(':', '.'), result.primitive.toString())

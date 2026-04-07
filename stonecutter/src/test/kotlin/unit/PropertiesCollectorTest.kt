@@ -11,11 +11,12 @@ import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.core.test.TestScope
 import io.kotest.matchers.maps.shouldContainKeys
 import io.kotest.matchers.maps.shouldNotContainKeys
+import io.kotest.matchers.shouldBe
 import org.intellij.lang.annotations.Language
 import util.TestSetup
 import util.config
 
-class JsonPropertyCollectorTest : ShouldSpec({
+class PropertiesCollectorTest : ShouldSpec({
     should("flatten nested keys").config<CollectorSetup> {
         data = """
             plain_key = "Hello"
@@ -106,10 +107,27 @@ class JsonPropertyCollectorTest : ShouldSpec({
         tags("double", "tag")
         include("key")
     }
+
+    // https://codeberg.org/stonecutter/stonecutter/issues/50
+    // Values are defined out of order here because it has to be *deepmost*, not *latest* — regardless of the format.
+    should("use deepmost value").config<CollectorSetup> {
+        data = """
+            "1.20.1".setting = "specific"
+            setting = "global"
+        """.trimIndent()
+
+        tags("1.20.1")
+        include("setting")
+        exclude("1.20.1.setting")
+        result {
+            get("setting") shouldBe "specific"
+        }
+    }
 })
 
 private class CollectorSetup : TestSetup {
     @Language("toml") lateinit var data: String
+    private var check: (Map<String, String>) -> Unit = {}
 
     val tags: MutableSet<String> = mutableSetOf()
     val shouldHave: MutableSet<String> = mutableSetOf()
@@ -118,6 +136,7 @@ private class CollectorSetup : TestSetup {
     fun tags(vararg tags: String): Unit = this.tags.plusAssign(tags)
     fun include(vararg keys: String): Unit = shouldHave.plusAssign(keys)
     fun exclude(vararg keys: String): Unit = shouldNotHave.plusAssign(keys)
+    fun result(action: Map<String, String>.() -> Unit) { check = action }
 
     override suspend fun TestScope.invoke() {
         val map = collect()
@@ -125,10 +144,11 @@ private class CollectorSetup : TestSetup {
         println(TextColors.magenta(map.present()))
         if (shouldHave.isNotEmpty()) map.shouldContainKeys(*shouldHave.toTypedArray())
         if (shouldNotHave.isNotEmpty()) map.shouldNotContainKeys(*shouldNotHave.toTypedArray())
+        check(map)
     }
 
     private fun collect(): Map<String, String> = buildMap {
-        val collector = PropertiesCollector(tags, ::set)
+        val collector = PropertiesCollector(tags) { put(key.replace(':', '.'), primitive.toString()) }
         TomlConverter.convert(data).accept(collector, "")
     }
 }

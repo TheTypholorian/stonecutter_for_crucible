@@ -146,6 +146,7 @@ public object YamlConverter : SCConverter, SCElement.Visitor<YamlPath, YamlNode>
         return YamlMap(entries.toMap(), ctx)
     }
 
+    @Suppress("KotlinConstantConditions")
     private fun SCPrimitive.toYamlString() = if (kind != Kind.Float) toString() else when(toDouble()) {
         Double.POSITIVE_INFINITY -> ".inf"
         Double.NEGATIVE_INFINITY -> "-.inf"
@@ -172,8 +173,8 @@ public object YamlConverter : SCConverter, SCElement.Visitor<YamlPath, YamlNode>
         ".nan", ".NaN", ".NAN" -> SCPrimitive(Double.NaN)
         "true", "True", "TRUE" -> SCPrimitive(true)
         "false", "False", "FALSE" -> SCPrimitive(false)
-        else if (str.none(Char::isDigit)) -> SCPrimitive(str)
-        else -> str.toLongOrNull()?.let(::SCPrimitive)
+        else -> if (str.none(Char::isDigit)) SCPrimitive(str)
+        else str.toLongOrNull()?.let(::SCPrimitive)
             ?: str.toDoubleOrNull()?.let(::SCPrimitive)
             ?: SCPrimitive(str)
     }
