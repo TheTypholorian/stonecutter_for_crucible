@@ -1,6 +1,7 @@
 package dev.kikugie.stitcher.replacement
 
 import kotlinx.serialization.Serializable
+import java.util.regex.Pattern
 
 /**
  * Describes a replacement rule applied by the replacer pipeline.
@@ -58,11 +59,12 @@ data class StringReplacement(
 data class RegexReplacement(
     val target: String,
     val pattern: String,
+    val options: Int = 0,
     override val identifier: String? = null,
     override val tags: Set<Replacement.Tag> = emptySet(),
 ) : Replacement, java.io.Serializable {
     /**
      * Compiled regex for [pattern].
      */
-    val regex: Regex get() = Regex(pattern)
+    val regex: Regex get() = Pattern.compile(pattern, options).toRegex()
 }

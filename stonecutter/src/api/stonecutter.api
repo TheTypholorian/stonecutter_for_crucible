@@ -136,20 +136,27 @@ public abstract interface class dev/kikugie/stonecutter/build/config/Replacement
 	public fun string (ZLorg/gradle/api/Action;)V
 }
 
-public abstract interface class dev/kikugie/stonecutter/build/config/ReplacementContainer$RegexReplacementSpec {
+public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$RegexReplacementSpec {
+	public fun <init> ()V
 	public abstract fun getDirection ()Lorg/gradle/api/provider/Property;
 	public abstract fun getFromPattern ()Lorg/gradle/api/provider/Property;
 	public abstract fun getId ()Lorg/gradle/api/provider/Property;
 	public abstract fun getReversePattern ()Lorg/gradle/api/provider/Property;
 	public abstract fun getReverseValue ()Lorg/gradle/api/provider/Property;
 	public abstract fun getToValue ()Lorg/gradle/api/provider/Property;
-	public fun replace (Ljava/lang/String;Ljava/lang/String;)V
-	public fun replace (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
-	public abstract fun replace (Lkotlin/Pair;Lkotlin/Pair;)V
-	public fun reverse (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun replace (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun replace (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun replace (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V
+	public final fun replace (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Lkotlin/text/RegexOption;)V
+	public abstract fun replace (Ljava/util/regex/Pattern;Ljava/lang/String;Ljava/util/regex/Pattern;Ljava/lang/String;)V
+	public final fun replace (Lkotlin/Pair;Lkotlin/Pair;)V
+	public final fun replace (Lkotlin/text/Regex;Ljava/lang/String;Lkotlin/text/Regex;Ljava/lang/String;)V
+	public static synthetic fun replace$default (Ldev/kikugie/stonecutter/build/config/ReplacementContainer$RegexReplacementSpec;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)V
+	public final fun reverse (Ljava/lang/String;Ljava/lang/String;)V
 }
 
-public abstract interface class dev/kikugie/stonecutter/build/config/ReplacementContainer$StringReplacementSpec {
+public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$StringReplacementSpec {
+	public fun <init> ()V
 	public abstract fun getDirection ()Lorg/gradle/api/provider/Property;
 	public abstract fun getFrom ()Lorg/gradle/api/provider/Property;
 	public abstract fun getId ()Lorg/gradle/api/provider/Property;

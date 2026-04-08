@@ -12,6 +12,7 @@ import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.newInstance
 import org.intellij.lang.annotations.Language
+import java.util.regex.Pattern
 import javax.inject.Inject
 
 @DslMarker @Retention(AnnotationRetention.BINARY)
@@ -68,7 +69,7 @@ public sealed interface ReplacementContainer {
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#string-replacements">String Replacement Documentation</a>
      */
     @ReplacementSpecDsl
-    public interface StringReplacementSpec {
+    public abstract class StringReplacementSpec {
         /**
          * Ordering of the replaced values.
          *
@@ -77,7 +78,7 @@ public sealed interface ReplacementContainer {
          * - `false`: [to] is replaced with [from]
          * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#string-replacements">String Replacement Documentation</a>
          */
-        public val direction: Property<Boolean>
+        public abstract val direction: Property<Boolean>
 
         /**
          * Optional identifier for the replacement.
@@ -90,24 +91,24 @@ public sealed interface ReplacementContainer {
          * The identifier must match `[_a-zA-Z][_\-a-zA-Z0-9]*.
          * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#replacement-identifiers">Replacement Identifier Documentation</a>
          */
-        public val id: Property<Identifier>
+        public abstract val id: Property<Identifier>
 
         /**
          * Original value to be replaced. Must not be empty.
          */
-        public val from: Property<String>
+        public abstract val from: Property<String>
 
         /**
          * Replacement value to use. Must not be empty.
          */
-        public val to: Property<String>
+        public abstract val to: Property<String>
 
         /**
          * Registers a replacement with [from] and [to] **function parameters**,
          * using the [direction] and [id] defined in the extension.
          * Can be called multiple times.
          */
-        public fun replace(from: String, to: String)
+        public abstract fun replace(from: String, to: String)
     }
 
     /**
@@ -118,7 +119,7 @@ public sealed interface ReplacementContainer {
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#regex-replacements">Regex Replacement Documentation</a>
      */
     @ReplacementSpecDsl
-    public interface RegexReplacementSpec {
+    public abstract class RegexReplacementSpec {
         /**
          * Selector for the replaced values.
          *
@@ -127,7 +128,7 @@ public sealed interface ReplacementContainer {
          * - `false`: [reversePattern] is replaced with [reverseValue]
          * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#regex-replacements">Regex Replacement Documentation</a>
          */
-        public val direction: Property<Boolean>
+        public abstract val direction: Property<Boolean>
 
         /**
          * Optional identifier for the replacement.
@@ -140,27 +141,27 @@ public sealed interface ReplacementContainer {
          * The identifier must match `[_a-zA-Z][_\-a-zA-Z0-9]*.
          * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#replacement-identifiers">Replacement Identifier Documentation</a>
          */
-        public val id: Property<Identifier>
+        public abstract val id: Property<Identifier>
 
         /**
          * Regex pattern to match against when replacing content in the forward direction.
          */
-        public val fromPattern: Property<String>
+        public abstract val fromPattern: Property<String>
 
         /**
          * Replacement value for forward direction regex matching.
          */
-        public val toValue: Property<String>
+        public abstract val toValue: Property<String>
 
         /**
          * Regex pattern for matching strings to be replaced when processing files in reverse direction.
          */
-        public val reversePattern: Property<String>
+        public abstract val reversePattern: Property<String>
 
         /**
          * The replacement value to use when performing reverse regex transformations.
          */
-        public val reverseValue: Property<String>
+        public abstract val reverseValue: Property<String>
 
         /**
          * Defines a regex replacement pattern for the direct transformation.
@@ -191,19 +192,46 @@ public sealed interface ReplacementContainer {
          * using the [direction] and [id] defined in the extension.
          * Can be called multiple times.
          */
-        public fun replace(direct: Pair<String, String>, reverse: Pair<String, String>)
+        @Deprecated("Use the comma-separated version")
+        public fun replace(direct: Pair<String, String>, reverse: Pair<String, String>): Unit =
+            replace(direct.first, direct.second, reverse.first, reverse.second)
 
         /**
          * Registers a replacement with the function parameters,
          * using the [direction] and [id] defined in the extension.
          * Can be called multiple times.
          */
+        @JvmOverloads
         public fun replace(
-            @Language("RegExp") directPattern: String,
-            directReplacement: String,
-            @Language("RegExp") reversePattern: String,
-            reverseReplacement: String
-        ): Unit = replace(directPattern to directReplacement, reversePattern to reverseReplacement)
+            @Language("RegExp") directPattern: String, directReplacement: String,
+            @Language("RegExp") reversePattern: String, reverseReplacement: String,
+            flags: Int = 0
+        ): Unit = replace(
+            directPattern.toPattern(flags), directReplacement,
+            reversePattern.toPattern(flags), reverseReplacement
+        )
+
+        public fun replace(
+            @Language("RegExp") directPattern: String, directReplacement: String,
+            @Language("RegExp") reversePattern: String, reverseReplacement: String,
+            vararg options: RegexOption
+        ): Unit = replace(
+            directPattern.toRegex(options.toSet()), directReplacement,
+            reversePattern.toRegex(options.toSet()), reverseReplacement
+        )
+
+        public fun replace(
+            directPattern: Regex, directReplacement: String,
+            reversePattern: Regex, reverseReplacement: String,
+        ): Unit = replace(
+            directPattern.toPattern(), directReplacement,
+            reversePattern.toPattern(), reverseReplacement
+        )
+
+        public abstract fun replace(
+            directPattern: Pattern, directReplacement: String,
+            reversePattern: Pattern, reverseReplacement: String,
+        )
     }
 }
 
@@ -219,7 +247,7 @@ internal abstract class ReplacementContainerImpl @Inject constructor(
         objects.newInstance<RegexSpecImpl>(regex).also(action::execute).finalise()
 }
 
-internal abstract class StringSpecImpl @Inject constructor(val consumer: (StringReplacement) -> Unit) : StringReplacementSpec {
+internal abstract class StringSpecImpl @Inject constructor(val consumer: (StringReplacement) -> Unit) : StringReplacementSpec() {
     private var usedImmediateAnonymousAssignment: Boolean = false
 
     override fun replace(from: String, to: String) {
@@ -241,17 +269,17 @@ internal abstract class StringSpecImpl @Inject constructor(val consumer: (String
     }
 }
 
-internal abstract class RegexSpecImpl @Inject constructor(val consumer: (RegexReplacement) -> Unit) : RegexReplacementSpec {
+internal abstract class RegexSpecImpl @Inject constructor(val consumer: (RegexReplacement) -> Unit) : RegexReplacementSpec() {
     private var usedImmediateAnonymousAssignment: Boolean = false
 
-    override fun replace(direct: Pair<String, String>, reverse: Pair<String, String>) {
+    override fun replace(directPattern: Pattern, directReplacement: String, reversePattern: Pattern, reverseReplacement: String) {
         val tags = mutableSetOf<Replacement.Tag>()
         val id = id.unwrapWith(tags)
         if (id == null) usedImmediateAnonymousAssignment = true
 
         val replacement =
-            if (direction.get()) RegexReplacement(direct.second, direct.first, id, tags)
-            else RegexReplacement(reverse.second, reverse.first, id, tags)
+            if (direction.get()) RegexReplacement(directReplacement, directPattern.pattern(), directPattern.flags(), id, tags)
+            else RegexReplacement(reverseReplacement, reversePattern.pattern(), reversePattern.flags(), id, tags)
         consumer(replacement)
     }
 
@@ -260,7 +288,7 @@ internal abstract class RegexSpecImpl @Inject constructor(val consumer: (RegexRe
             error("Regex replacement id '${id.get()}' was assigned after replacements were registered")
 
         if (fromPattern.isPresent || toValue.isPresent || reversePattern.isPresent || reverseValue.isPresent)
-            replace(fromPattern.get() to toValue.get(), reversePattern.get() to reverseValue.get())
+            replace(fromPattern.get(), toValue.get(), reversePattern.get(), reverseValue.get())
     }
 }
 
