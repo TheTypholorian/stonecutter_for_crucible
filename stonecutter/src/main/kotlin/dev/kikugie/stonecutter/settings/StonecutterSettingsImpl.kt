@@ -14,6 +14,7 @@ import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.configureDefaults
 import dev.kikugie.stonecutter.controller.tree.ProjectNodeContainer
+import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.createContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
 import dev.kikugie.stonecutter.data.deserialization.TomlConverter
@@ -117,7 +118,7 @@ private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: B
 @OptIn(StonecutterExperimentalAPI::class) @Suppress("UnstableApiUsage")
 private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): StructuredPropertiesProvider.Config {
     val loader: StructuredPropertiesLoader = settings.gradle.extensions.create("StructuredProperties")
-    val impl = ExtendedPropertyConfigImpl(settings.extra, loader, objects)
+    val impl = ExtendedPropertyConfigImpl(settings.rootProject.hierarchy, settings.extra, loader, objects)
     impl.loadImpl(settings.layout.settingsDirectory.file(PROPERTIES_FILENAME), TomlConverter)
     return impl
 }

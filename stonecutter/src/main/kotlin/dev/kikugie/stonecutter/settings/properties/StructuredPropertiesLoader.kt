@@ -3,6 +3,7 @@
 package dev.kikugie.stonecutter.settings.properties
 
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
+import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.deserialization.SCElement
 import org.gradle.api.Named
@@ -22,34 +23,43 @@ internal const val PROPERTIES_FILENAME: String = "stonecutter.properties.toml"
 internal abstract class StructuredPropertiesLoader @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory) {
     private val container: NamedDomainObjectCollection<StructuredPropertiesEntry> = objects.namedDomainObjectList(StructuredPropertiesEntry::class)
 
-    fun apply(extra: ExtraPropertiesExtension, tags: Set<String> = emptySet()) {
+    fun apply(project: ProjectHierarchy, extra: ExtraPropertiesExtension, tags: Set<String> = emptySet()) {
         val collector = PropertiesCollector(tags, extra::set)
-        for (it in container) it.entry.accept(collector, "")
+        for (it in entriesFor(project)) it.entry.accept(collector, "")
     }
 
-    fun get(path: String, tags: Set<String> = emptySet()): PropertiesRetriever.Result {
+    fun get(project: ProjectHierarchy, path: String, tags: Set<String> = emptySet()): PropertiesRetriever.Result {
         val retriever = PropertiesRetriever(tags, path)
-        return container.findCandidate { it.entry.accept(retriever, "") }
+        return entriesFor(project).findCandidate { it.entry.accept(retriever, "") }
     }
 
-    fun load(file: RegularFile, converter: SCConverter): StructuredPropertiesEntry? = synchronized(container) {
-        val path  = file.asFile.absolutePath
-        PROPERTIES_LOGGER.debug("Loading properties from {}", path)
-        container.findByName(path) ?: loadNew(file, converter)?.also(container::add)
+    fun load(project: ProjectHierarchy, file: RegularFile, converter: SCConverter): StructuredPropertiesEntry? = synchronized(container) {
+        PROPERTIES_LOGGER.debug("Loading properties from {}", file.asFile.absolutePath)
+        container.findByName(StructuredPropertiesEntry.name(file, project))
+            ?: loadNew(file, project, converter)?.also(container::add)
     }
 
-    private fun loadNew(file: RegularFile, converter: SCConverter): StructuredPropertiesEntry? {
+    private fun loadNew(file: RegularFile, project: ProjectHierarchy, converter: SCConverter): StructuredPropertiesEntry? {
         val contents = providers.fileContents(file).asText.orNull ?: return null
-        return StructuredPropertiesEntry(converter.convert(contents), file)
+        return StructuredPropertiesEntry(converter.convert(contents), project, file)
     }
+
+    private fun entriesFor(project: ProjectHierarchy): List<StructuredPropertiesEntry> = container
+        .filter { project.startsWith(it.requestee) }
+        .sortedBy { it.requestee.size }
 }
 
-internal class StructuredPropertiesEntry(val entry: SCElement, file: RegularFile) : Named {
-    private val path: String = file.asFile.absolutePath
+internal class StructuredPropertiesEntry(val entry: SCElement, val requestee: ProjectHierarchy, file: RegularFile) : Named {
+    private val id: String = name(file, requestee)
 
-    override fun getName(): String = path
+    override fun getName(): String = id
     fun apply(extra: ExtraPropertiesExtension, tags: Set<String> = emptySet()) = entry.accept(PropertiesCollector(tags, extra::set), "")
     fun get(path: String, tags: Set<String> = emptySet()): PropertiesRetriever.Result = entry.accept(PropertiesRetriever(tags, path), "")
+
+    companion object {
+        fun name(file: RegularFile, project: ProjectHierarchy): String =
+            "${file.asFile.absolutePath}#$project"
+    }
 }
 
 private fun ExtraPropertiesExtension.set(result: PropertiesCollector.Result): Unit =

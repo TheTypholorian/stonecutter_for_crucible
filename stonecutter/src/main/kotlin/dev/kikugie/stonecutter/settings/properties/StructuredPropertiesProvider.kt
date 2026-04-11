@@ -7,6 +7,8 @@ import dev.kikugie.semver.data.StringVersion
 import dev.kikugie.semver.data.Version
 import dev.kikugie.semver.impl.VersionParsingException
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
+import dev.kikugie.stonecutter.data.ProjectHierarchy
+import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.deserialization.SCElement
 import dev.kikugie.stonecutter.data.deserialization.determineConverter
@@ -213,16 +215,17 @@ public interface StructuredPropertiesProvider {
 }
 
 internal class ExtendedPropertyConfigImpl(
+    val project: ProjectHierarchy,
     val extra: ExtraPropertiesExtension,
     val loader: StructuredPropertiesLoader,
     objects: ObjectFactory,
 ) : StructuredPropertiesProvider.Config(objects) {
-    constructor(project: Project, objects: ObjectFactory) : this(project.extra, project.gradle.the(), objects)
+    constructor(project: Project, objects: ObjectFactory) : this(project.hierarchy, project.extra, project.gradle.the(), objects)
 
     private val tags: MutableSet<String> = mutableSetOf()
 
     override fun rawOrNull(vararg segments: String): SCElement? =
-        loader.get(segments.joinToString(":"), this.tags).element
+        loader.get(project, segments.joinToString(":"), this.tags).element
 
     override fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): T? =
         extra[name]?.toString()?.mapTo(cls)
@@ -235,11 +238,11 @@ internal class ExtendedPropertyConfigImpl(
         if (tags.isEmpty()) return
 
         this.tags += tags
-        loader.apply(extra, this.tags)
+        loader.apply(project, extra, this.tags)
     }
 
     override fun loadImpl(file: RegularFile, converter: SCConverter): Result<Unit> {
-        val entry = loader.load(file, converter)
+        val entry = loader.load(project, file, converter)
             ?: return Result.failure(FileNotFoundException(file.asFile.absolutePath))
         entry.apply(extra, tags)
         return Result.success(Unit)
