@@ -57,7 +57,7 @@ private fun Project.refreshConfiguration(flags: StonecutterFlagsView, impls: Sto
         sourceSets.forEach(impls::configureSource)
 
     if (flags[StonecutterFlag.GENERATE_SOURCES_ON_SYNC] && isIdeaSync) impls.generate.tasks
-        .map { "${hierarchy.orBlank()}:$it" }
+        .map { "${hierarchy.orEmpty()}:$it" }
         .let { gradle.requestTasks(it, path, projectDirectory) }
 }
 

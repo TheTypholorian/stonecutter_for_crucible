@@ -75,3 +75,9 @@ private fun StringBuilder.next(input: String, index: Int, it: Char): Int = when 
     else append(input.substring(index + 2, index + 10).toInt(16).toChar()) then 6
     else -> append("\\$it") then 2
 }
+
+internal fun String.startsWithSeparated(prefix: String, separator: Char, ignoreCase: Boolean = false): Boolean =
+    startsWith(prefix, ignoreCase) && (length == prefix.length || get(prefix.length) == separator)
+
+internal fun String.hasAtOrOOB(index: Int, char: Char): Boolean =
+    if (index in indices) get(index) == char else true

@@ -2,7 +2,7 @@ package dev.kikugie.stonecutter.data.tree
 
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.data.ProjectHierarchy
-import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.locate
+import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.get
 import dev.kikugie.stonecutter.data.StonecutterProject
 import org.gradle.api.Project
 import org.gradle.api.invocation.Gradle
@@ -14,10 +14,10 @@ internal class ProjectNodeImpl(
     override val metadata: StonecutterProject,
 ) : ProjectNode {
     constructor(gradle: Gradle, hierarchy: ProjectHierarchy, metadata: StonecutterProject) :
-        this(hierarchy, gradle.locate(hierarchy).projectDir.toPath(), metadata)
+        this(hierarchy, gradle[hierarchy].projectDir.toPath(), metadata)
 
     internal val gradle: Gradle get() = (branch as ProjectBranchImpl).gradle
-    override val project: Project get() = gradle.locate(hierarchy)
+    override val project: Project get() = gradle[hierarchy]
     override lateinit var branch: ProjectBranch
 }
 
@@ -28,10 +28,10 @@ internal class ProjectBranchImpl(
     delegate: Map<Identifier, ProjectNode>
 ) : ProjectBranch, Map<Identifier, ProjectNode> by delegate {
     constructor(gradle: Gradle, hierarchy: ProjectHierarchy, id: Identifier, nodes: Collection<ProjectNode>) :
-        this(hierarchy, gradle.locate(hierarchy).projectDir.toPath(), id, nodes.associateBy { it.metadata.project })
+        this(hierarchy, gradle[hierarchy].projectDir.toPath(), id, nodes.associateBy { it.metadata.project })
 
     internal val gradle: Gradle get() = (tree as ProjectTreeImpl).gradle
-    override val project: Project get() = gradle.locate(hierarchy)
+    override val project: Project get() = gradle[hierarchy]
     override val nodes: Collection<ProjectNode> get() = values
     override val versions: Collection<StonecutterProject> by lazy { values.map(ProjectNode::metadata) }
     override lateinit var tree: ProjectTree
@@ -47,7 +47,7 @@ internal class ProjectTreeImpl(
     delegate: Map<Identifier, ProjectBranch>
 ) : ProjectTree, Map<Identifier, ProjectBranch> by delegate {
     constructor(gradle: Gradle, hierarchy: ProjectHierarchy, vcs: StonecutterProject, branches: Collection<ProjectBranch>) :
-        this(hierarchy, gradle.locate(hierarchy).projectDir.toPath(), vcs, branches.associateBy(ProjectBranch::id)) {
+        this(hierarchy, gradle[hierarchy].projectDir.toPath(), vcs, branches.associateBy(ProjectBranch::id)) {
         this.gradle = gradle
     }
 
@@ -62,7 +62,7 @@ internal class ProjectTreeImpl(
             field = value
         }
 
-    override val project: Project get() = gradle.locate(hierarchy)
+    override val project: Project get() = gradle[hierarchy]
     override val branches: Collection<ProjectBranch> get() = values
     override val nodes: Collection<ProjectNode> by lazy { values.flatMap(ProjectBranch::nodes) }
     override val versions: Set<StonecutterProject> by lazy { values.flatMap(ProjectBranch::versions).toSet() }
@@ -71,7 +71,7 @@ internal class ProjectTreeImpl(
         get(hierarchy.relativize(branch))
 
     override fun node(node: ProjectHierarchy): ProjectNode? {
-        val (branch, node) = hierarchy.relativize(node).split(':', limit = 2)
+        val (branch, node) = hierarchy.relativize(node)!!.split(':', limit = 2)
         return get(branch)?.get(node)
     }
 }

@@ -114,14 +114,15 @@ private fun constructTree(root: Project): ProjectTreeImpl {
 }
 
 private fun TreeBuilderImpl.constructBranches(root: Project, tree: ProjectHierarchy): List<ProjectBranchImpl> = branchBuilders.values.map {
-    val nodes = it.constructNodes(root, tree + it.name)
-    ProjectBranchImpl(root.gradle, tree + it.name, it.name, nodes).apply {
+    val hierarchy = tree.resolve(it.name)
+    val nodes = it.constructNodes(root, hierarchy)
+    ProjectBranchImpl(root.gradle, hierarchy, it.name, nodes).apply {
         for (node in nodes) node.branch = this
     }
 }
 
 private fun BranchBuilderImpl.constructNodes(root: Project, branch: ProjectHierarchy): List<ProjectNodeImpl> = allProjects().map {
-    ProjectNodeImpl(root.gradle, branch + it.project, it)
+    ProjectNodeImpl(root.gradle, branch.resolve(it.project), it)
 }
 
 private fun ProjectTreeImpl.findByName(name: String): StonecutterProject = checkNotNull(versions.find { it.project == name }) {

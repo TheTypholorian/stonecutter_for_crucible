@@ -561,15 +561,20 @@ public final class dev/kikugie/stonecutter/data/ParsedVersion : java/lang/Compar
 	public final fun matches (Ljava/lang/String;)Z
 }
 
-public final class dev/kikugie/stonecutter/data/ProjectHierarchy : java/io/Serializable, java/util/Collection, kotlin/jvm/internal/markers/KMappedMarker {
+public final class dev/kikugie/stonecutter/data/ProjectHierarchy : java/io/Serializable, java/util/List, kotlin/jvm/internal/markers/KMappedMarker {
 	public static final field Companion Ldev/kikugie/stonecutter/data/ProjectHierarchy$Companion;
-	public fun <init> (Ljava/lang/String;)V
+	public synthetic fun add (ILjava/lang/Object;)V
+	public fun add (ILjava/lang/String;)V
 	public synthetic fun add (Ljava/lang/Object;)Z
 	public fun add (Ljava/lang/String;)Z
+	public fun addAll (ILjava/util/Collection;)Z
 	public fun addAll (Ljava/util/Collection;)Z
+	public synthetic fun addFirst (Ljava/lang/Object;)V
+	public fun addFirst (Ljava/lang/String;)V
+	public synthetic fun addLast (Ljava/lang/Object;)V
+	public fun addLast (Ljava/lang/String;)V
 	public static final synthetic fun box-impl (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/ProjectHierarchy;
 	public fun clear ()V
-	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
 	public final fun contains (Ljava/lang/Object;)Z
 	public fun contains (Ljava/lang/String;)Z
 	public static fun contains-impl (Ljava/lang/String;Ljava/lang/String;)Z
@@ -578,26 +583,53 @@ public final class dev/kikugie/stonecutter/data/ProjectHierarchy : java/io/Seria
 	public fun equals (Ljava/lang/Object;)Z
 	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
 	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public fun get (I)Ljava/lang/String;
+	public static fun get-impl (Ljava/lang/String;I)Ljava/lang/String;
 	public fun getSize ()I
 	public static fun getSize-impl (Ljava/lang/String;)I
 	public fun hashCode ()I
 	public static fun hashCode-impl (Ljava/lang/String;)I
+	public final fun indexOf (Ljava/lang/Object;)I
+	public fun indexOf (Ljava/lang/String;)I
+	public static fun indexOf-impl (Ljava/lang/String;Ljava/lang/String;)I
 	public fun isEmpty ()Z
 	public static fun isEmpty-impl (Ljava/lang/String;)Z
 	public fun iterator ()Ljava/util/Iterator;
 	public static fun iterator-impl (Ljava/lang/String;)Ljava/util/Iterator;
-	public final fun minus (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/ProjectHierarchy;
-	public static final fun minus-3NqLo2s (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+	public final fun lastIndexOf (Ljava/lang/Object;)I
+	public fun lastIndexOf (Ljava/lang/String;)I
+	public static fun lastIndexOf-impl (Ljava/lang/String;Ljava/lang/String;)I
+	public fun listIterator ()Ljava/util/ListIterator;
+	public fun listIterator (I)Ljava/util/ListIterator;
+	public static fun listIterator-impl (Ljava/lang/String;)Ljava/util/ListIterator;
+	public static fun listIterator-impl (Ljava/lang/String;I)Ljava/util/ListIterator;
 	public final fun orBlank ()Ljava/lang/String;
 	public static final fun orBlank-impl (Ljava/lang/String;)Ljava/lang/String;
-	public final fun plus (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/ProjectHierarchy;
-	public static final fun plus-3NqLo2s (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+	public final fun orEmpty ()Ljava/lang/String;
+	public static final fun orEmpty-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final fun relativeTo (Ldev/kikugie/stonecutter/data/ProjectHierarchy;)Ljava/lang/String;
+	public static final fun relativeTo-qHRS2DI (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 	public final fun relativize (Ldev/kikugie/stonecutter/data/ProjectHierarchy;)Ljava/lang/String;
 	public static final fun relativize-qHRS2DI (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+	public synthetic fun remove (I)Ljava/lang/Object;
+	public fun remove (I)Ljava/lang/String;
 	public fun remove (Ljava/lang/Object;)Z
 	public fun removeAll (Ljava/util/Collection;)Z
-	public fun removeIf (Ljava/util/function/Predicate;)Z
+	public synthetic fun removeFirst ()Ljava/lang/Object;
+	public fun removeFirst ()Ljava/lang/String;
+	public synthetic fun removeLast ()Ljava/lang/Object;
+	public fun removeLast ()Ljava/lang/String;
+	public fun replaceAll (Ljava/util/function/UnaryOperator;)V
+	public final fun resolve (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/ProjectHierarchy;
+	public static final fun resolve-3NqLo2s (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 	public fun retainAll (Ljava/util/Collection;)Z
+	public synthetic fun set (ILjava/lang/Object;)Ljava/lang/Object;
+	public fun set (ILjava/lang/String;)Ljava/lang/String;
+	public fun sort (Ljava/util/Comparator;)V
+	public final fun startsWith (Ldev/kikugie/stonecutter/data/ProjectHierarchy;)Z
+	public static final fun startsWith-qHRS2DI (Ljava/lang/String;Ljava/lang/String;)Z
+	public fun subList (II)Ljava/util/List;
+	public static fun subList-impl (Ljava/lang/String;II)Ljava/util/List;
 	public fun toArray ()[Ljava/lang/Object;
 	public fun toArray ([Ljava/lang/Object;)[Ljava/lang/Object;
 	public fun toString ()Ljava/lang/String;
@@ -616,20 +648,24 @@ public final synthetic class dev/kikugie/stonecutter/data/ProjectHierarchy$$seri
 }
 
 public final class dev/kikugie/stonecutter/data/ProjectHierarchy$Companion {
+	public final fun get (Lorg/gradle/api/Project;Ldev/kikugie/stonecutter/data/ProjectHierarchy;)Lorg/gradle/api/Project;
+	public final fun get (Lorg/gradle/api/invocation/Gradle;Ldev/kikugie/stonecutter/data/ProjectHierarchy;)Lorg/gradle/api/Project;
+	public final fun get-DLHHLFY (Lorg/gradle/api/Project;Ljava/lang/String;)Lorg/gradle/api/Project;
+	public final fun get-DLHHLFY (Lorg/gradle/api/invocation/Gradle;Ljava/lang/String;)Lorg/gradle/api/Project;
+	public final fun getHierarchy (Lorg/gradle/api/Project;)Ldev/kikugie/stonecutter/data/ProjectHierarchy;
+	public final fun getHierarchy (Lorg/gradle/api/initialization/ProjectDescriptor;)Ldev/kikugie/stonecutter/data/ProjectHierarchy;
 	public final fun getHierarchy-3NqLo2s (Lorg/gradle/api/Project;)Ljava/lang/String;
 	public final fun getHierarchy-3NqLo2s (Lorg/gradle/api/initialization/ProjectDescriptor;)Ljava/lang/String;
+	public final fun getROOT ()Ldev/kikugie/stonecutter/data/ProjectHierarchy;
 	public final fun getROOT-L6On-oY ()Ljava/lang/String;
+	public final fun locate (Lorg/gradle/api/Project;Ldev/kikugie/stonecutter/data/ProjectHierarchy;)Lorg/gradle/api/Project;
+	public final fun locate (Lorg/gradle/api/invocation/Gradle;Ldev/kikugie/stonecutter/data/ProjectHierarchy;)Lorg/gradle/api/Project;
 	public final fun locate-DLHHLFY (Lorg/gradle/api/Project;Ljava/lang/String;)Lorg/gradle/api/Project;
 	public final fun locate-DLHHLFY (Lorg/gradle/api/invocation/Gradle;Ljava/lang/String;)Lorg/gradle/api/Project;
-	public final fun of-3NqLo2s (Ljava/lang/Iterable;)Ljava/lang/String;
-	public final fun of-3NqLo2s (Ljava/lang/String;)Ljava/lang/String;
-	public final fun of-3NqLo2s ([Ljava/lang/String;)Ljava/lang/String;
+	public final fun of (Ljava/lang/Iterable;)Ljava/lang/String;
+	public final fun of (Ljava/lang/String;)Ljava/lang/String;
+	public final fun of ([Ljava/lang/String;)Ljava/lang/String;
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
-}
-
-public final class dev/kikugie/stonecutter/data/ProjectHierarchyKt {
-	public static final fun resolve-Hpi6V8w (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-	public static final fun startsWith-2t9Hcuc (Ljava/lang/String;Ljava/lang/String;)Z
 }
 
 public final class dev/kikugie/stonecutter/data/StonecutterProject {

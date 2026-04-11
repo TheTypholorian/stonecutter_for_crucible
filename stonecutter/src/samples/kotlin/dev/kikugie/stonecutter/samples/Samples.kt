@@ -5,9 +5,9 @@ package dev.kikugie.stonecutter.samples
 
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
+import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.deserialization.SCElement
 import org.gradle.api.provider.ProviderFactory
-import org.intellij.lang.annotations.Language
 
 private lateinit var providers: ProviderFactory
 private fun property(name: String): Any = throw UnsupportedOperationException()
@@ -104,5 +104,23 @@ private object properties {
 
         val element: SCElement = sc.properties.raw("key", "items")
         val items: List<Int> = element.asList().map { it.asPrimitive().toInt() }
+    }
+}
+
+private object hierarchy {
+    fun contains() {
+        val project = ProjectHierarchy(":core:subproject:api")
+
+        assert(project.contains("core"))
+        assert(project.contains("core:subproject"))
+        assert(!project.contains("ore:sub"))
+    }
+
+    fun get() {
+        val project = ProjectHierarchy(":core:subproject:api")
+
+        assert(project[0] == "core")
+        assert(project[1] == "subproject")
+        assert(project[2] == "api")
     }
 }
