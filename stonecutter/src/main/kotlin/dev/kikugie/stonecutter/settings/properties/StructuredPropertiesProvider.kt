@@ -253,9 +253,8 @@ internal class ExtendedPropertyConfigImpl(
     }
 
     internal fun loadDefaults(directory: Directory) {
-        loadImpl(directory.file(PROPERTIES_JSON), JsonConverter)
-        loadImpl(directory.file(PROPERTIES_YAML), YamlConverter)
-        loadImpl(directory.file(PROPERTIES_TOML), TomlConverter)
+        val file = DEFAULT_FILES.firstNotNullOfOrNull { name -> directory.file(name).takeIf { it.asFile.exists() } }
+        if (file != null) loadImpl(file, determineConverter(file.asFile))
     }
 
     @Suppress("UNCHECKED_CAST")
