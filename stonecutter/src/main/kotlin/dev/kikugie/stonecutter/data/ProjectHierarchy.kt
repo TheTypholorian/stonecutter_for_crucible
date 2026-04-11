@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.data
 
+import dev.kikugie.commons.text.getOrDefault
 import kotlinx.serialization.Serializable
 import org.gradle.api.Project
 import org.gradle.api.initialization.ProjectDescriptor
@@ -29,10 +30,15 @@ public value class ProjectHierarchy private constructor(@PublishedApi internal v
     public fun orBlank(): String = orEmpty()
 
     public fun startsWith(other: ProjectHierarchy): Boolean =
-        path.startsWith(other.path) && path.sepAt(other.path.length)
+        if (other.isEmpty()) true
+        else path.startsWith(other.path) && path.sepAt(other.path.length)
 
-    public fun relativeTo(base: ProjectHierarchy): PathString? =
-        if (startsWith(base)) path.substring(base.path.length) else null
+    public fun relativeTo(base: ProjectHierarchy): PathString? = when {
+        base.isEmpty() -> path.drop(1)
+        path == base.path -> ""
+        startsWith(base) -> path.substring(base.path.length + 1)
+        else -> null
+    }
 
     public fun relativize(longer: ProjectHierarchy): PathString? =
         longer.relativeTo(this)
@@ -246,4 +252,4 @@ private fun PathString.sepAt(index: Int, char: Char = SEP_CH): Boolean =
     if (index in indices) get(index) == char else true
 
 private fun normalize(string: String): String? =
-    string.removeSurrounding(SEP_STR).takeIf(String::isNotEmpty)
+    string.trim(SEP_CH).takeIf(String::isNotEmpty)
