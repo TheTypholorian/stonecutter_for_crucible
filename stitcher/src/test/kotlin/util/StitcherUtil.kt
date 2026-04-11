@@ -51,7 +51,7 @@ class TransformParametersBuilder {
         add(StringReplacement(to, setOf(from), id, tags))
 
     fun ReplacementBuilder<Replacement>.regex(@Language("RegExp") from: String, to: String, id: String? = null, tags: Set<Replacement.Tag> = emptySet()) =
-        add(RegexReplacement(to, from, id, tags))
+        add(RegexReplacement(to, from, 0, id, tags))
 
     fun build() = TransformParameters(adapter, commenter, uncommenter, swapper, swaps, constants, dependencies, replacements.build())
 
