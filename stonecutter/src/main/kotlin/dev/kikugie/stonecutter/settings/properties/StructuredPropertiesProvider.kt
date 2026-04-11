@@ -228,14 +228,14 @@ internal class ExtendedPropertyConfigImpl(
         extra[name]?.toString()?.mapTo(cls)
 
     override fun tags(vararg tags: String) {
-        val new = tags
-            .filter { it.isNotBlank() && it !in this.tags }
+        val tags = tags
+            .filter { it.isNotBlank() }
             .onEach { require(isValidPath(it)) { "Invalid tag '$it'" } }
-            .ifEmpty { return }
             .toSet()
+        if (tags.isEmpty()) return
 
-        loader.apply(extra, new)
-        this.tags += new
+        this.tags += tags
+        loader.apply(extra, this.tags)
     }
 
     override fun loadImpl(file: RegularFile, converter: SCConverter): Result<Unit> {

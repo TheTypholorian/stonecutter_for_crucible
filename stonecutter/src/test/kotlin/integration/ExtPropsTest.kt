@@ -19,4 +19,5 @@ class ExtPropsTest : ShouldSpec({
     should("use typed properties").config<GradleSetup> { build() }
     // For some reason this only fails in test env
     xshould("parse property types").config<GradleSetup> { build() }
+    should("retain all tags").config<GradleSetup> { build() }
 })
