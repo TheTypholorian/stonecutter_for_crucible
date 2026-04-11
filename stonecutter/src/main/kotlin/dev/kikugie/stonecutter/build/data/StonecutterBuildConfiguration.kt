@@ -25,13 +25,11 @@ import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsView
 import dev.kikugie.stonecutter.controller.tree.ParametersModel
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
-import dev.kikugie.stonecutter.data.deserialization.TomlConverter
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyConfigImpl
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
-import dev.kikugie.stonecutter.settings.properties.PROPERTIES_FILENAME
 import dev.kikugie.stonecutter.util.overwriteText
 import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Named
@@ -94,7 +92,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
 private fun setupDefaultProperties(node: ProjectNode, objects: ObjectFactory): StructuredPropertiesProvider.Config {
     val impl = ExtendedPropertyConfigImpl(node.project, objects)
     impl.tags(node.branch.id, node.metadata.project)
-    impl.loadImpl(node.project.layout.projectDirectory.file(PROPERTIES_FILENAME), TomlConverter)
+    impl.loadDefaults(node.project.layout.projectDirectory)
     return impl
 }
 

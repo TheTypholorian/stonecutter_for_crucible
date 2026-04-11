@@ -17,11 +17,9 @@ import dev.kikugie.stonecutter.controller.tree.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.createContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
-import dev.kikugie.stonecutter.data.deserialization.TomlConverter
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyConfigImpl
-import dev.kikugie.stonecutter.settings.properties.PROPERTIES_FILENAME
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesLoader
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
@@ -118,9 +116,8 @@ private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: B
 @OptIn(StonecutterExperimentalAPI::class) @Suppress("UnstableApiUsage")
 private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): StructuredPropertiesProvider.Config {
     val loader: StructuredPropertiesLoader = settings.gradle.extensions.create("StructuredProperties")
-    val impl = ExtendedPropertyConfigImpl(settings.rootProject.hierarchy, settings.extra, loader, objects)
-    impl.loadImpl(settings.layout.settingsDirectory.file(PROPERTIES_FILENAME), TomlConverter)
-    return impl
+    return ExtendedPropertyConfigImpl(settings.rootProject.hierarchy, settings.extra, loader, objects)
+        .apply { loadDefaults(settings.layout.settingsDirectory) }
 }
 
 private fun Logger.reportGroovyComplaint(): Unit = warn(

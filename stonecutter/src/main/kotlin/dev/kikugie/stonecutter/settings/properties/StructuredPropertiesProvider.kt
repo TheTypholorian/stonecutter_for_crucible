@@ -9,14 +9,18 @@ import dev.kikugie.semver.impl.VersionParsingException
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
+import dev.kikugie.stonecutter.data.deserialization.JsonConverter
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.deserialization.SCElement
+import dev.kikugie.stonecutter.data.deserialization.TomlConverter
+import dev.kikugie.stonecutter.data.deserialization.YamlConverter
 import dev.kikugie.stonecutter.data.deserialization.determineConverter
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Action
 import org.gradle.api.Project
+import org.gradle.api.file.Directory
 import org.gradle.api.file.RegularFile
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.ExtraPropertiesExtension
@@ -246,6 +250,12 @@ internal class ExtendedPropertyConfigImpl(
             ?: return Result.failure(FileNotFoundException(file.asFile.absolutePath))
         entry.apply(extra, tags)
         return Result.success(Unit)
+    }
+
+    internal fun loadDefaults(directory: Directory) {
+        loadImpl(directory.file(PROPERTIES_JSON), JsonConverter)
+        loadImpl(directory.file(PROPERTIES_YAML), YamlConverter)
+        loadImpl(directory.file(PROPERTIES_TOML), TomlConverter)
     }
 
     @Suppress("UNCHECKED_CAST")

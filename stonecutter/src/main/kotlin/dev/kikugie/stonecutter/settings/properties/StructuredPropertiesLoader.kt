@@ -18,7 +18,9 @@ import org.slf4j.Logger
 import javax.inject.Inject
 
 internal val PROPERTIES_LOGGER: Logger = Logging.getLogger("StructuredPropertiesLoader")
-internal const val PROPERTIES_FILENAME: String = "stonecutter.properties.toml"
+internal const val PROPERTIES_TOML: String = "stonecutter.properties.toml"
+internal const val PROPERTIES_JSON: String = "stonecutter.properties.json"
+internal const val PROPERTIES_YAML: String = "stonecutter.properties.yaml"
 
 internal abstract class StructuredPropertiesLoader @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory) {
     private val container: NamedDomainObjectCollection<StructuredPropertiesEntry> = objects.namedDomainObjectList(StructuredPropertiesEntry::class)

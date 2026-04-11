@@ -21,11 +21,8 @@ import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
-import dev.kikugie.stonecutter.data.deserialization.TomlConverter
-import dev.kikugie.stonecutter.settings.properties.PROPERTIES_FILENAME
 import dev.kikugie.stonecutter.data.tree.ProjectBranchImpl
 import dev.kikugie.stonecutter.data.tree.ProjectNodeImpl
-import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.tree.ProjectTreeImpl
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
@@ -57,7 +54,7 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     override val flags: StonecutterFlagsImpl = StonecutterFlagStorage { root.findProperty("dev.kikugie.stonecutter.${it.key}")?.toString() }
         .let(::StonecutterFlagsImpl)
     override val handlers: FileHandlerContainer = root.gradle.getContainer()
-    override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(tree, objects)
+    override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(root, objects)
 
     private val nodeContainer: ProjectNodeContainer = root.gradle.getContainer<ProjectNodeContainer>().also { it += tree }
     private val configContainer: BuildConfigurationContainer = root.gradle.getContainer()
@@ -97,10 +94,8 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
 }
 
 @OptIn(StonecutterExperimentalAPI::class)
-private fun setupDefaultProperties(tree: ProjectTree, objects: ObjectFactory): StructuredPropertiesProvider.Config {
-    val impl = ExtendedPropertyConfigImpl(tree.project, objects)
-    impl.loadImpl(tree.project.layout.projectDirectory.file(PROPERTIES_FILENAME), TomlConverter)
-    return impl
+private fun setupDefaultProperties(project: Project, objects: ObjectFactory): StructuredPropertiesProvider.Config {
+    return ExtendedPropertyConfigImpl(project, objects).apply { loadDefaults(project.layout.projectDirectory) }
 }
 
 private fun constructTree(root: Project): ProjectTreeImpl {
