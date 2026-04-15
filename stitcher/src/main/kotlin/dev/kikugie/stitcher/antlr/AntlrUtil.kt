@@ -2,8 +2,10 @@
 
 package dev.kikugie.stitcher.antlr
 
+import dev.kikugie.commons.takeAs
 import dev.kikugie.stitcher.token.StitcherType
 import org.antlr.v4.runtime.*
+import org.antlr.v4.runtime.tree.ParseTreeVisitor
 import org.antlr.v4.runtime.tree.TerminalNode
 import java.io.InputStream
 import java.nio.charset.Charset
@@ -89,6 +91,9 @@ inline fun TokenStream.forEach(action: (AntlrToken) -> Unit) {
         consume()
     }
 }
+
+inline fun <reified T> RuleContext.acceptAs(visitor: ParseTreeVisitor<in T>): T =
+    accept(visitor).takeAs()
 
 @JvmInline
 @Deprecated("For now it's badly inefficient: https://youtrack.jetbrains.com/issue/KT-84300/Iterator-value-classes-are-boxed-on-each-iteration")

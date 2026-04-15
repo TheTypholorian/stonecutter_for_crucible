@@ -9,10 +9,11 @@ sealed interface StitcherType {
     val name: String
 
     companion object {
-        fun of(type: Int): StitcherType =
-            if (type == -1) EOFStitcherType
-            else if (type < INIT_TYPE) AntlrStitcherType.of(type)
-            else NativeStitcherType.of(type)
+        fun of(type: Int): StitcherType = when (type) {
+            -1 -> EOFStitcherType
+            in 0..<INIT_TYPE -> AntlrStitcherType.of(type)
+            else -> NativeStitcherType.of(type)
+        }
     }
 }
 
@@ -40,9 +41,10 @@ enum class NativeStitcherType : StitcherType {
     ROOT, CODE, CONTENT, COMMENT, COMMENT_OPEN, COMMENT_BODY, COMMENT_CLOSE,
     COND_OPEN, COND_EXT, COND_CLOSE,
     SWAP_OPEN, SWAP_CLOSE, SWAP_LOCAL, SWAP_EXPR,
-    REPL_TOGGLE, REPL_OPEN, REPL_CLOSE, REPL_ENTRY,
+    REPL_TOGGLE, REPL_LOCAL, REPL_CLOSE, REPL_TOGGLE_ENTRY, REPL_LOCAL_ENTRY,
     GROUP, UNARY, BINARY, CONSTANT, ASSIGNMENT,
-    CLOSED_SCOPE, LOOKUP_SCOPE, PREDICATE;
+    OPERATOR, VERSION, PREDICATE,
+    CLOSED_SCOPE, LOOKUP_SCOPE, NAMED_SCOPE;
 
     override val value: Int get() = INIT_TYPE + ordinal
     override fun toString(): String = "NativeStitcherType(name=$name, value=$value)"
@@ -57,7 +59,7 @@ enum class NativeStitcherType : StitcherType {
         }
 
         @JvmStatic fun of(type: Int): NativeStitcherType {
-            require(type - INIT_TYPE in 0..<entries.size) { "Token type $type is out of bounds ${INIT_TYPE}..${INIT_TYPE + entries.size - 1}" }
+            require(type - INIT_TYPE in entries.indices) { "Token type $type is out of bounds ${INIT_TYPE}..${INIT_TYPE + entries.size - 1}" }
             return entries[type - INIT_TYPE]
         }
     }

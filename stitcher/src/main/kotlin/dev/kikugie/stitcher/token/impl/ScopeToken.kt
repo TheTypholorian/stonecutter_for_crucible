@@ -22,4 +22,10 @@ sealed interface ScopeToken : StitcherToken {
             else -> error("Invalid type ${lookup?.type}")
         }
     }
+
+    data class Named(val marker: LeafToken, val identifier: LeafToken) : ScopeToken {
+        override val type: NativeStitcherType get() = NativeStitcherType.NAMED_SCOPE
+        override val start: Int get() = marker.start
+        override val end: Int get() = identifier.end
+    }
 }

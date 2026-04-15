@@ -4,7 +4,7 @@ import dev.kikugie.stitcher.antlr.*
 import dev.kikugie.stitcher.issue.*
 import dev.kikugie.stitcher.parser.LAYOUT_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
-import dev.kikugie.stitcher.parser.component.DefinitionBuilder
+import dev.kikugie.stitcher.parser.component.MarkedTokenBuilder
 import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.impl.BlockToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
@@ -33,7 +33,7 @@ internal class LayoutParser private constructor(
     val problems: FileProblemReporter,
 ) {
     private val stack: Deque<BlockBuilder.Scoped> = ArrayDeque(4)
-    private val visitor: StitcherVisitor<Pair<AntlrToken, DefinitionToken>> = DefinitionBuilder.paired(factory, problems)
+    private val visitor: MarkedTokenBuilder = MarkedTokenBuilder(factory, problems)
     private val listener: StitcherErrorListener = StitcherErrorListener(problems)
 
     init {

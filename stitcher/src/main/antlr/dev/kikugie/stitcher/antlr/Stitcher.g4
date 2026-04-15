@@ -42,29 +42,39 @@ condition
     ;
 
 swap
-    : IDENTIFIER swapArguments? scopeOpener?                                              # identifierSwap
-    | SUGAR_IF conditionExpression literal swapExtension* SUGAR_ELSE literal scopeOpener? # localSwap
-    | SCOPE_CLOSE                                                                         # closerSwap
+    : IDENTIFIER swapArguments? scopeOpener?               # identifierSwap
+    | swapPrimary swapExtension* swapFallback scopeOpener? # localSwap
+    | SCOPE_CLOSE                                          # closerSwap
     ;
 
 replacement
-    : replacementEntry+                                                # toggleReplacement
-    | SUGAR_IF conditionExpression literal OP_DIR literal scopeOpener? # localReplacement
-    | SCOPE_CLOSE                                                      # closerReplacement
+    : replacementToggle+                                                         # toggleReplacement
+    | SUGAR_IF conditionExpression replacementEntry+ (scopeOpener | scopeNamed)? # localReplacement
+    | SCOPE_CLOSE                                                                # closerReplacement
     ;
 
 scopeOpener
-    : SCOPE_OPEN                  # closedScopeOpener
-    | SCOPE_WORD (PLUS? literal)? # wordScopeOpener
+    : SCOPE_OPEN                    # closedScopeOpener
+    | SCOPE_LOOKUP (PLUS? literal)? # lookupScopeOpener
+    ;
+
+scopeNamed
+    : SCOPE_AS IDENTIFIER
     ;
 
 elseSugar: SUGAR_ELSE SUGAR_IF | SUGAR_ELIF | SUGAR_ELSE;
 
 swapArguments: literal+;
 
+swapPrimary: SUGAR_IF conditionExpression literal;
+
 swapExtension: elseSugar conditionExpression literal;
 
-replacementEntry: OP_NOT? IDENTIFIER;
+swapFallback: SUGAR_ELSE literal;
+
+replacementToggle: OP_NOT? IDENTIFIER COMMA?;
+
+replacementEntry: literal OP_DIR literal COMMA?;
 
 // This is order-sensitive
 conditionExpression
@@ -129,13 +139,15 @@ REPL_MARK: '~';
 DOT: '.';
 DASH: '-';
 PLUS: '+';
+COMMA: ',';
 
 LEFT_BRACE: '(';
 RIGHT_BRACE: ')';
 
 SCOPE_CLOSE: '}';
 SCOPE_OPEN: '{';
-SCOPE_WORD: '>>';
+SCOPE_LOOKUP: '>>';
+SCOPE_AS: 'as';
 
 SUGAR_IF: 'if';
 SUGAR_ELSE: 'else';
