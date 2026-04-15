@@ -2,6 +2,7 @@
 
 package dev.kikugie.stitcher.util
 
+import java.util.regex.Pattern
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -25,3 +26,6 @@ internal inline fun buildString(content: String, action: StringBuilder.() -> Uni
     contract { callsInPlace(action, InvocationKind.EXACTLY_ONCE) }
     return StringBuilder(content).apply(action).toString()
 }
+
+fun Regex(pattern: String, flags: Int): Regex =
+    Pattern.compile(pattern, flags).toRegex()

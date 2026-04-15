@@ -4,7 +4,7 @@ import dev.kikugie.stitcher.replacement.template.findInsertionPlaces
 import dev.kikugie.stitcher.util.buildString
 
 @JvmInline
-value class RegexSearcher<T : SearchData>(val payloads: MutableList<Payload<T>> = mutableListOf()) : PatternSearcher<T> {
+value class RegexSearcher<T : SearchData>(val payloads: List<Payload<T>>) : PatternSearcher<T> {
     data class Payload<T>(val regex: Regex, val data: T) {
         lateinit var match: MatchResult internal set
     }

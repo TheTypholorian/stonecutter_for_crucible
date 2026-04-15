@@ -1,7 +1,10 @@
+@file:UseSerializers(RegexSerializer::class)
+
 package dev.kikugie.stitcher.replacement
 
+import dev.kikugie.stitcher.util.RegexSerializer
 import kotlinx.serialization.Serializable
-import java.util.regex.Pattern
+import kotlinx.serialization.UseSerializers
 
 /**
  * Describes a replacement rule applied by the replacer pipeline.
@@ -41,11 +44,10 @@ sealed interface Replacement : java.io.Serializable {
 @Serializable @JvmRecord
 data class StringReplacement(
     val target: String,
-    val sources: Set<String>,
+    val pattern: String,
     override val identifier: String? = null,
     override val tags: Set<Replacement.Tag> = emptySet(),
-) : Replacement, java.io.Serializable {
-}
+) : Replacement, java.io.Serializable
 
 /**
  * Replaces text matching the regex pattern with the target string.
@@ -58,13 +60,7 @@ data class StringReplacement(
 @Serializable @JvmRecord
 data class RegexReplacement(
     val target: String,
-    val pattern: String,
-    val options: Int = 0,
+    val regex: Regex,
     override val identifier: String? = null,
     override val tags: Set<Replacement.Tag> = emptySet(),
-) : Replacement, java.io.Serializable {
-    /**
-     * Compiled regex for [pattern].
-     */
-    val regex: Regex get() = Pattern.compile(pattern, options).toRegex()
-}
+) : Replacement, java.io.Serializable

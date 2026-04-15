@@ -6,7 +6,7 @@ import dev.kikugie.stitcher.replacement.StringReplacement
 import dev.kikugie.stitcher.replacement.search.*
 
 interface ReplacementExecutor {
-    fun update(enabled: Collection<String> = emptySet(), disabled: Collection<String> = emptySet())
+    fun update(enabled: Collection<String> = emptySet(), disabled: Collection<String> = emptySet()) {}
     fun collect(text: CharSequence, queue: SearchEmitQueue<SearchData>)
 }
 
@@ -21,11 +21,13 @@ fun ReplacementExecutor.replaceIn(builder: StringBuilder) {
 
 class CompositeReplacementExecutor(replacements: List<Replacement>) : ReplacementExecutor {
     private val identifiers: MutableSet<String> = mutableSetOf<String>().apply {
-        replacements.mapNotNullTo(this) { it.identifier?.takeIf { _ -> Replacement.Tag.DEFAULT_ENABLED in it.tags } }
+        for (it in replacements) if (it.identifier != null && Replacement.Tag.DEFAULT_ENABLED in it.tags)
+            this += it.identifier!!
     }
+
     private val stringExecutor: StringReplacementExecutor?
     private val regexExecutor: RegexReplacementExecutor?
-    val localExecutor: SimpleReplacementExecutor = SimpleReplacementExecutor()
+
     override fun update(enabled: Collection<String>, disabled: Collection<String>) {
         if (stringExecutor == null || regexExecutor == null) return
         identifiers += enabled
@@ -35,7 +37,6 @@ class CompositeReplacementExecutor(replacements: List<Replacement>) : Replacemen
     override fun collect(text: CharSequence, queue: SearchEmitQueue<SearchData>) {
         stringExecutor?.collect(text, queue)
         regexExecutor?.collect(text, queue)
-        localExecutor.collect(text, queue)
     }
 
     init {
@@ -50,21 +51,11 @@ class CompositeReplacementExecutor(replacements: List<Replacement>) : Replacemen
     }
 }
 
-class RegexReplacementExecutor(replacements: Iterable<RegexReplacement>, private val identifiers: MutableSet<String> = mutableSetOf()) :
-    ReplacementExecutor {
-    private val searcher = RegexSearcher<State>(replacements.toStateList())
-    override fun update(enabled: Collection<String>, disabled: Collection<String>) {
-        identifiers += enabled
-        identifiers -= disabled
-    }
+private class RegexReplacementExecutor(replacements: Iterable<RegexReplacement>, private val identifiers: Set<String>) : ReplacementExecutor {
+    private val searcher: RegexSearcher<State> = RegexSearcher(replacements.map { RegexSearcher.Payload(it.regex, State(it.target, it.identifier)) })
 
     override fun collect(text: CharSequence, queue: SearchEmitQueue<SearchData>) {
         searcher.search(text, Consumer(queue))
-    }
-
-    private fun Iterable<RegexReplacement>.toStateList() = mutableListOf<RegexSearcher.Payload<State>>().apply {
-        for (repl in this@toStateList)
-            this += RegexSearcher.Payload(repl.regex, State(repl.target, repl.identifier))
     }
 
     private class State(override val value: String, val id: String?) : SearchData
@@ -78,14 +69,8 @@ class RegexReplacementExecutor(replacements: Iterable<RegexReplacement>, private
     }
 }
 
-class StringReplacementExecutor(replacements: Iterable<StringReplacement>, private val identifiers: MutableSet<String> = mutableSetOf()) :
-    ReplacementExecutor {
-    private val searcher = TrieSearcher<State>(replacements.toStateList())
-
-    override fun update(enabled: Collection<String>, disabled: Collection<String>) {
-        identifiers += enabled
-        identifiers -= disabled
-    }
+class StringReplacementExecutor(replacements: Iterable<StringReplacement>, private val identifiers: Set<String>) : ReplacementExecutor {
+    private val searcher: TrieSearcher<State> = TrieSearcher(replacements.toStateList())
 
     override fun collect(text: CharSequence, queue: SearchEmitQueue<SearchData>) {
         searcher.search(text, Consumer(queue))
@@ -94,8 +79,8 @@ class StringReplacementExecutor(replacements: Iterable<StringReplacement>, priva
     private fun Iterable<StringReplacement>.toStateList() = buildList {
         for (repl in this@toStateList) {
             val state = State(repl.target, repl.identifier)
-            if (repl.target !in repl.sources) this += TrieSearcher.Payload(repl.target, state)
-            for (source in repl.sources) this += TrieSearcher.Payload(source, state)
+            this += TrieSearcher.Payload(repl.pattern, state)
+            if (repl.pattern != repl.target) this += TrieSearcher.Payload(repl.target, state)
         }
     }
 
@@ -108,25 +93,4 @@ class StringReplacementExecutor(replacements: Iterable<StringReplacement>, priva
                 queue.add(emit as SearchEmit<SearchData>)
         }
     }
-}
-
-class SimpleReplacementExecutor : ReplacementExecutor {
-    private val searcher = NativeSearcher<State>()
-    override fun update(enabled: Collection<String>, disabled: Collection<String>) = Unit
-
-    override fun collect(text: CharSequence, queue: SearchEmitQueue<SearchData>) {
-        searcher.search(text) { @Suppress("UNCHECKED_CAST") queue.add(it as SearchEmit<SearchData>) }
-    }
-
-    fun push(keyword: String, value: String) {
-        searcher.payloads += NativeSearcher.Payload(keyword, State(value))
-    }
-
-    fun pop() {
-        if (searcher.payloads.isNotEmpty())
-            searcher.payloads.removeLast()
-    }
-
-    @JvmInline
-    private value class State(override val value: String) : SearchData
 }
