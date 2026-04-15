@@ -1,16 +1,17 @@
 name: Run tests
-on: [push]
+on:
+  push:
+    paths:
+      - stitcher/src/**
+      - stonecutter/src/**
+      - .forgejo/workflows/run-tests.yaml
 
 jobs:
   test:
-    name: Test on ${{ matrix.gradle-version }}
+    name: Run tests
     runs-on: own-forgejo
     container:
       image: eclipse-temurin:21-jdk-alpine
-    strategy:
-      matrix:
-        gradle-version: ["9.0.0", current, release-candidate]
-      fail-fast: false
     steps:
       - name: Install deps
         run: |
@@ -21,12 +22,11 @@ jobs:
           fetch-depth: 1
           token: ${{ secrets.CB_TOKEN }}
       - name: Setup Gradle
-        uses: https://github.com/gradle/actions/setup-gradle@v5
-        with:
-          gradle-version: ${{ matrix.gradle-version }}
+        run: |
+          chmod +x ./gradlew
       - name: Run tests
         run: |
-          gradle check --build-cache --configuration-cache
+          ./gradlew check --build-cache --configuration-cache
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v3

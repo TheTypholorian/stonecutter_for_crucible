@@ -1,25 +1,33 @@
+@file:OptIn(StonecutterExperimentalAPI::class)
+
 package dev.kikugie.stonecutter.settings.tree
 
+import dev.kikugie.stitcher.util.isValidIdentifier
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.ProjectReference
+import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
+import dev.kikugie.stonecutter.data.deserialization.SCConverter
+import dev.kikugie.stonecutter.data.deserialization.deserialize
 import dev.kikugie.stonecutter.settings.StonecutterSettingsImpl
-import dev.kikugie.stitcher.util.isValidIdentifier
+import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Action
 import org.gradle.api.initialization.ProjectDescriptor
 import org.gradle.api.initialization.Settings
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
+import org.gradle.api.provider.ProviderFactory
 import org.gradle.kotlin.dsl.newInstance
+import java.io.File
 import java.nio.file.Path
 import javax.inject.Inject
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.notExists
 
-internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectFactory) : TreeBuilder() {
+internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory) : TreeBuilder() {
     internal var localBuildScriptProvider: ((Identifier, StonecutterProject) -> String)? = null
         private set
     internal val branchBuilders: MutableMap<Identifier, BranchBuilderImpl> = mutableMapOf()
@@ -29,10 +37,6 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
         branchScript.disallowChanges()
     }
 
-    override fun mapBuilds(mapping: (branch: Identifier, node: StonecutterProject) -> String) {
-        localBuildScriptProvider = mapping
-    }
-
     override fun branch(name: Identifier, config: Action<BranchBuilder>) {
         require(name.isEmpty() || name.isValidIdentifier()) { "Invalid branch name: '$name'" }
         getOrCreateBranch(name).let(config::execute)
@@ -40,6 +44,17 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
 
     override fun versions(entries: List<StonecutterProject>): NodeBuilder =
         getOrCreateBranch("").versions(entries)
+
+    override fun mapBuilds(mapping: (branch: Identifier, node: StonecutterProject) -> String) {
+        localBuildScriptProvider = mapping
+    }
+
+    override fun loadImpl(file: File, converter: SCConverter) {
+        val contents: String = providers.fileContents(file.toRegularFile(objects)).asText.orNull
+            ?: throw NoSuchFileException(file)
+        val tree: SerializedTree = converter.deserialize(contents)
+        tree.applyTo(this)
+    }
 
     internal fun getVcsProject() = knownVersions[resolveVcs()]!!
 

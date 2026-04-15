@@ -5,6 +5,8 @@ plugins {
 }
 
 version = property("version").toString()
+val baseVersion: String = property("version").toString()
+    .substringBefore('-').substringBeforeLast('.')
 
 repositories {
     mavenCentral()
@@ -13,6 +15,8 @@ repositories {
 dependencies {
     dokka(project(":stonecutter"))
     dokka(project(":stitcher"))
+
+    dokkaHtmlPlugin(common.kotlin.dokka.versioning)
 }
 
 dokka {
@@ -21,16 +25,12 @@ dokka {
     pluginsConfiguration.html {
         homepageLink = "https://stonecutter.kikugie.dev"
         footerMessage = "(c) 2026 KikuGie"
+
+        customAssets.from("tools/logo-icon.svg")
     }
 
     pluginsConfiguration.versioning {
-        version = property("version").toString().substringBefore('-')
+        version = baseVersion
+        olderVersionsDir = file("kdoc-versions")
     }
-}
-
-configurations.configureEach {
-    if (isCanBeConsumed) attributes.attribute(
-        GradlePluginApiVersion.GRADLE_PLUGIN_API_VERSION_ATTRIBUTE,
-        objects.named(GradleVersion.current().version)
-    )
 }

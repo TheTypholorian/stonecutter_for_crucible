@@ -1,4 +1,4 @@
-package gradle
+package util
 
 import com.github.ajalt.mordant.rendering.TextStyle
 import java.io.PrintStream

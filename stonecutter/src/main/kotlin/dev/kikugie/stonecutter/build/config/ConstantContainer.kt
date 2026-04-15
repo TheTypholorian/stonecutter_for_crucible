@@ -20,6 +20,7 @@ public abstract class ConstantContainer @Inject constructor(private val delegate
      * Defines all [choices] as constants, with their values set to `true` if they equal [sample].
      *
      * @param choices Constant keys matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
+     * @sample dev.kikugie.stonecutter.samples.constants.match_vararg
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#choice-selector">Constant Selector Documentation</a>
      */
     public fun match(sample: Identifier, vararg choices: Identifier): Unit = choices.forEach { put(it, it == sample) }
@@ -28,6 +29,7 @@ public abstract class ConstantContainer @Inject constructor(private val delegate
      * Defines all [choices] as constants, with their values set to `true` if they equal [sample].
      *
      * @param choices Constant keys matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
+     * @sample dev.kikugie.stonecutter.samples.constants.match_iter
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#choice-selector">Constant Selector Documentation</a>
      */
     public fun match(sample: Identifier, choices: Iterable<Identifier>): Unit = choices.forEach { put(it, it == sample) }

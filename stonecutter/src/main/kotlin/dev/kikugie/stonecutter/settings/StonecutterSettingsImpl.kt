@@ -1,9 +1,12 @@
+@file:OptIn(StonecutterInternalAPI::class)
+
 package dev.kikugie.stonecutter.settings
 
 import dev.kikugie.commons.takeAs
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
+import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
@@ -14,12 +17,11 @@ import dev.kikugie.stonecutter.controller.tree.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.createContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
-import dev.kikugie.stonecutter.data.deserialization.Toml2JsonConverter
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyConfigImpl
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
+import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesLoader
+import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.TreeBuilder
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderContainer
@@ -45,7 +47,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     registry: BuildEventsListenerRegistry,
     objects: ObjectFactory,
 ) : StonecutterSettingsExtension(objects, settings.providers), VersionOperations<Version> by LenientOperations {
-    override val properties: ExtendedPropertyProvider.ExtendedPropertyConfig = setupDefaultProperties(settings, objects)
+    override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(settings, objects)
 
     internal val treeBuilderContainer: TreeBuilderContainer = settings.gradle.createContainer()
     internal val isHardMode: Boolean by lazy {
@@ -111,14 +113,11 @@ private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: B
     }.let(registry::onTaskCompletion)
 }
 
-@OptIn(StonecutterExperimentalAPI::class)
-@Suppress("UnstableApiUsage")
-private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): ExtendedPropertyProvider.ExtendedPropertyConfig = with(settings) {
-    val hierarchy = rootProject.hierarchy
-    val ext = gradle.extensions.create<ExtendedPropertiesStorage>("ExtendedProperties")
-    ext.load(layout.settingsDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), Toml2JsonConverter, hierarchy)
-        ?.apply(hierarchy, extra)
-    ExtendedPropertyConfigImpl(hierarchy, extra, ext, objects)
+@OptIn(StonecutterExperimentalAPI::class) @Suppress("UnstableApiUsage")
+private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): StructuredPropertiesProvider.Config {
+    val loader: StructuredPropertiesLoader = settings.gradle.extensions.create("StructuredProperties")
+    return ExtendedPropertyConfigImpl(settings.rootProject.hierarchy, settings.extra, loader, objects)
+        .apply { loadDefaults(settings.layout.settingsDirectory) }
 }
 
 private fun Logger.reportGroovyComplaint(): Unit = warn(

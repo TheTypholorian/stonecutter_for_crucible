@@ -1,30 +1,32 @@
 package integration
 
-import gradle.GradleTest
-import gradle.should
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.string.shouldContain
+import util.GradleSetup
+import util.config
 
-class GroovyCompatibilityTest : GradleTest, ShouldSpec({
+class GroovyCompatibilityTest : ShouldSpec({
     context("settings") {
-        should("accept combined setup") { _, build -> build.run("stonecutterGenerate") }
-        should("use implicit shared") { _, build -> build.run("stonecutterGenerate") }
-        should("use explicit shared") { _, build -> build.run("stonecutterGenerate") }
-        should("declare branch versions") { _, build -> build.run(":subproject:3:stonecutterGenerate") }
+        should("accept combined setup").config<GradleSetup> { build("stonecutterGenerate") }
+        should("use implicit shared").config<GradleSetup> { build("stonecutterGenerate") }
+        should("use explicit shared").config<GradleSetup> { build("stonecutterGenerate") }
+        should("declare branch versions").config<GradleSetup> { build(":subproject:3:stonecutterGenerate") }
     }
 
     context("controller") {
-        should("use parameters function") { _, build ->
-            with(build.run().output) {
-                shouldContain("Parameters for :1")
-                shouldContain("Parameters for :2")
+        should("use parameters function").config<GradleSetup> {
+            build {
+                with(output) {
+                    shouldContain("Parameters for :1")
+                    shouldContain("Parameters for :2")
+                }
             }
         }
     }
 
     context("build") {
-        should("access parsed wrapper") { _, build ->
-            build.run()
+        should("access parsed wrapper").config<GradleSetup> {
+            build()
         }
     }
 })

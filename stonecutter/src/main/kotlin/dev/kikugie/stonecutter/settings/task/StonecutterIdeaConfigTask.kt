@@ -44,9 +44,9 @@ public abstract class StonecutterIdeaConfigTask : DefaultTask() {
         if (file.exists()) return configuration
 
         val xml = TEMPLATE.getOrThrow()
-            .replaceChecked("%FOLDER_NAME%", "Stonecutter${hierarchy.orBlank()}")
+            .replaceChecked("%FOLDER_NAME%", "Stonecutter${hierarchy.orEmpty()}")
             .replaceChecked("%ENTRY_NAME%", "Switch to $project")
-            .replaceChecked("%TASK_NAME%", "${hierarchy.orBlank()}:stonecutterSwitchTo$project")
+            .replaceChecked("%TASK_NAME%", "${hierarchy.orEmpty()}:stonecutterSwitchTo$project")
         file.overwriteText(xml)
         return configuration
     }
@@ -61,7 +61,7 @@ private fun readResource(path: String): Result<String> = runCatching {
 }
 
 private fun configurationFile(hierarchy: ProjectHierarchy, project: Identifier) =
-    "Stonecutter${hierarchy.orBlank().formatPath()}_switchTo${project.formatPath()}.xml"
+    "Stonecutter${hierarchy.orEmpty().formatPath()}_switchTo${project.formatPath()}.xml"
 
 private fun String.formatPath(): String = replace(PATTERN, "_")
 private fun String.replaceChecked(from: String, to: String) =

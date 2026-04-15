@@ -12,4 +12,7 @@ public interface ExtendedMapProperty<K : Any, V : Any> : MapProperty<K, V> {
     public operator fun set(key: K, provider: Provider<V>) {
         put(key, provider)
     }
+
+    public operator fun get(key: K): V? =
+        getting(key).orNull
 }

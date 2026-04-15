@@ -76,11 +76,12 @@ internal abstract class StonecutterBuildData @Inject constructor(
     interface RegexReplacementSpec {
         @get:Input val target: Property<String>
         @get:Input val pattern: Property<String>
+        @get:Input @get:Optional val options: Property<Int>
         @get:Input @get:Optional val identifier: Property<Identifier>
         @get:Input @get:Optional val tags: SetProperty<Replacement.Tag>
 
         fun build(): RegexReplacement =
-            RegexReplacement(target.get(), pattern.get(), identifier.orNull, tags.getOrElse(emptySet()))
+            RegexReplacement(target.get(), pattern.get(), options.getOrElse(0), identifier.orNull, tags.getOrElse(emptySet()))
     }
 }
 

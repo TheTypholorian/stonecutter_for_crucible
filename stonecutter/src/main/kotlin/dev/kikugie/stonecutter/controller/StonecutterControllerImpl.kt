@@ -1,7 +1,10 @@
+@file:OptIn(StonecutterInternalAPI::class)
+
 package dev.kikugie.stonecutter.controller
 
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
+import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
@@ -18,15 +21,13 @@ import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
-import dev.kikugie.stonecutter.data.deserialization.Toml2JsonConverter
 import dev.kikugie.stonecutter.data.tree.ProjectBranchImpl
 import dev.kikugie.stonecutter.data.tree.ProjectNodeImpl
 import dev.kikugie.stonecutter.data.tree.ProjectTreeImpl
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertiesStorage
 import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyConfigImpl
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
+import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.BranchBuilderImpl
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderContainer
@@ -39,7 +40,9 @@ import org.gradle.api.Project
 import org.gradle.api.file.RegularFile
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
-import org.gradle.kotlin.dsl.*
+import org.gradle.kotlin.dsl.apply
+import org.gradle.kotlin.dsl.named
+import org.gradle.kotlin.dsl.newInstance
 import java.io.File
 import java.nio.file.Path
 import javax.inject.Inject
@@ -51,7 +54,7 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     override val flags: StonecutterFlagsImpl = StonecutterFlagStorage { root.findProperty("dev.kikugie.stonecutter.${it.key}")?.toString() }
         .let(::StonecutterFlagsImpl)
     override val handlers: FileHandlerContainer = root.gradle.getContainer()
-    override val properties: ExtendedPropertyProvider.ExtendedPropertyConfig = setupDefaultProperties(root, objects)
+    override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(root, objects)
 
     private val nodeContainer: ProjectNodeContainer = root.gradle.getContainer<ProjectNodeContainer>().also { it += tree }
     private val configContainer: BuildConfigurationContainer = root.gradle.getContainer()
@@ -91,11 +94,8 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
 }
 
 @OptIn(StonecutterExperimentalAPI::class)
-private fun setupDefaultProperties(project: Project, objects: ObjectFactory): ExtendedPropertyProvider.ExtendedPropertyConfig = with(project) {
-    val ext = gradle.the<ExtendedPropertiesStorage>()
-    ext.load(layout.projectDirectory.file(ExtendedPropertiesStorage.DEFAULT_FILENAME), Toml2JsonConverter, hierarchy)
-    ext.apply(hierarchy, extra)
-    ExtendedPropertyConfigImpl(hierarchy, extra, ext, objects)
+private fun setupDefaultProperties(project: Project, objects: ObjectFactory): StructuredPropertiesProvider.Config {
+    return ExtendedPropertyConfigImpl(project, objects).apply { loadDefaults(project.layout.projectDirectory) }
 }
 
 private fun constructTree(root: Project): ProjectTreeImpl {
@@ -109,14 +109,15 @@ private fun constructTree(root: Project): ProjectTreeImpl {
 }
 
 private fun TreeBuilderImpl.constructBranches(root: Project, tree: ProjectHierarchy): List<ProjectBranchImpl> = branchBuilders.values.map {
-    val nodes = it.constructNodes(root, tree + it.name)
-    ProjectBranchImpl(root.gradle, tree + it.name, it.name, nodes).apply {
+    val hierarchy = tree.resolve(it.name)
+    val nodes = it.constructNodes(root, hierarchy)
+    ProjectBranchImpl(root.gradle, hierarchy, it.name, nodes).apply {
         for (node in nodes) node.branch = this
     }
 }
 
 private fun BranchBuilderImpl.constructNodes(root: Project, branch: ProjectHierarchy): List<ProjectNodeImpl> = allProjects().map {
-    ProjectNodeImpl(root.gradle, branch + it.project, it)
+    ProjectNodeImpl(root.gradle, branch.resolve(it.project), it)
 }
 
 private fun ProjectTreeImpl.findByName(name: String): StonecutterProject = checkNotNull(versions.find { it.project == name }) {

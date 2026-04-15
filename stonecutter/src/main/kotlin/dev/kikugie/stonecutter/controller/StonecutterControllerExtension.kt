@@ -10,7 +10,7 @@ import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.Version
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyProvider
+import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import org.gradle.api.Action
 
 @DslMarker @Retention(AnnotationRetention.BINARY)
@@ -26,7 +26,7 @@ private annotation class ControllerDsl
  * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params">Preprocessor Configuration Documentation</a>
  */
 @ControllerDsl
-public interface StonecutterControllerExtension : VersionOperations<Version>, ExtendedPropertyProvider {
+public interface StonecutterControllerExtension : VersionOperations<Version>, StructuredPropertiesProvider {
     /**
      * Tree associated with the applied Gradle [Project][org.gradle.api.Project]..
      *

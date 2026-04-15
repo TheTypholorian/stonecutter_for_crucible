@@ -2,6 +2,7 @@
 @file:OptIn(ExperimentalPathApi::class)
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import java.net.URI
 import kotlin.io.path.ExperimentalPathApi
 
 plugins {
@@ -14,13 +15,17 @@ plugins {
     alias(common.plugins.gradle.shadow)
     alias(common.plugins.gradle.publish)
     alias(common.plugins.kotlin.validator)
+    alias(common.plugins.kotlin.dokka)
+    alias(common.plugins.kotlin.dokka.javadoc)
     id("shared-setup")
 }
 
 version = property("version") as String
+val baseVersion: String = property("version").toString()
+    .substringBefore('-').substringBeforeLast('.')
 
 sourceSets.main {
-    kotlin.srcDir(files("build/generated/ver/main/kotlin").builtBy("generateVersion"))
+    kotlin.srcDirs(files("build/generated/ver/main/kotlin").builtBy("generateVersion"), files("src/samples/kotlin"))
 }
 
 dependencies {
@@ -44,6 +49,8 @@ dependencies {
     testImplementation(common.ktor.client.negotiation)
 
     testImplementation(common.misc.mordant)
+
+    dokkaHtmlPlugin(common.kotlin.dokka.versioning)
 }
 
 apiValidation {
@@ -58,7 +65,55 @@ kotlin {
     explicitApi()
 }
 
+dokka {
+    moduleName = "Stonecutter Gradle"
+
+    dokkaPublications.html {
+        suppressInheritedMembers = true
+        suppressObviousFunctions = true
+    }
+
+    pluginsConfiguration.html {
+        homepageLink = "https://stonecutter.kikugie.dev/"
+        footerMessage = "(c) 2026 KikuGie"
+    }
+
+    dokkaSourceSets.named("main") {
+        reportUndocumented = true
+        skipEmptyPackages = true
+
+        sourceLink {
+            localDirectory = file("src/main/kotlin")
+            remoteLineSuffix = "#L"
+            remoteUrl("https://codeberg.org/stonecutter/stonecutter/src/branch/$baseVersion/stonecutter/")
+        }
+
+        externalDocumentationLinks.register("kotlin-stdlib") {
+            url("https://kotlinlang.org/api/core/")
+        }
+
+        externalDocumentationLinks.register("kotlinx-serialization") {
+            url("https://kotlinlang.org/api/kotlinx.serialization/")
+        }
+
+        externalDocumentationLinks.register("gradle-kotlin-dsl") {
+            url("https://docs.gradle.org/current/kotlin-dsl/")
+            packageListUrl("https://docs.gradle.org/current/kotlin-dsl/gradle/package-list")
+        }
+
+        externalDocumentationLinks.register("semver") {
+            val version = common.versions.misc.semver.get()
+            url("https://javadoc.io/static/dev.kikugie/semver/$version")
+            packageListUrl.set(URI.create("https://javadoc.io/static/dev.kikugie/semver/$version/semver/package-list"))
+        }
+    }
+}
+
 tasks {
+    test {
+        useJUnitPlatform()
+    }
+
     compileKotlin {
         mustRunAfter("generateVersion")
     }
