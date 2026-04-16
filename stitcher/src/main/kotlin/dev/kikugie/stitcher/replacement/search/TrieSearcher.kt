@@ -48,7 +48,6 @@ class TrieSearcher<T : SearchData>(payloads: Iterable<Payload<T>>) : PatternSear
             state = nextState(state, char)
             processEmits(i, state.outputs, consumer)
         }
-        text.indexOf("aaa")
     }
 
     private fun processEmits(index: Int, payloads: List<Payload<T>>, handler: EmitConsumer<T>) {
