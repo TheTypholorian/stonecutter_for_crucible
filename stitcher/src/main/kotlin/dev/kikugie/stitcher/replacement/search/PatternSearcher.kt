@@ -1,33 +1,32 @@
 package dev.kikugie.stitcher.replacement.search
 
-import java.util.LinkedList
-
-typealias EmitConsumer<T> = (emit: SearchEmit<T>) -> Unit
+import java.util.*
 
 /**
  * Searches for pattern matches in text and reports findings through a consumer.
  */
-interface PatternSearcher<T : SearchData> {
-    fun search(text: CharSequence, consumer: EmitConsumer<T>)
+interface PatternSearcher<C : EmitContext, D> {
+    fun search(text: CharSequence, consumer: EmitConsumer<C, D>)
 }
 
-interface SearchData {
-    val value: String
+interface EmitConsumer<C : EmitContext, D> {
+    fun accept(ctx: C, emit: D)
 }
 
-interface SearchEmit<T : SearchData> {
-    val data: T
+interface EmitContext {
     val start: Int
     val end: Int
+}
 
+interface EmitEntry : EmitContext {
     fun apply(builder: StringBuilder, offset: Int): Int
 }
 
-val SearchEmit<*>.length: Int
+val EmitContext.length: Int
     inline get() = end - start
 
 /**
- * A specialized queue for [SearchEmit] elements that maintains non-overlapping emits sorted by position.
+ * A specialized queue for [EmitEntry] elements that maintains non-overlapping emits sorted by position.
  *
  * Added emits are processed with the following rules:
  * 1. Earlier emits have priority
@@ -50,7 +49,7 @@ val SearchEmit<*>.length: Int
  * ```
  */
 @JvmInline @Suppress("JavaDefaultMethodsNotOverriddenByDelegation")
-value class SearchEmitQueue<T : SearchData> private constructor(private val list: LinkedList<SearchEmit<T>>) : MutableCollection<SearchEmit<T>> by list {
+value class SearchEmitQueue private constructor(private val list: LinkedList<EmitEntry>) : MutableCollection<EmitEntry> by list {
     constructor() : this(LinkedList())
 
     /**
@@ -59,7 +58,7 @@ value class SearchEmitQueue<T : SearchData> private constructor(private val list
      * @param elements the collection of emits to add
      * @return true if at least one emit was added successfully, false if all were rejected
      */
-    override fun addAll(elements: Collection<SearchEmit<T>>): Boolean {
+    override fun addAll(elements: Collection<EmitEntry>): Boolean {
         var added = false
         for (element in elements)
             added = add(element) || added
@@ -75,7 +74,7 @@ value class SearchEmitQueue<T : SearchData> private constructor(private val list
      * @param element the emit to add
      * @return true if the emit was added successfully, false if it was rejected due to overlap or being shorter
      */
-    override fun add(element: SearchEmit<T>): Boolean =
+    override fun add(element: EmitEntry): Boolean =
         if (list.isEmpty() || element.end >= list.peekLast().end) addFromEnd(element)
         else addFromStart(element)
 
@@ -88,7 +87,7 @@ value class SearchEmitQueue<T : SearchData> private constructor(private val list
      * @param emit the emit to add
      * @return true if the emit was added successfully, false if it was rejected due to overlap or being shorter
      */
-    private fun addFromEnd(emit: SearchEmit<T>): Boolean {
+    private fun addFromEnd(emit: EmitEntry): Boolean {
         while (list.isNotEmpty()) {
             val last = list.peekLast()
             when {
@@ -116,7 +115,7 @@ value class SearchEmitQueue<T : SearchData> private constructor(private val list
      * @param emit the emit to add
      * @return true if the emit was added successfully, false if it was rejected due to overlap or being shorter
      */
-    private fun addFromStart(emit: SearchEmit<T>): Boolean {
+    private fun addFromStart(emit: EmitEntry): Boolean {
         val iterator = list.listIterator()
         for (existing in iterator) when {
             existing.start < emit.start ->

@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.transformer
 
+import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.commons.then
 import dev.kikugie.stitcher.antlr.*
 import dev.kikugie.stitcher.issue.FileProblemReporter
@@ -8,6 +9,7 @@ import dev.kikugie.stitcher.issue.locate
 import dev.kikugie.stitcher.issue.runMarked
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.layout.LayoutParser
+import dev.kikugie.stitcher.replacement.StringReplacement
 import dev.kikugie.stitcher.replacement.executor.CompositeReplacementExecutor
 import dev.kikugie.stitcher.replacement.template.findInsertionPlaces
 import dev.kikugie.stitcher.token.NativeStitcherType
@@ -16,6 +18,7 @@ import dev.kikugie.stitcher.token.impl.BlockToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.ExpressionToken
 import dev.kikugie.stitcher.token.impl.LeafToken
+import dev.kikugie.stitcher.token.impl.ScopeToken
 import dev.kikugie.stitcher.transformer.visitor.ExpressionEvaluator
 import dev.kikugie.stitcher.transformer.visitor.ParameterChecker
 import dev.kikugie.stitcher.util.*
@@ -117,9 +120,21 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
         if (!checker.check(repl)) return code.scope.reprocess()
 
         val direction = eval(repl.expression)
-        val (source, target) = if (direction) repl.source to repl.target else repl.target to repl.source
-        replacer.localExecutor.push(source.unquote(), target.unquote())
-        return code.scope.reprocess().also { replacer.localExecutor.pop() }
+        val identifier = repl.opener?.takeAsOrNull<ScopeToken.Named>()?.identifier?.text
+        val usedIdentifiers = mutableSetOf<String>()
+        for (entry in repl.entries) {
+            val from = if (direction) entry.source else entry.target
+            val to = if (direction) entry.target else entry.source
+            val it = StringReplacement(to.unquote(), from.unquote(), identifier ?: entry.identifier)
+
+            replacer += it
+            usedIdentifiers += it.identifier!!
+        }
+
+        replacer.update(enabled = usedIdentifiers)
+        return if (identifier != null) emptyList() else code.scope.reprocess().also {
+            replacer.update(disabled = usedIdentifiers)
+        }
     }
 
     override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser): BlockTokenList =
@@ -202,7 +217,7 @@ private class TransformerStateImpl(
 ) : TransformerState {
     val evaluator: ExpressionEvaluator = ExpressionEvaluator(parameters)
     override val checker: ParameterChecker = ParameterChecker(parameters, problems)
-    override val replacer: CompositeReplacementExecutor = CompositeReplacementExecutor(parameters.replacements)
+    override val replacer: CompositeReplacementExecutor = CompositeReplacementExecutor(parameters.replacements, problems)
 
     override fun eval(expr: ExpressionToken?): Boolean = expr?.accept(evaluator) ?: true
 }

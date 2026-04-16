@@ -141,7 +141,7 @@ sealed interface DefinitionToken : StitcherToken {
 
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitReplacementToggle(this)
 
-        class Entry(val op: LeafToken?, val identifier: LeafToken, val comma: LeafToken?) : StitcherToken {
+        data class Entry(val op: LeafToken?, val identifier: LeafToken, val comma: LeafToken?) : StitcherToken {
             override val type: StitcherType get() = NativeStitcherType.REPL_TOGGLE_ENTRY
             override val start: Int get() = op?.start ?: identifier.start
             override val end: Int get() = comma?.end ?: identifier.end
@@ -155,11 +155,11 @@ sealed interface DefinitionToken : StitcherToken {
         override val type: StitcherType get() = NativeStitcherType.REPL_LOCAL
         override val start: Int get() = sugar.start
         override val end: Int get() = opener?.end ?: entries.last().end
-        override val kind: Kind = opener.openerKind()
+        override val kind: Kind = if (opener is ScopeToken.Named) Kind.INDEPENDENT else opener.openerKind()
 
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitReplacementLocal(this)
 
-        class Entry(val source: LeafToken, val dir: LeafToken, val target: LeafToken, val comma: LeafToken?) : StitcherToken {
+        data class Entry(val source: LeafToken, val dir: LeafToken, val target: LeafToken, val comma: LeafToken?) : StitcherToken {
             override val type: StitcherType get() = NativeStitcherType.REPL_LOCAL_ENTRY
             override val start: Int get() = source.start
             override val end: Int get() = comma?.end ?: target.end

@@ -24,7 +24,7 @@ val DefinitionToken.SwapOpener.id: String
 val DefinitionToken.SwapOpener.args: Sequence<String>
     inline get() = arguments.asSequence().map(LeafToken::unquote)
 
-val DefinitionToken.ReplacementEntry.id: String
+val DefinitionToken.ReplacementToggle.Entry.id: String
     inline get() = identifier.text
 
 val ExpressionToken.Constant.text: String
@@ -33,5 +33,10 @@ val ExpressionToken.Constant.text: String
 val ExpressionToken.Assignment.id: String
     inline get() = target?.text.orEmpty()
 
+// Adding nodes to the trie is irreversible, so they need to be disabled later
+val DefinitionToken.ReplacementLocal.Entry.identifier: String
+    get() = "/synthetic/ ${source.text} -> ${target.text}"
+
 fun ExpressionToken.Assignment.eval(version: Version): Boolean =
-    predicates.all { it.predicate(version) }
+    predicates.all { it.parsed(version) }
+
