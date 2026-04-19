@@ -603,10 +603,14 @@ public final class dev/kikugie/stonecutter/data/ProjectHierarchy : java/io/Seria
 	public fun listIterator (I)Ljava/util/ListIterator;
 	public static fun listIterator-impl (Ljava/lang/String;)Ljava/util/ListIterator;
 	public static fun listIterator-impl (Ljava/lang/String;I)Ljava/util/ListIterator;
+	public final fun minus (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/ProjectHierarchy;
+	public static final fun minus-3NqLo2s (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 	public final fun orBlank ()Ljava/lang/String;
 	public static final fun orBlank-impl (Ljava/lang/String;)Ljava/lang/String;
 	public final fun orEmpty ()Ljava/lang/String;
 	public static final fun orEmpty-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final fun plus (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/ProjectHierarchy;
+	public static final fun plus-3NqLo2s (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 	public final fun relativeTo (Ldev/kikugie/stonecutter/data/ProjectHierarchy;)Ljava/lang/String;
 	public static final fun relativeTo-qHRS2DI (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 	public final fun relativize (Ldev/kikugie/stonecutter/data/ProjectHierarchy;)Ljava/lang/String;
@@ -619,6 +623,8 @@ public final class dev/kikugie/stonecutter/data/ProjectHierarchy : java/io/Seria
 	public fun removeFirst ()Ljava/lang/String;
 	public synthetic fun removeLast ()Ljava/lang/Object;
 	public fun removeLast ()Ljava/lang/String;
+	public final fun removeSuffix (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/ProjectHierarchy;
+	public static final fun removeSuffix-3NqLo2s (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 	public fun replaceAll (Ljava/util/function/UnaryOperator;)V
 	public final fun resolve (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/ProjectHierarchy;
 	public static final fun resolve-3NqLo2s (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;

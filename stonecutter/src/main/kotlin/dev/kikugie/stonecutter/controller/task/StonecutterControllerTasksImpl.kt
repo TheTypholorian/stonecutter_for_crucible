@@ -48,7 +48,7 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
         val nodes = controller.tree.nodes.filter(filter).sortedWith(ordering)
 
         for ((a, b) in nodes.zipWithNext()) b.project.afterEvaluate {
-            tasks.named(name) { outputs.file(lock); mustRunAfter((a.hierarchy + name).toString()) }
+            tasks.named(name) { outputs.file(lock); mustRunAfter((a.hierarchy.resolve(name)).toString()) }
         }
     }
 

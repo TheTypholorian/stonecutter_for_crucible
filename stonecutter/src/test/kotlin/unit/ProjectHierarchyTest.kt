@@ -79,6 +79,12 @@ class ProjectHierarchyTest : FunSpec({
             val b = ProjectHierarchy(":encore")
             a.relativize(b) shouldBe null
         }
+
+        test("remove suffix") {
+            val a = ProjectHierarchy(":core:sub")
+            a.removeSuffix("sub") shouldBe ProjectHierarchy(":core")
+            a.removeSuffix("sus") shouldBe ProjectHierarchy(":core:sub")
+        }
     }
 
     context("contains") {
