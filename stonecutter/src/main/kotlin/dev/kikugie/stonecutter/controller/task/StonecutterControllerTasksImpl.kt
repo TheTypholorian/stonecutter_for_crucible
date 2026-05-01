@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.controller.task
 
+import dev.kikugie.commons.collections.present
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.controller.StonecutterControllerImpl
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
@@ -48,15 +49,16 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
         val nodes = controller.tree.nodes.filter(filter).sortedWith(ordering)
         if (nodes.size <= 1) return
 
-        val iter = nodes.iterator()
-        val dependencies = mutableListOf(iter.next().task(name))
-        for (node in iter) node.project.afterEvaluate {
-            if (name in tasks.names) tasks.named(name) {
-                outputs.file(lock)
-                shouldRunAfter(*dependencies.toTypedArray())
-            }
-        }.also {
+        val dependencies = mutableListOf(nodes.first().task(name))
+        for (node in nodes.drop(1)) {
+            val copy = dependencies.toTypedArray()
             dependencies += node.task(name)
+            node.project.afterEvaluate {
+                if (name in tasks.names) tasks.named(name) {
+                    outputs.file(lock)
+                    shouldRunAfter(*copy)
+                }
+            }
         }
     }
 
