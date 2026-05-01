@@ -1,19 +1,13 @@
-@file:OptIn(StonecutterExperimentalAPI::class)
-
 package dev.kikugie.stonecutter.settings.properties
 
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.StringVersion
 import dev.kikugie.semver.data.Version
 import dev.kikugie.semver.impl.VersionParsingException
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
-import dev.kikugie.stonecutter.data.deserialization.JsonConverter
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.deserialization.SCElement
-import dev.kikugie.stonecutter.data.deserialization.TomlConverter
-import dev.kikugie.stonecutter.data.deserialization.YamlConverter
 import dev.kikugie.stonecutter.data.deserialization.determineConverter
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.SemanticOperations
@@ -28,7 +22,7 @@ import org.gradle.internal.extensions.core.extra
 import org.gradle.kotlin.dsl.the
 import java.io.File
 import java.io.FileNotFoundException
-import java.util.Locale
+import java.util.*
 import kotlin.reflect.KClass
 
 public interface StructuredPropertiesProvider {
@@ -137,7 +131,6 @@ public interface StructuredPropertiesProvider {
          * @throws IllegalArgumentException if no element is found
          * @sample dev.kikugie.stonecutter.samples.properties.raw
          */
-        @StonecutterExperimentalAPI
         public fun raw(vararg segments: String): SCElement = requireNotNull(rawOrNull(*segments)) {
             "No element at path '${segments.joinToString(":")}'"
         }
@@ -155,7 +148,6 @@ public interface StructuredPropertiesProvider {
          * see its docs to learn what you can do with it
          * @sample dev.kikugie.stonecutter.samples.properties.raw
          */
-        @StonecutterExperimentalAPI
         public abstract fun rawOrNull(vararg segments: String): SCElement?
 
         /**
@@ -180,7 +172,6 @@ public interface StructuredPropertiesProvider {
          * @throws [NumberFormatException] If [T] is a [Number] and the value can't be parsed as such
          * @throws [VersionParsingException] If [T] is a [Version] and the value can't be parsed as such
          */
-        @StonecutterExperimentalAPI
         public inline operator fun <reified T : Any> get(name: String): T = requireNotNull(getTypedImpl(name, T::class)) {
             "No such property '$name'"
         }
@@ -206,7 +197,6 @@ public interface StructuredPropertiesProvider {
          * @throws [NumberFormatException] If [T] is a [Number] and the value can't be parsed as such
          * @throws [VersionParsingException] If [T] is a [Version] and the value can't be parsed as such
          */
-        @StonecutterExperimentalAPI
         public inline fun <reified T : Any> getOrNull(name: String): T? =
             getTypedImpl(name, T::class)
 
@@ -218,7 +208,7 @@ public interface StructuredPropertiesProvider {
     }
 }
 
-internal class ExtendedPropertyConfigImpl(
+internal class StructuredPropertyConfigImpl(
     val project: ProjectHierarchy,
     val extra: ExtraPropertiesExtension,
     val loader: StructuredPropertiesLoader,
@@ -232,7 +222,8 @@ internal class ExtendedPropertyConfigImpl(
         loader.get(project, segments.joinToString(":"), this.tags).element
 
     override fun <T : Any> getTypedImpl(name: String, cls: KClass<T>): T? =
-        extra[name]?.toString()?.mapTo(cls)
+        if (!extra.has(name)) null
+        else extra[name].toString().mapTo(cls)
 
     override fun tags(vararg tags: String) {
         val tags = tags
@@ -258,18 +249,18 @@ internal class ExtendedPropertyConfigImpl(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun <T : Any> String.mapTo(cls: KClass<T>): T = when (cls.java) {
-        String::class.java -> this
-        Boolean::class.java -> lowercase(Locale.US).toBooleanStrict()
-        Int::class.java -> toInt()
-        Long::class.java -> toLong()
-        Byte::class.java -> toByte()
-        Short::class.java -> toShort()
-        Double::class.java -> toDouble()
-        Float::class.java -> toFloat()
-        Version::class.java -> LenientOperations.tryParse(this).getOrThrow()
-        StringVersion::class.java -> StringVersion.parse(this)
-        SemanticVersion::class.java -> SemanticOperations.tryParse(this).getOrThrow()
-        else -> throw IllegalArgumentException("Unsupported type: ${cls.simpleName}")
+    private fun <T : Any> String.mapTo(cls: KClass<T>): T = when (cls) {
+        String::class -> this
+        Boolean::class -> lowercase(Locale.US).toBooleanStrict()
+        Int::class -> toInt()
+        Long::class -> toLong()
+        Byte::class -> toByte()
+        Short::class -> toShort()
+        Double::class -> toDouble()
+        Float::class -> toFloat()
+        Version::class -> LenientOperations.tryParse(this).getOrThrow()
+        StringVersion::class -> StringVersion.parse(this)
+        SemanticVersion::class -> SemanticOperations.tryParse(this).getOrThrow()
+        else -> throw IllegalArgumentException("Value '$this' can't be converted to ${cls.simpleName}")
     } as T
 }

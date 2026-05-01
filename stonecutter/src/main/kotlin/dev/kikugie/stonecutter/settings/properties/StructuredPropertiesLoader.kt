@@ -1,8 +1,5 @@
-@file:OptIn(StonecutterExperimentalAPI::class)
-
 package dev.kikugie.stonecutter.settings.properties
 
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.deserialization.SCElement

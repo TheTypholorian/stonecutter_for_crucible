@@ -26,7 +26,7 @@ import dev.kikugie.stonecutter.data.tree.ProjectNodeImpl
 import dev.kikugie.stonecutter.data.tree.ProjectTreeImpl
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyConfigImpl
+import dev.kikugie.stonecutter.settings.properties.StructuredPropertyConfigImpl
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.BranchBuilderImpl
@@ -95,7 +95,7 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
 
 @OptIn(StonecutterExperimentalAPI::class)
 private fun setupDefaultProperties(project: Project, objects: ObjectFactory): StructuredPropertiesProvider.Config {
-    return ExtendedPropertyConfigImpl(project, objects).apply { loadDefaults(project.layout.projectDirectory) }
+    return StructuredPropertyConfigImpl(project, objects).apply { loadDefaults(project.layout.projectDirectory) }
 }
 
 private fun constructTree(root: Project): ProjectTreeImpl {

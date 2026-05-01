@@ -28,7 +28,7 @@ import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.ExtendedPropertyConfigImpl
+import dev.kikugie.stonecutter.settings.properties.StructuredPropertyConfigImpl
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.util.overwriteText
 import dev.kikugie.stonecutter.util.toRegularFile
@@ -90,7 +90,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
 
 @OptIn(StonecutterExperimentalAPI::class)
 private fun setupDefaultProperties(node: ProjectNode, objects: ObjectFactory): StructuredPropertiesProvider.Config {
-    val impl = ExtendedPropertyConfigImpl(node.project, objects)
+    val impl = StructuredPropertyConfigImpl(node.project, objects)
     impl.tags(node.branch.id, node.metadata.project)
     impl.loadDefaults(node.project.layout.projectDirectory)
     return impl
