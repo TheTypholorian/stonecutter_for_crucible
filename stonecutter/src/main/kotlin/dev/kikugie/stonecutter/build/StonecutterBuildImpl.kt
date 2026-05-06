@@ -1,12 +1,14 @@
 package dev.kikugie.stonecutter.build
 
 import dev.kikugie.stonecutter.StonecutterInternalAPI
+import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
 import dev.kikugie.stonecutter.build.data.StonecutterBuildConfiguration
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData
 import dev.kikugie.stonecutter.build.task.StonecutterBuildTasksImpl
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsView
 import dev.kikugie.stonecutter.controller.tree.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
@@ -18,9 +20,13 @@ import dev.kikugie.stonecutter.util.requestTasks
 import dev.kikugie.stonecutter.util.sourceSets
 import org.gradle.api.Project
 import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.invocation.Gradle
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.util.PatternFilterable
+import org.gradle.jvm.tasks.Jar
+import org.gradle.kotlin.dsl.attributes
 import org.gradle.kotlin.dsl.newInstance
+import org.gradle.kotlin.dsl.withType
 import javax.inject.Inject
 
 @OptIn(StonecutterInternalAPI::class)
@@ -36,6 +42,7 @@ internal abstract class StonecutterBuildImpl private constructor(val project: Pr
             createProcessingTasks(node, config.data, filters, tasks)
         }
         project.refreshConfiguration(flags, tasks)
+        project.configureManifest(flags, node)
         tasks.registerNodeModelTask()
 
         val handlers = project.gradle.getContainer<FileHandlerContainer>().handlers
@@ -92,4 +99,20 @@ private fun SourceSet.createProcessingTasks(
         from(prepareTask.map { it.destination })
         into(sharedSource)
     }
+}
+
+private fun Project.configureManifest(flags: StonecutterFlagsView, node: ProjectNode) {
+    if (!flags[StonecutterFlag.GENERATE_MANIFEST]) return
+    
+    val attributes = buildStonecutterManifest(node, gradle)
+    tasks.withType<Jar>().configureEach {
+        manifest.attributes(attributes)
+    }
+}
+
+private fun buildStonecutterManifest(node: ProjectNode, gradle: Gradle) = buildMap {
+    this["Stonecutter-Plugin-Version"] = StonecutterPlugin.VERSION
+    this["Stonecutter-Gradle-Version"] = gradle.gradleVersion
+    this["Stonecutter-Node-Project"] = node.metadata.project
+    this["Stonecutter-Node-Version"] = node.metadata.version
 }

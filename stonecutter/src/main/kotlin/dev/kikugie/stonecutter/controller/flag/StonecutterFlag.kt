@@ -99,5 +99,19 @@ public data class StonecutterFlag<T : Any> private constructor(public val key: S
          */
         @JvmField
         public val IMPLICIT_RECEIVER: StonecutterFlag<String> = StonecutterFlag("implicit_receiver", "minecraft")
+
+        /**
+         * Appends Stonecutter metadata to [Jar][org.gradle.jvm.tasks.Jar] manifests.
+         *
+         * The following entries are added when the flag is enabled:
+         * - `Stonecutter-Plugin-Version`: [StonecutterPlugin.VERSION][dev.kikugie.stonecutter.StonecutterPlugin.VERSION]
+         * - `Stonecutter-Gradle-Version`: [CradleVersion.current()][org.gradle.util.GradleVersion.current]
+         * - `Stonecutter-Node-Project`: [sc.current.project][dev.kikugie.stonecutter.build.StonecutterBuildExtension.current]
+         * - `Stonecutter-Node-Version`: [sc.current.version][dev.kikugie.stonecutter.build.StonecutterBuildExtension.current]
+         *
+         * **Default**: `true`
+         */
+        @JvmField
+        public val GENERATE_MANIFEST: StonecutterFlag<Boolean> = StonecutterFlag("generate_manifest", true)
     }
 }
