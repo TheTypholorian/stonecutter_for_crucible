@@ -1,6 +1,7 @@
 package dev.kikugie.stonecutter.util
 
 import dev.kikugie.commons.then
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 
 private val ASCII_ESCAPES: List<String> = buildList(128) {
     for (i in 0x00..0x0f) {
@@ -95,3 +96,9 @@ private fun StringBuilder.next(input: String, index: Int, it: Char): Int = when 
     else append(input.substring(index + 2, index + 10).toInt(16).toChar()) then 6
     else -> append("\\$it") then 2
 }
+
+internal fun stonecutterProperty(key: String): String =
+    "dev.kikugie.stonecutter.$key"
+
+internal val StonecutterFlag<*>.propertyKey: String
+    inline get() = stonecutterProperty(key)

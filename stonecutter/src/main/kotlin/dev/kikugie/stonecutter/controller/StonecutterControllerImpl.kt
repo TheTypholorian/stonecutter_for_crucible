@@ -33,6 +33,7 @@ import dev.kikugie.stonecutter.settings.tree.BranchBuilderImpl
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderContainer
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.isIdeaSync
+import dev.kikugie.stonecutter.util.propertyKey
 import dev.kikugie.stonecutter.util.requestTasks
 import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Action
@@ -51,7 +52,7 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     StonecutterControllerExtension, VersionOperations<Version> by LenientOperations {
     override val tree: ProjectTreeImpl = constructTree(root)
     override val tasks: StonecutterControllerTasksImpl = root.objects.newInstance(this)
-    override val flags: StonecutterFlagsImpl = StonecutterFlagStorage { root.findProperty("dev.kikugie.stonecutter.${it.key}")?.toString() }
+    override val flags: StonecutterFlagsImpl = StonecutterFlagStorage { root.findProperty(it.propertyKey)?.toString() }
         .let(::StonecutterFlagsImpl)
     override val handlers: FileHandlerContainer = root.gradle.getContainer()
     override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(root, objects)
