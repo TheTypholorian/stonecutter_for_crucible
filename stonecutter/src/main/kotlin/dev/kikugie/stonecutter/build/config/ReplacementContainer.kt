@@ -25,38 +25,103 @@ private annotation class ReplacementSpecDsl
 @ReplacementDsl
 public sealed interface ReplacementContainer {
     /**
-     * Defines a new string replacement with the [StringReplacementSpec].
+     * Defines new string replacements.
      *
-     * The configuration [action] must define the replacement
-     * [direction][StringReplacementSpec.direction] in the lambda body.
+     * @param action Configuration action for the replacement spec.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#string-replacements">String Replacement Documentation</a>
      */
     public fun string(action: Action<StringReplacementSpec>)
 
+    /**
+     * Defines new string replacements.
+     *
+     * @param id Replacement identifier used to toggle replacements throughout the file.
+     * @param action Configuration action for the replacement spec.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#string-replacements">String Replacement Documentation</a>
+     */
     public fun string(id: Identifier, action: Action<StringReplacementSpec>): Unit =
         string { this.id.set(id); action.execute(this) }
 
+    /**
+     * Defines new string replacements.
+     *
+     * @param direction Switches which way the replacement parameters are used.
+     * @param action Configuration action for the replacement spec.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#string-replacements">String Replacement Documentation</a>
+     */
     public fun string(direction: Boolean, action: Action<StringReplacementSpec>): Unit =
         string { this.direction.set(direction); action.execute(this) }
 
+    /**
+     * Defines new string replacements.
+     *
+     * @param direction Switches which way the replacement parameters are used.
+     * @param id Replacement identifier used to toggle replacements throughout the file.
+     * @param action Configuration action for the replacement spec.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#string-replacements">String Replacement Documentation</a>
+     */
     public fun string(direction: Boolean, id: Identifier, action: Action<StringReplacementSpec>): Unit =
         string { this.direction.set(direction); this.id.set(id); action.execute(this) }
 
+    /**
+     * Defines new string replacements.
+     *
+     * @param direction Switches which way the replacement parameters are used.
+     * @param id Replacement identifier used to toggle replacements throughout the file.
+     * @param action Configuration action for the replacement spec.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#string-replacements">String Replacement Documentation</a>
+     */
     @Deprecated("Use the direction-first variant `string(direction, id)`", replaceWith = ReplaceWith("string(direction, id, action)"))
     public fun string(id: Identifier, direction: Boolean?, action: Action<StringReplacementSpec>): Unit =
         string { this.id.set(id); this.direction.set(direction); action.execute(this) }
 
+    /**
+     * Defines new regex replacements.
+     *
+     * @param action Configuration action for the replacement spec.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#regex-replacements">Regex Replacement Documentation</a>
+     */
     public fun regex(action: Action<RegexReplacementSpec>)
 
+    /**
+     * Defines new regex replacements.
+     *
+     * @param id Replacement identifier used to toggle replacements throughout the file.
+     * @param action Configuration action for the replacement spec.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#regex-replacements">Regex Replacement Documentation</a>
+     */
     public fun regex(id: Identifier, action: Action<RegexReplacementSpec>): Unit =
         regex { this.id.set(id); action.execute(this) }
 
+    /**
+     * Defines new regex replacements.
+     *
+     * @param direction Switches which way the replacement parameters are used.
+     * @param action Configuration action for the replacement spec.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#regex-replacements">Regex Replacement Documentation</a>
+     */
     public fun regex(direction: Boolean, action: Action<RegexReplacementSpec>): Unit =
         regex { this.direction.set(direction); action.execute(this) }
 
+    /**
+     * Defines new regex replacements.
+     *
+     * @param direction Switches which way the replacement parameters are used.
+     * @param id Replacement identifier used to toggle replacements throughout the file.
+     * @param action Configuration action for the replacement spec.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#regex-replacements">Regex Replacement Documentation</a>
+     */
     public fun regex(direction: Boolean, id: Identifier, action: Action<RegexReplacementSpec>): Unit =
         regex { this.direction.set(direction); this.id.set(id); action.execute(this) }
 
+    /**
+     * Defines new regex replacements.
+     *
+     * @param direction Switches which way the replacement parameters are used.
+     * @param id Replacement identifier used to toggle replacements throughout the file.
+     * @param action Configuration action for the replacement spec.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#regex-replacements">Regex Replacement Documentation</a>
+     */
     @Deprecated("Use the direction-first variant `regex(direction, id)`", replaceWith = ReplaceWith("regex(direction, id, action)"))
     public fun regex(id: Identifier, direction: Boolean?, action: Action<RegexReplacementSpec>): Unit =
         regex { this.id.set(id); this.direction.set(direction); action.execute(this) }
@@ -88,7 +153,7 @@ public sealed interface ReplacementContainer {
          * - non-null: replacement must be explicitly enabled by the id
          * - prefixed with '!': replacement is active by default and can be disabled by the id
          *
-         * The identifier must match `[_a-zA-Z][_\-a-zA-Z0-9]*.
+         * The identifier must match `[_a-zA-Z][_\-a-zA-Z0-9]*`.
          * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#replacement-identifiers">Replacement Identifier Documentation</a>
          */
         public abstract val id: Property<Identifier>
@@ -138,7 +203,7 @@ public sealed interface ReplacementContainer {
          * - non-null: replacement must be explicitly enabled by the id
          * - prefixed with '!': replacement is active by default and can be disabled by the id
          *
-         * The identifier must match `[_a-zA-Z][_\-a-zA-Z0-9]*.
+         * The identifier must match `[_a-zA-Z][_\-a-zA-Z0-9]*`.
          * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#replacement-identifiers">Replacement Identifier Documentation</a>
          */
         public abstract val id: Property<Identifier>
@@ -211,6 +276,11 @@ public sealed interface ReplacementContainer {
             reversePattern.toPattern(flags), reverseReplacement
         )
 
+        /**
+         * Registers a replacement with the function parameters,
+         * using the [direction] and [id] defined in the extension.
+         * Can be called multiple times.
+         */
         public fun replace(
             @Language("RegExp") directPattern: String, directReplacement: String,
             @Language("RegExp") reversePattern: String, reverseReplacement: String,
@@ -220,6 +290,11 @@ public sealed interface ReplacementContainer {
             reversePattern.toRegex(options.toSet()), reverseReplacement
         )
 
+        /**
+         * Registers a replacement with the function parameters,
+         * using the [direction] and [id] defined in the extension.
+         * Can be called multiple times.
+         */
         public fun replace(
             directPattern: Regex, directReplacement: String,
             reversePattern: Regex, reverseReplacement: String,
@@ -228,6 +303,11 @@ public sealed interface ReplacementContainer {
             reversePattern.toPattern(), reverseReplacement
         )
 
+        /**
+         * Registers a replacement with the function parameters,
+         * using the [direction] and [id] defined in the extension.
+         * Can be called multiple times.
+         */
         public abstract fun replace(
             directPattern: Pattern, directReplacement: String,
             reversePattern: Pattern, reverseReplacement: String,

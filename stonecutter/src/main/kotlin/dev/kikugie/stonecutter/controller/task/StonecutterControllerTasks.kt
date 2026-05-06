@@ -11,6 +11,8 @@ import kotlin.reflect.KClass
 @DslMarker @Retention(AnnotationRetention.BINARY)
 private annotation class ControllerTasksDsl
 
+private typealias ProjectFilter = (ProjectNode.() -> Boolean)
+
 /**
  * Extension class providing access to [StonecutterControllerExtension][dev.kikugie.stonecutter.controller.StonecutterControllerExtension]
  * tasks and aggregation utilities.
@@ -25,36 +27,22 @@ public abstract class StonecutterControllerTasks {
 
     /**Returns a lazily evaluated collection of tasks in nodes with the given [name].*/
     @JvmOverloads
-    public fun named(
-        name: String,
-        filter: (ProjectNode.() -> Boolean) = ALWAYS_TRUE
-    ): MapProperty<ProjectNode, TaskProvider<*>> =
+    public fun named(name: String, filter: ProjectFilter = ALWAYS_TRUE): MapProperty<ProjectNode, TaskProvider<*>> =
         namedImpl(name, null, filter)
 
     /**Returns a lazily evaluated collection of tasks in nodes with the given [name] and [cls].*/
     @JvmOverloads
-    public fun <T : Task> named(
-        name: String,
-        cls: Class<T>,
-        filter: (ProjectNode.() -> Boolean) = ALWAYS_TRUE
-    ): MapProperty<ProjectNode, TaskProvider<T>> =
+    public fun <T : Task> named(name: String, cls: Class<T>, filter: ProjectFilter = ALWAYS_TRUE): MapProperty<ProjectNode, TaskProvider<T>> =
         namedImpl(name, cls, filter).takeAs()
 
     /**Returns a lazily evaluated collection of tasks in nodes with the given [name] and [cls].*/
     @JvmOverloads
-    public fun <T : Task> named(
-        name: String,
-        cls: KClass<T>,
-        filter: (ProjectNode.() -> Boolean) = ALWAYS_TRUE
-    ): MapProperty<ProjectNode, TaskProvider<T>> =
+    public fun <T : Task> named(name: String, cls: KClass<T>, filter: ProjectFilter = ALWAYS_TRUE): MapProperty<ProjectNode, TaskProvider<T>> =
         namedImpl(name, cls.java, filter).takeAs()
 
     /**Returns a lazily evaluated collection of tasks in nodes with the given [name] and [T] class.*/
     @JvmOverloads @JvmName("reifiedNamed")
-    public inline fun <reified T : Task> named(
-        name: String,
-        noinline filter: (ProjectNode.() -> Boolean) = { true }
-    ): MapProperty<ProjectNode, TaskProvider<T>> =
+    public inline fun <reified T : Task> named(name: String, noinline filter: ProjectFilter = { true }): MapProperty<ProjectNode, TaskProvider<T>> =
         named(name, T::class.java, filter).takeAs()
 
     /**
@@ -68,20 +56,12 @@ public abstract class StonecutterControllerTasks {
      * and `publishCurseforge`, which should be ordered instead.
      */
     @JvmOverloads
-    public fun order(
-        name: String,
-        ordering: Comparator<ProjectNode> = versionComparator,
-        filter: (ProjectNode.() -> Boolean) = ALWAYS_TRUE
-    ): Unit =
+    public fun order(name: String, ordering: Comparator<ProjectNode> = versionComparator, filter: ProjectFilter = ALWAYS_TRUE): Unit =
         orderImpl(name, ordering, filter)
 
-    protected abstract fun namedImpl(
-        name: String,
-        cls: Class<out Task>?,
-        filter: (ProjectNode.() -> Boolean)
-    ): MapProperty<ProjectNode, TaskProvider<*>>
+    protected abstract fun namedImpl(name: String, cls: Class<out Task>?, filter: ProjectFilter): MapProperty<ProjectNode, TaskProvider<*>>
 
-    protected abstract fun orderImpl(name: String, ordering: Comparator<ProjectNode>, filter: (ProjectNode.() -> Boolean))
+    protected abstract fun orderImpl(name: String, ordering: Comparator<ProjectNode>, filter: ProjectFilter)
 
     private companion object {
         /**The default node ordering used in [order], sorting by [StonecutterProject.parsed][dev.kikugie.stonecutter.data.StonecutterProject.parsed].*/
