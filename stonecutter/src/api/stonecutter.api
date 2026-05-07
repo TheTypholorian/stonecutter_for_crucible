@@ -279,6 +279,7 @@ public final class dev/kikugie/stonecutter/controller/flag/StonecutterFlag {
 	public static final field APPEND_SOURCES_AFTER_EVAL Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field APPLY_PLUGIN_TO_NODES Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field Companion Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag$Companion;
+	public static final field GENERATE_MANIFEST Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field GENERATE_SOURCES_ON_SYNC Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field GENERATE_SWITCH_ACTIONS Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field IMPLICIT_RECEIVER Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
