@@ -2,7 +2,7 @@ package dev.kikugie.stitcher.token
 
 import dev.kikugie.stitcher.antlr.StitcherLexer
 
-private const val INIT_TYPE: Int = StitcherLexer.WHITESPACE + 1
+private const val INIT_TYPE: Int = StitcherLexer.INVALID + 1
 
 sealed interface StitcherType {
     val value: Int
@@ -57,7 +57,7 @@ enum class NativeStitcherType : StitcherType {
         }
 
         @JvmStatic fun of(type: Int): NativeStitcherType {
-            require(type - INIT_TYPE in 0..<entries.size) { "Token type $type is out of bounds ${INIT_TYPE}..${INIT_TYPE + entries.size - 1}" }
+            require(type - INIT_TYPE in entries.indices) { "Token type $type is out of bounds ${INIT_TYPE}..${INIT_TYPE + entries.size - 1}" }
             return entries[type - INIT_TYPE]
         }
     }
