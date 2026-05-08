@@ -24,7 +24,7 @@ object FullProblemFormatter : ProblemFormatter {
 
     private fun ProblemReport.decorateLabel(): String =
         if (!(location?.line ?: 0).rhymes()) label
-        else "~\n\u001B[41mRoses are red\u001B[0m; \u001B[46mViolets are blue\u001B[0m; $label on line ${location?.line}"
+        else "~\n\u001B[41m\u001B[97mRoses are red\u001B[0m; \u001B[46m\u001B[97mViolets are blue\u001B[0m; $label on line ${location?.line}"
 
     private fun StringBuilder.appendLines(text: String, init: String, follow: String = "  ") {
         for ((index, line) in text.lineSequence().withIndex())
