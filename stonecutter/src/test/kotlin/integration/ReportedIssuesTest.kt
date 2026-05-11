@@ -87,4 +87,8 @@ class ReportedIssuesTest : ShouldSpec({
             output.lineSequence().find { "FluidType.java:91:94" in it }.shouldNotBeNull()
         }
     }
+
+    should("not throw npe on code builder init").config<GradleSetup> {
+        build("stonecutterGenerate")
+    }
 })
