@@ -9,6 +9,7 @@ import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.fromAntlrNode
 import dev.kikugie.stitcher.parser.fromAntlrRule
 import dev.kikugie.stitcher.parser.fromAntlrToken
+import dev.kikugie.stitcher.token.AntlrStitcherType
 import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.ExpressionToken
@@ -123,8 +124,17 @@ internal class DefinitionBuilder(val factory: StitcherTokenFactory, val problems
     private class PairDefinitionBuilder(factory: StitcherTokenFactory, problems: FileProblemReporter) : StitcherBaseVisitor<Pair<AntlrToken, DefinitionToken>>() {
         private val definitionBuilder = DefinitionBuilder(factory, problems)
 
-        override fun visitConditionDefinition(ctx: StitcherParser.ConditionDefinitionContext): Pair<AntlrToken, DefinitionToken> =
-            ctx.COND_MARK().symbol to ctx.condition().accept(definitionBuilder)
+        // TODO: Properly handle unmatched definitions
+        override fun visitConditionDefinition(ctx: StitcherParser.ConditionDefinitionContext): Pair<AntlrToken, DefinitionToken> {
+            val marker = ctx.COND_MARK().symbol
+            val def = ctx.condition().accept(definitionBuilder) ?: kotlin.run {
+                val type = AntlrStitcherType.of(StitcherLexer.SCOPE_CLOSE)
+                val token = LeafToken(type, marker.startIndex, marker.stopIndex, "")
+                DefinitionToken.ConditionExtension(token, emptyList(), null, null)
+            }
+
+            return marker to def
+        }
 
         override fun visitSwapDefinition(ctx: StitcherParser.SwapDefinitionContext): Pair<AntlrToken, DefinitionToken> =
             ctx.SWAP_MARK().symbol to ctx.swap().accept(definitionBuilder)

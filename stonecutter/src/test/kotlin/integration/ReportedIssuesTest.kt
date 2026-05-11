@@ -89,6 +89,6 @@ class ReportedIssuesTest : ShouldSpec({
     }
 
     should("not throw npe on code builder init").config<GradleSetup> {
-        build("stonecutterGenerate")
+        fail("stonecutterGenerate") { output shouldNotContain "CodeBuilder.<init>" }
     }
 })
