@@ -23,7 +23,7 @@ public abstract class StonecutterPlugin @Inject constructor(
     private val registry: BuildEventsListenerRegistry
 ) : Plugin<ExtensionAware> {
     public companion object {
-        /**Current Stonecutter version.*/ // Updated by ':updateVersion' task during build
+        /**Current Stonecutter version.*/
         public const val VERSION: String = __VERSION
 
         /**The minimum required Gradle version for Stonecutter to function properly.*/

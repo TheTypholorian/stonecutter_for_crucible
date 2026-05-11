@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.controller.task
 
+import dev.kikugie.commons.collections.present
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.controller.StonecutterControllerImpl
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
@@ -46,9 +47,18 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
     override fun orderImpl(name: String, ordering: Comparator<ProjectNode>, filter: ProjectNode.() -> Boolean) {
         val lock = controller.root.buildDirectory.resolve("stonecutter-cache/$name.lock")
         val nodes = controller.tree.nodes.filter(filter).sortedWith(ordering)
+        if (nodes.size <= 1) return
 
-        for ((a, b) in nodes.zipWithNext()) b.project.afterEvaluate {
-            tasks.named(name) { outputs.file(lock); mustRunAfter((a.hierarchy + name).toString()) }
+        val dependencies = mutableListOf(nodes.first().task(name))
+        for (node in nodes.drop(1)) {
+            val copy = dependencies.toTypedArray()
+            dependencies += node.task(name)
+            node.project.afterEvaluate {
+                if (name in tasks.names) tasks.named(name) {
+                    outputs.file(lock)
+                    shouldRunAfter(*copy)
+                }
+            }
         }
     }
 
@@ -97,6 +107,9 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
         fun get(node: ProjectNode): TaskProvider<*>
     }
 }
+
+private fun ProjectNode.task(name: String): String =
+    "${hierarchy.orEmpty()}:$name"
 
 private fun ProjectTree.collectMergeTasks(root: Project, project: Identifier) = nodes
     .filter { it.metadata.project == project }

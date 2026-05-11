@@ -1,6 +1,7 @@
 package integration
 
 import io.kotest.core.spec.style.ShouldSpec
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
@@ -78,5 +79,16 @@ class ReportedIssuesTest : ShouldSpec({
                 }
             """.trimIndent()
         }
+    }
+
+    // https://codeberg.org/stonecutter/stonecutter/issues/54
+    should("locate errors in file").config<GradleSetup> {
+        fail("stonecutterSwitchTo26.1") {
+            output.lineSequence().find { "FluidType.java:91:94" in it }.shouldNotBeNull()
+        }
+    }
+
+    should("not throw npe on code builder init").config<GradleSetup> {
+        build("stonecutterGenerate")
     }
 })

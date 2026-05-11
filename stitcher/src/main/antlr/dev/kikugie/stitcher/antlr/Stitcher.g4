@@ -172,3 +172,4 @@ IDENTIFIER: IDENTIFIER_START IDENTIFIER_PART*;
 QUOTED: '\'' (ESC_SLASH | ESC_TICK | ~[\\'])* '\'';
 COMMENT: '*' (ESC_SLASH | ESC_STAR | ~[\\*])* '*' -> channel(HIDDEN);
 WHITESPACE: [ \t\n\r]+ -> channel(HIDDEN);
+INVALID: ~[^];

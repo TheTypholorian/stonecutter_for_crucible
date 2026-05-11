@@ -2,7 +2,7 @@ package dev.kikugie.stitcher.token
 
 import dev.kikugie.stitcher.antlr.StitcherLexer
 
-private const val INIT_TYPE: Int = StitcherLexer.WHITESPACE + 1
+private const val INIT_TYPE: Int = StitcherLexer.INVALID + 1
 
 sealed interface StitcherType {
     val value: Int

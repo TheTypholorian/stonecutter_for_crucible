@@ -1,6 +1,5 @@
 package dev.kikugie.stonecutter.data
 
-import dev.kikugie.commons.text.getOrDefault
 import kotlinx.serialization.Serializable
 import org.gradle.api.Project
 import org.gradle.api.initialization.ProjectDescriptor
@@ -46,6 +45,21 @@ public value class ProjectHierarchy private constructor(@PublishedApi internal v
     public fun resolve(path: PathString): ProjectHierarchy =
         if (isEmpty()) invoke(path)
         else invoke("${this.path}:$path")
+
+    public fun removeSuffix(path: PathString): ProjectHierarchy {
+        if (isEmpty()) return this
+        val norm = normalize(path) ?: return this
+        val path = this.path.removeSuffix(norm)
+
+        return if (path.endsWith(':')) invoke(path.dropLast(1))
+        else this
+    }
+
+    public operator fun plus(path: PathString): ProjectHierarchy =
+        resolve(path)
+
+    public operator fun minus(path: PathString): ProjectHierarchy =
+        removeSuffix(path)
 
     /**Returns the absolute path string.*/
     override fun toString(): PathString = path

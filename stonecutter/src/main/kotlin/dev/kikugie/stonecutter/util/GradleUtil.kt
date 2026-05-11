@@ -33,7 +33,7 @@ internal fun SourceSet.allSources() = sequence {
     yield(java)
     yield(resources)
     extensions.extensionsSchema.asSequence()
-        .mapNotNull { extensions[it.name] }
+        .mapNotNull { extensions.findByName(it.name) }
         .filterIsInstance<SourceDirectorySet>()
         .let { yieldAll(it) }
 }
@@ -66,12 +66,8 @@ internal inline fun WorkerExecutor.execute(action: (queue: WorkQueue) -> Unit) =
  *
  * Fuck you, Gradle.
  */
-internal fun File.toRegularFile(objects: ObjectFactory): RegularFile {
-    val property = objects.fileProperty().apply {
-        set(this@toRegularFile)
-    }
-    return property.get()
-}
+internal fun File.toRegularFile(objects: ObjectFactory): RegularFile =
+    objects.fileProperty().fileValue(this).get()
 
 internal inline fun <T : Any> Action<T>.doFirst(crossinline other: T.() -> Unit): Action<T> = Action {
     other(this)

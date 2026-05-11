@@ -1,6 +1,7 @@
 package dev.kikugie.stonecutter.util
 
 import dev.kikugie.commons.then
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 
 private val ASCII_ESCAPES: List<String> = buildList(128) {
     for (i in 0x00..0x0f) {
@@ -31,6 +32,13 @@ internal fun join(vararg parts: String, separator: String): String = when (parts
     else -> parts.filter(String::isNotEmpty).joinToString(separator)
 }
 
+/**
+ * Converts the character to its escaped representation based on the input flag.
+ *
+ * @param multiline Indicates whether to use multiline-friendly escaping. If true,
+ * certain characters like newline (`\n`) and carriage return (`\r`) are converted
+ * to their literal forms instead of escape sequences.
+ */
 public fun Char.escape(multiline: Boolean = false): String = when(this) {
     '\\' -> "\\\\"
     '\t' -> if (multiline) toString() else "\\t"
@@ -39,10 +47,23 @@ public fun Char.escape(multiline: Boolean = false): String = when(this) {
     else -> if (code >= 128) toString() else ASCII_ESCAPES[code]
 }
 
+/**
+ * Escapes the characters in the string based on the input flag.
+ *
+ * @param multiline Specifies whether multiline-friendly escaping should be applied.
+ * If true, certain characters like newline (`\n`) and carriage return (`\r`) are kept
+ * in their literal forms instead of being escaped.
+ */
 public fun String.escape(multiline: Boolean = false): String = buildString {
     for (it in this@escape) append(it.escape(multiline))
 }
 
+/**
+ * Returns a new string with escape sequences in the original string replaced by their corresponding characters.
+ *
+ * Common escape sequences such as `\n`, `\t`, `\b`, and Unicode escapes (e.g., `\u1234`) are processed.
+ * Escape sequences that are not recognised are retained in their original form.
+ */
 public fun String.unescape(): String {
     if (isBlank()) return this
 
@@ -76,8 +97,8 @@ private fun StringBuilder.next(input: String, index: Int, it: Char): Int = when 
     else -> append("\\$it") then 2
 }
 
-internal fun String.startsWithSeparated(prefix: String, separator: Char, ignoreCase: Boolean = false): Boolean =
-    startsWith(prefix, ignoreCase) && (length == prefix.length || get(prefix.length) == separator)
+internal fun stonecutterProperty(key: String): String =
+    "dev.kikugie.stonecutter.$key"
 
-internal fun String.hasAtOrOOB(index: Int, char: Char): Boolean =
-    if (index in indices) get(index) == char else true
+internal val StonecutterFlag<*>.propertyKey: String
+    inline get() = stonecutterProperty(key)
