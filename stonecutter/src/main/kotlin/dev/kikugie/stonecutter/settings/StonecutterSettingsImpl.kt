@@ -43,16 +43,16 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 internal abstract class StonecutterSettingsImpl @Inject constructor(
-    internal val settings: Settings,
+    settings: Settings,
     registry: BuildEventsListenerRegistry,
     objects: ObjectFactory,
-) : StonecutterSettingsExtension(objects, settings.providers), VersionOperations<Version> by LenientOperations {
+) : StonecutterSettingsExtension(settings, objects), VersionOperations<Version> by LenientOperations {
     override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(settings, objects)
-
-    internal val treeBuilderContainer: TreeBuilderContainer = settings.gradle.createContainer()
-    internal val isHardMode: Boolean by lazy {
+    override val isHardMode: Boolean by lazy {
         settings.providers.gradleProperty("dev.kikugie.stonecutter.hard_mode").getOrElse("false").toBoolean()
     }
+
+    internal val treeBuilderContainer: TreeBuilderContainer = settings.gradle.createContainer()
     private var usesGroovy: Boolean = false
 
 
@@ -73,11 +73,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     }
 
     override fun create(ref: ProjectReference, builder: TreeBuilder) =
-        builder.takeAs<TreeBuilderImpl>().createWith(this, ref)
-
-    internal fun checkGroovy(file: String): String = file.also {
-        usesGroovy = usesGroovy || it.endsWith(".gradle")
-    }
+        builder.takeAs<TreeBuilderImpl>().build(this, ref)
 
     private companion object {
         val LOGGER = Logging.getLogger("StonecutterSettings")

@@ -12,9 +12,9 @@ import dev.kikugie.stonecutter.settings.tree.TreeBuilder
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.doFirst
 import org.gradle.api.Action
+import org.gradle.api.initialization.Settings
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.ProviderFactory
 import org.gradle.kotlin.dsl.newInstance
 import java.io.File
 
@@ -32,8 +32,8 @@ private annotation class SettingsDsl
  */
 @SettingsDsl @OptIn(StonecutterExperimentalAPI::class)
 public abstract class StonecutterSettingsExtension(
-    protected val objects: ObjectFactory,
-    protected val providers: ProviderFactory
+    internal val settings: Settings,
+    internal val objects: ObjectFactory,
 ) : VersionOperations<Version>, StructuredPropertiesProvider {
     /**
      * Shared [Action] for configuring instances of [TreeBuilder].
@@ -67,6 +67,8 @@ public abstract class StonecutterSettingsExtension(
      * [TreeBuilder.kotlinController]
      */
     public abstract val kotlinController: Property<Boolean>
+
+    internal abstract val isHardMode: Boolean
 
     /**
      * Accessor for strictly SemVer version evaluation.
@@ -211,7 +213,7 @@ public abstract class StonecutterSettingsExtension(
      */
     @JvmOverloads
     public fun create(projects: Iterable<ProjectReference>, action: Action<TreeBuilder> = shared): Unit =
-        projects.forEach { create(it, objects.newInstance<TreeBuilderImpl>(providers).also(action::execute)) }
+        projects.forEach { create(it, objects.newInstance<TreeBuilderImpl>(settings.providers).also(action::execute)) }
 
     /* Base configuration */
     protected abstract fun create(ref: ProjectReference, builder: TreeBuilder)

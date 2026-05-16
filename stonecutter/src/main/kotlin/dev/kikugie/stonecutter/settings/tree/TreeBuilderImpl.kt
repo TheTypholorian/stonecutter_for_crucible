@@ -7,10 +7,12 @@ import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.ProjectReference
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
+import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.deserialization.deserialize
+import dev.kikugie.stonecutter.settings.StonecutterSettingsExtension
 import dev.kikugie.stonecutter.settings.StonecutterSettingsImpl
 import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Action
@@ -31,7 +33,8 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
     internal var localBuildScriptProvider: ((Identifier, StonecutterProject) -> String)? = null
         private set
     internal val branchBuilders: MutableMap<Identifier, BranchBuilderImpl> = mutableMapOf()
-    internal val knownVersions: MutableMap<Identifier, StonecutterProject> = mutableMapOf()
+    private lateinit var resolvedVcsVersion: String
+    private lateinit var resolvedController: StonecutterControllerManager
 
     init {
         branchScript.disallowChanges()
@@ -60,46 +63,57 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
         tree.applyTo(this)
     }
 
-    internal fun getVcsProject() = knownVersions[resolveVcs()]!!
-
-    internal fun getRootNodes(): List<NodeBuilderImpl> =
-        checkNotNull(branchBuilders[""]?.nodeBuilders) { "Root branch is not initialised yet" }
-
-    internal fun registerVariant(version: StonecutterProject): Unit = with(version) {
-        val existing = knownVersions.putIfAbsent(project, this)
-        require(existing == null || existing == this) { "Project '$project' is registered with a different version '${existing?.version}'" }
+    internal fun build(ext: StonecutterSettingsImpl, ref: ProjectReference) {
+        val project = ext.settings.rootProject.resolve(ref, ext.settings)
+        prepare(ext, project)
+        create(ext, project)
+        ext.treeBuilderContainer[project.hierarchy] = this
     }
 
-    internal fun createWith(ext: StonecutterSettingsImpl, ref: ProjectReference) {
-        val project = ext.settings.rootProject.resolve(ref, ext.settings)
-        ext.treeBuilderContainer[project.hierarchy] = this
+    internal fun prepare(ext: StonecutterSettingsExtension, project: ProjectDescriptor) {
+        for (builder in branchBuilders.values) builder.prepare(ext, project)
+        checkVersionIntegrity()
+        resolvedVcsVersion = resolveVcs(project.hierarchy)
+        resolvedController = resolveController(ext, project)
+    }
 
-        val vcs = resolveVcs()
-        val controller = controllerType(ext, project)
-        with(project.projectDir.resolve(controller.filename).toPath()) {
-            project.buildFileName = ext.checkGroovy(fileName.toString())
-            if (notExists()) controller.create(this, vcs)
+    internal fun create(ext: StonecutterSettingsExtension, project: ProjectDescriptor) {
+        with(project.projectDir.resolve(resolvedController.filename).toPath()) {
+            project.buildFileName = fileName.toString()
+            if (notExists()) resolvedController.create(this, resolvedVcsVersion)
         }
 
-        for (it in branchBuilders.values)
-            it.createWith(ext, project)
+        for (builder in branchBuilders.values) builder.create(ext, project)
     }
 
     private fun getOrCreateBranch(name: String): BranchBuilderImpl = branchBuilders.getOrPut(name) {
         objects.newInstance<BranchBuilderImpl>(name, this)
     }
 
-    private fun resolveVcs(): String = vcsVersion.orNull
-        ?.also { check(it in knownVersions.keys) { "VCS version '$it' doesn't match any registered subproject" } }
-        ?: knownVersions.keys.firstOrNull()
-        ?: error("No versions have been registered")
+    private fun resolveVcs(project: ProjectHierarchy): String = when(val vcs = vcsVersion.orNull) {
+        null -> checkNotNull(branchBuilders.values.firstOrNull()?.versions?.firstOrNull()?.project) {
+            "No versions have been registered for project '$project'"
+        }
+        else -> vcs.also {
+            val valid = branchBuilders.values.any { br -> br.versions.any { v -> v.project == vcs } }
+            check(valid) { "VCS version '$vcs' doesn't match any registered subproject for project '$project'" }
+        }
+    }
 
-    private fun controllerType(ext: StonecutterSettingsImpl, project: ProjectDescriptor): StonecutterControllerManager {
+    private fun resolveController(ext: StonecutterSettingsExtension, project: ProjectDescriptor): StonecutterControllerManager {
         val isKotlin = kotlinController.orNull
             ?: ext.kotlinController.orNull
             ?: getDefaultBuildscript(ext, project.projectDir.toPath(), "stonecutter").endsWith("kts")
         return if (isKotlin) StonecutterControllerManager.Kotlin
         else StonecutterControllerManager.Groovy
+    }
+
+    private fun checkVersionIntegrity() {
+        val lookup = mutableMapOf<String, BuiltNodeInfo>()
+        for (builder in branchBuilders.values) for (node in builder.versions) {
+            val registered = lookup.getOrPut(node.project) { node }.version
+            check(registered == node.version) { "Project '${node.hierarchy}' can't be registered as both $registered and ${node.version}" }
+        }
     }
 }
 
@@ -108,68 +122,103 @@ internal abstract class BranchBuilderImpl @Inject constructor(
     val tree: TreeBuilderImpl,
     val objects: ObjectFactory
 ) : BranchBuilder() {
-    internal val nodeBuilders: MutableList<NodeBuilderImpl> = mutableListOf()
+    private var useRootNodes: Boolean = false
+    private var useOtherNodes: Boolean = false
+    private val nodeBuilders: MutableList<NodeBuilderImpl> = mutableListOf()
+    private lateinit var builtNodes: Map<String, BuiltNodeInfo>
+    private lateinit var buildFile: String
+
+    internal val versions: Collection<BuiltNodeInfo>
+        get() = builtNodes.values
 
     override fun inherit() {
+        check(!::builtNodes.isInitialized) { "Branch '$name' has already been built" }
         if (name.isEmpty()) throw UnsupportedOperationException("Root branch has no parent to inherit from")
-        nodeBuilders += tree.getRootNodes()
+        useRootNodes = true
     }
 
-    override fun versions(entries: List<StonecutterProject>): NodeBuilder {
-        require(entries.isNotEmpty()) { "No versions provided" }
-        for (it in entries) tree.registerVariant(it)
-        return objects.newInstance<NodeBuilderImpl>(entries, this).also(nodeBuilders::add)
+    override fun collect() {
+        check(!::builtNodes.isInitialized) { "Branch '$name' has already been built" }
+        for (builder in tree.branchBuilders.values) if (builder !== this && builder.useOtherNodes)
+            error("Can't collect versions for '$name' - aleady collecting for '${builder.name}'")
+        useOtherNodes = true
     }
 
-    internal fun allProjects(): List<StonecutterProject> =
-        nodeBuilders.flatMap(NodeBuilderImpl::versions).distinct()
+    override fun versions(entries: List<StonecutterProject>): NodeBuilder =
+        objects.newInstance<NodeBuilderImpl>(entries, this).also(nodeBuilders::add)
 
-    internal fun createWith(ext: StonecutterSettingsImpl, root: ProjectDescriptor) {
-        check(nodeBuilders.isNotEmpty()) { "Branch '$name' has no registered nodes" }
-        val project = root.resolve(name, ext.settings)
+    internal fun prepare(ext: StonecutterSettingsExtension, project: ProjectDescriptor) {
+        builtNodes = prepareNodes(ext, project)
+        if (name.isNotEmpty()) {
+            val filename = resolveBuild(ext, project)
+            checkBuildscript(project.hierarchy.resolve(name), filename)
+            buildFile = filename
+        }
+    }
+
+    internal fun create(ext: StonecutterSettingsExtension, project: ProjectDescriptor) {
+        val project = project.resolve(name, ext.settings)
             .apply { projectDir.toPath().createDirectories() }
-        if (project.path != root.path)
-            project.buildFileName = ext.checkGroovy(resolveBuild(ext, project))
-
-        for ((data, buildscript) in flattenNodes(ext, project))
-            createNode(ext, project, data, buildscript)
+        if (::buildFile.isInitialized) project.buildFileName = buildFile
+        for (node in builtNodes.values) node.create(ext, project)
     }
 
-    private fun createNode(ext: StonecutterSettingsImpl, parent: ProjectDescriptor, data: StonecutterProject, buildscript: String) {
-        val project = parent.resolve(data.project, ext.settings)
-        val directory = parent.projectDir.resolve("versions/${data.project}")
-            .apply { toPath().createDirectories() }
-        with(project) {
-            projectDir = directory
-            buildFileName = ext.checkGroovy("../../$buildscript")
-        }
+    private fun prepareNodes(ext: StonecutterSettingsExtension, project: ProjectDescriptor): Map<String, BuiltNodeInfo> = buildMap {
+        if (useOtherNodes) for (branch in tree.branchBuilders.values) prepareNodes(this, branch.nodeBuilders, ext, project)
+        else if (useRootNodes) prepareNodes(this, tree.branchBuilders[""]?.nodeBuilders.orEmpty(), ext, project)
+        prepareNodes(this, nodeBuilders, ext, project)
     }
 
-    private fun resolveBuild(ext: StonecutterSettingsImpl, project: ProjectDescriptor): String = branchScript.orNull
-        ?.also { check(!it.startsWith("stonecutter.gradle")) { "Branch buildscript can't match the controller name" } }
+    private fun prepareNodes(to: MutableMap<String, BuiltNodeInfo>, nodes: List<NodeBuilderImpl>, ext: StonecutterSettingsExtension, project: ProjectDescriptor) {
+        for (node in nodes) node.prepare(to, ext, project)
+    }
+
+    private fun resolveBuild(ext: StonecutterSettingsExtension, project: ProjectDescriptor): String = branchScript.orNull
         ?: getDefaultBuildscript(ext, project.projectDir.toPath(), "branch")
-
-    private fun flattenNodes(ext: StonecutterSettingsImpl, project: ProjectDescriptor): Map<StonecutterProject, String> = buildMap {
-        val branch = project.projectDir.toPath()
-        for (builder in nodeBuilders) for (data in builder.versions) {
-            val buildscript = builder.buildscript.orNull
-                ?: tree.localBuildScriptProvider?.invoke(name, data)
-                ?: tree.centralScript.orNull
-                ?: ext.centralScript.orNull
-                ?: getDefaultBuildscript(ext, branch, "build")
-            this[data] = buildscript
-        }
-    }
 }
 
 internal abstract class NodeBuilderImpl @Inject constructor(
     val versions: List<StonecutterProject>,
     val branch: BranchBuilderImpl
-) : NodeBuilder()
+) : NodeBuilder() {
+    val tree: TreeBuilderImpl inline get() = branch.tree
 
-private fun getDefaultBuildscript(ext: StonecutterSettingsImpl, dir: Path, type: String) = when {
+    internal fun prepare(to: MutableMap<String, BuiltNodeInfo>, ext: StonecutterSettingsExtension, project: ProjectDescriptor) {
+        for (data in versions) {
+            val file = data.resolveBuild(ext, project)
+            val hierarchy = project.hierarchy.resolve(data.project)
+            checkBuildscript(hierarchy, file)
+            to[data.project] = BuiltNodeInfo(data, hierarchy, file)
+        }
+    }
+
+    private fun StonecutterProject.resolveBuild(ext: StonecutterSettingsExtension, project: ProjectDescriptor): String = buildscript.orNull
+        ?: tree.localBuildScriptProvider?.invoke(branch.name, this)
+        ?: tree.centralScript.orNull
+        ?: ext.centralScript.orNull
+        ?: getDefaultBuildscript(ext, project.projectDir.toPath(), "build")
+}
+
+internal class BuiltNodeInfo(val data: StonecutterProject, val hierarchy: ProjectHierarchy, val buildscript: String) {
+    val project: String inline get() = data.project
+    val version: String inline get() = data.version
+
+    internal fun create(ext: StonecutterSettingsExtension, parent: ProjectDescriptor) {
+        val project = parent.resolve(data.project, ext.settings)
+        project.projectDir = parent.projectDir.resolve("versions/${data.project}")
+            .apply { toPath().createDirectories() }
+        project.buildFileName = "../../$buildscript"
+    }
+}
+
+private fun checkBuildscript(project: ProjectHierarchy, build: String) {
+    check(build.isNotBlank()) { "Buildscript name can't be blank for '$project'" }
+    check(!build.startsWith("stonecutter.gradle")) { "Buildscript name can't be `stonecutter.gradle(.kts)` for '$project'" }
+}
+
+private fun getDefaultBuildscript(ext: StonecutterSettingsExtension, dir: Path, type: String): String = when {
     dir.resolve("$type.gradle.kts").exists() -> "$type.gradle.kts"
-    dir.resolve("$type.gradle").exists() || ext.isHardMode -> "$type.gradle"
+    ext.isHardMode || dir.resolve("$type.gradle").exists() -> "$type.gradle"
     else -> "$type.gradle.kts"
 }
 
@@ -179,7 +228,7 @@ private fun register(path: String, settings: Settings): ProjectDescriptor = with
 }
 
 private tailrec fun ProjectDescriptor.resolve(relative: ProjectReference, settings: Settings): ProjectDescriptor = when(relative) {
-    is CharSequence -> register("$path:$relative", settings)
+    is CharSequence -> if (relative.isEmpty()) this else register("$path:$relative", settings)
     is ProjectDescriptor -> register(path, settings)
     is Provider<*> -> resolve(relative.get(), settings)
     else -> throw IllegalArgumentException("Unsupported project type ${relative::class.qualifiedName}")

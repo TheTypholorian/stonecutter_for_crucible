@@ -42,9 +42,11 @@ public value class ProjectHierarchy private constructor(@PublishedApi internal v
     public fun relativize(longer: ProjectHierarchy): PathString? =
         longer.relativeTo(this)
 
-    public fun resolve(path: PathString): ProjectHierarchy =
-        if (isEmpty()) invoke(path)
-        else invoke("${this.path}:$path")
+    public fun resolve(path: PathString): ProjectHierarchy = when {
+        isEmpty() -> invoke(path)
+        path.isEmpty() -> this
+        else -> invoke("${this.path}:$path")
+    }
 
     public fun removeSuffix(path: PathString): ProjectHierarchy {
         if (isEmpty()) return this
