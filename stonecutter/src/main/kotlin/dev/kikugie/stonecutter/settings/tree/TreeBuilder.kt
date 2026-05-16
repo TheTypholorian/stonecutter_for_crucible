@@ -6,10 +6,12 @@ import dev.kikugie.stonecutter.AnyVersion
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.StonecutterProject
+import dev.kikugie.stonecutter.data.deserialization.JsonConverter
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.deserialization.determineConverter
 import org.gradle.api.Action
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import java.io.File
 
 @DslMarker @Retention(AnnotationRetention.BINARY)
@@ -63,6 +65,28 @@ public abstract class TreeBuilder : BranchBuilder() {
         loadImpl(file, converter)
 
     /**
+     * Loads the serialized project tree from the [data] string,
+     * deserialized with the [converter] (defaults to Json).
+     *
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
+     */
+    @JvmOverloads
+    public fun load(data: String, converter: SCConverter = JsonConverter): Unit =
+        loadImpl(data, converter)
+
+    /**
+     * Loads the serialized project tree from the [data] string,
+     * deserialized with the [converter] (defaults to Json).
+     *
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
+     */
+    @JvmOverloads
+    public fun load(data: Provider<String>, converter: SCConverter = JsonConverter): Unit =
+        loadImpl(data.get(), converter)
+
+    /**
      * Creates a new project branch with the given [name], copying all already registered versions.
      *
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/branches">Wiki</a>
@@ -87,6 +111,7 @@ public abstract class TreeBuilder : BranchBuilder() {
     public abstract fun mapBuilds(mapping: (branch: Identifier, node: StonecutterProject) -> String)
 
     protected abstract fun loadImpl(file: File, converter: SCConverter)
+    protected abstract fun loadImpl(data: String, converter: SCConverter)
 }
 
 /**

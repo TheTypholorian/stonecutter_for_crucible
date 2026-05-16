@@ -52,7 +52,11 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
     override fun loadImpl(file: File, converter: SCConverter) {
         val contents: String = providers.fileContents(file.toRegularFile(objects)).asText.orNull
             ?: throw NoSuchFileException(file)
-        val tree: SerializedTree = converter.deserialize(contents)
+        loadImpl(contents, converter)
+    }
+
+    override fun loadImpl(data: String, converter: SCConverter) {
+        val tree: SerializedTree = converter.deserialize(data)
         tree.applyTo(this)
     }
 
