@@ -33,11 +33,18 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
     internal var localBuildScriptProvider: ((Identifier, StonecutterProject) -> String)? = null
         private set
     internal val branchBuilders: MutableMap<Identifier, BranchBuilderImpl> = mutableMapOf()
-    private lateinit var resolvedVcsVersion: String
+    private lateinit var resolvedVcsVersion: StonecutterProject
     private lateinit var resolvedController: StonecutterControllerManager
+
+    internal val vcsProject: StonecutterProject
+        get() = resolvedVcsVersion
 
     init {
         branchScript.disallowChanges()
+    }
+
+    override fun collect() {
+        getOrCreateBranch("").collect()
     }
 
     override fun branch(name: Identifier, config: Action<BranchBuilder>) {
@@ -80,7 +87,7 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
     internal fun create(ext: StonecutterSettingsExtension, project: ProjectDescriptor) {
         with(project.projectDir.resolve(resolvedController.filename).toPath()) {
             project.buildFileName = fileName.toString()
-            if (notExists()) resolvedController.create(this, resolvedVcsVersion)
+            if (notExists()) resolvedController.create(this, resolvedVcsVersion.project)
         }
 
         for (builder in branchBuilders.values) builder.create(ext, project)
@@ -90,13 +97,15 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
         objects.newInstance<BranchBuilderImpl>(name, this)
     }
 
-    private fun resolveVcs(project: ProjectHierarchy): String = when(val vcs = vcsVersion.orNull) {
-        null -> checkNotNull(branchBuilders.values.firstOrNull()?.versions?.firstOrNull()?.project) {
+    private fun resolveVcs(project: ProjectHierarchy): StonecutterProject = when(val vcs = vcsVersion.orNull) {
+        null -> checkNotNull(branchBuilders.values.firstOrNull()?.versions?.firstOrNull()?.data) {
             "No versions have been registered for project '$project'"
         }
-        else -> vcs.also {
-            val valid = branchBuilders.values.any { br -> br.versions.any { v -> v.project == vcs } }
-            check(valid) { "VCS version '$vcs' doesn't match any registered subproject for project '$project'" }
+        else -> {
+            val valid = branchBuilders.values.firstNotNullOfOrNull { br ->
+                br.versions.firstOrNull { v -> v.project == vcs }?.data
+            }
+            checkNotNull(valid) { "VCS version '$vcs' doesn't match any registered subproject for project '$project'" }
         }
     }
 

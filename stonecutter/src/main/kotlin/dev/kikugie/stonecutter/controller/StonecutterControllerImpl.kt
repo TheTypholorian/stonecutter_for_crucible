@@ -104,7 +104,7 @@ private fun constructTree(root: Project): ProjectTreeImpl {
         "Project ${root.path} is not registered. This might've been caused by removing a project while it's active"
     }
     val branches = builder.constructBranches(root, root.hierarchy)
-    return ProjectTreeImpl(root.gradle, root.hierarchy, builder.getVcsProject(), branches).apply {
+    return ProjectTreeImpl(root.gradle, root.hierarchy, builder.vcsProject, branches).apply {
         for (it in branches) it.tree = this
     }
 }
@@ -117,8 +117,8 @@ private fun TreeBuilderImpl.constructBranches(root: Project, tree: ProjectHierar
     }
 }
 
-private fun BranchBuilderImpl.constructNodes(root: Project, branch: ProjectHierarchy): List<ProjectNodeImpl> = allProjects().map {
-    ProjectNodeImpl(root.gradle, branch.resolve(it.project), it)
+private fun BranchBuilderImpl.constructNodes(root: Project, branch: ProjectHierarchy): List<ProjectNodeImpl> = versions.map {
+    ProjectNodeImpl(root.gradle, branch.resolve(it.project), it.data)
 }
 
 private fun ProjectTreeImpl.findByName(name: String): StonecutterProject = checkNotNull(versions.find { it.project == name }) {
