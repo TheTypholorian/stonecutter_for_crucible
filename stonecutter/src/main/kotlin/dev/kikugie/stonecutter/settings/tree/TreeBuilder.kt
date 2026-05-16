@@ -171,11 +171,53 @@ public abstract class BranchBuilder {
     public fun versions(vararg entries: Pair<Identifier, AnyVersion>): NodeBuilder =
         versions(entries.map { (p, v) -> StonecutterProject(p, v) })
 
-    /**Copies the registered versions from the main branch.*/
-    public abstract fun inherit()
+    /**
+     * Lazily copies versions from the root branch.
+     *
+     * Only own versions are inherited:
+     * ```kt
+     * branch("A") { version("1.0") }
+     *
+     * // Has both 1.0 and 2.0
+     * branch("B") { inherit("A"); version("2.0") }
+     *
+     * // Only has 2.0 and 3.0
+     * branch("C") { inherit("B"); version("3.0") }
+     * ```
+     */
+    public open fun inherit(): Unit = inherit("")
 
+    /**
+     * Lazily copies versions from the given [branches].
+     *
+     * Only own versions are inherited:
+     * ```kt
+     * branch("A") { version("1.0") }
+     *
+     * // Has both 1.0 and 2.0
+     * branch("B") { inherit("A"); version("2.0") }
+     *
+     * // Only has 2.0 and 3.0
+     * branch("C") { inherit("B"); version("3.0") }
+     * ```
+     */
+    public fun inherit(vararg branches: Identifier): Unit = inherit(branches.asIterable())
 
-    public abstract fun collect()
+    /**
+     * Lazily copies versions from the given [branches].
+     *
+     * Only own versions are inherited:
+     * ```kt
+     * branch("A") { version("1.0") }
+     *
+     * // Has both 1.0 and 2.0
+     * branch("B") { inherit("A"); version("2.0") }
+     *
+     * // Only has 2.0 and 3.0
+     * branch("C") { inherit("B"); version("3.0") }
+     * ```
+     */
+    public abstract fun inherit(branches: Iterable<Identifier>)
 
     /**Registers parsed subprojects.*/
     public abstract fun versions(entries: List<StonecutterProject>): NodeBuilder

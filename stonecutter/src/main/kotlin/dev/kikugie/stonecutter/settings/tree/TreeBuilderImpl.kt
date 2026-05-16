@@ -11,7 +11,6 @@ import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
-import dev.kikugie.stonecutter.data.deserialization.deserialize
 import dev.kikugie.stonecutter.settings.StonecutterSettingsExtension
 import dev.kikugie.stonecutter.settings.StonecutterSettingsImpl
 import dev.kikugie.stonecutter.util.toRegularFile
@@ -29,6 +28,8 @@ import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.notExists
 
+private const val ROOT: String = ""
+
 internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory) : TreeBuilder() {
     internal var localBuildScriptProvider: ((Identifier, StonecutterProject) -> String)? = null
         private set
@@ -40,11 +41,11 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
         get() = resolvedVcsVersion
 
     init {
-        branchScript.disallowChanges()
+        @Suppress("DEPRECATION") branchScript.disallowChanges()
     }
 
-    override fun collect() {
-        getOrCreateBranch("").collect()
+    override fun inherit(branches: Iterable<Identifier>) {
+        getOrCreateBranch(ROOT).inherit(branches)
     }
 
     override fun branch(name: Identifier, config: Action<BranchBuilder>) {
@@ -53,7 +54,7 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
     }
 
     override fun versions(entries: List<StonecutterProject>): NodeBuilder =
-        getOrCreateBranch("").versions(entries)
+        getOrCreateBranch(ROOT).versions(entries)
 
     override fun mapBuilds(mapping: (branch: Identifier, node: StonecutterProject) -> String) {
         localBuildScriptProvider = mapping
@@ -65,10 +66,8 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
         loadImpl(contents, converter)
     }
 
-    override fun loadImpl(data: String, converter: SCConverter) {
-        val tree: SerializedTree = converter.deserialize(data)
-        tree.applyTo(this)
-    }
+    override fun loadImpl(data: String, converter: SCConverter) =
+        deserializeTreeTo(this, data, converter)
 
     internal fun build(ext: StonecutterSettingsImpl, ref: ProjectReference) {
         val project = ext.settings.rootProject.resolve(ref, ext.settings)
@@ -131,30 +130,28 @@ internal abstract class BranchBuilderImpl @Inject constructor(
     val tree: TreeBuilderImpl,
     val objects: ObjectFactory
 ) : BranchBuilder() {
-    private var useRootNodes: Boolean = false
-    private var useOtherNodes: Boolean = false
     private val nodeBuilders: MutableList<NodeBuilderImpl> = mutableListOf()
+    private val inheritedBranches: MutableSet<Identifier> = mutableSetOf()
+    private var inheritAll: Boolean = false
     private lateinit var builtNodes: Map<String, BuiltNodeInfo>
     private lateinit var buildFile: String
 
     internal val versions: Collection<BuiltNodeInfo>
         get() = builtNodes.values
 
-    override fun inherit() {
+    override fun inherit(branches: Iterable<Identifier>) {
         check(!::builtNodes.isInitialized) { "Branch '$name' has already been built" }
-        if (name.isEmpty()) throw UnsupportedOperationException("Root branch has no parent to inherit from")
-        useRootNodes = true
+        val collected = branches.toSet()
+        if (collected.size == 1 && collected.first() == "*") inheritAll = true else {
+            require(name !in collected) { "Branch '$name' can't inherit from itself" }
+            inheritedBranches += collected
+        }
     }
 
-    override fun collect() {
+    override fun versions(entries: List<StonecutterProject>): NodeBuilder {
         check(!::builtNodes.isInitialized) { "Branch '$name' has already been built" }
-        for (builder in tree.branchBuilders.values) if (builder !== this && builder.useOtherNodes)
-            error("Can't collect versions for '$name' - aleady collecting for '${builder.name}'")
-        useOtherNodes = true
+        return objects.newInstance<NodeBuilderImpl>(entries, this).also(nodeBuilders::add)
     }
-
-    override fun versions(entries: List<StonecutterProject>): NodeBuilder =
-        objects.newInstance<NodeBuilderImpl>(entries, this).also(nodeBuilders::add)
 
     internal fun prepare(ext: StonecutterSettingsExtension, project: ProjectDescriptor) {
         builtNodes = prepareNodes(ext, project)
@@ -173,8 +170,10 @@ internal abstract class BranchBuilderImpl @Inject constructor(
     }
 
     private fun prepareNodes(ext: StonecutterSettingsExtension, project: ProjectDescriptor): Map<String, BuiltNodeInfo> = buildMap {
-        if (useOtherNodes) for (branch in tree.branchBuilders.values) prepareNodes(this, branch.nodeBuilders, ext, project)
-        else if (useRootNodes) prepareNodes(this, tree.branchBuilders[""]?.nodeBuilders.orEmpty(), ext, project)
+        val branches = if (inheritAll) tree.branchBuilders.values
+        else inheritedBranches.map { checkNotNull(tree.branchBuilders[it]) { "Can't inherit from non-existent branch '$it'" } }
+
+        for (branch in branches) prepareNodes(this, branch.nodeBuilders, ext, project)
         prepareNodes(this, nodeBuilders, ext, project)
     }
 
