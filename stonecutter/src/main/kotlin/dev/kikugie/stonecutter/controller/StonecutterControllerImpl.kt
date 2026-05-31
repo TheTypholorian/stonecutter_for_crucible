@@ -179,7 +179,7 @@ private fun ProjectTreeImpl.createModelTasks(impls: StonecutterControllerTasksIm
 
 private fun ProjectTreeImpl.configureSyncTask(root: Project, flags: StonecutterFlags) = root.afterEvaluate {
     if (flags[StonecutterFlag.GENERATE_SWITCH_ACTIONS]) rootProject.tasks.named<StonecutterIdeaConfigTask>("stonecutterIdea") {
-        projects.put(hierarchy, versions.map(StonecutterProject::project))
+        projects.put(hierarchy.path, versions.map(StonecutterProject::project))
     }
 
     if (flags[StonecutterFlag.SERIALIZE_TREE_MODEL] && isIdeaSync)

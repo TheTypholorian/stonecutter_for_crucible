@@ -17,7 +17,7 @@ import org.gradle.api.tasks.TaskAction
 public abstract class StonecutterIdeaConfigTask : DefaultTask() {
     /**Registered project trees and their nodes.*/
     @get:Input
-    public abstract val projects: MapProperty<ProjectHierarchy, List<Identifier>>
+    public abstract val projects: MapProperty<String, List<Identifier>>
 
     /**Run configuration files.*/
     @get:OutputFiles
@@ -30,7 +30,7 @@ public abstract class StonecutterIdeaConfigTask : DefaultTask() {
     @TaskAction
     internal fun run() {
         val files = projects.get().entries.asSequence()
-            .flatMap { (k, v) -> v.map { writeConfiguration(k, it) } }
+            .flatMap { (k, v) -> v.map { writeConfiguration(ProjectHierarchy(k), it) } }
             .toSet()
 
         for (file in configurations) if (file.name !in files) file
