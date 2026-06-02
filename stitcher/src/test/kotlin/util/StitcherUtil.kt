@@ -11,7 +11,6 @@ import dev.kikugie.stitcher.parser.adapter.ScannerAdapter
 import dev.kikugie.stitcher.process
 import dev.kikugie.stitcher.replacement.RegexReplacement
 import dev.kikugie.stitcher.replacement.Replacement
-import dev.kikugie.stitcher.replacement.ReplacementBuilder
 import dev.kikugie.stitcher.replacement.StringReplacement
 import dev.kikugie.stitcher.transformer.TransformParameters
 import dev.kikugie.stitcher.transformer.impl.LineCommentStrategy
@@ -45,15 +44,15 @@ class TransformParametersBuilder {
     val swaps: MutableMap<String, String> = mutableMapOf()
     val constants: MutableMap<String, Boolean> = mutableMapOf("true" to true, "false" to false)
     val dependencies: MutableMap<String, Version> = mutableMapOf()
-    val replacements: ReplacementBuilder<Replacement> = ReplacementBuilder()
+    val replacements: MutableList<Replacement> = mutableListOf()
 
-    fun ReplacementBuilder<Replacement>.string(from: String, to: String, id: String? = null, tags: Set<Replacement.Tag> = emptySet()) =
-        add(StringReplacement(to, setOf(from), id, tags))
+    fun MutableList<Replacement>.string(from: String, to: String, id: String? = null, tags: Set<Replacement.Tag> = emptySet()) =
+        add(StringReplacement(to, from, id, tags))
 
-    fun ReplacementBuilder<Replacement>.regex(@Language("RegExp") from: String, to: String, id: String? = null, tags: Set<Replacement.Tag> = emptySet()) =
-        add(RegexReplacement(to, from, 0, id, tags))
+    fun MutableList<Replacement>.regex(@Language("RegExp") from: String, to: String, id: String? = null, tags: Set<Replacement.Tag> = emptySet()) =
+        add(RegexReplacement(to, Regex(from), id, tags))
 
-    fun build() = TransformParameters(adapter, commenter, uncommenter, swapper, swaps, constants, dependencies, replacements.build())
+    fun build() = TransformParameters(adapter, commenter, uncommenter, swapper, swaps, constants, dependencies, replacements)
 
     object Scanner {
         /**

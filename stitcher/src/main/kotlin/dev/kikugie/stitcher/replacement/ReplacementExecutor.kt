@@ -63,7 +63,7 @@ internal class ReplacementExecutor(replacements: List<Replacement>, problems: Fi
 
         fun collect(start: Int, text: CharSequence, queue: EmitQueue) {
             for (match in searcher.search(text))
-                if (replacements[match.pattern].orEmpty().any { it.enabled })
+                if (replacements[match.pattern]?.any { it.enabled } ?: true)
                     queue += StringEmit(start, match)
         }
 

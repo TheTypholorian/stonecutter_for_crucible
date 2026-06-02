@@ -217,7 +217,7 @@ internal class TokenBuilder(
     }
 
     override fun visitReplacementToggle(ctx: StitcherParser.ReplacementToggleContext): DefinitionToken.ReplacementToggle.Entry {
-        val op = factory.fromAntlrNode(ctx.OP_NOT())
+        val op = ctx.OP_NOT()?.let(factory::fromAntlrNode)
         val identifier = factory.fromAntlrNode(ctx.IDENTIFIER())
         val comma = ctx.COMMA()?.let(factory::fromAntlrNode)
         return DefinitionToken.ReplacementToggle.Entry(op, identifier, comma)

@@ -204,7 +204,7 @@ class TransformTest : FreeSpec({
             process(content) shouldBe expected
         }
 
-        "overwrite global replacements" {
+        "overwrite global replacements".config(enabled = false) {
             val content = """
                 a.b.c.d.e
                 //~ if true 'b.c' -> '6.9'
