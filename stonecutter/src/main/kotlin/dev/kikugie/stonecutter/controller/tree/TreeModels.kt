@@ -154,7 +154,7 @@ public data class ParametersModel(
         data.constants.get().toMap(),
         data.swaps.get().toMap(),
         data.dependencies.get().mapValues { (_, it) -> LenientOperations.parse(it) },
-        data.stringReplacements.get().map(StringReplacementSpec::build) + data.regexReplacements.get().map(RegexReplacementSpec::build)
+        data.replacements.get().toList()
     )
 }
 

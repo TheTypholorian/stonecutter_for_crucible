@@ -28,7 +28,7 @@ sealed interface Replacement : java.io.Serializable {
      * Flags controlling how a replacement is interpreted by the executor.
      */
     enum class Tag {
-        DEFAULT_ENABLED, CASE_INSENSITIVE, WORD_ONLY
+        DEFAULT_ENABLED
     }
 
 }

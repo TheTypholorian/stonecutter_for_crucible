@@ -1,7 +1,6 @@
 package dev.kikugie.stitcher.transformer
 
-import dev.kikugie.stitcher.replacement.executor.ReplacementExecutor
-import dev.kikugie.stitcher.replacement.executor.replaceIn
+import dev.kikugie.stitcher.replacement.ReplacementExecutor
 import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.eval.joinTo
 import dev.kikugie.stitcher.token.impl.BlockToken
@@ -41,7 +40,7 @@ private class ContentBlockStub(var start: Int, var end: Int, var text: StringBui
     }
 
     fun build(replacer: ReplacementExecutor): BlockToken.Content {
-        replacer.replaceIn(text)
+        replacer.replace(start, text)
         val leaf = LeafToken(NativeStitcherType.CONTENT, start, end, text.toString())
         return BlockToken.Content(leaf)
     }

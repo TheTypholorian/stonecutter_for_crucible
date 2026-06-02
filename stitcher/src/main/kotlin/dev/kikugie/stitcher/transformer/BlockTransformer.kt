@@ -9,8 +9,8 @@ import dev.kikugie.stitcher.issue.locate
 import dev.kikugie.stitcher.issue.runMarked
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.layout.LayoutParser
+import dev.kikugie.stitcher.replacement.ReplacementExecutor
 import dev.kikugie.stitcher.replacement.StringReplacement
-import dev.kikugie.stitcher.replacement.executor.CompositeReplacementExecutor
 import dev.kikugie.stitcher.replacement.template.findInsertionPlaces
 import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.eval.join
@@ -27,6 +27,7 @@ import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.ListTokenSource
 import org.antlr.v4.runtime.TokenSource
 import org.antlr.v4.runtime.misc.Pair
+import java.util.UUID
 
 private typealias BlockTokenList = List<BlockToken>
 
@@ -112,7 +113,7 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
             else -> disable += id.text
         }
 
-        replacer.update(enable, disable)
+        replacer.toggle(enable, disable)
         return emptyList()
     }
 
@@ -121,19 +122,19 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
 
         val direction = eval(repl.expression)
         val identifier = repl.opener?.takeAsOrNull<ScopeToken.Named>()?.identifier?.text
-        val usedIdentifiers = mutableSetOf<String>()
-        for (entry in repl.entries) {
-            val from = if (direction) entry.source else entry.target
-            val to = if (direction) entry.target else entry.source
-            val it = StringReplacement(to.unquote(), from.unquote(), identifier ?: entry.identifier)
+            ?: UUID.randomUUID().toString()
 
-            replacer += it
-            usedIdentifiers += it.identifier!!
+        val replacements = repl.entries.map {
+            val from = if (direction) it.source else it.target
+            val to = if (direction) it.target else it.source
+            StringReplacement(to.unquote(), from.unquote(), identifier)
         }
 
-        replacer.update(enabled = usedIdentifiers)
-        return if (identifier != null) emptyList() else code.scope.reprocess().also {
-            replacer.update(disabled = usedIdentifiers)
+        val idSet = setOf(identifier)
+        replacer.toggle(enable = idSet)
+        replacer.include(replacements)
+        return if (repl.opener is ScopeToken.Named) emptyList() else code.scope.reprocess().also {
+            replacer.toggle(disable = idSet)
         }
     }
 
@@ -205,7 +206,7 @@ private interface TransformerState {
     val input: CharStream
 
     val checker: ParameterChecker
-    val replacer: CompositeReplacementExecutor
+    val replacer: ReplacementExecutor
 
     fun eval(expr: ExpressionToken?): Boolean
 }
@@ -217,7 +218,7 @@ private class TransformerStateImpl(
 ) : TransformerState {
     val evaluator: ExpressionEvaluator = ExpressionEvaluator(parameters)
     override val checker: ParameterChecker = ParameterChecker(parameters, problems)
-    override val replacer: CompositeReplacementExecutor = CompositeReplacementExecutor(parameters.replacements, problems)
+    override val replacer: ReplacementExecutor = ReplacementExecutor(parameters.replacements, problems)
 
     override fun eval(expr: ExpressionToken?): Boolean = expr?.accept(evaluator) ?: true
 }

@@ -8,6 +8,7 @@ import dev.kikugie.stonecutter.build.config.ReplacementContainer.RegexReplacemen
 import dev.kikugie.stonecutter.build.config.ReplacementContainer.StringReplacementSpec
 import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.newInstance
@@ -296,11 +297,11 @@ public sealed interface ReplacementContainer {
          * Can be called multiple times.
          */
         public fun replace(
-            directPattern: Regex, directReplacement: String,
-            reversePattern: Regex, reverseReplacement: String,
+            directPattern: Pattern, directReplacement: String,
+            reversePattern: Pattern, reverseReplacement: String,
         ): Unit = replace(
-            directPattern.toPattern(), directReplacement,
-            reversePattern.toPattern(), reverseReplacement
+            directPattern.toRegex(), directReplacement,
+            reversePattern.toRegex(), reverseReplacement
         )
 
         /**
@@ -309,25 +310,24 @@ public sealed interface ReplacementContainer {
          * Can be called multiple times.
          */
         public abstract fun replace(
-            directPattern: Pattern, directReplacement: String,
-            reversePattern: Pattern, reverseReplacement: String,
+            directPattern: Regex, directReplacement: String,
+            reversePattern: Regex, reverseReplacement: String,
         )
     }
 }
 
 internal abstract class ReplacementContainerImpl @Inject constructor(
-    val string: (StringReplacement) -> Unit,
-    val regex: (RegexReplacement) -> Unit,
+    val replacements: ListProperty<Replacement>,
     val objects: ObjectFactory
 ) : ReplacementContainer {
     override fun string(action: Action<StringReplacementSpec>): Unit =
-        objects.newInstance<StringSpecImpl>(string).also(action::execute).finalise()
+        objects.newInstance<StringSpecImpl>(replacements).also(action::execute).finalise()
 
     override fun regex(action: Action<RegexReplacementSpec>): Unit =
-        objects.newInstance<RegexSpecImpl>(regex).also(action::execute).finalise()
+        objects.newInstance<RegexSpecImpl>(replacements).also(action::execute).finalise()
 }
 
-internal abstract class StringSpecImpl @Inject constructor(val consumer: (StringReplacement) -> Unit) : StringReplacementSpec() {
+internal abstract class StringSpecImpl @Inject constructor(val replacements: ListProperty<Replacement>) : StringReplacementSpec() {
     private var usedImmediateAnonymousAssignment: Boolean = false
 
     override fun replace(from: String, to: String) {
@@ -335,10 +335,10 @@ internal abstract class StringSpecImpl @Inject constructor(val consumer: (String
         val id = id.unwrapWith(tags)
         if (id == null) usedImmediateAnonymousAssignment = true
 
-        val replacement =
-            if (direction.get()) StringReplacement(to, setOf(from), id, tags)
-            else StringReplacement(from, setOf(to), id, tags)
-        consumer(replacement)
+        val it =
+            if (direction.get()) StringReplacement(to, from, id, tags)
+            else StringReplacement(from, to, id, tags)
+        replacements.add(it)
     }
 
     fun finalise() {
@@ -349,18 +349,18 @@ internal abstract class StringSpecImpl @Inject constructor(val consumer: (String
     }
 }
 
-internal abstract class RegexSpecImpl @Inject constructor(val consumer: (RegexReplacement) -> Unit) : RegexReplacementSpec() {
+internal abstract class RegexSpecImpl @Inject constructor(val replacements: ListProperty<Replacement>) : RegexReplacementSpec() {
     private var usedImmediateAnonymousAssignment: Boolean = false
 
-    override fun replace(directPattern: Pattern, directReplacement: String, reversePattern: Pattern, reverseReplacement: String) {
+    override fun replace(directPattern: Regex, directReplacement: String, reversePattern: Regex, reverseReplacement: String) {
         val tags = mutableSetOf<Replacement.Tag>()
         val id = id.unwrapWith(tags)
         if (id == null) usedImmediateAnonymousAssignment = true
 
-        val replacement =
-            if (direction.get()) RegexReplacement(directReplacement, directPattern.pattern(), directPattern.flags(), id, tags)
-            else RegexReplacement(reverseReplacement, reversePattern.pattern(), reversePattern.flags(), id, tags)
-        consumer(replacement)
+        val it =
+            if (direction.get()) RegexReplacement(directReplacement, directPattern, id, tags)
+            else RegexReplacement(reverseReplacement, reversePattern, id, tags)
+        replacements.add(it)
     }
 
     fun finalise() {

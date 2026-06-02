@@ -78,8 +78,10 @@ class ParameterChecker(val parameters: TransformParameters, val problems: FilePr
         }
 
         repl.expression.accept(this)
-        if (repl.source.unquote().isEmpty()) reportEmpty(repl.source)
-        if (repl.target.unquote().isEmpty()) reportEmpty(repl.target)
+        for (entry in repl.entries) {
+            if (entry.source.unquote().isEmpty()) reportEmpty(entry.source)
+            if (entry.target.unquote().isEmpty()) reportEmpty(entry.target)
+        }
     }
 
     override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser): Unit = Unit

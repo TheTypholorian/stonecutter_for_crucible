@@ -57,7 +57,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override val swaps: SwapContainer = objects.newInstance(data.swaps)
     override val constants: ConstantContainer = objects.newInstance(data.constants)
     override val dependencies: DependencyContainer = objects.newInstance(data.dependencies)
-    override val replacements: ReplacementContainerImpl = objects.newInstance(data::addString, data::addRegex)
+    override val replacements: ReplacementContainerImpl = objects.newInstance(data.replacements)
     override val filters: PatternFilterable = PatternSet()
     override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(node, objects)
 
