@@ -1,4 +1,4 @@
-package dev.kikugie.stitcher.parser.component
+package dev.kikugie.stitcher.parser.layout
 
 import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.semver.data.SemanticVersion
@@ -31,17 +31,22 @@ import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.tree.TerminalNode
 
-internal class MarkedTokenBuilder(factory: StitcherTokenFactory, problems: FileProblemReporter): StitcherBaseVisitor<Pair<AntlrToken, DefinitionToken>>() {
+internal class MarkedTokenBuilder(factory: StitcherTokenFactory, problems: FileProblemReporter): StitcherBaseVisitor<MarkedTokenBuilder.Result?>() {
     private val delegate: TokenBuilder = TokenBuilder(factory, problems)
 
-    override fun visitConditionDefinition(ctx: StitcherParser.ConditionDefinitionContext): Pair<AntlrToken, DefinitionToken> =
-        ctx.COND_MARK().symbol to ctx.condition().acceptAs(delegate)
+    override fun visitConditionDefinition(ctx: StitcherParser.ConditionDefinitionContext): Result? {
+        return Result(ctx.COND_MARK().symbol, ctx.condition()?.accept(delegate) as? DefinitionToken ?: return null)
+    }
 
-    override fun visitSwapDefinition(ctx: StitcherParser.SwapDefinitionContext): Pair<AntlrToken, DefinitionToken> =
-        ctx.SWAP_MARK().symbol to ctx.swap().acceptAs(delegate)
+    override fun visitSwapDefinition(ctx: StitcherParser.SwapDefinitionContext): Result? {
+        return Result(ctx.SWAP_MARK().symbol, ctx.swap()?.accept(delegate) as? DefinitionToken ?: return null)
+    }
 
-    override fun visitReplacementDefinition(ctx: StitcherParser.ReplacementDefinitionContext): Pair<AntlrToken, DefinitionToken> =
-        ctx.REPL_MARK().symbol to ctx.replacement().acceptAs(delegate)
+    override fun visitReplacementDefinition(ctx: StitcherParser.ReplacementDefinitionContext): Result? {
+        return Result(ctx.REPL_MARK().symbol, ctx.replacement()?.accept(delegate) as? DefinitionToken ?: return null)
+    }
+
+    data class Result(val marker: AntlrToken, val definition: DefinitionToken)
 }
 
 internal class TokenBuilder(

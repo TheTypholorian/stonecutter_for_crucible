@@ -84,7 +84,8 @@ internal class ReplacementExecutor(replacements: List<Replacement>, problems: Fi
 
         private tailrec fun replacementFor(start: Int, ctx: AhoCorasick.Match, pattern: String): String? =
             when (val next = transitionFor(start, ctx, pattern)) {
-                pattern, ctx.pattern, null -> next
+                pattern, ctx.pattern -> next
+                null -> pattern
                 else -> replacementFor(start, ctx, next)
             }
 
@@ -119,7 +120,7 @@ internal class ReplacementExecutor(replacements: List<Replacement>, problems: Fi
         private inner class StringEmit(val offset: Int, val match: AhoCorasick.Match) : EmitQueue.Entry {
             override val start: Int get() = match.start
             override val end: Int get() = match.end
-            private val value by lazy { replacementFor(offset, match) }
+            private val value: String? by lazy { replacementFor(offset, match) }
 
             override fun apply(builder: StringBuilder, offset: Int): Int {
                 if (value == null) return 0

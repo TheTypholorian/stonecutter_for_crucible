@@ -3,6 +3,7 @@ package dev.kikugie.stonecutter.build.config
 import dev.kikugie.stitcher.replacement.RegexReplacement
 import dev.kikugie.stitcher.replacement.Replacement
 import dev.kikugie.stitcher.replacement.StringReplacement
+import dev.kikugie.stitcher.util.isValidIdentifier
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.build.config.ReplacementContainer.RegexReplacementSpec
 import dev.kikugie.stonecutter.build.config.ReplacementContainer.StringReplacementSpec
@@ -334,6 +335,7 @@ internal abstract class StringSpecImpl @Inject constructor(val replacements: Lis
         val tags = mutableSetOf<Replacement.Tag>()
         val id = id.unwrapWith(tags)
         if (id == null) usedImmediateAnonymousAssignment = true
+        else require(id.isValidIdentifier()) { "Invalid replacement identifier '$id'" }
 
         val it =
             if (direction.get()) StringReplacement(to, from, id, tags)
@@ -356,6 +358,7 @@ internal abstract class RegexSpecImpl @Inject constructor(val replacements: List
         val tags = mutableSetOf<Replacement.Tag>()
         val id = id.unwrapWith(tags)
         if (id == null) usedImmediateAnonymousAssignment = true
+        else require(id.isValidIdentifier()) { "Invalid replacement identifier '$id'" }
 
         val it =
             if (direction.get()) RegexReplacement(directReplacement, directPattern, id, tags)

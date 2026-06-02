@@ -39,6 +39,8 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
 
     internal val vcsProject: StonecutterProject
         get() = resolvedVcsVersion
+    internal val controller: StonecutterControllerManager
+        get() = resolvedController
 
     init {
         @Suppress("DEPRECATION") branchScript.disallowChanges()

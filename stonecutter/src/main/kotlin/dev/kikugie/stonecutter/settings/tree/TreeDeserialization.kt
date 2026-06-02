@@ -20,7 +20,7 @@ import kotlin.contracts.contract
 internal fun deserializeTreeTo(builder: TreeBuilder, data: String, converter: SCConverter): Unit =
     converter.deserialize<SerializedTree>(data).applyTo(builder)
 
-@Serializable
+@Serializable(with = SerializedTree.Serializer::class)
 private sealed interface SerializedTree {
     val vcs: Identifier?
     val kotlinController: Boolean?
@@ -100,7 +100,7 @@ private sealed interface TreeLayout {
     }
 }
 
-@Serializable
+@Serializable(with = BranchLayout.Serializer::class)
 private sealed interface BranchLayout {
     val inherit: InheritLayout
     val versions: List<SerializedVersion>
@@ -130,7 +130,7 @@ private sealed interface BranchLayout {
     }
 }
 
-@Serializable
+@Serializable(with = VersionLayout.Serializer::class)
 private sealed interface VersionLayout {
     val branches: List<Identifier>
 
@@ -159,7 +159,7 @@ private sealed interface VersionLayout {
     }
 }
 
-@Serializable
+@Serializable(with = InheritLayout.Serializer::class)
 private sealed interface InheritLayout {
     fun applyTo(builder: BranchBuilder)
 

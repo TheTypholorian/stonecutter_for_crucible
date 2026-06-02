@@ -148,9 +148,9 @@ public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$
 	public final fun replace (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
 	public final fun replace (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V
 	public final fun replace (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Lkotlin/text/RegexOption;)V
-	public abstract fun replace (Ljava/util/regex/Pattern;Ljava/lang/String;Ljava/util/regex/Pattern;Ljava/lang/String;)V
+	public final fun replace (Ljava/util/regex/Pattern;Ljava/lang/String;Ljava/util/regex/Pattern;Ljava/lang/String;)V
 	public final fun replace (Lkotlin/Pair;Lkotlin/Pair;)V
-	public final fun replace (Lkotlin/text/Regex;Ljava/lang/String;Lkotlin/text/Regex;Ljava/lang/String;)V
+	public abstract fun replace (Lkotlin/text/Regex;Ljava/lang/String;Lkotlin/text/Regex;Ljava/lang/String;)V
 	public static synthetic fun replace$default (Ldev/kikugie/stonecutter/build/config/ReplacementContainer$RegexReplacementSpec;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)V
 	public final fun reverse (Ljava/lang/String;Ljava/lang/String;)V
 }
@@ -1015,7 +1015,7 @@ public final class dev/kikugie/stonecutter/data/whatever/TaskProviderMap : java/
 }
 
 public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider {
-	public fun <init> (Lorg/gradle/api/model/ObjectFactory;Lorg/gradle/api/provider/ProviderFactory;)V
+	public fun <init> (Lorg/gradle/api/initialization/Settings;Lorg/gradle/api/model/ObjectFactory;)V
 	public final fun create (Ljava/lang/Iterable;)V
 	public final fun create (Ljava/lang/Iterable;Ljava/io/File;)V
 	public final fun create (Ljava/lang/Iterable;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
@@ -1046,8 +1046,6 @@ public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtens
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;[Ljava/lang/Object;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public abstract fun getCentralScript ()Lorg/gradle/api/provider/Property;
 	public abstract fun getKotlinController ()Lorg/gradle/api/provider/Property;
-	protected final fun getObjects ()Lorg/gradle/api/model/ObjectFactory;
-	protected final fun getProviders ()Lorg/gradle/api/provider/ProviderFactory;
 	public final fun getSemantics ()Ldev/kikugie/stonecutter/data/version/VersionOperations;
 	public final fun getShared ()Lorg/gradle/api/Action;
 	public final fun shared (Lorg/gradle/api/Action;)V
@@ -1081,7 +1079,9 @@ public abstract class dev/kikugie/stonecutter/settings/task/StonecutterIdeaConfi
 public abstract class dev/kikugie/stonecutter/settings/tree/BranchBuilder {
 	public fun <init> ()V
 	public abstract fun getBranchScript ()Lorg/gradle/api/provider/Property;
-	public abstract fun inherit ()V
+	public fun inherit ()V
+	public abstract fun inherit (Ljava/lang/Iterable;)V
+	public final fun inherit ([Ljava/lang/String;)V
 	public final fun vers (Ljava/lang/String;)Ldev/kikugie/stonecutter/settings/tree/NodeBuilder;
 	public final fun vers (Ljava/lang/String;Ljava/lang/String;)Ldev/kikugie/stonecutter/settings/tree/NodeBuilder;
 	public final fun version (Ljava/lang/String;)Ldev/kikugie/stonecutter/settings/tree/NodeBuilder;
@@ -1110,8 +1110,15 @@ public abstract class dev/kikugie/stonecutter/settings/tree/TreeBuilder : dev/ki
 	public synthetic fun inherit ()V
 	public final fun load (Ljava/io/File;)V
 	public final fun load (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public final fun load (Ljava/lang/String;)V
+	public final fun load (Ljava/lang/String;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public final fun load (Lorg/gradle/api/provider/Provider;)V
+	public final fun load (Lorg/gradle/api/provider/Provider;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
 	public static synthetic fun load$default (Ldev/kikugie/stonecutter/settings/tree/TreeBuilder;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;ILjava/lang/Object;)V
+	public static synthetic fun load$default (Ldev/kikugie/stonecutter/settings/tree/TreeBuilder;Ljava/lang/String;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;ILjava/lang/Object;)V
+	public static synthetic fun load$default (Ldev/kikugie/stonecutter/settings/tree/TreeBuilder;Lorg/gradle/api/provider/Provider;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;ILjava/lang/Object;)V
 	protected abstract fun loadImpl (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	protected abstract fun loadImpl (Ljava/lang/String;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
 	public abstract fun mapBuilds (Lkotlin/jvm/functions/Function2;)V
 }
 

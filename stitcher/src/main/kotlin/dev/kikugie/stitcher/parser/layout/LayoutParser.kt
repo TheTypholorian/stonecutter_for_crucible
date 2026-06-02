@@ -4,7 +4,6 @@ import dev.kikugie.stitcher.antlr.*
 import dev.kikugie.stitcher.issue.*
 import dev.kikugie.stitcher.parser.LAYOUT_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
-import dev.kikugie.stitcher.parser.component.MarkedTokenBuilder
 import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.impl.BlockToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
@@ -185,7 +184,14 @@ internal class LayoutParser private constructor(
         }
     }
 
-    private fun parseCommentBody(body: AntlrToken): Pair<AntlrToken, DefinitionToken>? = InlineCharStream(body).use { input ->
+    private fun reportUnparsedDefinition(body: AntlrToken) {
+        problems.report(LAYOUT_GROUP.child("parse-failure"), body) {
+            label = "Invalid code definition"
+            details = "The parser is unable to match this comment to any syntax"
+        }
+    }
+
+    private fun parseCommentBody(body: AntlrToken): MarkedTokenBuilder.Result? = InlineCharStream(body).use { input ->
         if (input.LC(1).let { it != '?' && it != '$' && it != '~' }) return@use null
 
         val lexer = StitcherLexer(input).apply {
@@ -196,7 +202,9 @@ internal class LayoutParser private constructor(
             errorListener = listener
             errorHandler = StitcherErrorStrategy
         }
-        parser.definition().accept(visitor)
+        parser.definition().accept(visitor).also {
+            if (it == null) reportUnparsedDefinition(body)
+        }
     }
 
     companion object {

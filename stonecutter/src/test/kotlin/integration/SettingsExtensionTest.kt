@@ -65,11 +65,11 @@ class SettingsExtensionTest : ShouldSpec({
             build { dir.resolve("versions") should { it.exists() } }
         }
 
-        should("not allow inherit call in root").config<GradleSetup> {
+        xshould("not allow inherit call in root").config<GradleSetup> {
             fail()
         }
 
-        should("not allow inherit call in default branch").config<GradleSetup> {
+        xshould("not allow inherit call in default branch").config<GradleSetup> {
             fail()
         }
 

@@ -10,6 +10,7 @@ import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
+import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.configureDefaults
@@ -72,8 +73,12 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
         }
     }
 
-    override fun create(ref: ProjectReference, builder: TreeBuilder) =
-        builder.takeAs<TreeBuilderImpl>().build(this, ref)
+    override fun create(ref: ProjectReference, builder: TreeBuilder) {
+        builder as TreeBuilderImpl
+
+        builder.build(this, ref)
+        usesGroovy = usesGroovy || checkGroovyUsage(builder)
+    }
 
     private companion object {
         val LOGGER = Logging.getLogger("StonecutterSettings")
@@ -114,6 +119,14 @@ private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): 
     val loader: StructuredPropertiesLoader = settings.gradle.extensions.create("StructuredProperties")
     return StructuredPropertyConfigImpl(settings.rootProject.hierarchy, settings.extra, loader, objects)
         .apply { loadDefaults(settings.layout.settingsDirectory) }
+}
+
+private fun checkGroovyUsage(tree: TreeBuilderImpl): Boolean {
+    if (tree.controller is StonecutterControllerManager.Groovy) return true
+    for (branch in tree.branchBuilders.values)
+        for (node in branch.versions)
+            if (node.buildscript.endsWith(".gradle")) return true
+    return false
 }
 
 private fun Logger.reportGroovyComplaint(): Unit = warn(
