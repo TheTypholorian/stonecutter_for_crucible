@@ -13,7 +13,7 @@ dependencyResolutionManagement {
     }
 
     versionCatalogs {
-        create("common") { from("dev.kikugie:stonecutter-versions:1.10.1") }
+        create("common") { from("dev.kikugie:stonecutter-versions:1.11.0") }
     }
 }
 
