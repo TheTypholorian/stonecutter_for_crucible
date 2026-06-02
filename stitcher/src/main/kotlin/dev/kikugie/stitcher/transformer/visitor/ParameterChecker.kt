@@ -12,6 +12,7 @@ import dev.kikugie.stitcher.token.impl.BlockToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.ExpressionToken
 import dev.kikugie.stitcher.token.impl.LeafToken
+import dev.kikugie.stitcher.token.impl.ScopeToken
 import dev.kikugie.stitcher.transformer.TransformParameters
 import dev.kikugie.stitcher.util.id
 import dev.kikugie.stitcher.util.text
@@ -19,6 +20,9 @@ import dev.kikugie.stitcher.util.unquote
 
 class ParameterChecker(val parameters: TransformParameters, val problems: FileProblemReporter) :
     BlockToken.Visitor<Unit>, DefinitionToken.Visitor<Unit>, ExpressionToken.Visitor<Unit> {
+    private val replacementIds = parameters.replacements.asSequence()
+        .mapNotNull(Replacement::identifier).toMutableSet()
+
     override fun visitContent(content: BlockToken.Content): Unit = Unit
     override fun visitComment(comment: BlockToken.Comment): Unit = Unit
 
@@ -63,7 +67,7 @@ class ParameterChecker(val parameters: TransformParameters, val problems: FilePr
     override fun visitConditionCloser(cond: DefinitionToken.ConditionCloser): Unit = Unit
 
     override fun visitReplacementToggle(repl: DefinitionToken.ReplacementToggle) {
-        for (entry in repl.entries) if (parameters.replacements.none { it.identifier == entry.id })
+        for (entry in repl.entries) if (entry.id !in replacementIds)
             problems.report(SYNTAX_GROUP.child("invalid-repl-id"), entry) {
                 label = "Unresolved replacement '${entry.id}'"
                 docs = "https://stonecutter.kikugie.dev/wiki/config/params#replacements"
@@ -82,6 +86,9 @@ class ParameterChecker(val parameters: TransformParameters, val problems: FilePr
             if (entry.source.unquote().isEmpty()) reportEmpty(entry.source)
             if (entry.target.unquote().isEmpty()) reportEmpty(entry.target)
         }
+        // FIXME: This should have a test
+        if (repl.opener is ScopeToken.Named)
+            replacementIds += repl.opener.identifier.text
     }
 
     override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser): Unit = Unit
