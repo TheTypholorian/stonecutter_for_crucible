@@ -2,6 +2,7 @@ import java.net.URI
 
 plugins {
     antlr
+    `kotlin-dsl`
     kotlin("jvm")
     kotlin("plugin.serialization")
     alias(common.plugins.kotlin.dokka)
@@ -14,6 +15,8 @@ val baseVersion: String = property("version").toString()
 
 dependencies {
     antlr(libs.antlr)
+    implementation(libs.pcre4j)
+    implementation(libs.pcre4j.jna)
     implementation(common.misc.semver)
     implementation(common.misc.commons)
     implementation(common.kotlin.stdlib)

@@ -1,10 +1,15 @@
-@file:UseSerializers(RegexSerializer::class)
+@file:UseSerializers(RegexSerializer::class, PerlSerializer::class)
 
 package dev.kikugie.stitcher.replacement
 
+import dev.kikugie.stitcher.util.PerlSerializer
 import dev.kikugie.stitcher.util.RegexSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
+import org.pcre4j.Pcre2Code
+import java.util.*
+import java.util.regex.Pattern
+import kotlin.enums.enumEntries
 
 /**
  * Describes a replacement rule applied by the replacer pipeline.
@@ -18,18 +23,8 @@ sealed interface Replacement : java.io.Serializable {
      * Optional identifier used to toggle this replacement at runtime.
      */
     val identifier: String?
-    /**
-     * Behavior modifiers for this replacement.
-     */
-    val tags: Set<Tag>
 
-
-    /**
-     * Flags controlling how a replacement is interpreted by the executor.
-     */
-    enum class Tag {
-        DEFAULT_ENABLED
-    }
+    val enabled: Boolean
 
 }
 
@@ -41,12 +36,12 @@ sealed interface Replacement : java.io.Serializable {
  * @property identifier optional identifier used to enable or disable this replacement
  * @property tags behavior modifiers for this replacement
  */
-@Serializable @JvmRecord
+@Serializable
 data class StringReplacement(
     val target: String,
     val pattern: String,
     override val identifier: String? = null,
-    override val tags: Set<Replacement.Tag> = emptySet(),
+    override val enabled: Boolean = false,
 ) : Replacement, java.io.Serializable
 
 /**
@@ -57,10 +52,32 @@ data class StringReplacement(
  * @property identifier optional identifier used to enable or disable this replacement
  * @property tags behavior modifiers for this replacement
  */
-@Serializable @JvmRecord
+@Serializable
 data class RegexReplacement(
     val target: String,
-    val regex: Regex,
+    val pattern: String,
+    val flags: Int = 0,
     override val identifier: String? = null,
-    override val tags: Set<Replacement.Tag> = emptySet(),
-) : Replacement, java.io.Serializable
+    override val enabled: Boolean = false,
+) : Replacement, java.io.Serializable {
+    val regex: Pattern by lazy { Pattern.compile(pattern, flags) }
+}
+
+@Serializable
+data class PerlReplacement(
+    val target: String,
+    val pattern: String,
+    val options: Long = 0L,
+    override val identifier: String? = null,
+    override val enabled: Boolean = false,
+) : Replacement, java.io.Serializable {
+    val regex: Pcre2Code by lazy { Pcre2Code(pattern, options.toEnumSet()) }
+}
+
+private inline fun <reified T : Enum<T>> Long.toEnumSet(): EnumSet<T> = EnumSet.noneOf(T::class.java).apply {
+    if (this@toEnumSet == 0L) return@apply
+
+    val entries = enumEntries<T>()
+    for ((i, entry) in entries.withIndex())
+        if (this@toEnumSet ushr i and 1L != 0L) this += entry
+}

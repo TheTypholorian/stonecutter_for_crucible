@@ -47,10 +47,10 @@ internal abstract class StonecutterBuildData @Inject constructor(
         @get:Input val target: Property<String>
         @get:Input val source: Property<String>
         @get:Input @get:Optional val identifier: Property<Identifier>
-        @get:Input @get:Optional val tags: SetProperty<Replacement.Tag>
+        @get:Input @get:Optional val enabled: Property<Boolean>
 
         fun build(): StringReplacement =
-            StringReplacement(target.get(), source.get(), identifier.orNull, tags.getOrElse(emptySet()))
+            StringReplacement(target.get(), source.get(), identifier.orNull, enabled.getOrElse(false))
     }
 
     interface RegexReplacementSpec {
@@ -58,10 +58,10 @@ internal abstract class StonecutterBuildData @Inject constructor(
         @get:Input val pattern: Property<String>
         @get:Input @get:Optional val options: Property<Int>
         @get:Input @get:Optional val identifier: Property<Identifier>
-        @get:Input @get:Optional val tags: SetProperty<Replacement.Tag>
+        @get:Input @get:Optional val enabled: Property<Boolean>
 
         fun build(): RegexReplacement =
-            RegexReplacement(target.get(), Regex(pattern.get(), options.getOrElse(0)), identifier.orNull, tags.getOrElse(emptySet()))
+            RegexReplacement(target.get(), pattern.get(), options.getOrElse(0), identifier.orNull, enabled.getOrElse(false))
     }
 }
 

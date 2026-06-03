@@ -32,7 +32,6 @@ dependencies {
     api(project(":stitcher"))
     api(common.misc.semver)
     api(common.misc.commons)
-    implementation(common.kotlin.stdlib)
     implementation(common.kotlin.reflect)
     implementation(common.kotlin.serialization)
     implementation(common.kotlin.serialization.json)
@@ -42,12 +41,6 @@ dependencies {
     testImplementation(gradleTestKit())
     testImplementation(common.kotest.runner)
     testImplementation(common.kotest.assertions)
-
-    testImplementation(common.ktor.json)
-    testImplementation(common.ktor.client)
-    testImplementation(common.ktor.client.java)
-    testImplementation(common.ktor.client.negotiation)
-
     testImplementation(common.misc.mordant)
 
     dokkaHtmlPlugin(common.kotlin.dokka.versioning)
@@ -135,7 +128,14 @@ tasks {
     shadowJar {
         archiveClassifier = ""
         minimize()
-        exclude("kotlin/**", "com/ibm/**", "org/jetbrains/**", "**/*.knm", "**/*.pro", "commonMain/**", "nativeMain/**")
+        dependencies {
+            exclude(dependency("com.squareup.okio:.*"))
+            exclude(dependency("net.thauvin.erik:.*"))
+            exclude(dependency("com.ibm.icu:.*"))
+            exclude(dependency("org.jetbrains.kotlin:kotlin-stdlib:.*"))
+        }
+
+        exclude("idea_config.xml")
     }
 
     register<GenerateVersionTask>("generateVersion") {

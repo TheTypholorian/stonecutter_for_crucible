@@ -298,11 +298,11 @@ public sealed interface ReplacementContainer {
          * Can be called multiple times.
          */
         public fun replace(
-            directPattern: Pattern, directReplacement: String,
-            reversePattern: Pattern, reverseReplacement: String,
+            directPattern: Regex, directReplacement: String,
+            reversePattern: Regex, reverseReplacement: String,
         ): Unit = replace(
-            directPattern.toRegex(), directReplacement,
-            reversePattern.toRegex(), reverseReplacement
+            directPattern.toPattern(), directReplacement,
+            reversePattern.toPattern(), reverseReplacement
         )
 
         /**
@@ -311,8 +311,8 @@ public sealed interface ReplacementContainer {
          * Can be called multiple times.
          */
         public abstract fun replace(
-            directPattern: Regex, directReplacement: String,
-            reversePattern: Regex, reverseReplacement: String,
+            directPattern: Pattern, directReplacement: String,
+            reversePattern: Pattern, reverseReplacement: String,
         )
     }
 }
@@ -332,14 +332,13 @@ internal abstract class StringSpecImpl @Inject constructor(val replacements: Lis
     private var usedImmediateAnonymousAssignment: Boolean = false
 
     override fun replace(from: String, to: String) {
-        val tags = mutableSetOf<Replacement.Tag>()
-        val id = id.unwrapWith(tags)
+        val (id, enabled) = id.unwrap()
         if (id == null) usedImmediateAnonymousAssignment = true
         else require(id.isValidIdentifier()) { "Invalid replacement identifier '$id'" }
 
         val it =
-            if (direction.get()) StringReplacement(to, from, id, tags)
-            else StringReplacement(from, to, id, tags)
+            if (direction.get()) StringReplacement(to, from, id, enabled)
+            else StringReplacement(from, to, id, enabled)
         replacements.add(it)
     }
 
@@ -354,15 +353,14 @@ internal abstract class StringSpecImpl @Inject constructor(val replacements: Lis
 internal abstract class RegexSpecImpl @Inject constructor(val replacements: ListProperty<Replacement>) : RegexReplacementSpec() {
     private var usedImmediateAnonymousAssignment: Boolean = false
 
-    override fun replace(directPattern: Regex, directReplacement: String, reversePattern: Regex, reverseReplacement: String) {
-        val tags = mutableSetOf<Replacement.Tag>()
-        val id = id.unwrapWith(tags)
+    override fun replace(directPattern: Pattern, directReplacement: String, reversePattern: Pattern, reverseReplacement: String) {
+        val (id, enabled) = id.unwrap()
         if (id == null) usedImmediateAnonymousAssignment = true
         else require(id.isValidIdentifier()) { "Invalid replacement identifier '$id'" }
 
         val it =
-            if (direction.get()) RegexReplacement(directReplacement, directPattern, id, tags)
-            else RegexReplacement(reverseReplacement, reversePattern, id, tags)
+            if (direction.get()) RegexReplacement(directReplacement, directPattern.pattern(), directPattern.flags(), id, enabled)
+            else RegexReplacement(reverseReplacement, reversePattern.pattern(), directPattern.flags(), id, enabled)
         replacements.add(it)
     }
 
@@ -375,8 +373,7 @@ internal abstract class RegexSpecImpl @Inject constructor(val replacements: List
     }
 }
 
-private fun Provider<Identifier>.unwrapWith(tags: MutableSet<Replacement.Tag>): Identifier? = orNull?.let {
-    if (!it.startsWith('!')) return@let it
-    tags += Replacement.Tag.DEFAULT_ENABLED
-    it.removePrefix("!")
+private fun Provider<Identifier>.unwrap(): Pair<String?, Boolean> {
+    val id = orNull ?: return null to false
+    return id.trimStart('!') to id.startsWith('!')
 }

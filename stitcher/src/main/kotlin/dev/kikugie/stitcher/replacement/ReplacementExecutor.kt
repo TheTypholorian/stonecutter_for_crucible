@@ -4,8 +4,12 @@ import dev.kikugie.commons.collections.present
 import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.ProblemID
 import dev.kikugie.stitcher.issue.report
-import kotlin.apply
-import kotlin.collections.plusAssign
+import org.pcre4j.Pcre2MatchData
+import org.pcre4j.option.Pcre2SubstituteOption.EXTENDED
+import org.pcre4j.option.Pcre2SubstituteOption.REPLACEMENT_ONLY
+import org.pcre4j.regex.appendMatch
+import java.util.*
+import java.util.regex.MatchResult
 
 private val REPLACEMENT_GROUP = ProblemID("replacement-execution")
 
@@ -13,11 +17,12 @@ internal class ReplacementExecutor(replacements: List<Replacement>, problems: Fi
     private val identifiers: MutableSet<String> = mutableSetOf()
     private val stringExecutor: StringExecutor = StringExecutor(replacements, problems)
     private val regexExecutor: RegexExecutor = RegexExecutor(replacements)
-    private val Replacement.enabled: Boolean
+    private val perlExecutor: PerlExecutor = PerlExecutor(replacements)
+    private val Replacement.active: Boolean
         get() = identifier == null || identifier in identifiers
 
     init {
-        for (repl in replacements) if (repl.identifier != null && Replacement.Tag.DEFAULT_ENABLED in repl.tags)
+        for (repl in replacements) if (repl.identifier != null && repl.enabled)
             identifiers += repl.identifier!!
     }
 
@@ -34,6 +39,7 @@ internal class ReplacementExecutor(replacements: List<Replacement>, problems: Fi
     fun collect(offset: Int, text: CharSequence, queue: EmitQueue) {
         stringExecutor.collect(offset, text, queue)
         regexExecutor.collect(text, queue)
+        perlExecutor.collect(text, queue)
     }
 
     fun replace(offset: Int, builder: StringBuilder) {
@@ -63,7 +69,7 @@ internal class ReplacementExecutor(replacements: List<Replacement>, problems: Fi
 
         fun collect(start: Int, text: CharSequence, queue: EmitQueue) {
             for (match in searcher.search(text))
-                if (replacements[match.pattern]?.any { it.enabled } ?: true)
+                if (replacements[match.pattern]?.any { it.active } ?: true)
                     queue += StringEmit(start, match)
         }
 
@@ -94,7 +100,7 @@ internal class ReplacementExecutor(replacements: List<Replacement>, problems: Fi
                 ?: return null
 
             val candidates = buildSet {
-                for (it in variants) if (it.enabled)
+                for (it in variants) if (it.active)
                     this += it.target
             }
 
@@ -135,15 +141,66 @@ internal class ReplacementExecutor(replacements: List<Replacement>, problems: Fi
         private val replacements = replacements.filterIsInstance<RegexReplacement>()
 
         fun collect(text: CharSequence, queue: EmitQueue) {
-            for (repl in replacements) if (repl.enabled)
-                for (match in repl.regex.findAll(text))
-                    queue += RegexEmit(match, repl.target)
+            for (repl in replacements) if (repl.active)
+                process(repl, text, queue)
         }
 
-        private inner class RegexEmit(val match: MatchResult, private val value: String) : EmitQueue.Entry {
-            override val start: Int get() = match.range.first
-            override val end: Int get() = match.range.last + 1
+        private fun process(repl: RegexReplacement, text: CharSequence, queue: EmitQueue) {
+            val matcher = repl.regex.matcher(text)
+            var index = 0
+            while (index >= 0 && matcher.find(index)) {
+                queue += RegexEmit(matcher.toMatchResult(), repl.target)
+                index = matcher.nextIndex(text)
+            }
+        }
 
+        private fun MatchResult.nextIndex(text: CharSequence): Int {
+            val next = end() + if (end() == start()) 1 else 0
+            return if (next <= text.length) next else -1
+        }
+
+        private inner class RegexEmit(val match: MatchResult, val value: String) : EmitQueue.Entry {
+            override val start: Int get() = match.start()
+            override val end: Int get() = match.end()
+
+            override fun apply(builder: StringBuilder, offset: Int): Int {
+                val length = builder.length
+                builder.appendMatch(match, value)
+
+                val repl = builder.substring(length)
+                if (repl.isEmpty()) return 0
+
+                builder.setLength(length)
+                builder.replace(start + offset, end + offset, repl)
+
+                return builder.length - length
+            }
+        }
+    }
+
+    private inner class PerlExecutor(replacements: List<Replacement>) {
+        private val replacements = replacements.filterIsInstance<PerlReplacement>()
+
+        fun collect(text: CharSequence, queue: EmitQueue) {
+            val string = text.toString()
+            for (repl in replacements) if (repl.active)
+                process(repl, string, queue)
+        }
+
+        private fun process(repl: PerlReplacement, text: String, queue: EmitQueue) {
+            val data = Pcre2MatchData(repl.regex)
+            var start = 0
+            while (start in text.indices) {
+                val value = repl.regex.substitute(text, 0, EnumSet.of(EXTENDED, REPLACEMENT_ONLY), data, null, repl.target)
+                if (value.isEmpty()) break
+
+                val offsets = data.ovector()
+                queue += PerlEmit(offsets[0].toInt(), offsets[1].toInt(), value)
+                start = offsets.first().toInt()
+            }
+        }
+
+        private inner class PerlEmit(override val start: Int, override val end: Int, val value: String) : EmitQueue.Entry {
             override fun apply(builder: StringBuilder, offset: Int): Int {
                 builder.replace(start + offset, end + offset, value)
                 return value.length - (end - start)
