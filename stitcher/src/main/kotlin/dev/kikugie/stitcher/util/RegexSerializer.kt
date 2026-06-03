@@ -6,6 +6,8 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.descriptors.element
@@ -14,7 +16,10 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.encoding.decodeStructure
 import kotlinx.serialization.encoding.encodeStructure
+import org.pcre4j.option.Pcre2CompileOption
 import org.pcre4j.regex.Pattern
+import java.util.EnumSet
+import kotlin.enums.enumEntries
 
 private const val PATTERN: Int = 0
 private const val FLAGS: Int = 1
@@ -70,6 +75,35 @@ object PerlSerializer : KSerializer<Pattern> {
 
         if (pattern == null) throw MissingFieldException("pattern", descriptor.serialName)
         Pattern.compile(pattern, flags)
+    }
+}
+
+object PerlCompileOptionsSerializer : KSerializer<EnumSet<Pcre2CompileOption>> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("org.pcre4j.option.Pcre2CompileOption.values", PrimitiveKind.LONG)
+
+    override fun serialize(encoder: Encoder, value: EnumSet<Pcre2CompileOption>): Unit = encoder.encodeLong(value.toLong())
+
+    override fun deserialize(decoder: Decoder): EnumSet<Pcre2CompileOption> = decoder.decodeLong().toEnumSet()
+
+    private inline fun <reified T : Enum<T>> Long.toEnumSet(): EnumSet<T> = EnumSet.noneOf(T::class.java).apply {
+        if (this@toEnumSet == 0L) return@apply
+
+        val entries = enumEntries<T>()
+        for ((i, entry) in entries.withIndex())
+            if (this@toEnumSet ushr i and 1L != 0L) this += entry
+    }
+
+    private inline fun <reified T : Enum<T>> EnumSet<T>.toLong(): Long {
+        var value = 0L
+        val entries = enumEntries<T>()
+        check(entries.size <= 64) { "Can't encode ${T::class.qualifiedName} as Long" }
+
+        for (entry in entries) {
+            if (entry in this) value += 1
+            value = value shl 1
+        }
+        return value
     }
 }
 

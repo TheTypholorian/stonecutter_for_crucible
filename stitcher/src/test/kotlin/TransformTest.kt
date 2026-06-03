@@ -143,7 +143,7 @@ class TransformTest : FreeSpec({
                 a.b.c.4.5
             """.trimIndent()
             process(content) {
-                replacements.string("a.b", "1.2", id = "ab", tags = setOf(Replacement.Tag.DEFAULT_ENABLED))
+                replacements.string("a.b", "1.2", id = "ab", true)
                 replacements.string("d.e", "4.5", id = "de")
             } shouldBe expected
         }

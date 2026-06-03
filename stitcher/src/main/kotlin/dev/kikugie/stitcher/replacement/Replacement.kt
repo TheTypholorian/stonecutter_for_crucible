@@ -1,15 +1,16 @@
-@file:UseSerializers(RegexSerializer::class, PerlSerializer::class)
+@file:UseSerializers(RegexSerializer::class, PerlSerializer::class, PerlCompileOptionsSerializer::class)
 
 package dev.kikugie.stitcher.replacement
 
+import dev.kikugie.stitcher.util.PerlCompileOptionsSerializer
 import dev.kikugie.stitcher.util.PerlSerializer
 import dev.kikugie.stitcher.util.RegexSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
 import org.pcre4j.Pcre2Code
+import org.pcre4j.option.Pcre2CompileOption
 import java.util.*
 import java.util.regex.Pattern
-import kotlin.enums.enumEntries
 
 /**
  * Describes a replacement rule applied by the replacer pipeline.
@@ -67,17 +68,9 @@ data class RegexReplacement(
 data class PerlReplacement(
     val target: String,
     val pattern: String,
-    val options: Long = 0L,
+    val options: EnumSet<Pcre2CompileOption>,
     override val identifier: String? = null,
     override val enabled: Boolean = false,
 ) : Replacement, java.io.Serializable {
-    val regex: Pcre2Code by lazy { Pcre2Code(pattern, options.toEnumSet()) }
-}
-
-private inline fun <reified T : Enum<T>> Long.toEnumSet(): EnumSet<T> = EnumSet.noneOf(T::class.java).apply {
-    if (this@toEnumSet == 0L) return@apply
-
-    val entries = enumEntries<T>()
-    for ((i, entry) in entries.withIndex())
-        if (this@toEnumSet ushr i and 1L != 0L) this += entry
+    val regex: Pcre2Code by lazy { Pcre2Code(pattern, options) }
 }

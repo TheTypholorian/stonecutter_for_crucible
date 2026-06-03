@@ -191,12 +191,12 @@ internal class ReplacementExecutor(replacements: List<Replacement>, problems: Fi
             val data = Pcre2MatchData(repl.regex)
             var start = 0
             while (start in text.indices) {
-                val value = repl.regex.substitute(text, 0, EnumSet.of(EXTENDED, REPLACEMENT_ONLY), data, null, repl.target)
+                val value = repl.regex.substitute(text, start, EnumSet.of(EXTENDED, REPLACEMENT_ONLY), data, null, repl.target)
                 if (value.isEmpty()) break
 
                 val offsets = data.ovector()
                 queue += PerlEmit(offsets[0].toInt(), offsets[1].toInt(), value)
-                start = offsets.first().toInt()
+                start = offsets[1].toInt()
             }
         }
 
