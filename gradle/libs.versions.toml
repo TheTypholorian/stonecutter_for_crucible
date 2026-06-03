@@ -6,4 +6,5 @@ pcre4j = "1.0.1"
 antlr = { group = "org.antlr", name="antlr4", version.ref = "antlr" }
 pcre4j = { module = "org.pcre4j:regex", version.ref = "pcre4j" }
 pcre4j-jna = { module = "org.pcre4j:jna", version.ref = "pcre4j" }
-
+pcre4j-ffm = { module = "org.pcre4j:ffm", version.ref = "pcre4j" }
+pcre4j-bundle = { module = "org.pcre4j:pcre4j-native-all", version.ref = "pcre4j" }

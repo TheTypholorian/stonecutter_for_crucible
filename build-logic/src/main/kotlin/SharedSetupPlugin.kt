@@ -10,7 +10,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 private const val JAVA_VERSION: Int = 21
-private const val KOTLIN_VERSION: String = "2.3"
+private const val KOTLIN_VERSION: String = "2.4"
 
 @Suppress("unused")
 open class SharedSetupPlugin : Plugin<Project> {

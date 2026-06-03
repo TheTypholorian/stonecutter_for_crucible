@@ -32,7 +32,6 @@ dependencies {
     api(project(":stitcher"))
     api(common.misc.semver)
     api(common.misc.commons)
-    implementation(common.kotlin.reflect)
     implementation(common.kotlin.serialization)
     implementation(common.kotlin.serialization.json)
     implementation(common.kotlin.serialization.toml)
@@ -127,7 +126,6 @@ tasks {
 
     shadowJar {
         archiveClassifier = ""
-        minimize()
         dependencies {
             exclude(dependency("com.squareup.okio:.*"))
             exclude(dependency("net.thauvin.erik:.*"))

@@ -15,7 +15,7 @@ dependencyResolutionManagement {
     }
 
     versionCatalogs {
-        create("common") { from("dev.kikugie:stonecutter-versions:1.11.0") }
+        create("common") { from("dev.kikugie:stonecutter-versions:1.12.0") }
     }
 }
 
