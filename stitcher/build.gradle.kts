@@ -15,7 +15,7 @@ val baseVersion: String = property("version").toString()
 
 dependencies {
     antlr(libs.antlr)
-    implementation(libs.pcre4j)
+    api(libs.pcre4j)
     implementation(libs.pcre4j.bundle)
     implementation(common.misc.semver)
     implementation(common.misc.commons)

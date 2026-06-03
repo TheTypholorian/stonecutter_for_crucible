@@ -78,32 +78,22 @@ object PerlSerializer : KSerializer<Pattern> {
     }
 }
 
-object PerlCompileOptionsSerializer : KSerializer<EnumSet<Pcre2CompileOption>> {
-    override val descriptor: SerialDescriptor =
-        PrimitiveSerialDescriptor("org.pcre4j.option.Pcre2CompileOption.values", PrimitiveKind.LONG)
+inline fun <reified T : Enum<T>> Long.toEnumSet(): EnumSet<T> = EnumSet.noneOf(T::class.java).apply {
+    if (this@toEnumSet == 0L) return@apply
 
-    override fun serialize(encoder: Encoder, value: EnumSet<Pcre2CompileOption>): Unit = encoder.encodeLong(value.toLong())
-
-    override fun deserialize(decoder: Decoder): EnumSet<Pcre2CompileOption> = decoder.decodeLong().toEnumSet()
-
-    private inline fun <reified T : Enum<T>> Long.toEnumSet(): EnumSet<T> = EnumSet.noneOf(T::class.java).apply {
-        if (this@toEnumSet == 0L) return@apply
-
-        val entries = enumEntries<T>()
-        for ((i, entry) in entries.withIndex())
-            if (this@toEnumSet ushr i and 1L != 0L) this += entry
-    }
-
-    private inline fun <reified T : Enum<T>> EnumSet<T>.toLong(): Long {
-        var value = 0L
-        val entries = enumEntries<T>()
-        check(entries.size <= 64) { "Can't encode ${T::class.qualifiedName} as Long" }
-
-        for (entry in entries) {
-            if (entry in this) value += 1
-            value = value shl 1
-        }
-        return value
-    }
+    val entries = enumEntries<T>()
+    for ((i, entry) in entries.withIndex())
+        if (this@toEnumSet ushr i and 1L != 0L) this += entry
 }
 
+inline fun <reified T : Enum<T>> EnumSet<T>.toLong(): Long {
+    var value = 0L
+    val entries = enumEntries<T>()
+    check(entries.size <= 64) { "Can't encode ${T::class.qualifiedName} as Long" }
+
+    for (entry in entries) {
+        if (entry in this) value += 1
+        value = value shl 1
+    }
+    return value
+}

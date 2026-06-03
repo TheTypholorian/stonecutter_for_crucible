@@ -1,12 +1,15 @@
+@file:Suppress("DEPRECATION")
+
 package dev.kikugie.stonecutter.build.config
 
+import dev.kikugie.stitcher.replacement.PerlReplacement
 import dev.kikugie.stitcher.replacement.RegexReplacement
 import dev.kikugie.stitcher.replacement.Replacement
 import dev.kikugie.stitcher.replacement.StringReplacement
 import dev.kikugie.stitcher.util.isValidIdentifier
+import dev.kikugie.stitcher.util.toLong
 import dev.kikugie.stonecutter.Identifier
-import dev.kikugie.stonecutter.build.config.ReplacementContainer.RegexReplacementSpec
-import dev.kikugie.stonecutter.build.config.ReplacementContainer.StringReplacementSpec
+import dev.kikugie.stonecutter.build.config.ReplacementContainer.*
 import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
@@ -14,6 +17,8 @@ import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.newInstance
 import org.intellij.lang.annotations.Language
+import org.pcre4j.option.Pcre2CompileOption
+import java.util.*
 import java.util.regex.Pattern
 import javax.inject.Inject
 
@@ -128,6 +133,14 @@ public sealed interface ReplacementContainer {
     public fun regex(id: Identifier, direction: Boolean?, action: Action<RegexReplacementSpec>): Unit =
         regex { this.id.set(id); this.direction.set(direction); action.execute(this) }
 
+    public fun perl(action: Action<PerlReplacementSpec>)
+
+    public fun perl(direction: Boolean, action: Action<PerlReplacementSpec>): Unit =
+        perl { this.direction.set(direction); action.execute(this) }
+
+    public fun perl(direction: Boolean, id: Identifier, action: Action<PerlReplacementSpec>): Unit =
+        perl { this.direction.set(direction); this.id.set(id); action.execute(this) }
+
     /**
      * String replacement configuration extension.
      *
@@ -163,11 +176,13 @@ public sealed interface ReplacementContainer {
         /**
          * Original value to be replaced. Must not be empty.
          */
+        @Deprecated("Use the `replace()` function")
         public abstract val from: Property<String>
 
         /**
          * Replacement value to use. Must not be empty.
          */
+        @Deprecated("Use the `replace()` function")
         public abstract val to: Property<String>
 
         /**
@@ -213,21 +228,25 @@ public sealed interface ReplacementContainer {
         /**
          * Regex pattern to match against when replacing content in the forward direction.
          */
+        @Deprecated("Use the `replace()` function")
         public abstract val fromPattern: Property<String>
 
         /**
          * Replacement value for forward direction regex matching.
          */
+        @Deprecated("Use the `replace()` function")
         public abstract val toValue: Property<String>
 
         /**
          * Regex pattern for matching strings to be replaced when processing files in reverse direction.
          */
+        @Deprecated("Use the `replace()` function")
         public abstract val reversePattern: Property<String>
 
         /**
          * The replacement value to use when performing reverse regex transformations.
          */
+        @Deprecated("Use the `replace()` function")
         public abstract val reverseValue: Property<String>
 
         /**
@@ -315,6 +334,34 @@ public sealed interface ReplacementContainer {
             reversePattern: Pattern, reverseReplacement: String,
         )
     }
+
+    public abstract class PerlReplacementSpec {
+        /**
+         * Selector for the replaced values.
+         *
+         * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#regex-replacements">Regex Replacement Documentation</a>
+         */
+        public abstract val direction: Property<Boolean>
+
+        /**
+         * Optional identifier for the replacement.
+         *
+         * When:
+         * - `null`: replacement is always performed
+         * - non-null: replacement must be explicitly enabled by the id
+         * - prefixed with '!': replacement is active by default and can be disabled by the id
+         *
+         * The identifier must match `[_a-zA-Z][_\-a-zA-Z0-9]*`.
+         * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#replacement-identifiers">Replacement Identifier Documentation</a>
+         */
+        public abstract val id: Property<Identifier>
+
+        public abstract fun replace(
+            directPattern: String, directReplacement: String,
+            reversePattern: String, reverseReplacement: String,
+            vararg options: Pcre2CompileOption
+        )
+    }
 }
 
 internal abstract class ReplacementContainerImpl @Inject constructor(
@@ -326,6 +373,9 @@ internal abstract class ReplacementContainerImpl @Inject constructor(
 
     override fun regex(action: Action<RegexReplacementSpec>): Unit =
         objects.newInstance<RegexSpecImpl>(replacements).also(action::execute).finalise()
+
+    override fun perl(action: Action<PerlReplacementSpec>): Unit =
+        objects.newInstance<PerlSpecImpl>(replacements).also(action::execute).finalise()
 }
 
 internal abstract class StringSpecImpl @Inject constructor(val replacements: ListProperty<Replacement>) : StringReplacementSpec() {
@@ -370,6 +420,36 @@ internal abstract class RegexSpecImpl @Inject constructor(val replacements: List
 
         if (fromPattern.isPresent || toValue.isPresent || reversePattern.isPresent || reverseValue.isPresent)
             replace(fromPattern.get(), toValue.get(), reversePattern.get(), reverseValue.get())
+    }
+}
+
+internal abstract class PerlSpecImpl @Inject constructor(val replacements: ListProperty<Replacement>) : PerlReplacementSpec() {
+    private var usedImmediateAnonymousAssignment: Boolean = false
+
+    override fun replace(
+        directPattern: String,
+        directReplacement: String,
+        reversePattern: String,
+        reverseReplacement: String,
+        vararg options: Pcre2CompileOption
+    ) {
+        val (id, enabled) = id.unwrap()
+        if (id == null) usedImmediateAnonymousAssignment = true
+        else require(id.isValidIdentifier()) { "Invalid replacement identifier '$id'" }
+
+        val set = EnumSet.noneOf(Pcre2CompileOption::class.java)
+            .apply { addAll(options.toList()) }
+            .toLong()
+
+        val it =
+            if (direction.get()) PerlReplacement(directReplacement, directPattern, set, id, enabled)
+            else PerlReplacement(reverseReplacement, reversePattern, set, id, enabled)
+        replacements.add(it)
+    }
+
+    fun finalise() {
+        if (usedImmediateAnonymousAssignment && id.isPresent)
+            error("Regex replacement id '${id.get()}' was assigned after replacements were registered")
     }
 }
 

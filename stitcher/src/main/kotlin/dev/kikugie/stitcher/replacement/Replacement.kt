@@ -1,15 +1,13 @@
-@file:UseSerializers(RegexSerializer::class, PerlSerializer::class, PerlCompileOptionsSerializer::class)
+@file:UseSerializers(RegexSerializer::class, PerlSerializer::class)
 
 package dev.kikugie.stitcher.replacement
 
-import dev.kikugie.stitcher.util.PerlCompileOptionsSerializer
 import dev.kikugie.stitcher.util.PerlSerializer
 import dev.kikugie.stitcher.util.RegexSerializer
+import dev.kikugie.stitcher.util.toEnumSet
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
 import org.pcre4j.Pcre2Code
-import org.pcre4j.option.Pcre2CompileOption
-import java.util.*
 import java.util.regex.Pattern
 
 /**
@@ -68,9 +66,9 @@ data class RegexReplacement(
 data class PerlReplacement(
     val target: String,
     val pattern: String,
-    val options: EnumSet<Pcre2CompileOption>,
+    val options: Long = 0L,
     override val identifier: String? = null,
     override val enabled: Boolean = false,
 ) : Replacement, java.io.Serializable {
-    val regex: Pcre2Code by lazy { Pcre2Code(pattern, options) }
+    val regex: Pcre2Code by lazy { Pcre2Code(pattern, options.toEnumSet()) }
 }
