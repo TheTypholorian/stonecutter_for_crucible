@@ -59,7 +59,13 @@ data class RegexReplacement(
     override val identifier: String? = null,
     override val enabled: Boolean = false,
 ) : Replacement, java.io.Serializable {
-    val regex: Pattern by lazy { Pattern.compile(pattern, flags) }
+    @Transient @kotlinx.serialization.Transient private lateinit var _regex: Pattern
+
+    internal val regex: Pattern get() {
+        if (!::_regex.isInitialized) _regex = Pattern.compile(pattern, flags)
+        return _regex
+    }
+
 }
 
 @Serializable
@@ -70,5 +76,10 @@ data class PerlReplacement(
     override val identifier: String? = null,
     override val enabled: Boolean = false,
 ) : Replacement, java.io.Serializable {
-    val regex: Pcre2Code by lazy { Pcre2Code(pattern, options.toEnumSet()) }
+    @Transient @kotlinx.serialization.Transient private lateinit var _code: Pcre2Code
+
+    internal val regex: Pcre2Code get() {
+        if (!::_code.isInitialized) _code = Pcre2Code(pattern, options.toEnumSet())
+        return _code
+    }
 }
