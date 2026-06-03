@@ -9,6 +9,7 @@ import dev.kikugie.stitcher.replacement.StringReplacement
 import dev.kikugie.stitcher.util.isValidIdentifier
 import dev.kikugie.stitcher.util.toLong
 import dev.kikugie.stonecutter.Identifier
+import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.build.config.ReplacementContainer.*
 import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
@@ -133,11 +134,14 @@ public sealed interface ReplacementContainer {
     public fun regex(id: Identifier, direction: Boolean?, action: Action<RegexReplacementSpec>): Unit =
         regex { this.id.set(id); this.direction.set(direction); action.execute(this) }
 
+    @StonecutterExperimentalAPI
     public fun perl(action: Action<PerlReplacementSpec>)
 
+    @StonecutterExperimentalAPI
     public fun perl(direction: Boolean, action: Action<PerlReplacementSpec>): Unit =
         perl { this.direction.set(direction); action.execute(this) }
 
+    @StonecutterExperimentalAPI
     public fun perl(direction: Boolean, id: Identifier, action: Action<PerlReplacementSpec>): Unit =
         perl { this.direction.set(direction); this.id.set(id); action.execute(this) }
 
@@ -335,6 +339,7 @@ public sealed interface ReplacementContainer {
         )
     }
 
+    @ReplacementSpecDsl @StonecutterExperimentalAPI
     public abstract class PerlReplacementSpec {
         /**
          * Selector for the replaced values.
@@ -374,6 +379,7 @@ internal abstract class ReplacementContainerImpl @Inject constructor(
     override fun regex(action: Action<RegexReplacementSpec>): Unit =
         objects.newInstance<RegexSpecImpl>(replacements).also(action::execute).finalise()
 
+    @OptIn(StonecutterExperimentalAPI::class)
     override fun perl(action: Action<PerlReplacementSpec>): Unit =
         objects.newInstance<PerlSpecImpl>(replacements).also(action::execute).finalise()
 }
@@ -423,6 +429,7 @@ internal abstract class RegexSpecImpl @Inject constructor(val replacements: List
     }
 }
 
+@OptIn(StonecutterExperimentalAPI::class)
 internal abstract class PerlSpecImpl @Inject constructor(val replacements: ListProperty<Replacement>) : PerlReplacementSpec() {
     private var usedImmediateAnonymousAssignment: Boolean = false
 
