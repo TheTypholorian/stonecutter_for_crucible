@@ -1,5 +1,9 @@
 [versions]
 antlr = "4.13.2"
+gradle-compat = "1.0.0"
+
+[plugins]
+gradle-compatibility = { id = "org.gradle.plugin-compatibility", version.ref = "gradle-compat" }
 
 [libraries]
 antlr = { group = "org.antlr", name="antlr4", version.ref = "antlr" }

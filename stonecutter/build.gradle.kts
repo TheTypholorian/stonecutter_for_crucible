@@ -2,6 +2,7 @@
 @file:OptIn(ExperimentalPathApi::class)
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.gradle.plugin.compatibility.compatibility
 import java.net.URI
 import kotlin.io.path.ExperimentalPathApi
 
@@ -12,6 +13,7 @@ plugins {
     `maven-publish`
     kotlin("jvm")
     kotlin("plugin.serialization")
+    alias(libs.plugins.gradle.compatibility)
     alias(common.plugins.gradle.shadow)
     alias(common.plugins.gradle.publish)
     alias(common.plugins.kotlin.validator)
@@ -166,6 +168,12 @@ gradlePlugin {
             displayName = "Stonecutter"
             description = "Modern Gradle plugin for multi-version management"
             tags.addAll("preprocessor", "java", "kotlin", "resources")
+
+            compatibility {
+                features {
+                    configurationCache = true
+                }
+            }
         }
     }
 }
