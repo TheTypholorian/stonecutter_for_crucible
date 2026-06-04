@@ -4,6 +4,7 @@ import dev.kikugie.stitcher.replacement.RegexReplacement
 import dev.kikugie.stitcher.replacement.Replacement
 import dev.kikugie.stitcher.replacement.ReplacementExecutor
 import dev.kikugie.stitcher.replacement.StringReplacement
+import dev.kikugie.stitcher.util.toLong
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import org.intellij.lang.annotations.Language
@@ -89,7 +90,7 @@ private fun MutableList<Replacement>.perl(@Language("RegExp") from: String, to: 
     val (id, enabled) = id.unwrap()
     val set = EnumSet.noneOf(Pcre2CompileOption::class.java)
     set.addAll(options.toList())
-    this += PerlReplacement(to, from, set, id, enabled)
+    this += PerlReplacement(to, from, set.toLong(), id, enabled)
 }
 
 private fun String?.unwrap(): Pair<String?, Boolean> {
