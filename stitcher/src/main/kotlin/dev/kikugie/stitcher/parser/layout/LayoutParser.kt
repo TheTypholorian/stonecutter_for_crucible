@@ -185,6 +185,14 @@ internal class LayoutParser private constructor(
         }
     }
 
+    private fun reportParserCrashed(body: AntlrToken, error: Throwable) {
+        problems.report(LAYOUT_GROUP.child("parser-died"), body) {
+            label = "Invalid expression"
+            details = "The parser can't figure out how to parse this ╮(°᎑°)╭"
+            exception = error
+        }
+    }
+
     private fun parseCommentBody(body: AntlrToken): Pair<AntlrToken, DefinitionToken>? = InlineCharStream(body).use { input ->
         if (input.LC(1).let { it != '?' && it != '$' && it != '~' }) return@use null
 
@@ -196,7 +204,9 @@ internal class LayoutParser private constructor(
             errorListener = listener
             errorHandler = StitcherErrorStrategy
         }
-        parser.definition().accept(visitor)
+        parser.runCatching { definition().accept(visitor) }
+            .onFailure { reportParserCrashed(body, it) }
+            .getOrNull()
     }
 
     companion object {
