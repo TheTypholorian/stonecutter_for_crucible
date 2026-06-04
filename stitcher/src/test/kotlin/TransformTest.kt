@@ -245,6 +245,24 @@ class TransformTest : FreeSpec({
                 replacements.string("/*Map*/Codec", "MapCodec")
             } shouldBe expected
         }
+
+        "regex groups" {
+            val content = """
+                EntityType.RABBIT
+                EntityType.RABBIT
+            """.trimIndent()
+            val expected = """
+                EntityTypes.RABBIT
+                EntityTypes.RABBIT
+            """.trimIndent()
+            process(content) {
+                replacements.regex("EntityType\\.([A-Z_]+)", "EntityTypes.$1")
+            } shouldBe expected
+
+            process(expected) {
+                replacements.regex("EntityTypes.([A-Z_]+)", "EntityType.$1")
+            } shouldBe content
+        }
     }
 
     "conditions" - {
