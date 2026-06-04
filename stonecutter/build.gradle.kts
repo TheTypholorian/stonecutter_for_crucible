@@ -16,7 +16,6 @@ plugins {
     alias(libs.plugins.gradle.compatibility)
     alias(common.plugins.gradle.shadow)
     alias(common.plugins.gradle.publish)
-    alias(common.plugins.kotlin.validator)
     alias(common.plugins.kotlin.dokka)
     alias(common.plugins.kotlin.dokka.javadoc)
     id("shared-setup")
@@ -47,16 +46,20 @@ dependencies {
     dokkaHtmlPlugin(common.kotlin.dokka.versioning)
 }
 
-apiValidation {
-    apiDumpDirectory = "src/api"
-}
-
 java {
     withSourcesJar()
 }
 
 kotlin {
     explicitApi()
+    @OptIn(org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation::class)
+    abiValidation {
+        filters {
+            exclude {
+                annotatedWith.add("dev.kikugie.stonecutter.StonecutterInternalAPI")
+            }
+        }
+    }
 }
 
 dokka {

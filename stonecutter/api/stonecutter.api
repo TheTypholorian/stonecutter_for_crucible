@@ -124,6 +124,9 @@ public abstract class dev/kikugie/stonecutter/build/config/DependencyContainer :
 }
 
 public abstract interface class dev/kikugie/stonecutter/build/config/ReplacementContainer {
+	public abstract fun perl (Lorg/gradle/api/Action;)V
+	public fun perl (ZLjava/lang/String;Lorg/gradle/api/Action;)V
+	public fun perl (ZLorg/gradle/api/Action;)V
 	public fun regex (Ljava/lang/String;Ljava/lang/Boolean;Lorg/gradle/api/Action;)V
 	public fun regex (Ljava/lang/String;Lorg/gradle/api/Action;)V
 	public abstract fun regex (Lorg/gradle/api/Action;)V
@@ -134,6 +137,13 @@ public abstract interface class dev/kikugie/stonecutter/build/config/Replacement
 	public abstract fun string (Lorg/gradle/api/Action;)V
 	public fun string (ZLjava/lang/String;Lorg/gradle/api/Action;)V
 	public fun string (ZLorg/gradle/api/Action;)V
+}
+
+public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$PerlReplacementSpec {
+	public fun <init> ()V
+	public abstract fun getDirection ()Lorg/gradle/api/provider/Property;
+	public abstract fun getId ()Lorg/gradle/api/provider/Property;
+	public abstract fun replace (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Lorg/pcre4j/option/Pcre2CompileOption;)V
 }
 
 public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$RegexReplacementSpec {
@@ -148,9 +158,9 @@ public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$
 	public final fun replace (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
 	public final fun replace (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V
 	public final fun replace (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Lkotlin/text/RegexOption;)V
-	public final fun replace (Ljava/util/regex/Pattern;Ljava/lang/String;Ljava/util/regex/Pattern;Ljava/lang/String;)V
+	public abstract fun replace (Ljava/util/regex/Pattern;Ljava/lang/String;Ljava/util/regex/Pattern;Ljava/lang/String;)V
 	public final fun replace (Lkotlin/Pair;Lkotlin/Pair;)V
-	public abstract fun replace (Lkotlin/text/Regex;Ljava/lang/String;Lkotlin/text/Regex;Ljava/lang/String;)V
+	public final fun replace (Lkotlin/text/Regex;Ljava/lang/String;Lkotlin/text/Regex;Ljava/lang/String;)V
 	public static synthetic fun replace$default (Ldev/kikugie/stonecutter/build/config/ReplacementContainer$RegexReplacementSpec;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)V
 	public final fun reverse (Ljava/lang/String;Ljava/lang/String;)V
 }
@@ -208,18 +218,9 @@ public abstract class dev/kikugie/stonecutter/build/config/SwapContainer : dev/k
 
 public abstract interface class dev/kikugie/stonecutter/build/task/StonecutterBuildTasks {
 	public abstract fun configureSource (Lorg/gradle/api/tasks/SourceSet;)V
-	public abstract fun getGenerate ()Ldev/kikugie/stonecutter/data/whatever/TaskProviderMap;
 	public abstract fun getGeneratedSourcesDir ()Lorg/gradle/api/file/DirectoryProperty;
 	public abstract fun getMerge ()Ldev/kikugie/stonecutter/data/whatever/TaskProviderMap;
-	public abstract fun getPrepare ()Ldev/kikugie/stonecutter/data/whatever/TaskProviderMap;
 	public abstract fun getProcessedCacheDir ()Lorg/gradle/api/file/DirectoryProperty;
-}
-
-public abstract class dev/kikugie/stonecutter/build/task/StonecutterPrepareTask : org/gradle/api/DefaultTask {
-	public fun <init> ()V
-	public abstract fun getDestination ()Lorg/gradle/api/file/DirectoryProperty;
-	public abstract fun getRoot ()Lorg/gradle/api/provider/Property;
-	public abstract fun getSource ()Lorg/gradle/api/file/ConfigurableFileCollection;
 }
 
 public abstract interface class dev/kikugie/stonecutter/controller/StonecutterControllerExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider {
@@ -312,7 +313,6 @@ public abstract interface class dev/kikugie/stonecutter/controller/flag/Stonecut
 }
 
 public abstract class dev/kikugie/stonecutter/controller/task/StonecutterControllerTasks {
-	public static final field VERSION_COMPARATOR Ljava/util/Comparator;
 	public fun <init> ()V
 	public abstract fun getSwitch ()Ldev/kikugie/stonecutter/data/whatever/TaskProviderMap;
 	public final fun getVersionComparator ()Ljava/util/Comparator;
