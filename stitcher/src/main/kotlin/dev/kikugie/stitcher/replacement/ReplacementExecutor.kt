@@ -13,17 +13,38 @@ import java.util.regex.MatchResult
 
 private val REPLACEMENT_GROUP = ProblemID("replacement-execution")
 
-internal class ReplacementExecutor(replacements: List<Replacement>, problems: FileProblemReporter) {
-    private val identifiers: MutableSet<String> = mutableSetOf()
-    private val stringExecutor: StringExecutor = StringExecutor(replacements, problems)
-    private val regexExecutor: RegexExecutor = RegexExecutor(replacements)
-    private val perlExecutor: PerlExecutor = PerlExecutor(replacements)
-    private val Replacement.active: Boolean
+internal interface ReplacementExecutorBase {
+    val identifiers: Set<String>
+    val Replacement.active: Boolean
         get() = identifier == null || identifier in identifiers
+
+    fun collect(offset: Int, text: CharSequence, queue: EmitQueue)
+
+    fun replace(offset: Int, builder: StringBuilder) {
+        val queue = EmitQueue()
+        collect(offset, builder, queue)
+
+        var offset = 0
+        for (emit in queue.entries)
+            offset += emit.apply(builder, offset)
+    }
+}
+
+internal class ReplacementExecutor(replacements: List<Replacement>, problems: FileProblemReporter) : ReplacementExecutorBase {
+    override val identifiers: MutableSet<String> = HashSet()
+    private val stringExecutor: StringExecutor = StringExecutor(replacements, problems, identifiers)
+    private val regexExecutor: RegexExecutor = RegexExecutor(replacements, problems, identifiers)
+    private val perlExecutor: PerlExecutor = PerlExecutor(replacements, problems, identifiers)
 
     init {
         for (repl in replacements) if (repl.identifier != null && repl.enabled)
             identifiers += repl.identifier!!
+    }
+
+    override fun collect(offset: Int, text: CharSequence, queue: EmitQueue) {
+        stringExecutor.collect(offset, text, queue)
+        regexExecutor.collect(offset, text, queue)
+        perlExecutor.collect(offset, text, queue)
     }
 
     fun toggle(enable: Set<String> = emptySet(), disable: Set<String> = emptySet()) {
@@ -35,67 +56,65 @@ internal class ReplacementExecutor(replacements: List<Replacement>, problems: Fi
     fun include(new: Iterable<StringReplacement>) {
         stringExecutor.include(new)
     }
+}
 
-    fun collect(offset: Int, text: CharSequence, queue: EmitQueue) {
-        stringExecutor.collect(offset, text, queue)
-        regexExecutor.collect(text, queue)
-        perlExecutor.collect(text, queue)
+private class StringExecutor(
+    replacements: List<Replacement>,
+    private val problems: FileProblemReporter,
+    override val identifiers: Set<String>,
+) : ReplacementExecutorBase {
+    private val replacements = mutableMapOf<String, MutableList<StringReplacement>>()
+        .apply { replacements.byPattern(this) }
+    private val searcher = AhoCorasick(replacements.toPayloads())
+    private val cache = mutableMapOf<String, String?>()
+
+    override fun collect(offset: Int, text: CharSequence, queue: EmitQueue) {
+        for (match in searcher.search(text))
+            if (replacements[match.pattern]?.any { it.active } ?: true)
+                queue += StringEmit(offset, match)
     }
 
-    fun replace(offset: Int, builder: StringBuilder) {
-        val queue = EmitQueue()
-        collect(offset, builder, queue)
-
-        var offset = 0
-        for (emit in queue.entries)
-            offset += emit.apply(builder, offset)
+    fun reset() {
+        cache.clear()
     }
 
-    private inner class StringExecutor(replacements: List<Replacement>, private val problems: FileProblemReporter) {
-        private val replacements = mutableMapOf<String, MutableList<StringReplacement>>()
-            .apply { replacements.byPattern(this) }
-        private val searcher = AhoCorasick(replacements.toPayloads())
-        private val cache = mutableMapOf<String, String?>()
+    fun include(new: Iterable<StringReplacement>) {
+        new.byPattern(replacements)
+        searcher += new.toPayloads()
+        cache.clear()
+    }
 
-        fun reset() {
-            cache.clear()
+    private fun Iterable<Replacement>.byPattern(map: MutableMap<String, MutableList<StringReplacement>>) {
+        for (repl in this) if (repl is StringReplacement)
+            map.getOrPut(repl.pattern, ::mutableListOf) += repl
+    }
+
+    private fun Iterable<Replacement>.toPayloads() = buildSet {
+        for (entry in this@toPayloads) if (entry is StringReplacement) {
+            this += entry.pattern
+            this += entry.target
+        }
+    }
+
+    private inner class StringEmit(val offset: Int, val match: AhoCorasick.Match) : EmitQueue.Entry {
+        override val start: Int get() = match.start
+        override val end: Int get() = match.end
+        private val value: String? by lazy { cache.getOrPut(match.pattern, ::findReplacement) }
+
+        override fun apply(builder: StringBuilder, offset: Int): Int {
+            if (value == null) return 0
+
+            builder.replace(start + offset, end + offset, value)
+            return value!!.length - (end - start)
         }
 
-        fun include(new: Iterable<StringReplacement>) {
-            new.byPattern(replacements)
-            searcher += new.toPayloads()
-            cache.clear()
+        private tailrec fun findReplacement(pattern: String = match.pattern): String = when (val next = nextTransition(pattern)) {
+            null -> match.pattern
+            pattern, match.pattern -> next
+            else -> findReplacement(next)
         }
 
-        fun collect(start: Int, text: CharSequence, queue: EmitQueue) {
-            for (match in searcher.search(text))
-                if (replacements[match.pattern]?.any { it.active } ?: true)
-                    queue += StringEmit(start, match)
-        }
-
-        private fun Iterable<Replacement>.byPattern(map: MutableMap<String, MutableList<StringReplacement>>) {
-            for (repl in this) if (repl is StringReplacement)
-                map.getOrPut(repl.pattern, ::mutableListOf) += repl
-        }
-
-        private fun Iterable<Replacement>.toPayloads() = buildSet {
-            for (entry in this@toPayloads) if (entry is StringReplacement) {
-                this += entry.pattern
-                this += entry.target
-            }
-        }
-
-        private fun replacementFor(start: Int, ctx: AhoCorasick.Match): String? =
-            cache.getOrPut(ctx.pattern) { replacementFor(start, ctx, ctx.pattern) }
-
-        private tailrec fun replacementFor(start: Int, ctx: AhoCorasick.Match, pattern: String): String? =
-            when (val next = transitionFor(start, ctx, pattern)) {
-                pattern, ctx.pattern -> next
-                null -> pattern
-                else -> replacementFor(start, ctx, next)
-            }
-
-        private fun transitionFor(start: Int, ctx: AhoCorasick.Match, pattern: String): String? {
+        private fun nextTransition(pattern: String): String? {
             val variants = replacements[pattern]?.takeIf(List<*>::isNotEmpty)
                 ?: return null
 
@@ -104,107 +123,115 @@ internal class ReplacementExecutor(replacements: List<Replacement>, problems: Fi
                     this += it.target
             }
 
-            if (candidates.size > 1) reportAmbiguousTransition(start, ctx, pattern, candidates)
+            if (candidates.size > 1) reportAmbiguousTransition(pattern, candidates)
             return candidates.singleOrNull()
         }
 
-        private fun reportAmbiguousTransition(
-            start: Int,
-            ctx: AhoCorasick.Match,
-            pattern: String,
-            candidates: Set<String>
-        ) = problems.report(REPLACEMENT_GROUP.child("ambiguous-transition"), start + ctx.start) {
-            label = "Ambiguous replacement"
-            details = buildString {
-                append("Pattern ${ctx.pattern}")
-                if (ctx.pattern != pattern) append(" (through $pattern)")
-                appendLine(" can be replaced with multiple values:")
-                append(candidates.present { "'$it'" })
-            }
-        }
-
-        private inner class StringEmit(val offset: Int, val match: AhoCorasick.Match) : EmitQueue.Entry {
-            override val start: Int get() = match.start
-            override val end: Int get() = match.end
-            private val value: String? by lazy { replacementFor(offset, match) }
-
-            override fun apply(builder: StringBuilder, offset: Int): Int {
-                if (value == null) return 0
-
-                builder.replace(start + offset, end + offset, value)
-                return value!!.length - (end - start)
+        private fun reportAmbiguousTransition(pattern: String, candidates: Set<String>) {
+            problems.report(REPLACEMENT_GROUP.child("ambiguous-transition"), offset + start) {
+                label = "Ambiguous replacement"
+                details = buildString {
+                    append("Pattern ${match.pattern}")
+                    if (match.pattern != pattern) append(" (through $pattern)")
+                    appendLine(" can be replaced with multiple values:\n")
+                    append(candidates.present { "'$it'" })
+                    append('.')
+                }
             }
         }
     }
+}
 
-    private inner class RegexExecutor(replacements: List<Replacement>) {
-        private val replacements = replacements.filterIsInstance<RegexReplacement>()
+private class RegexExecutor(
+    replacements: List<Replacement>,
+    private val problems: FileProblemReporter,
+    override val identifiers: Set<String>,
+) : ReplacementExecutorBase {
+    private val replacements = replacements.filterIsInstance<RegexReplacement>()
 
-        fun collect(text: CharSequence, queue: EmitQueue) {
-            for (repl in replacements) if (repl.active)
-                process(repl, text, queue)
-        }
+    override fun collect(offset: Int, text: CharSequence, queue: EmitQueue) {
+        for (repl in replacements) if (repl.active)
+            process(repl, text, queue)
+    }
 
-        private fun process(repl: RegexReplacement, text: CharSequence, queue: EmitQueue) {
-            val matcher = repl.regex.matcher(text)
-            var index = 0
-            while (index >= 0 && matcher.find(index)) {
-                queue += RegexEmit(matcher.toMatchResult(), repl.target)
-                index = matcher.nextIndex(text)
-            }
-        }
-
-        private fun MatchResult.nextIndex(text: CharSequence): Int {
-            val next = end() + if (end() == start()) 1 else 0
-            return if (next <= text.length) next else -1
-        }
-
-        private inner class RegexEmit(val match: MatchResult, val value: String) : EmitQueue.Entry {
-            override val start: Int get() = match.start()
-            override val end: Int get() = match.end()
-
-            override fun apply(builder: StringBuilder, offset: Int): Int {
-                val length = builder.length
-                builder.appendMatch(match, value)
-
-                val repl = builder.substring(length)
-                if (repl.isEmpty()) return 0
-
-                builder.setLength(length)
-                builder.replace(start + offset, end + offset, repl)
-
-                return builder.length - length
-            }
+    private fun process(repl: RegexReplacement, text: CharSequence, queue: EmitQueue) {
+        val matcher = repl.regex.matcher(text)
+        var index = 0
+        while (index >= 0 && matcher.find(index)) {
+            queue += RegexEmit(matcher.toMatchResult(), repl.target)
+            index = matcher.nextIndex(text)
         }
     }
 
-    private inner class PerlExecutor(replacements: List<Replacement>) {
-        private val replacements = replacements.filterIsInstance<PerlReplacement>()
+    private fun MatchResult.nextIndex(text: CharSequence): Int {
+        val next = end() + if (end() == start()) 1 else 0
+        return if (next <= text.length) next else -1
+    }
 
-        fun collect(text: CharSequence, queue: EmitQueue) {
-            val string = text.toString()
-            for (repl in replacements) if (repl.active)
-                process(repl, string, queue)
+    private class RegexEmit(val match: MatchResult, val value: String) : EmitQueue.Entry {
+        override val start: Int get() = match.start()
+        override val end: Int get() = match.end()
+
+        override fun apply(builder: StringBuilder, offset: Int): Int {
+            val length = builder.length
+            builder.appendMatch(match, value)
+
+            val repl = builder.substring(length)
+            if (repl.isEmpty()) return 0
+
+            builder.setLength(length)
+            builder.replace(start + offset, end + offset, repl)
+
+            return builder.length - length
         }
+    }
+}
 
-        private fun process(repl: PerlReplacement, text: String, queue: EmitQueue) {
-            val data = Pcre2MatchData(repl.regex)
-            var start = 0
-            while (start in text.indices) {
-                val value = repl.regex.substitute(text, start, EnumSet.of(EXTENDED, REPLACEMENT_ONLY), data, null, repl.target)
-                if (value.isEmpty()) break
 
-                val offsets = data.ovector()
-                queue += PerlEmit(offsets[0].toInt(), offsets[1].toInt(), value)
-                start = offsets[1].toInt()
-            }
+private class PerlExecutor(
+    replacements: List<Replacement>,
+    private val problems: FileProblemReporter,
+    override val identifiers: Set<String>,
+) : ReplacementExecutorBase {
+    private val replacements = replacements.filterIsInstance<PerlReplacement>()
+
+    override fun collect(offset: Int, text: CharSequence, queue: EmitQueue) {
+        val string = text.toString()
+        for (repl in replacements) if (repl.active)
+            process(repl, offset, string, queue)
+    }
+
+    private fun process(repl: PerlReplacement, offset: Int, text: String, queue: EmitQueue) {
+        val data = Pcre2MatchData(repl.regex)
+        var start = 0
+        while (start in text.indices) {
+            val value = substitute(repl, offset, start, text, data)
+            if (value.isEmpty()) break
+
+            val offsets = data.ovector()
+            queue += PerlEmit(offsets[0].toInt(), offsets[1].toInt(), value)
+            start = offsets[1].toInt()
         }
+    }
 
-        private inner class PerlEmit(override val start: Int, override val end: Int, val value: String) : EmitQueue.Entry {
-            override fun apply(builder: StringBuilder, offset: Int): Int {
-                builder.replace(start + offset, end + offset, value)
-                return value.length - (end - start)
-            }
+    private fun substitute(repl: PerlReplacement, offset: Int, start: Int, text: String, data: Pcre2MatchData): String = try {
+        repl.regex.substitute(text, start, EnumSet.of(EXTENDED, REPLACEMENT_ONLY), data, null, repl.target)
+    } catch (e: RuntimeException) {
+        reportSubstituteError(offset + start, e)
+        ""
+    }
+
+    private fun reportSubstituteError(index: Int, error: Throwable) {
+        problems.report(REPLACEMENT_GROUP.child("pcre-error"), index) {
+            label = "PCRE substitution error"
+            exception = error
+        }
+    }
+
+    private class PerlEmit(override val start: Int, override val end: Int, val value: String) : EmitQueue.Entry {
+        override fun apply(builder: StringBuilder, offset: Int): Int {
+            builder.replace(start + offset, end + offset, value)
+            return value.length - (end - start)
         }
     }
 }

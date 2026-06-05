@@ -187,7 +187,7 @@ internal class LayoutParser private constructor(
     private fun reportUnparsedDefinition(body: AntlrToken) {
         problems.report(LAYOUT_GROUP.child("parse-failure"), body) {
             label = "Invalid code definition"
-            details = "The parser is unable to match this comment to any syntax"
+            details = "The parser is unable to match this comment to any syntax."
         }
     }
 
