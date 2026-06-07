@@ -270,7 +270,6 @@ private fun consumeWordCustom(str: String, match: String, capturing: Boolean): I
     else -> idx
 }
 
-
 private fun BlockBuilder?.isNotBlank(): Boolean = when (this) {
     is ContentBuilder -> !isBlank
     is CommentBuilder -> !isBlank

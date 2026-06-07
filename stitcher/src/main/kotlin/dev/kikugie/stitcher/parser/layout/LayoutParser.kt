@@ -79,7 +79,7 @@ internal class LayoutParser private constructor(
         }
     }
 
-    private fun acceptBlock(block: BlockBuilder): Unit = when (val result = stack.peekLast().accept(block)) {
+    private tailrec fun acceptBlock(block: BlockBuilder): Unit = when (val result = stack.peekLast().accept(block)) {
         // Can accept more - do nothing
         BlockAcceptResult.ConsumedOpen -> Unit
 
@@ -119,7 +119,7 @@ internal class LayoutParser private constructor(
         is CodeBuilder -> handleNestedCode(code, parent)
     }
 
-    private fun LayoutParser.handleRootCode(code: CodeBuilder) {
+    private fun handleRootCode(code: CodeBuilder) {
         acceptBlock(code)
         // '}' shouldn't be possible in the root scope
         if (code.definition.closer != null)
@@ -130,7 +130,7 @@ internal class LayoutParser private constructor(
             stack.addLast(code)
     }
 
-    private fun LayoutParser.handleNestedCode(code: CodeBuilder, parent: CodeBuilder) {
+    private fun handleNestedCode(code: CodeBuilder, parent: CodeBuilder) {
         if (code.kind.isExtension) {
             // Check for situations like `? if condition { ... $}`, in which case we close it anyway
             if (parent.marker.type != code.marker.type)
