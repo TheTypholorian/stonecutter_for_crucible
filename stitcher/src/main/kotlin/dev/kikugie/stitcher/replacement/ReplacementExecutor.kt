@@ -69,9 +69,10 @@ private class StringExecutor(
     private val cache = mutableMapOf<String, String?>()
 
     override fun collect(offset: Int, text: CharSequence, queue: EmitQueue) {
-        for (match in searcher.search(text))
-            if (replacements[match.pattern]?.any { it.active } ?: true)
-                queue += StringEmit(offset, match)
+        for (match in searcher.search(text)) {
+            val value = match.findReplacement(offset)
+            if (value != null) queue += StringEmit(match, value)
+        }
     }
 
     fun reset() {
@@ -96,48 +97,46 @@ private class StringExecutor(
         }
     }
 
-    private inner class StringEmit(val offset: Int, val match: AhoCorasick.Match) : EmitQueue.Entry {
+    private tailrec fun AhoCorasick.Match.findReplacement(offset: Int, prev: String = this.pattern): String? =
+        when (val next = nextTransition(offset, pattern)) {
+            prev, pattern -> next
+            null -> if (prev == pattern) null else prev
+            else -> findReplacement(offset, next)
+        }
+
+    private fun AhoCorasick.Match.nextTransition(offset: Int, pattern: String): String? {
+        val variants = replacements[pattern]?.takeIf(List<*>::isNotEmpty)
+            ?: return null
+
+        val candidates = buildSet {
+            for (it in variants) if (it.active)
+                this += it.target
+        }
+
+        if (candidates.size > 1) reportAmbiguousTransition(offset, pattern, candidates)
+        return candidates.singleOrNull()
+    }
+
+    private fun AhoCorasick.Match.reportAmbiguousTransition(offset: Int, prev: String, candidates: Set<String>) {
+        problems.report(REPLACEMENT_GROUP.child("ambiguous-transition"), offset + start) {
+            label = "Ambiguous replacement"
+            details = buildString {
+                append("Pattern $pattern")
+                if (prev != pattern) append(" (through $prev)")
+                appendLine(" can be replaced with multiple values:\n")
+                append(candidates.present { "'$it'" })
+                append('.')
+            }
+        }
+    }
+
+    private class StringEmit(val match: AhoCorasick.Match, val value: String) : EmitQueue.Entry {
         override val start: Int get() = match.start
         override val end: Int get() = match.end
-        private val value: String? by lazy { cache.getOrPut(match.pattern, ::findReplacement) }
 
         override fun apply(builder: StringBuilder, offset: Int): Int {
-            if (value == null) return 0
-
             builder.replace(start + offset, end + offset, value)
-            return value!!.length - (end - start)
-        }
-
-        private tailrec fun findReplacement(pattern: String = match.pattern): String = when (val next = nextTransition(pattern)) {
-            null -> match.pattern
-            pattern, match.pattern -> next
-            else -> findReplacement(next)
-        }
-
-        private fun nextTransition(pattern: String): String? {
-            val variants = replacements[pattern]?.takeIf(List<*>::isNotEmpty)
-                ?: return null
-
-            val candidates = buildSet {
-                for (it in variants) if (it.active)
-                    this += it.target
-            }
-
-            if (candidates.size > 1) reportAmbiguousTransition(pattern, candidates)
-            return candidates.singleOrNull()
-        }
-
-        private fun reportAmbiguousTransition(pattern: String, candidates: Set<String>) {
-            problems.report(REPLACEMENT_GROUP.child("ambiguous-transition"), offset + start) {
-                label = "Ambiguous replacement"
-                details = buildString {
-                    append("Pattern ${match.pattern}")
-                    if (match.pattern != pattern) append(" (through $pattern)")
-                    appendLine(" can be replaced with multiple values:\n")
-                    append(candidates.present { "'$it'" })
-                    append('.')
-                }
-            }
+            return value.length - (end - start)
         }
     }
 }

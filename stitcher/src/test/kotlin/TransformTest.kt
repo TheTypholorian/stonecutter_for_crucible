@@ -563,4 +563,21 @@ class TransformTest : FreeSpec({
             constants["false"] = false
         } shouldBe expected
     }
+
+    "weird replacement combo" {
+        val content = """
+            //~ if true 'gui.Hud' -> 'gui.Gui'
+            import net.gui.Hud
+            import net.gui.GuiGraphicsExtractor
+        """.trimIndent()
+        val expected = """
+            //~ if true 'gui.Hud' -> 'gui.Gui'
+            import net.gui.Gui
+            import net.gui.GuiGraphics
+        """.trimIndent()
+        process(content) {
+            replacements.string("GuiGraphicsExtractor", "GuiGraphics")
+            constants["true"] = true
+        } shouldBe expected
+    }
 })
