@@ -56,7 +56,7 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
             node.project.afterEvaluate {
                 if (name in tasks.names) tasks.named(name) {
                     outputs.file(lock)
-                    shouldRunAfter(*copy)
+                    mustRunAfter(*copy)
                 }
             }
         }
