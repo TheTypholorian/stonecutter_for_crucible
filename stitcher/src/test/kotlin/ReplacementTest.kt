@@ -64,6 +64,31 @@ class ReplacementTest : FunSpec({
                 Blocks.DYED_TERRACOTTA
             """.trimIndent()
         }
+
+        test("testing") {
+            val colorsLower = "black|blue|brown|cyan|gray|green|lime|magenta|orange|pink|purple|red|white|yellow"
+            val colorsUpper = "BLACK|BLUE|BROWN|CYAN|GRAY|GREEN|LIME|MAGENTA|ORANGE|PINK|PURPLE|RED|WHITE|YELLOW"
+            val withFunc = """
+                private fun SafeItemStack.isPaused(): Boolean = this.`is`(Items.DYED_TERRACOTTA.red())
+                private fun SafeItemStack.isPaused(): Boolean = this.`is`(Items.DYED_TERRACOTTA.red())
+            """.trimIndent()
+            val withField =  """
+                private fun SafeItemStack.isPaused(): Boolean = this.`is`(Items.RED_TERRACOTTA)
+                private fun SafeItemStack.isPaused(): Boolean = this.`is`(Items.RED_TERRACOTTA)
+            """.trimIndent()
+            buildList {
+                perl("DYED_TERRACOTTA\\.(?<color>$colorsLower)\\(\\)", $$"\\U${color}_TERRACOTTA")
+            }.let {
+                it apply withFunc shouldBe withField
+                it apply withField shouldBe withField
+            }
+            buildList {
+                perl( "(?<color>$colorsUpper)_TERRACOTTA", $$"DYED_TERRACOTTA.\\L${color}()")
+            }.let {
+                it apply withField shouldBe withFunc
+                it apply withFunc shouldBe withFunc
+            }
+        }
     }
 })
 
