@@ -86,8 +86,10 @@ private class StringExecutor(
     }
 
     private fun Iterable<Replacement>.byPattern(map: MutableMap<String, MutableList<StringReplacement>>) {
-        for (repl in this) if (repl is StringReplacement)
+        for (repl in this) if (repl is StringReplacement) {
             map.getOrPut(repl.pattern, ::mutableListOf) += repl
+            map.getOrPut(repl.target, ::mutableListOf) += repl
+        }
     }
 
     private fun Iterable<Replacement>.toPayloads() = buildSet {
