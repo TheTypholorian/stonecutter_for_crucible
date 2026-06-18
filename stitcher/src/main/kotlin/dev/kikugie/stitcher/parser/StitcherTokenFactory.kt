@@ -36,8 +36,20 @@ interface StitcherTokenFactory {
 fun StitcherTokenFactory.fromAntlrToken(token: AntlrToken, type: StitcherType = StitcherType.of(token.type)): LeafToken =
     create(type, token.startIndex, token.endIndex, token.text)
 
+@JvmName("fromAntlrTokenOrNull")
+fun StitcherTokenFactory.fromAntlrToken(token: AntlrToken?, type: StitcherType = StitcherType.of(token?.type ?: -1)): LeafToken? =
+    token?.run { create(type, startIndex, endIndex, text) }
+
 fun StitcherTokenFactory.fromAntlrNode(node: TerminalNode, type: StitcherType = StitcherType.of(node.symbol.type)): LeafToken =
     fromAntlrToken(node.symbol, type)
 
+@JvmName("fromAntlrNodeOrNull")
+fun StitcherTokenFactory.fromAntlrNode(node: TerminalNode?, type: StitcherType = StitcherType.of(node?.symbol?.type ?: -1)): LeafToken? =
+    node?.run { fromAntlrToken(symbol, type) }
+
 fun StitcherTokenFactory.fromAntlrRule(rule: ParserRuleContext, type: StitcherType): LeafToken =
     create(type, rule.start.startIndex, rule.stop.endIndex, rule.text)
+
+@JvmName("fromAntlrRuleOrNull")
+fun StitcherTokenFactory.fromAntlrRule(rule: ParserRuleContext?, type: StitcherType): LeafToken? =
+    rule?.run { create(type, start.startIndex, stop.endIndex, text) }

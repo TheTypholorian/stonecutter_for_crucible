@@ -7,8 +7,8 @@ import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.ProblemLocation
 import dev.kikugie.stitcher.issue.locate
 import dev.kikugie.stitcher.issue.runMarked
+import dev.kikugie.stitcher.parser.FileAstParser
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
-import dev.kikugie.stitcher.parser.layout.LayoutParser
 import dev.kikugie.stitcher.replacement.ReplacementExecutor
 import dev.kikugie.stitcher.replacement.StringReplacement
 import dev.kikugie.stitcher.replacement.template.findInsertionPlaces
@@ -188,7 +188,7 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
 
         val stream = UncommentedTokenSource(this, context, reparse).let(::CommonTokenStream)
         val factory = StitcherTokenFactory.Inline(first().start)
-        return problems.runMarked({ LayoutParser.parse(stream, input, factory, problems) }) { root, ok ->
+        return problems.runMarked({ FileAstParser.parse(stream, input, factory, problems) }) { root, ok ->
             if (ok) root.scope.reprocess() else checker.check(root) then root.scope
         }
     }

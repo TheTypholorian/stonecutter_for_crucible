@@ -3,8 +3,8 @@ package dev.kikugie.stitcher
 import dev.kikugie.stitcher.antlr.StitcherErrorListener
 import dev.kikugie.stitcher.antlr.charStream
 import dev.kikugie.stitcher.issue.*
+import dev.kikugie.stitcher.parser.FileAstParser
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
-import dev.kikugie.stitcher.parser.layout.LayoutParser
 import dev.kikugie.stitcher.token.eval.join
 import dev.kikugie.stitcher.transformer.BlockTransformer
 import dev.kikugie.stitcher.transformer.TransformParameters
@@ -20,7 +20,7 @@ fun process(file: Path, contents: String, parameters: TransformParameters, consu
         scanner.errorListener = StitcherErrorListener(problems)
     }
 
-    val layout = problems.runMarked({ LayoutParser.parse(CommonTokenStream(source), input, StitcherTokenFactory, problems) }) { root, ok ->
+    val layout = problems.runMarked({ FileAstParser.parse(CommonTokenStream(source), input, StitcherTokenFactory, problems) }) { root, ok ->
         if (ok) root else throw BailException()
     }
 

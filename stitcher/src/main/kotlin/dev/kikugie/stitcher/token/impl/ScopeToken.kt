@@ -15,7 +15,7 @@ sealed interface ScopeToken : StitcherToken {
         override val start: Int get() = marker.start
         override val end: Int = lastNotNull(marker, plus, lookup).end
 
-        fun isCapturing(): Boolean = plus != null
+        @Deprecated("")
         fun extractLookup(): String = when (lookup?.type?.value) {
             StitcherLexer.IDENTIFIER -> lookup.text
             StitcherLexer.QUOTED -> lookup.text.removeSurrounding("'")
