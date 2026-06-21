@@ -115,7 +115,7 @@ private fun MutableList<Replacement>.perl(@Language("RegExp") from: String, to: 
     val (id, enabled) = id.unwrap()
     val set = EnumSet.noneOf(Pcre2CompileOption::class.java)
     set.addAll(options.toList())
-    this += PerlReplacement(to, from, set.toLong(), id, enabled)
+    this += PerlReplacement(to, from, set.toLong().toInt(), id, enabled)
 }
 
 private fun String?.unwrap(): Pair<String?, Boolean> {
