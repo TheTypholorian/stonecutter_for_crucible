@@ -5,6 +5,7 @@ import dev.kikugie.stitcher.token.StitcherToken
 import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.token.impl.DefinitionToken.Kind
 import dev.kikugie.stitcher.util.firstNotNull
+import dev.kikugie.stitcher.util.firstNotNullOrNull
 import dev.kikugie.stitcher.util.lastNotNull
 
 sealed interface DefinitionToken : StitcherToken {
@@ -113,12 +114,12 @@ sealed interface DefinitionToken : StitcherToken {
     }
 
     data class ConditionExtension(
-        override val closer: LeafToken, override val sugar: List<LeafToken>,
+        override val closer: LeafToken?, override val sugar: List<LeafToken>,
         override val expression: ExpressionToken?, override val opener: ScopeToken?
     ) : Condition {
         override val type: NativeStitcherType get() = NativeStitcherType.COND_EXT
         override val kind: Kind = opener.extensionKind()
-        override val start: Int get() = closer.start
+        override val start: Int = firstNotNullOrNull(closer, sugar.firstOrNull(), expression, opener)?.start ?: 0
         override val end: Int = lastNotNull(sugar.lastOrNull(), expression, opener).end
 
         override fun <T> accept(visitor: Visitor<T>): T = visitor.visitConditionExtension(this)

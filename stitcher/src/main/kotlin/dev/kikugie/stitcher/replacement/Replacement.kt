@@ -72,14 +72,14 @@ data class RegexReplacement(
 data class PerlReplacement(
     val target: String,
     val pattern: String,
-    val options: Long = 0L,
+    val options: Int = 0,
     override val identifier: String? = null,
     override val enabled: Boolean = false,
 ) : Replacement, java.io.Serializable {
     @Transient @kotlinx.serialization.Transient private lateinit var _code: Pcre2Code
 
     internal val regex: Pcre2Code get() {
-        if (!::_code.isInitialized) _code = Pcre2Code(pattern, options.toEnumSet())
+        if (!::_code.isInitialized) _code = Pcre2Code(pattern, options.toLong().toEnumSet())
         return _code
     }
 }

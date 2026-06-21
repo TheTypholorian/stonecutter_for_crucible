@@ -23,7 +23,7 @@ import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.TokenStream
 import java.util.*
 
-private val MARKERS = charArrayOf('?', '$', '~')
+private val MARKERS: CharArray = charArrayOf('?', '$', '~')
 
 internal class FileAstParser private constructor(
     val stream: TokenStream,
@@ -168,7 +168,7 @@ private class CommentBuilder(val opener: AntlrToken?, val body: AntlrToken, val 
     val text: String by lazy { body.text }
 
     override fun build(factory: StitcherTokenFactory): BlockToken.Comment = BlockToken.Comment(
-        factory.fromAntlrToken(opener), factory.fromAntlrToken(body), factory.fromAntlrToken(closer)
+        factory.fromAntlrTokenOrNull(opener), factory.fromAntlrToken(body), factory.fromAntlrTokenOrNull(closer)
     )
 }
 

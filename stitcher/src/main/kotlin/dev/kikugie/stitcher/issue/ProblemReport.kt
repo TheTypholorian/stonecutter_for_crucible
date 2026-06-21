@@ -13,6 +13,8 @@ value class ProblemID(val id: String) {
      * Creates a child identifier by appending a segment
      */
     fun child(child: String): ProblemID = ProblemID("$id:$child")
+
+    override fun toString(): String = id
 }
 
 /**

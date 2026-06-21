@@ -18,6 +18,7 @@ import dev.kikugie.stitcher.issue.report
 import dev.kikugie.stitcher.parser.SYNTAX_GROUP
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
 import dev.kikugie.stitcher.parser.fromAntlrNode
+import dev.kikugie.stitcher.parser.fromAntlrNodeOrNull
 import dev.kikugie.stitcher.parser.fromAntlrRule
 import dev.kikugie.stitcher.parser.fromAntlrToken
 import dev.kikugie.stitcher.token.NativeStitcherType
@@ -27,6 +28,7 @@ import dev.kikugie.stitcher.token.impl.ExpressionToken
 import dev.kikugie.stitcher.token.impl.LeafToken
 import dev.kikugie.stitcher.token.impl.PredicateToken
 import dev.kikugie.stitcher.token.impl.ScopeToken
+import dev.kikugie.stitcher.util.addNotNull
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.tree.TerminalNode
@@ -49,7 +51,7 @@ internal class MarkedTokenBuilder(factory: StitcherTokenFactory, problems: FileP
     data class Result(val marker: AntlrToken, val definition: DefinitionToken)
 }
 
-internal class TokenBuilder(
+private class TokenBuilder(
     private val factory: StitcherTokenFactory,
     private val problems: FileProblemReporter
 ) : StitcherBaseVisitor<StitcherToken>() {
@@ -61,7 +63,7 @@ internal class TokenBuilder(
     }
 
     override fun visitExtensionCondition(ctx: StitcherParser.ExtensionConditionContext): DefinitionToken.ConditionExtension {
-        val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE())
+        val closer = factory.fromAntlrNodeOrNull(ctx.SCOPE_CLOSE())
         val sugar = ctx.elseSugar().collectToLeaves(factory)
         val expression = ctx.conditionExpression().acceptAs<ExpressionToken>(this)
         val opener = ctx.scopeOpener()?.acceptAs<ScopeToken>(this)
@@ -69,7 +71,7 @@ internal class TokenBuilder(
     }
 
     override fun visitElseExtCondition(ctx: StitcherParser.ElseExtConditionContext): DefinitionToken.ConditionExtension {
-        val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE())
+        val closer = factory.fromAntlrNodeOrNull(ctx.SCOPE_CLOSE())
         val sugar = listOf(factory.fromAntlrNode(ctx.SUGAR_ELSE()))
         val opener = ctx.scopeOpener()?.acceptAs<ScopeToken>(this)
         return DefinitionToken.ConditionExtension(closer, sugar, null, opener)
@@ -90,10 +92,10 @@ internal class TokenBuilder(
 
     override fun visitLocalSwap(ctx: StitcherParser.LocalSwapContext): DefinitionToken.SwapLocal {
         val expressions = buildList<DefinitionToken.SwapLocal.Entry> {
-            add(ctx.swapPrimary().acceptAs(this@TokenBuilder))
+            addNotNull(ctx.swapPrimary()?.acceptAs(this@TokenBuilder))
             for (ext in ctx.swapExtension())
-                add(ext.acceptAs(this@TokenBuilder))
-            add(ctx.swapFallback().acceptAs(this@TokenBuilder))
+                addNotNull(ext?.acceptAs(this@TokenBuilder))
+            addNotNull(ctx.swapFallback()?.acceptAs(this@TokenBuilder))
         }
         val opener = ctx.scopeOpener()?.acceptAs<ScopeToken>(this)
         return DefinitionToken.SwapLocal(expressions, opener)
