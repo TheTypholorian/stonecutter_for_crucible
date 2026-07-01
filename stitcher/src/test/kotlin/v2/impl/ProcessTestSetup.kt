@@ -29,7 +29,7 @@ class ProcessTestSetup : TestSetup {
     var commenter: CommentingStrategy = Commenters.JavaStar
     var uncommenter: UncommentingStrategy = Uncommenters.JavaLike
     var swapper: SwappingStrategy = Swappers.Standard
-    private var onError: ((Iterable<ProblemReport>) -> Unit)? = null
+    private var onError: ((List<ProblemReport>) -> Unit)? = null
 
     lateinit var input: String
     lateinit var output: String
@@ -64,7 +64,7 @@ class ProcessTestSetup : TestSetup {
         return PerlReplacement(to, from, mask, id, enable)
     }
 
-    fun errors(action: Iterable<ProblemReport>.() -> Unit) {
+    fun errors(action: List<ProblemReport>.() -> Unit) {
         onError = action
     }
 
@@ -81,7 +81,7 @@ class ProcessTestSetup : TestSetup {
             problems += report
         }
 
-        fun complete(expected: Boolean, action: ((Iterable<ProblemReport>) -> Unit)?): Any? = when {
+        fun complete(expected: Boolean, action: ((List<ProblemReport>) -> Unit)?): Any = when {
             action != null -> action(problems)
             problems.isNotEmpty() -> {
                 val joined = problems.joinToString("\n") { "  " + it.accept(ShortProblemFormatter) }
