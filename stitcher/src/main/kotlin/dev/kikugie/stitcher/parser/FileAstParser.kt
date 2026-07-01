@@ -139,6 +139,7 @@ private sealed interface BlockAcceptResult {
 }
 
 private sealed interface BlockBuilder {
+    var parent: Scoped
     fun build(factory: StitcherTokenFactory): BlockToken
 
     sealed interface Scoped : BlockBuilder {
@@ -150,6 +151,7 @@ private sealed interface BlockBuilder {
 }
 
 private class ContentBuilder(val start: Int, val end: Int, val text: String) : BlockBuilder {
+    override lateinit var parent: BlockBuilder.Scoped
     constructor(token: AntlrToken) : this(token.startIndex, token.endIndex, token.text)
 
     override fun build(factory: StitcherTokenFactory): BlockToken.Content = BlockToken.Content(
@@ -158,6 +160,7 @@ private class ContentBuilder(val start: Int, val end: Int, val text: String) : B
 }
 
 private class CommentBuilder(val opener: AntlrToken?, val body: AntlrToken, val closer: AntlrToken?) : BlockBuilder {
+    override lateinit var parent: BlockBuilder.Scoped
     val text: String by lazy { body.text }
 
     override fun build(factory: StitcherTokenFactory): BlockToken.Comment = BlockToken.Comment(
@@ -166,6 +169,7 @@ private class CommentBuilder(val opener: AntlrToken?, val body: AntlrToken, val 
 }
 
 private class RootBuilder(override val entries: MutableList<BlockBuilder> = mutableListOf()) : BlockBuilder.Scoped {
+    override var parent: BlockBuilder.Scoped = this
     override fun build(factory: StitcherTokenFactory): BlockToken.Root = BlockToken.Root(
         entries.map { it.build(factory) }
     )
@@ -173,7 +177,7 @@ private class RootBuilder(override val entries: MutableList<BlockBuilder> = muta
     override fun accept(block: BlockBuilder, stack: BlockBuilderStack): BlockAcceptResult = when (block) {
         is CodeBuilder -> acceptCode(block, stack)
         else -> {
-            entries += block
+            entries += block.also { it.parent = this }
             BlockAcceptResult.ConsumedOpen
         }
     }
@@ -189,7 +193,7 @@ private class RootBuilder(override val entries: MutableList<BlockBuilder> = muta
             else stack.problems.reportDanglingImplicitExtension(code, this)
         }
 
-        entries += code
+        entries += code.also { it.parent = this }
         stack.push(code)
         return BlockAcceptResult.ConsumedOpen
     }
@@ -199,6 +203,7 @@ private class CodeBuilder(
     val host: CommentBuilder, val mark: AntlrToken, val def: DefinitionToken,
     override val entries: MutableList<BlockBuilder> = mutableListOf()
 ) : BlockBuilder.Scoped {
+    override lateinit var parent: BlockBuilder.Scoped
     val kind: Kind
         inline get() = def.kind
     var satisfied: Boolean = kind.isScoped
@@ -209,7 +214,7 @@ private class CodeBuilder(
     )
 
     override fun finalize(problems: FileProblemReporter, done: Boolean): Unit = when (val opener = def.opener) {
-        is ScopeToken.Lookup if opener.lookup != null && !satisfied -> problems.reportLookupNotFound(opener)
+        is ScopeToken.Lookup if opener.lookup != null && !satisfied -> problems.reportLookupNotFound(this, opener)
         is ScopeToken.Closed if done -> problems.reportUnclosedScope(this, opener)
         else -> null
     }.let { }
@@ -231,7 +236,7 @@ private class CodeBuilder(
         is CodeBuilder -> acceptCode(block, stack)
 
         else -> {
-            entries += block
+            entries += block.also { it.parent = this }
             BlockAcceptResult.ConsumedOpen
         }
     }
@@ -244,7 +249,7 @@ private class CodeBuilder(
             else stack.problems.reportDanglingImplicitExtension(code, this)
         }
 
-        entries += code
+        entries += code.also { it.parent = this }
         stack.push(code)
         return BlockAcceptResult.ConsumedOpen
     }
@@ -325,11 +330,13 @@ private class CodeBuilder(
 
     private fun consumeCommentSplit(block: CommentBuilder, split: Int): BlockAcceptResult = when (split) {
         -1 -> {
-            entries += block; BlockAcceptResult.ConsumedOpen
+            entries += block.also { it.parent = this }
+            BlockAcceptResult.ConsumedOpen
         }
 
         0 -> {
-            satisfied = true; BlockAcceptResult.Rejected
+            satisfied = true
+            BlockAcceptResult.Rejected
         }
 
         block.text.length -> consumeFinal(block)
@@ -338,7 +345,7 @@ private class CodeBuilder(
             satisfied = true
 
             val partial = CommonToken(body).apply { text = text.take(split); endIndex = startIndex + split }
-            entries += CommentBuilder(opener, partial, null)
+            entries += CommentBuilder(opener, partial, null).also { it.parent = this@CodeBuilder }
 
             val remainder = CommonToken(body).apply { text = text.substring(split); startIndex += split }
             CommentBuilder(null, remainder, closer).let(BlockAcceptResult::ConsumedPartial)
@@ -347,7 +354,7 @@ private class CodeBuilder(
 
     private fun consumeFinal(block: BlockBuilder): BlockAcceptResult {
         satisfied = true
-        entries += block
+        entries += block.also { it.parent = this }
         return BlockAcceptResult.ConsumedFinal
     }
 
@@ -427,17 +434,10 @@ private fun FileProblemReporter.reportDanglingImplicitExtension(code: CodeBuilde
     label = "Dangling implicit extension"
     details = "${code.defTitle} doesn't follow a valid ${code.defName}."
 
-    val candidate = parent.findImplicitExtensionBarrier()
+    val candidate = parent.findImplicitExtensionBarrier(code.kind.isLookup)
     if (candidate != null) hint = buildString {
-        val position = when (candidate) {
-            is ContentBuilder -> candidate.start
-            is CommentBuilder -> candidate.body.startIndex
-            is CodeBuilder -> candidate.host.opener!!.startIndex
-            else -> 0
-        }
-
-        appendLine("${candidate.defTitle} at this location prevents this ${code.defName} from extending the chain:")
-        append(locate(position).toLinkString())
+        appendLine("${candidate.defTitle} at this location prevents the ${code.defName} from extending the chain:")
+        append(locate(candidate.blamePosition).toLinkString())
     }
 }
 
@@ -449,13 +449,18 @@ private fun FileProblemReporter.reportUnclosedScope(code: CodeBuilder, opener: S
     docs = "https://stonecutter.kikugie.dev/wiki/config/params#closed"
 }
 
-private fun FileProblemReporter.reportLookupNotFound(opener: ScopeToken.Lookup): Any = report(
+private fun FileProblemReporter.reportLookupNotFound(code: CodeBuilder, opener: ScopeToken.Lookup): Any = report(
     LAYOUT_GROUP.child("lookup-not-found"), opener
 ) {
     label = "Lookup string not found"
-    details = "The pattern '${opener.lookup?.unquote()}' wasn't found in the text ahead."
-    hint = "The pattern search is interrupted by any condition, swap or replacement comments."
+    details = "Pattern '${opener.lookup?.unquote()}' wasn't found in the text ahead."
     docs = "https://stonecutter.kikugie.dev/wiki/config/params#lookup"
+
+    val candidate = code.parent.findLookupMatchBarrier(code)
+    if (candidate != null) hint = buildString {
+        appendLine("${candidate.defTitle} at this position stops the search:")
+        append(locate(candidate.blamePosition).toLinkString())
+    }
 }
 //</editor-fold>
 
@@ -470,15 +475,22 @@ private fun BlockBuilder.Scoped.findRootCloserCandidate(target: CodeBuilder): Co
     return null
 }
 
-private fun BlockBuilder.Scoped.findImplicitExtensionBarrier(): BlockBuilder? {
+private fun BlockBuilder.Scoped.findImplicitExtensionBarrier(lookup: Boolean): BlockBuilder? {
     var candidate: BlockBuilder? = null
     for (block in entries.asReversed()) when (block) {
         is CodeBuilder if (block.def is DefinitionToken.Condition && block.kind.isOpen) -> break
         is CodeBuilder -> return null
-        else -> candidate = block
+        else -> if (lookup || block.isNotBlank()) candidate = block
     }
     return candidate
 }
+
+private fun BlockBuilder.Scoped.findLookupMatchBarrier(target: CodeBuilder): BlockBuilder? = when (val index = entries.indexOf(target)) {
+    -1 -> null
+    entries.lastIndex -> target.parent.takeAsOrNull<CodeBuilder>()
+    else -> entries[index + 1]
+}
+
 
 private fun BlockBuilder.Scoped.findImplicitConditionCandidate(): CodeBuilder? {
     for (block in entries.asReversed()) when (block) {
@@ -546,3 +558,10 @@ private val CodeBuilder.defName: String
         else -> "definition"
     }
 
+private val BlockBuilder.blamePosition: Int
+    get() = when (this) {
+        is ContentBuilder -> start
+        is CommentBuilder -> body.startIndex
+        is CodeBuilder -> host.opener!!.startIndex
+        else -> 0
+    }
