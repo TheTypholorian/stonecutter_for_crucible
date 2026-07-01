@@ -465,10 +465,8 @@ private fun FileProblemReporter.reportLookupNotFound(code: CodeBuilder, opener: 
 //</editor-fold>
 
 private fun BlockBuilder.Scoped.findRootCloserCandidate(target: CodeBuilder): CodeBuilder? {
-    var check = false
     for (block in entries.asReversed()) when (block) {
-        target -> check = true
-        is CodeBuilder if (check && block.mark.type == target.mark.type && block.def.opener == null) -> return block
+        is CodeBuilder if (block.mark.type == target.mark.type && block.def.opener == null) -> return block
         is CodeBuilder -> break
         else -> {}
     }

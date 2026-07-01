@@ -447,6 +447,7 @@ internal abstract class PerlSpecImpl @Inject constructor(val replacements: ListP
         val set = EnumSet.noneOf(Pcre2CompileOption::class.java)
             .apply { addAll(options.toList()) }
             .toLong()
+            .toInt()
 
         val it =
             if (direction.get()) PerlReplacement(directReplacement, directPattern, set, id, enabled)
