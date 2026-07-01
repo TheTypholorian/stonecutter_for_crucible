@@ -187,7 +187,7 @@ private class RootBuilder(override val entries: MutableList<BlockBuilder> = muta
         if (code.def.closer != null) stack.problems.reportRootCloser(code, this)
 
         // For line extensions, try merging empty content into the previous scope
-        else if (code.def is DefinitionToken.Condition && code.kind.isExtension) with(stack.top) {
+        else if (code.kind.isExtension && code.def.closer == null) with(stack.top) {
             val candidate = findImplicitConditionCandidate()
             if (candidate != null) mergeDanglingBlocks(candidate)
             else stack.problems.reportDanglingImplicitExtension(code, this)
@@ -227,31 +227,32 @@ private class CodeBuilder(
     }
 
     private fun acceptClosed(block: BlockBuilder, stack: BlockBuilderStack): BlockAcceptResult = when (block) {
+        // For line extensions, try merging empty content into the previous scope
+        is CodeBuilder if (block.kind.isExtension && block.def.closer == null) -> with(stack.top) {
+            val candidate = findImplicitConditionCandidate()
+            if (candidate != null) mergeDanglingBlocks(candidate)
+            else stack.problems.reportDanglingImplicitExtension(block, this)
+            stack.push(block)
+            BlockAcceptResult.ConsumedOpen
+        }
+
         is CodeBuilder if (block.kind.isCloser) -> {
-            if (block.mark.type != mark.type) stack.problems.reportMismatchedCloser(block, this)
+            if (block notSameAs this)
+                stack.problems.reportMismatchedCloser(block, this)
             stack.replace(block)
             BlockAcceptResult.ConsumedOpen
         }
 
-        is CodeBuilder -> acceptCode(block, stack)
+        is CodeBuilder -> {
+            entries += block.also { it.parent = this }
+            stack.push(block)
+            BlockAcceptResult.ConsumedOpen
+        }
 
         else -> {
             entries += block.also { it.parent = this }
             BlockAcceptResult.ConsumedOpen
         }
-    }
-
-    private fun acceptCode(code: CodeBuilder, stack: BlockBuilderStack): BlockAcceptResult {
-        // For line extensions, try merging empty content into the previous scope
-        if (code.def is DefinitionToken.Condition && code.kind.isExtension) with(stack.top) {
-            val candidate = findImplicitConditionCandidate()
-            if (candidate != null) mergeDanglingBlocks(candidate)
-            else stack.problems.reportDanglingImplicitExtension(code, this)
-        }
-
-        entries += code.also { it.parent = this }
-        stack.push(code)
-        return BlockAcceptResult.ConsumedOpen
     }
 
     private fun acceptLine(block: BlockBuilder, stack: BlockBuilderStack): BlockAcceptResult = when (block) {
@@ -268,7 +269,7 @@ private class CodeBuilder(
         }
 
         is CodeBuilder if (block.kind.isExtension) -> {
-            if (block.def.closer == null && def.opener is ScopeToken.Closed)
+            if (block notSameAs this || block.def.closer == null && def.opener is ScopeToken.Closed)
                 stack.problems.reportUnmatchedImplicitExtension(block, this)
             stack.replace(block)
             BlockAcceptResult.ConsumedOpen
@@ -279,7 +280,7 @@ private class CodeBuilder(
 
     private fun acceptLookup(block: BlockBuilder, stack: BlockBuilderStack): BlockAcceptResult = when (block) {
         is CodeBuilder if (block.kind.isExtension) -> {
-            if (block.def.closer == null && def.opener is ScopeToken.Closed)
+            if (block notSameAs this || block.def.closer == null && def.opener is ScopeToken.Closed)
                 stack.problems.reportUnmatchedImplicitExtension(block, this)
             stack.replace(block)
             BlockAcceptResult.ConsumedOpen
@@ -420,25 +421,29 @@ private fun FileProblemReporter.reportMismatchedCloser(code: CodeBuilder, parent
     }
 }
 
-private fun FileProblemReporter.reportUnmatchedImplicitExtension(code: CodeBuilder, parent: CodeBuilder): Any = report(
+private fun FileProblemReporter.reportUnmatchedImplicitExtension(code: CodeBuilder, parent: BlockBuilder.Scoped): Any = report(
     LAYOUT_GROUP.child("unmatched-implicit-extension"), code.host.body
 ) {
-    label = "Unmatched implicit extension"
+    label = "Unmatched extension"
     details = "${code.defTitle} doesn't follow a ${parent.defName} ending with `{`."
     hint = "Start this ${code.defName} with `${code.mark.text}}`."
 }
 
-private fun FileProblemReporter.reportDanglingImplicitExtension(code: CodeBuilder, parent: BlockBuilder.Scoped): Any = report(
+private fun FileProblemReporter.reportDanglingExtensionCandidate(code: CodeBuilder, candidate: BlockBuilder): Any = report(
     LAYOUT_GROUP.child("dangling-implicit-extension"), code.host.body
 ) {
     label = "Dangling implicit extension"
     details = "${code.defTitle} doesn't follow a valid ${code.defName}."
-
-    val candidate = parent.findImplicitExtensionBarrier(code.kind.isLookup)
-    if (candidate != null) hint = buildString {
+    hint = buildString {
         appendLine("${candidate.defTitle} at this location prevents the ${code.defName} from extending the chain:")
         append(locate(candidate.blamePosition).toLinkString())
     }
+}
+
+private fun FileProblemReporter.reportDanglingImplicitExtension(code: CodeBuilder, parent: BlockBuilder.Scoped) {
+    val candidate = parent.findImplicitExtensionBarrier(code.kind.isLookup)
+    if (candidate == null) reportUnmatchedImplicitExtension(code, parent)
+    else reportDanglingExtensionCandidate(code, candidate)
 }
 
 private fun FileProblemReporter.reportUnclosedScope(code: CodeBuilder, opener: StitcherToken): Any = report(
@@ -456,6 +461,7 @@ private fun FileProblemReporter.reportLookupNotFound(code: CodeBuilder, opener: 
     details = "Pattern '${opener.lookup?.unquote()}' wasn't found in the text ahead."
     docs = "https://stonecutter.kikugie.dev/wiki/config/params#lookup"
 
+    // FIXME: it's built before the list of blocks is complete
     val candidate = code.parent.findLookupMatchBarrier(code)
     if (candidate != null) hint = buildString {
         appendLine("${candidate.defTitle} at this position stops the search:")
@@ -466,8 +472,8 @@ private fun FileProblemReporter.reportLookupNotFound(code: CodeBuilder, opener: 
 
 private fun BlockBuilder.Scoped.findRootCloserCandidate(target: CodeBuilder): CodeBuilder? {
     for (block in entries.asReversed()) when (block) {
-        is CodeBuilder if (block.mark.type == target.mark.type && block.def.opener == null) -> return block
-        is CodeBuilder -> break
+        is CodeBuilder if (block sameAs target && block.kind.isLine) -> return block
+        is CodeBuilder if (block sameAs target) -> break
         else -> {}
     }
     return null
@@ -526,6 +532,14 @@ private fun String.findLookupSplit(match: String, capturing: Boolean): Int = whe
     else if !capturing -> index
     else -> index + match.length
 }
+
+@Suppress("NOTHING_TO_INLINE")
+private inline infix fun CodeBuilder.notSameAs(other: CodeBuilder): Boolean =
+    mark.type != other.mark.type
+
+@Suppress("NOTHING_TO_INLINE")
+private inline infix fun CodeBuilder.sameAs(other: CodeBuilder): Boolean =
+    mark.type == other.mark.type
 
 private fun BlockBuilder.isNotBlank(): Boolean = when (this) {
     is ContentBuilder -> text.isNotBlank()

@@ -50,7 +50,41 @@ class FileAstBuilderTest : ShouldSpec({
         """.trimIndent()
 
         errors {
-            shouldBeSingleton { it.id shouldBe LAYOUT_GROUP.child("unmatched-root-closer") }
+            shouldBeSingleton {
+                it.id shouldBe LAYOUT_GROUP.child("unmatched-root-closer")
+                it.hint.shouldBeNull()
+            }
+        }
+    }
+
+    should("stop closer match at condition").config<ProcessTestSetup> {
+        input = """
+            //? if true
+            //? if false {
+            //?}
+            //?}
+        """.trimIndent()
+
+        errors {
+            shouldBeSingleton {
+                it.id shouldBe LAYOUT_GROUP.child("unmatched-root-closer")
+                it.hint.shouldBeNull()
+            }
+        }
+    }
+
+    should("stop closer match at other type").config<ProcessTestSetup> {
+        input = """
+            //? if true
+            //~ if true a -> b
+            //?}
+        """.trimIndent()
+
+        errors {
+            shouldBeSingleton {
+                it.id shouldBe LAYOUT_GROUP.child("unmatched-root-closer")
+                it.hint.shouldNotBeNull()
+            }
         }
     }
 
@@ -229,6 +263,23 @@ class FileAstBuilderTest : ShouldSpec({
         errors {
             shouldBeSingleton {
                 it.id shouldBe LAYOUT_GROUP.child("lookup-not-found")
+                it.hint.shouldBeNull()
+            }
+        }
+    }
+
+    should("report lookup search barrier").config<ProcessTestSetup> {
+        input = """
+            //? if false >> ':'
+            ... ...
+            //? if true
+            :::
+        """.trimIndent()
+
+        errors {
+            shouldBeSingleton {
+                it.id shouldBe LAYOUT_GROUP.child("lookup-not-found")
+                it.hint shouldContain "stops the search"
             }
         }
     }
@@ -246,6 +297,78 @@ class FileAstBuilderTest : ShouldSpec({
         errors {
             shouldBeSingleton {
                 it.id shouldBe LAYOUT_GROUP.child("dangling-implicit-extension")
+            }
+        }
+    }
+
+    should("connect line else through comments").config<ProcessTestSetup> {
+        input = """
+            //? if true
+            
+            //...
+            //? else
+            ...
+        """.trimIndent()
+    }
+
+    should("connect line else in condition scope").config<ProcessTestSetup> {
+        input = """
+            //? if true {
+                //? if false
+                ...
+                
+                //? else
+                //...
+            //?}
+        """.trimIndent()
+    }
+
+    should("connect line else in different scope").config<ProcessTestSetup> {
+        input = """
+            //~ if true a -> b {
+                //? if false
+                ...
+                
+                //? else
+                //...
+            //~}
+        """.trimIndent()
+    }
+
+    should("not connect line else on closed scope").config<ProcessTestSetup> {
+        input = """
+            //? if true {
+            //? else
+            //?}
+        """.trimIndent()
+
+        errors {
+            shouldBeSingleton {
+                it.id shouldBe LAYOUT_GROUP.child("unmatched-implicit-extension")
+                it.hint shouldContain "Start this"
+            }
+        }
+    }
+
+    should("connect line extension preemptively").config<ProcessTestSetup> {
+        input = """
+            //? if true
+            ...//? else
+            ...
+        """.trimIndent()
+    }
+
+    should("report mismatched line extension").config<ProcessTestSetup> {
+        input = """
+            //~ if true a -> b
+            ...//? else
+            ...
+        """.trimIndent()
+
+        errors {
+            shouldBeSingleton {
+                it.id shouldBe LAYOUT_GROUP.child("unmatched-implicit-extension")
+                it.hint.shouldNotBeNull()
             }
         }
     }
