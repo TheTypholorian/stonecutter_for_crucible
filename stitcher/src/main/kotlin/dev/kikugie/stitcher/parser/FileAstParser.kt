@@ -41,7 +41,7 @@ internal class FileAstParser private constructor(
         while (stream.LA(1) != AntlrToken.EOF) when (NativeStitcherType.of(stream.LA(1))) {
             NativeStitcherType.CONTENT -> processContent(nextToken())
             NativeStitcherType.COMMENT_OPEN -> processComment(nextToken(), nextToken(), nextToken())
-            else -> problems.bailUnknownToken(nextToken())
+            else -> problems.reportUnknownToken(nextToken())
         }
         return stack.build(factory)
     }
@@ -373,7 +373,7 @@ private fun FileProblemReporter.bailConsumedRoot(): Nothing = bail(
     """.trimIndent()
 }
 
-private fun FileProblemReporter.bailUnknownToken(token: AntlrToken): Nothing = bail(
+private fun FileProblemReporter.reportUnknownToken(token: AntlrToken): Any = report(
     LAYOUT_GROUP.child("unexpected-token"), token
 ) {
     label = "Unknown file layout token"
