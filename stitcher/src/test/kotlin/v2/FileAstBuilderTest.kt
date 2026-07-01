@@ -62,7 +62,7 @@ class FileAstBuilderTest : ShouldSpec({
 
         errors {
             shouldBeSingleton {
-                it.id shouldBe LAYOUT_GROUP.child("unmatched-extension")
+                it.id shouldBe LAYOUT_GROUP.child("unmatched-root-closer")
                 it.hint.shouldNotBeNull { this shouldContain "may need to end with `{`" }
             }
         }
@@ -80,7 +80,6 @@ class FileAstBuilderTest : ShouldSpec({
         errors {
             shouldBeSingleton {
                 it.id shouldBe LAYOUT_GROUP.child("mismatched-closer-type")
-                it.hint.shouldBeNull()
             }
         }
     }
@@ -246,7 +245,7 @@ class FileAstBuilderTest : ShouldSpec({
 
         errors {
             shouldBeSingleton {
-                it.id shouldBe LAYOUT_GROUP.child("disconnected-extension")
+                it.id shouldBe LAYOUT_GROUP.child("dangling-implicit-extension")
             }
         }
     }

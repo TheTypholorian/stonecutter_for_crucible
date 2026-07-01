@@ -184,8 +184,9 @@ private class RootBuilder(override val entries: MutableList<BlockBuilder> = muta
 
         // For line extensions, try merging empty content into the previous scope
         else if (code.def is DefinitionToken.Condition && code.kind.isExtension) with(stack.top) {
-            val candidate = findLineConditionCandidate()
+            val candidate = findImplicitConditionCandidate()
             if (candidate != null) mergeDanglingBlocks(candidate)
+            else stack.problems.reportDanglingImplicitExtension(code, this)
         }
 
         entries += code
@@ -227,16 +228,25 @@ private class CodeBuilder(
             BlockAcceptResult.ConsumedOpen
         }
 
-        is CodeBuilder -> {
-            entries += block
-            stack.push(block)
-            BlockAcceptResult.ConsumedOpen
-        }
+        is CodeBuilder -> acceptCode(block, stack)
 
         else -> {
             entries += block
             BlockAcceptResult.ConsumedOpen
         }
+    }
+
+    private fun acceptCode(code: CodeBuilder, stack: BlockBuilderStack): BlockAcceptResult {
+        // For line extensions, try merging empty content into the previous scope
+        if (code.def is DefinitionToken.Condition && code.kind.isExtension) with(stack.top) {
+            val candidate = findImplicitConditionCandidate()
+            if (candidate != null) mergeDanglingBlocks(candidate)
+            else stack.problems.reportDanglingImplicitExtension(code, this)
+        }
+
+        entries += code
+        stack.push(code)
+        return BlockAcceptResult.ConsumedOpen
     }
 
     private fun acceptLine(block: BlockBuilder, stack: BlockBuilderStack): BlockAcceptResult = when (block) {
@@ -247,7 +257,7 @@ private class CodeBuilder(
 
         is CommentBuilder if (!satisfied) -> {
             var split = block.text.findLineSplit(isImmediate())
-            if (split < 0 && (block.closer?.text?.lastOrNull() ?: ' ') in LINE_BREAKS)
+            if (split < 0 && block.isNotBlank() && block.closer?.text.orEmpty().any(LINE_BREAKS::contains))
                 split = block.text.length
             consumeCommentSplit(block, split)
         }
@@ -385,10 +395,8 @@ private fun FileProblemReporter.reportRootCloser(code: CodeBuilder, parent: Bloc
     label = "Unmatched ${code.defName} closer"
     details = "${code.defTitle} must have a corresponding `${code.mark.text} ... {` comment."
 
-    val candidate = parent.entries.lastOrNull {
-        it !== code && it is CodeBuilder && it.mark.type == code.mark.type && it.host.opener == null
-    }
-    if (candidate is CodeBuilder) hint = buildString {
+    val candidate = parent.findRootCloserCandidate(code)
+    if (candidate != null) hint = buildString {
         appendLine("${code.defTitle} at this location may need to end with `{`:")
         append(locate(candidate.host.body.endIndex).toLinkString())
     }
@@ -409,8 +417,28 @@ private fun FileProblemReporter.reportUnmatchedImplicitExtension(code: CodeBuild
     LAYOUT_GROUP.child("unmatched-implicit-extension"), code.host.body
 ) {
     label = "Unmatched implicit extension"
-    details = "${code.defTitle} doesn't follows a ${parent.defName} ending with `{`."
+    details = "${code.defTitle} doesn't follow a ${parent.defName} ending with `{`."
     hint = "Start this ${code.defName} with `${code.mark.text}}`."
+}
+
+private fun FileProblemReporter.reportDanglingImplicitExtension(code: CodeBuilder, parent: BlockBuilder.Scoped): Any = report(
+    LAYOUT_GROUP.child("dangling-implicit-extension"), code.host.body
+) {
+    label = "Dangling implicit extension"
+    details = "${code.defTitle} doesn't follow a valid ${code.defName}."
+
+    val candidate = parent.findImplicitExtensionBarrier()
+    if (candidate != null) hint = buildString {
+        val position = when (candidate) {
+            is ContentBuilder -> candidate.start
+            is CommentBuilder -> candidate.body.startIndex
+            is CodeBuilder -> candidate.host.opener!!.startIndex
+            else -> 0
+        }
+
+        appendLine("${candidate.defTitle} at this location prevents this ${code.defName} from extending the chain:")
+        append(locate(position).toLinkString())
+    }
 }
 
 private fun FileProblemReporter.reportUnclosedScope(code: CodeBuilder, opener: StitcherToken): Any = report(
@@ -431,7 +459,28 @@ private fun FileProblemReporter.reportLookupNotFound(opener: ScopeToken.Lookup):
 }
 //</editor-fold>
 
-private fun BlockBuilder.Scoped.findLineConditionCandidate(): CodeBuilder? {
+private fun BlockBuilder.Scoped.findRootCloserCandidate(target: CodeBuilder): CodeBuilder? {
+    var check = false
+    for (block in entries.asReversed()) when (block) {
+        target -> check = true
+        is CodeBuilder if (check && block.mark.type == target.mark.type && block.def.opener == null) -> return block
+        is CodeBuilder -> break
+        else -> {}
+    }
+    return null
+}
+
+private fun BlockBuilder.Scoped.findImplicitExtensionBarrier(): BlockBuilder? {
+    var candidate: BlockBuilder? = null
+    for (block in entries.asReversed()) when (block) {
+        is CodeBuilder if (block.def is DefinitionToken.Condition && block.kind.isOpen) -> break
+        is CodeBuilder -> return null
+        else -> candidate = block
+    }
+    return candidate
+}
+
+private fun BlockBuilder.Scoped.findImplicitConditionCandidate(): CodeBuilder? {
     for (block in entries.asReversed()) when (block) {
         is CodeBuilder if (block.def is DefinitionToken.Condition && block.kind.isOpen) -> return block
         else -> if (block.isNotBlank()) break
@@ -470,10 +519,21 @@ private fun String.findLookupSplit(match: String, capturing: Boolean): Int = whe
 
 private fun BlockBuilder.isNotBlank(): Boolean = when (this) {
     is ContentBuilder -> text.isNotBlank()
-    is CommentBuilder -> body.text.isNotBlank()
+    is CommentBuilder -> text.isNotBlank()
     is RootBuilder -> entries.all(BlockBuilder::isNotBlank)
     is CodeBuilder -> false
 }
+
+private val BlockBuilder.defTitle: String
+    inline get() = defName.titlecase()
+
+private val BlockBuilder.defName: String
+    get() = when (this) {
+        is ContentBuilder -> "text"
+        is CommentBuilder -> "comment"
+        is CodeBuilder -> defName
+        else -> ""
+    }
 
 private val CodeBuilder.defTitle: String
     inline get() = defName.titlecase()

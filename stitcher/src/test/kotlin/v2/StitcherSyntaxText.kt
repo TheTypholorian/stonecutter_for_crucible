@@ -34,7 +34,11 @@ class StitcherSyntaxText : FunSpec({
         }
 
         test("scope opener after duplicate expression").config<ProcessTestSetup> {
-            input = "//? if false false {\n...\n//?}"
+            input = """
+                //? if false false {
+                ...
+                //?}
+            """.trimIndent()
 
             errors { shouldBeSingleton() }
         }

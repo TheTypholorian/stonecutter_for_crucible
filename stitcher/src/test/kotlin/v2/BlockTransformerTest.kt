@@ -136,6 +136,7 @@ class BlockTransformerTest : ShouldSpec({
                 //...
                 //? else {
                 ...
+                //?}
             """.trimIndent()
         }
     }
