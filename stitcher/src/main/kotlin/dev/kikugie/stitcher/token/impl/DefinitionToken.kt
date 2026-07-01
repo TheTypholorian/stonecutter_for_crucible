@@ -34,29 +34,37 @@ sealed interface DefinitionToken : StitcherToken {
         SCOPED_EXTENSION, LINE_EXTENSION, LOOKUP_EXTENSION,
         CLOSER, INDEPENDENT;
 
+        /**Indicates that the definition ends with a `{`.*/
         val isScoped: Boolean
-            get() = when (this) {
-                SCOPED_OPENER, SCOPED_EXTENSION -> true
-                else -> false
-            }
+            get() = this == SCOPED_OPENER || this == SCOPED_EXTENSION
 
+        /**Indicates that the definition ends with a `>>`.*/
+        val isLookup: Boolean
+            get() = this == LOOKUP_OPENER || this == LOOKUP_EXTENSION
+
+        /**Indicates that the definition has an empty ending.*/
+        val isLine: Boolean
+            get() = this == LINE_OPENER || this == LINE_EXTENSION
+
+        /**Indicates that the definition doesn't need a matching `}` closer.*/
         val isOpen: Boolean
-            get() = when (this) {
-                LINE_OPENER, LOOKUP_OPENER, LINE_EXTENSION, LOOKUP_EXTENSION -> true
-                else -> false
-            }
+            get() = isLine || isLookup
 
+        /**Indicates that the definition should open a new scope without closing the current one.*/
+        val isOpener: Boolean
+            get() = this == SCOPED_OPENER || this == LINE_OPENER || this == LOOKUP_OPENER
+
+        /**Indicates that the definition should close the current scope and open a new one.*/
         val isExtension: Boolean
-            get() = when (this) {
-                SCOPED_EXTENSION, LINE_EXTENSION, LOOKUP_EXTENSION, CLOSER -> true
-                else -> false
-            }
+            get() = this == SCOPED_EXTENSION || this == LINE_EXTENSION || this == LOOKUP_EXTENSION
 
+        /**Indicates that the definition should close the current scope.*/
+        val isCloser: Boolean
+            get() = this == CLOSER || isExtension
+
+        /**Indicates that the definition should not have its own scope.*/
         val isEmpty: Boolean
-            get() = when (this) {
-                CLOSER, INDEPENDENT -> true
-                else -> false
-            }
+            get() = this == CLOSER || this == INDEPENDENT
     }
 
     sealed interface Swap : DefinitionToken

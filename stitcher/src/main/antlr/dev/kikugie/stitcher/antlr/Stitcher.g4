@@ -35,10 +35,10 @@ definition
     ;
 
 condition
-    : SUGAR_IF? conditionExpression scopeOpener?              # openerCondition
-    | SCOPE_CLOSE elseSugar? conditionExpression scopeOpener? # extensionCondition
-    | SCOPE_CLOSE SUGAR_ELSE scopeOpener?                     # elseExtCondition
-    | SCOPE_CLOSE                                             # closerCondition
+    : SUGAR_IF? conditionExpression scopeOpener?                            # openerCondition
+    | (SCOPE_CLOSE elseSugar? | elseSugar) conditionExpression scopeOpener? # extensionCondition
+    | SCOPE_CLOSE? SUGAR_ELSE scopeOpener?                                  # elseExtCondition
+    | SCOPE_CLOSE                                                           # closerCondition
     ;
 
 swap
@@ -64,7 +64,7 @@ scopeNamed
 
 elseSugar: SUGAR_ELSE SUGAR_IF | SUGAR_ELIF | SUGAR_ELSE;
 
-swapArguments: literal+;
+swapArguments: (literal COMMA?)+;
 
 swapPrimary: SUGAR_IF conditionExpression literal;
 

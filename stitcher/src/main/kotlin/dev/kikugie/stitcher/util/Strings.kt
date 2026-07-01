@@ -6,7 +6,6 @@ import java.util.regex.Pattern
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
-import kotlin.text.StringBuilder
 
 const val IDENTIFIER_PATTERN: String = "[_a-zA-Z][_\\-a-zA-Z0-9]*"
 private val IDENTIFIER_REGEX: Regex = Regex(IDENTIFIER_PATTERN)
@@ -29,3 +28,6 @@ internal inline fun buildString(content: String, action: StringBuilder.() -> Uni
 
 fun Regex(pattern: String, flags: Int): Regex =
     Pattern.compile(pattern, flags).toRegex()
+
+internal fun String.titlecase(): String =
+    replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
