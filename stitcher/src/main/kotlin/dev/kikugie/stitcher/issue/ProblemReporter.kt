@@ -10,13 +10,15 @@ import dev.kikugie.stitcher.document.Document
 private annotation class ProblemDsl
 
 @ProblemDsl
-typealias ProblemConsumer = (report: ProblemReport) -> Unit
+fun interface ProblemConsumer {
+    fun accept(report: ProblemReport)
+}
 
 @ProblemDsl
 interface ProblemReporter {
     fun mark(): Marker
     fun create(id: ProblemID): ProblemReport
-    fun accept(report: ProblemReport)
+    fun report(report: ProblemReport)
 
     interface Marker {
         val isDirty: Boolean
@@ -30,9 +32,9 @@ internal class ProblemReporterImpl(private val doc: Document, private val consum
     override fun mark(): Marker = Marker(counter)
     override fun create(id: ProblemID): ProblemReport = ProblemReport(id, doc)
 
-    override fun accept(report: ProblemReport) {
+    override fun report(report: ProblemReport) {
         counter++
-        consumer(report)
+        consumer.accept(report)
     }
 
     @ProblemDsl

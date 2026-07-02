@@ -18,7 +18,7 @@ class Document(val path: Path, val source: CharStream, reporter: ProblemConsumer
 
     override fun mark(): ProblemReporter.Marker = problems.mark()
     override fun create(id: ProblemID): ProblemReport = problems.create(id)
-    override fun accept(report: ProblemReport): Unit = problems.accept(report)
+    override fun report(report: ProblemReport): Unit = problems.report(report)
 
     fun locate(index: Int): DocumentLocation =
         lines.locate(index)

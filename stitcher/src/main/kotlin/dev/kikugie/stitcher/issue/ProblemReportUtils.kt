@@ -5,7 +5,7 @@ package dev.kikugie.stitcher.issue
 import dev.kikugie.stitcher.document.DocumentLocation
 
 inline fun ProblemReporter.report(id: ProblemID, builder: ProblemReport.() -> Unit): Unit =
-    create(id).apply(builder).let(::accept)
+    create(id).apply(builder).let(::report)
 
 inline fun ProblemReporter.bail(id: ProblemID, builder: ProblemReport.() -> Unit): Nothing {
     report(id, builder)
