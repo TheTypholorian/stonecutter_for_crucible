@@ -1,9 +1,5 @@
 lexer grammar SlashStyleScanner;
 
-@header {
-package dev.kikugie.stitcher.antlr.scanner;
-}
-
 @members {
 public boolean nestMultiLineComments = false;
 private byte commentDepth = 0;

@@ -1,9 +1,5 @@
 lexer grammar HashStyleScanner;
 
-@header {
-package dev.kikugie.stitcher.antlr.scanner;
-}
-
 fragment LINE_BREAK: '\r'|'\n'|'\r\n';
 fragment DOUBLE_SLASH: '\\\\';
 
