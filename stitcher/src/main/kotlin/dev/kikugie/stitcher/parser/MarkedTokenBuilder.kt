@@ -144,20 +144,20 @@ private class TokenBuilder(private val problems: ProblemReporter, private val fa
     }
 
     override fun visitSemanticPredicate(ctx: StitcherParser.SemanticPredicateContext): PredicateToken {
-        val comparator = (ctx.semanticComparator() ?: ctx.stringComparator())
-        val version = ctx.semanticVersion()
+        val comparator: ParserRuleContext? = (ctx.semanticComparator() ?: ctx.stringComparator())
+        val version: StitcherParser.SemanticVersionContext = ctx.semanticVersion()
         return PredicateToken(
             comparator?.acceptAs(this), version.acceptAs(this),
-            VersionPredicate(comparator.toVersionOperator(problems), version.toSemanticVersion())
+            VersionPredicate(comparator?.toVersionOperator(problems) ?: VersionOperator.IMPLICIT_EQUAL, version.toSemanticVersion())
         )
     }
 
     override fun visitStringPredicate(ctx: StitcherParser.StringPredicateContext): PredicateToken {
-        val comparator = ctx.stringComparator()
-        val version = ctx.stringVersion()
+        val comparator: StitcherParser.StringComparatorContext? = ctx.stringComparator()
+        val version: StitcherParser.StringVersionContext = ctx.stringVersion()
         return PredicateToken(
             comparator?.acceptAs(this), version.acceptAs(this),
-            VersionPredicate(comparator.toVersionOperator(problems), version.toStringVersion())
+            VersionPredicate(comparator?.toVersionOperator(problems) ?: VersionOperator.IMPLICIT_EQUAL, version.toStringVersion())
         )
     }
 
@@ -249,7 +249,6 @@ private fun StitcherParser.VersionPredicateContext.tryToPredicate(visitor: Token
 }
 
 private fun ParserRuleContext.toVersionOperator(problems: ProblemReporter): VersionOperator = when(val type = getChild(0)?.type) {
-    AntlrToken.EOF -> VersionOperator.IMPLICIT_EQUAL
     StitcherLexer.COMP_EQUAL -> VersionOperator.EQUAL
     StitcherLexer.COMP_NEQUAL -> VersionOperator.NOT_EQUAL
     StitcherLexer.COMP_MORE -> VersionOperator.GREATER
