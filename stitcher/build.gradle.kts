@@ -13,8 +13,16 @@ plugins {
 val baseVersion: String = property("version").toString()
     .substringBefore('-').substringBeforeLast('.')
 
+val antlrKotlin = configurations.create("antlrKotlin")
+
+repositories {
+    mavenLocal()
+}
+
 dependencies {
     antlr(libs.antlr)
+    antlr(libs.antlr.kotlin)
+
     api(libs.pcre4j)
     implementation(libs.pcre4j.ffm)
     implementation(libs.pcre4j.bundle)
@@ -30,12 +38,22 @@ dependencies {
     dokkaHtmlPlugin(common.kotlin.dokka.versioning)
 }
 
-antlr {
-    sourceSets.create("main") {
-        visitor = true
-        libs.addAll("dev.kikugie.stitcher.antlr", "dev.kikugie.stitcher.antlr.scanner")
+tasks {
+    generateGrammarSource {
+        source = fileTree(layout.projectDirectory.dir("src/main/antlr")) {
+            include("**/*.g4")
+        }
+
+        outputDirectory = layout.buildDirectory.dir("generated/antlr/main/dev/kikugie/stitcher/antlr").get().asFile
+        packageName = "dev.kikugie.stitcher.antlr"
+        arguments = listOf("-visitor", "-no-listener", "-Dlanguage=Kotlin")
+    }
+
+    sourceSets.main {
+        java.srcDir(generateGrammarSource)
     }
 }
+
 
 dokka {
     moduleName = "Stitcher Processor"
@@ -72,22 +90,6 @@ dokka {
             val version = common.versions.misc.semver.get()
             url("https://javadoc.io/static/dev.kikugie/semver/$version")
             packageListUrl.set(URI.create("https://javadoc.io/static/dev.kikugie/semver/$version/semver/package-list"))
-        }
-    }
-}
-
-tasks {
-    compileKotlin {
-        mustRunAfter("generateGrammarSource")
-        compilerOptions {
-            freeCompilerArgs.add("-Xcontext-parameters")
-        }
-    }
-
-    compileTestKotlin {
-        mustRunAfter("generateTestGrammarSource")
-        compilerOptions {
-            freeCompilerArgs.add("-Xcontext-parameters")
         }
     }
 }
