@@ -38,9 +38,9 @@ internal class FileAstParser private constructor(
 
     private fun build(): BlockToken.Root {
         while (stream.LA(1) != AntlrToken.EOF) when (NativeStitcherType.of(stream.LA(1))) {
-            NativeStitcherType.CONTENT -> processContent(nextToken())
-            NativeStitcherType.COMMENT_OPEN -> processComment(nextToken(), nextToken(), nextToken())
-            else -> problems.reportUnknownToken(nextToken())
+            NativeStitcherType.CONTENT -> processContent(stream.advance())
+            NativeStitcherType.COMMENT_OPEN -> processComment(stream.advance(), stream.advance(), stream.advance())
+            else -> problems.reportUnknownToken(stream.advance())
         }
         return stack.build(factory)
     }
@@ -71,9 +71,6 @@ internal class FileAstParser private constructor(
             .onFailure { problems.reportParserError(body, it) }
             .getOrNull()
     }
-
-    private fun nextToken(): AntlrToken =
-        stream.LT(1).also { stream.consume() }
 }
 
 private class BlockBuilderStack(val problems: ProblemReporter) {

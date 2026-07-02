@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.document
 
+import dev.kikugie.stitcher.antlr.advance
 import dev.kikugie.stitcher.antlr.charStream
 import org.antlr.v4.runtime.IntStream
 
@@ -88,6 +89,3 @@ private fun IntStream.collectLinePositions(): List<Int> = buildList(32) {
         IntStream.EOF -> break
     }
 }
-
-private fun IntStream.advance(): Int =
-    LA(1).also { if (it != IntStream.EOF) consume() }
