@@ -29,10 +29,6 @@ sourceSets.main {
     kotlin.srcDirs(files("build/generated/ver/main/kotlin").builtBy("generateVersion"), files("src/samples/kotlin"))
 }
 
-repositories {
-    mavenLocal()
-}
-
 dependencies {
     api(project(":stitcher"))
     api(common.misc.semver)

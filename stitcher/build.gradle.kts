@@ -15,13 +15,9 @@ val baseVersion: String = property("version").toString()
 
 val antlrKotlin = configurations.create("antlrKotlin")
 
-repositories {
-    mavenLocal()
-}
-
 dependencies {
     antlr(libs.antlr)
-    antlr(libs.antlr.kotlin)
+    antlr(project("gen"))
 
     api(libs.pcre4j)
     implementation(libs.pcre4j.ffm)
