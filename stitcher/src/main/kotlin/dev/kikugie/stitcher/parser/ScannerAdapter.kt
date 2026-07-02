@@ -5,8 +5,9 @@ import dev.kikugie.commons.then
 import dev.kikugie.stitcher.antlr.AntlrToken
 import dev.kikugie.stitcher.antlr.endIndex
 import dev.kikugie.stitcher.antlr.indexedName
-import dev.kikugie.stitcher.issue.FileProblemReporter
+import dev.kikugie.stitcher.document.locate
 import dev.kikugie.stitcher.issue.ProblemID
+import dev.kikugie.stitcher.issue.ProblemReporter
 import dev.kikugie.stitcher.issue.report
 import dev.kikugie.stitcher.token.NativeStitcherType.*
 import dev.kikugie.stitcher.token.StitcherType
@@ -48,14 +49,14 @@ class ScannerAdapter(
     internal val scanner: Lexer,
     private val openers: IntArray,
     private val closers: IntArray,
-    private val problems: FileProblemReporter
+    private val problems: ProblemReporter
 ) : TokenSource by scanner {
     /**
      * Encapsulates the creation of a [ScannerAdapter] configured with
      * a specific [Lexer], [openers][ScannerAdapter.openers] and [closers][ScannerAdapter.closers].
      */
     fun interface Factory : Serializable {
-        fun create(input: CharStream, problems: FileProblemReporter): ScannerAdapter
+        fun create(input: CharStream, problems: ProblemReporter): ScannerAdapter
     }
 
     private val queue: FixedQueue<AntlrToken> = FixedQueue(4)
@@ -121,23 +122,28 @@ class ScannerAdapter(
         return true
     }
 
-    private fun reportInvalidOpener(token: AntlrToken) = problems.report(SCANNER_GROUP.child("inconsistent-token"), token) {
-        val options = closers.joinToString(", ", "[", "]") { scannerVocab.indexedName(it) }
+    private fun reportInvalidOpener(token: AntlrToken) = problems.report(SCANNER_GROUP + "inconsistent-token") {
+        loc = doc.locate(token)
         label = "Unexpected comment opener"
-        details = "Comment scanner $scannerName provided token ${scannerVocab.indexedName(token)}, but $options were expected."
+
+        val options = closers.joinToString(", ", "[", "]") { scannerVocab.indexedName(it) }
+        info = "Comment scanner $scannerName provided token ${scannerVocab.indexedName(token)}, but $options were expected."
         docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-ordering"
     }
 
-    private fun reportInvalidCloser(token: AntlrToken) = problems.report(SCANNER_GROUP.child("inconsistent-token"), token) {
-        val options = openers.joinToString(", ", "[", "]") { scannerVocab.indexedName(it) }
+    private fun reportInvalidCloser(token: AntlrToken) = problems.report(SCANNER_GROUP + "inconsistent-token") {
+        loc = doc.locate(token)
         label = "Unexpected comment closer"
-        details = "Comment scanner $scannerName provided token ${scannerVocab.indexedName(token)}, but $options were expected."
+
+        val options = openers.joinToString(", ", "[", "]") { scannerVocab.indexedName(it) }
+        info = "Comment scanner $scannerName provided token ${scannerVocab.indexedName(token)}, but $options were expected."
         docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-ordering"
     }
 
-    private fun reportUnknown(token: AntlrToken) = problems.report(SCANNER_GROUP.child("unregistered-token"), token) {
+    private fun reportUnknown(token: AntlrToken) = problems.report(SCANNER_GROUP + "unregistered-token") {
         label = "Unknown token type"
-        details = "Comment scanner $scannerName provided token ${scannerVocab.indexedName(token)} which is not registered as an opener or a closer."
+
+        info = "Comment scanner $scannerName provided token ${scannerVocab.indexedName(token)} which is not registered as an opener or a closer."
         docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-counting"
     }
 

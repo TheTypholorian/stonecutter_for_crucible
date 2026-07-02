@@ -3,9 +3,10 @@ package dev.kikugie.stitcher.transformer
 import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.commons.then
 import dev.kikugie.stitcher.antlr.*
-import dev.kikugie.stitcher.issue.FileProblemReporter
-import dev.kikugie.stitcher.issue.ProblemLocation
-import dev.kikugie.stitcher.issue.locate
+import dev.kikugie.stitcher.document.Document
+import dev.kikugie.stitcher.document.DocumentLocation
+import dev.kikugie.stitcher.document.locate
+import dev.kikugie.stitcher.issue.ProblemReporter
 import dev.kikugie.stitcher.issue.runMarked
 import dev.kikugie.stitcher.parser.FileAstParser
 import dev.kikugie.stitcher.parser.StitcherTokenFactory
@@ -33,12 +34,8 @@ private typealias BlockTokenList = List<BlockToken>
 
 class BlockTransformer private constructor(val factory: StitcherTokenFactory, private val state: TransformerStateImpl) :
     BlockToken.Visitor<BlockToken>, TransformerState by state {
-    constructor(
-        parameters: TransformParameters,
-        problems: FileProblemReporter,
-        input: CharStream,
-        factory: StitcherTokenFactory = StitcherTokenFactory,
-    ) : this(factory, TransformerStateImpl(parameters, problems, input))
+    constructor(document: Document, parameters: TransformParameters, factory: StitcherTokenFactory) :
+        this(factory, TransformerStateImpl(document, parameters))
 
     internal var conditionCarry: Boolean = false
     private val blockCollector: BlockCollector = BlockCollector(replacer)
@@ -188,7 +185,7 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
 
         val stream = UncommentedTokenSource(this, context, reparse).let(::CommonTokenStream)
         val factory = StitcherTokenFactory.Inline(first().start)
-        return problems.runMarked({ FileAstParser.parse(stream, input, factory, problems) }) { root, ok ->
+        return document.runMarked({ FileAstParser.parse(stream, document, factory) }) { root, ok ->
             if (ok) root.scope.reprocess() else checker.check(root) then root.scope
         }
     }
@@ -201,9 +198,8 @@ private class ScopeTransformer(val code: BlockToken.Code, val context: BlockTran
 }
 
 private interface TransformerState {
+    val document: Document
     val parameters: TransformParameters
-    val problems: FileProblemReporter
-    val input: CharStream
 
     val checker: ParameterChecker
     val replacer: ReplacementExecutor
@@ -212,25 +208,24 @@ private interface TransformerState {
 }
 
 private class TransformerStateImpl(
+    override val document: Document,
     override val parameters: TransformParameters,
-    override val problems: FileProblemReporter,
-    override val input: CharStream,
 ) : TransformerState {
     val evaluator: ExpressionEvaluator = ExpressionEvaluator(parameters)
-    override val checker: ParameterChecker = ParameterChecker(parameters, problems)
-    override val replacer: ReplacementExecutor = ReplacementExecutor(parameters.replacements, problems)
+    override val checker: ParameterChecker = ParameterChecker(parameters, document)
+    override val replacer: ReplacementExecutor = ReplacementExecutor(parameters.replacements, document)
 
     override fun eval(expr: ExpressionToken?): Boolean = expr?.accept(evaluator) ?: true
 }
 
 private class UncommentedTokenSource(tokens: Iterable<BlockToken>, state: TransformerState, val reparse: Boolean) :
     ListTokenSource(mutableListOf()) {
-    private val listener: StitcherErrorListener = StitcherErrorListener(state.problems)
+    private val listener: StitcherErrorListener = StitcherErrorListener(state.document)
     private val list: MutableList<AntlrToken>
         inline get() = tokens as MutableList<AntlrToken>
 
     init {
-        val source: Pair<TokenSource?, CharStream?> = Pair(this, state.input)
+        val source: Pair<TokenSource?, CharStream?> = Pair(this, state.document.source)
         val builder = TokenListBuilder(source, state)
         for (token in tokens) token.accept(builder)
     }
@@ -238,12 +233,12 @@ private class UncommentedTokenSource(tokens: Iterable<BlockToken>, state: Transf
     inner class TokenListBuilder(val source: Pair<TokenSource?, CharStream?>, state: TransformerState) :
         BlockToken.Visitor<Unit>, TransformerState by state {
         override fun visitContent(content: BlockToken.Content) {
-            if (reparse) acceptReparsed(content.leaf.text, problems.locate(content))
-            else list += tokenFactory.create(source, content.leaf, problems)
+            if (reparse) acceptReparsed(content.leaf.text, document.locate(content))
+            else list += tokenFactory.create(source, content.leaf, document)
         }
 
         override fun visitComment(comment: BlockToken.Comment) {
-            val location = problems.locate(comment.body)
+            val location = document.locate(comment.body)
             val content = parameters.uncomment(comment.body.text, comment.openerStr, comment.closerStr)
             acceptReparsed(content, location)
         }
@@ -256,12 +251,11 @@ private class UncommentedTokenSource(tokens: Iterable<BlockToken>, state: Transf
             throw UnsupportedOperationException()
         }
 
-        private fun acceptReparsed(text: String, location: ProblemLocation) {
-            assert(location.fileIndex > 0) { "Incomplete location $location" }
+        private fun acceptReparsed(text: String, location: DocumentLocation) {
             val input = text.charStream()
-            val scanner = parameters.create(input, problems).apply {
+            val scanner = parameters.create(input, document).apply {
                 scanner.errorListener = listener
-                scanner.tokenFactory = InlineTokenFactory(location.lineIndex, location.charOffset)
+                scanner.tokenFactory = InlineTokenFactory(location.lineIndex, location.columnIndex)
             }
 
             scanner.forEach(list::plusAssign)

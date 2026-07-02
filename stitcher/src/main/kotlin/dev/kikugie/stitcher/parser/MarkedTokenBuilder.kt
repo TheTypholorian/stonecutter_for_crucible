@@ -1,4 +1,4 @@
-package dev.kikugie.stitcher.parser.layout
+package dev.kikugie.stitcher.parser
 
 import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.semver.data.SemanticVersion
@@ -12,15 +12,9 @@ import dev.kikugie.stitcher.antlr.StitcherParser
 import dev.kikugie.stitcher.antlr.acceptAs
 import dev.kikugie.stitcher.antlr.startIndex
 import dev.kikugie.stitcher.issue.BailException
-import dev.kikugie.stitcher.issue.FileProblemReporter
+import dev.kikugie.stitcher.issue.ProblemReporter
 import dev.kikugie.stitcher.issue.bail
 import dev.kikugie.stitcher.issue.report
-import dev.kikugie.stitcher.parser.SYNTAX_GROUP
-import dev.kikugie.stitcher.parser.StitcherTokenFactory
-import dev.kikugie.stitcher.parser.fromAntlrNode
-import dev.kikugie.stitcher.parser.fromAntlrNodeOrNull
-import dev.kikugie.stitcher.parser.fromAntlrRule
-import dev.kikugie.stitcher.parser.fromAntlrToken
 import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.StitcherToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
@@ -33,8 +27,8 @@ import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.tree.TerminalNode
 
-internal class MarkedTokenBuilder(factory: StitcherTokenFactory, problems: FileProblemReporter): StitcherBaseVisitor<MarkedTokenBuilder.Result?>() {
-    private val delegate: TokenBuilder = TokenBuilder(factory, problems)
+internal class MarkedTokenBuilder(problems: ProblemReporter, factory: StitcherTokenFactory): StitcherBaseVisitor<MarkedTokenBuilder.Result?>() {
+    private val delegate: TokenBuilder = TokenBuilder(problems, factory)
 
     override fun visitConditionDefinition(ctx: StitcherParser.ConditionDefinitionContext): Result? {
         return Result(ctx.COND_MARK().symbol, ctx.condition()?.accept(delegate) as? DefinitionToken ?: return null)
@@ -51,10 +45,7 @@ internal class MarkedTokenBuilder(factory: StitcherTokenFactory, problems: FileP
     data class Result(val marker: AntlrToken, val definition: DefinitionToken)
 }
 
-private class TokenBuilder(
-    private val factory: StitcherTokenFactory,
-    private val problems: FileProblemReporter
-) : StitcherBaseVisitor<StitcherToken>() {
+private class TokenBuilder(private val problems: ProblemReporter, private val factory: StitcherTokenFactory) : StitcherBaseVisitor<StitcherToken>() {
     override fun visitOpenerCondition(ctx: StitcherParser.OpenerConditionContext): DefinitionToken.ConditionOpener {
         val sugar = listOfNotNull(ctx.SUGAR_IF()).map(factory::fromAntlrNode)
         val expression = ctx.conditionExpression().acceptAs<ExpressionToken>(this)
@@ -234,24 +225,30 @@ private class TokenBuilder(
     }
 }
 
+private val OPERATOR_TYPES: IntArray = intArrayOf(
+    StitcherLexer.COMP_EQUAL, StitcherLexer.COMP_NEQUAL, StitcherLexer.COMP_MORE, StitcherLexer.COMP_LESS,
+    StitcherLexer.COMP_GMORE, StitcherLexer.COMP_GLESS, StitcherLexer.COMP_MAJOR, StitcherLexer.REPL_MARK,
+)
+
 private val ParseTree?.type: Int
     get() = this?.takeAsOrNull<TerminalNode>()?.symbol?.type ?: -1
 
 private fun StitcherParser.ElseSugarContext?.collectToLeaves(factory: StitcherTokenFactory): List<LeafToken> =
     if (this == null) emptyList() else listOfNotNull(SUGAR_ELIF(), SUGAR_ELSE(), SUGAR_IF()).map(factory::fromAntlrNode)
 
-private fun StitcherParser.VersionPredicateContext.tryToPredicate(visitor: TokenBuilder, problems: FileProblemReporter): PredicateToken? = try {
+private fun StitcherParser.VersionPredicateContext.tryToPredicate(visitor: TokenBuilder, problems: ProblemReporter): PredicateToken? = try {
     acceptAs(visitor)
 } catch (e: Exception) {
-    if (e !is BailException) problems.report(SYNTAX_GROUP.child("predicate-parse-exception"), startIndex) {
+    if (e !is BailException) problems.report(SYNTAX_GROUP + "predicate-parse-exception") {
         label = "Unexpected error when parsing predicate"
-        exception = e
+        loc = doc.locate(startIndex)
+        err = e
     }
 
     null
 }
 
-private fun ParserRuleContext?.toVersionOperator(problems: FileProblemReporter): VersionOperator = when(this?.getChild(0).type) {
+private fun ParserRuleContext.toVersionOperator(problems: ProblemReporter): VersionOperator = when(val type = getChild(0)?.type) {
     AntlrToken.EOF -> VersionOperator.IMPLICIT_EQUAL
     StitcherLexer.COMP_EQUAL -> VersionOperator.EQUAL
     StitcherLexer.COMP_NEQUAL -> VersionOperator.NOT_EQUAL
@@ -261,8 +258,10 @@ private fun ParserRuleContext?.toVersionOperator(problems: FileProblemReporter):
     StitcherLexer.COMP_GLESS -> VersionOperator.LESS_EQUAL
     StitcherLexer.REPL_MARK -> VersionOperator.SAME_MINOR
     StitcherLexer.COMP_MAJOR -> VersionOperator.SAME_MAJOR
-    else -> problems.bail(SYNTAX_GROUP.child("invalid-comparison-operator"), this!!.startIndex) {
-        label = "Invalid version predicate. How did we get here?"
+    else -> problems.bail(SYNTAX_GROUP + "invalid-comparison-operator") {
+        label = "Invalid predicate operator type"
+        info = "Token type $type is not in [${OPERATOR_TYPES.joinToString()}]"
+        loc = doc.locate(startIndex)
     }
 }
 

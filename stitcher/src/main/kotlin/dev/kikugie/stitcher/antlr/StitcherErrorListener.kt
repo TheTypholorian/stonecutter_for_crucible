@@ -2,25 +2,27 @@ package dev.kikugie.stitcher.antlr
 
 import dev.kikugie.commons.collections.present
 import dev.kikugie.stitcher.antlr.StitcherLexer.*
-import dev.kikugie.stitcher.issue.FileProblemReporter
-import dev.kikugie.stitcher.issue.location
+import dev.kikugie.stitcher.document.DocumentLocation
+import dev.kikugie.stitcher.issue.ProblemReporter
 import dev.kikugie.stitcher.issue.report
 import dev.kikugie.stitcher.parser.SYNTAX_GROUP
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.IntervalSet
 
-internal class StitcherErrorListener(val problems: FileProblemReporter) : BaseErrorListener() {
+internal class StitcherErrorListener(val problems: ProblemReporter) : BaseErrorListener() {
     private val reported: MutableSet<ErrorID> = mutableSetOf()
 
     override fun syntaxError(recognizer: Recognizer<*, *>, symbol: Any?, line: Int, charPositionInLine: Int, msg: String?, e: RecognitionException?) {
-        val index = if (symbol is AntlrToken) symbol.startIndex else problems.index.reverse(line - 1, charPositionInLine)
+        val location = DocumentLocation(line - 1, charPositionInLine)
         var (primary, secondary) = unmangle(msg).let { (a, b) -> (a ?: e?.message ?: "Unknown error") to b }
-        if (!reported.add(ErrorID(primary, index)))
+        if (!reported.add(ErrorID(primary, location)))
             return
 
-        problems.report(SYNTAX_GROUP.child("antlr-error"), problems.location(line - 1, charPositionInLine, index)) {
+        problems.report(SYNTAX_GROUP + "antlr-error") {
+            loc = location
             label = primary
-            if (secondary != null) details = secondary
+            if (secondary != null)
+                info = secondary
         }
     }
 
@@ -29,7 +31,7 @@ internal class StitcherErrorListener(val problems: FileProblemReporter) : BaseEr
         return split.firstOrNull() to split.lastOrNull()
     }
 
-    private data class ErrorID(val name: String, val position: Int)
+    private data class ErrorID(val name: String, val location: DocumentLocation)
 }
 
 // TODO: Add hints and doc links

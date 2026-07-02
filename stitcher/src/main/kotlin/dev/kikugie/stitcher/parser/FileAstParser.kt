@@ -2,11 +2,12 @@ package dev.kikugie.stitcher.parser
 
 import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.stitcher.antlr.*
-import dev.kikugie.stitcher.issue.FileProblemReporter
+import dev.kikugie.stitcher.document.Document
+import dev.kikugie.stitcher.document.locate
+import dev.kikugie.stitcher.issue.ProblemReporter
 import dev.kikugie.stitcher.issue.bail
-import dev.kikugie.stitcher.issue.locate
+import dev.kikugie.stitcher.issue.link
 import dev.kikugie.stitcher.issue.report
-import dev.kikugie.stitcher.parser.layout.MarkedTokenBuilder
 import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.StitcherToken
 import dev.kikugie.stitcher.token.impl.BlockToken
@@ -14,7 +15,6 @@ import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken.Kind
 import dev.kikugie.stitcher.token.impl.ScopeToken
 import dev.kikugie.stitcher.util.*
-import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.CommonToken
 import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.TokenStream
@@ -24,17 +24,16 @@ private val MARKERS: CharArray = charArrayOf('?', '$', '~')
 
 internal class FileAstParser private constructor(
     val stream: TokenStream,
-    val source: CharStream,
+    val problems: ProblemReporter,
     val factory: StitcherTokenFactory,
-    val problems: FileProblemReporter
 ) {
     companion object {
-        fun parse(stream: TokenStream, source: CharStream, factory: StitcherTokenFactory, problems: FileProblemReporter): BlockToken.Root =
-            FileAstParser(stream, source, factory, problems).build()
+        fun parse(stream: TokenStream, problems: ProblemReporter, factory: StitcherTokenFactory): BlockToken.Root =
+            FileAstParser(stream, problems, factory).build()
     }
 
     private val stack: BlockBuilderStack = BlockBuilderStack(problems)
-    private val builder: MarkedTokenBuilder = MarkedTokenBuilder(factory, problems)
+    private val builder: MarkedTokenBuilder = MarkedTokenBuilder(problems, factory)
     private val listener: StitcherErrorListener = StitcherErrorListener(problems)
 
     private fun build(): BlockToken.Root {
@@ -77,7 +76,7 @@ internal class FileAstParser private constructor(
         stream.LT(1).also { stream.consume() }
 }
 
-private class BlockBuilderStack(val problems: FileProblemReporter){
+private class BlockBuilderStack(val problems: ProblemReporter) {
     private val direct: Deque<BlockBuilder.Scoped> = ArrayDeque(4)
 
     val top: BlockBuilder.Scoped
@@ -146,7 +145,7 @@ private sealed interface BlockBuilder {
         val entries: MutableList<BlockBuilder>
 
         fun accept(block: BlockBuilder, stack: BlockBuilderStack): BlockAcceptResult
-        fun finalize(problems: FileProblemReporter, done: Boolean) {}
+        fun finalize(problems: ProblemReporter, done: Boolean) {}
     }
 }
 
@@ -213,11 +212,11 @@ private class CodeBuilder(
         host.build(factory), factory.fromAntlrToken(mark), def, entries.map { it.build(factory) }
     )
 
-    override fun finalize(problems: FileProblemReporter, done: Boolean): Unit = when (val opener = def.opener) {
+    override fun finalize(problems: ProblemReporter, done: Boolean) = when (val opener = def.opener) {
         is ScopeToken.Lookup if opener.lookup != null && !satisfied -> problems.reportLookupNotFound(this, opener)
         is ScopeToken.Closed if done -> problems.reportUnclosedScope(this, opener)
-        else -> null
-    }.let { }
+        else -> Unit
+    }
 
     override fun accept(block: BlockBuilder, stack: BlockBuilderStack): BlockAcceptResult = when (kind) {
         Kind.LINE_OPENER, Kind.LINE_EXTENSION -> acceptLine(block, stack)
@@ -363,109 +362,118 @@ private class CodeBuilder(
 }
 
 //<editor-fold desc="=#= Problem reports =#=">
-private fun FileProblemReporter.bailConsumedRoot(): Nothing = bail(
-    LAYOUT_GROUP.child("consumed-root"), 0, 0
+private fun ProblemReporter.bailConsumedRoot(): Nothing = bail(
+    LAYOUT_GROUP + "consumed-root"
 ) {
     label = "Consumed root scope"
-    details = "Parser got hungry and ate the whole AST (っ´ཀ`)っ."
+    info = "Parser got hungry and ate the whole AST (っ´ཀ`)っ."
     hint = """
         Please report this to https://codeberg.org/stonecutter/stonecutter/issues
         with the problematic file and stacktrace attached.
     """.trimIndent()
 }
 
-private fun FileProblemReporter.reportUnknownToken(token: AntlrToken): Any = report(
-    LAYOUT_GROUP.child("unexpected-token"), token
+private fun ProblemReporter.reportUnknownToken(token: AntlrToken): Unit = report(
+    LAYOUT_GROUP + "unexpected-token"
 ) {
+    loc = doc.locate(token)
+
     label = "Unknown file layout token"
-    details = "Token type ${token.type} was not expected to appear ꒰•́ ｡ •̀꒱?."
+    info = "Token type ${token.type} was not expected to appear ꒰•́ ｡ •̀꒱?."
     hint = """
         Please report this to https://codeberg.org/stonecutter/stonecutter/issues
         with the problematic file and stacktrace attached.
     """.trimIndent()
 }
 
-private fun FileProblemReporter.reportParserError(body: AntlrToken, err: Throwable): Any = report(
-    LAYOUT_GROUP.child("parser-failure"), body
+private fun ProblemReporter.reportParserError(body: AntlrToken, error: Throwable): Unit = report(
+    LAYOUT_GROUP + "parser-failure"
 ) {
+    loc = doc.locate(body)
     label = "Invalid expression"
-    details = "Parser tried to do its job and had a burnout ╮(⊙_ʖ⊙)╭."
+    info = "Parser tried to do its job and had a burnout ╮(⊙_ʖ⊙)╭."
     hint = """
         Please report this to https://codeberg.org/stonecutter/stonecutter/issues
         with the problematic file and stacktrace attached.
     """.trimIndent()
-    exception = err
+    err = error
 }
 
-private fun FileProblemReporter.reportRootCloser(code: CodeBuilder, parent: BlockBuilder.Scoped): Any = report(
-    LAYOUT_GROUP.child("unmatched-root-closer"), code.host.body
+private fun ProblemReporter.reportRootCloser(code: CodeBuilder, parent: BlockBuilder.Scoped): Unit = report(
+    LAYOUT_GROUP + "unmatched-root-closer"
 ) {
+    loc = doc.locate(code.host.body)
     label = "Unmatched ${code.defName} closer"
-    details = "${code.defTitle} must have a corresponding `${code.mark.text} ... {` comment."
+    info = "${code.defTitle} must have a corresponding `${code.mark.text} ... {` comment."
 
     val candidate = parent.findRootCloserCandidate(code)
     if (candidate != null) hint = buildString {
         appendLine("${code.defTitle} at this location may need to end with `{`:")
-        append(locate(candidate.host.body.endIndex).toLinkString())
+        append(doc.locate(candidate.host.body.endIndex).link())
     }
 }
 
-private fun FileProblemReporter.reportMismatchedCloser(code: CodeBuilder, parent: CodeBuilder): Any = report(
-    LAYOUT_GROUP.child("mismatched-closer-type"), code.host.body
+private fun ProblemReporter.reportMismatchedCloser(code: CodeBuilder, parent: CodeBuilder): Unit = report(
+    LAYOUT_GROUP + "mismatched-closer-type"
 ) {
+    loc = doc.locate(code.host.body)
     label = "Mismatched closer type"
-    details = "${parent.defTitle} can't be closed with a ${code.defTitle} marker."
+    info = "${parent.defTitle} can't be closed with a ${code.defTitle} marker."
     hint = buildString {
         appendLine("${parent.defTitle} at this location needs to be closed with `${parent.mark.text}}`:")
-        append(locate(parent.host.body.endIndex).toLinkString())
+        append(doc.locate(parent.host.body.endIndex).link())
     }
 }
 
-private fun FileProblemReporter.reportUnmatchedImplicitExtension(code: CodeBuilder, parent: BlockBuilder.Scoped): Any = report(
-    LAYOUT_GROUP.child("unmatched-implicit-extension"), code.host.body
+private fun ProblemReporter.reportUnmatchedImplicitExtension(code: CodeBuilder, parent: BlockBuilder.Scoped): Unit = report(
+    LAYOUT_GROUP + "unmatched-implicit-extension"
 ) {
+    loc = doc.locate(code.host.body)
     label = "Unmatched extension"
-    details = "${code.defTitle} doesn't follow a ${parent.defName} ending with `{`."
+    info = "${code.defTitle} doesn't follow a ${parent.defName} ending with `{`."
     hint = "Start this ${code.defName} with `${code.mark.text}}`."
 }
 
-private fun FileProblemReporter.reportDanglingExtensionCandidate(code: CodeBuilder, candidate: BlockBuilder): Any = report(
-    LAYOUT_GROUP.child("dangling-implicit-extension"), code.host.body
+private fun ProblemReporter.reportDanglingExtensionCandidate(code: CodeBuilder, candidate: BlockBuilder): Unit = report(
+    LAYOUT_GROUP + "dangling-implicit-extension"
 ) {
+    loc = doc.locate(code.host.body)
     label = "Dangling implicit extension"
-    details = "${code.defTitle} doesn't follow a valid ${code.defName}."
+    info = "${code.defTitle} doesn't follow a valid ${code.defName}."
     hint = buildString {
         appendLine("${candidate.defTitle} at this location prevents the ${code.defName} from extending the chain:")
-        append(locate(candidate.blamePosition).toLinkString())
+        append(doc.locate(candidate.blamePosition).link())
     }
 }
 
-private fun FileProblemReporter.reportDanglingImplicitExtension(code: CodeBuilder, parent: BlockBuilder.Scoped) {
+private fun ProblemReporter.reportDanglingImplicitExtension(code: CodeBuilder, parent: BlockBuilder.Scoped) {
     val candidate = parent.findImplicitExtensionBarrier(code.kind.isLookup)
     if (candidate == null) reportUnmatchedImplicitExtension(code, parent)
     else reportDanglingExtensionCandidate(code, candidate)
 }
 
-private fun FileProblemReporter.reportUnclosedScope(code: CodeBuilder, opener: StitcherToken): Any = report(
-    LAYOUT_GROUP.child("unclosed-scope"), opener
+private fun ProblemReporter.reportUnclosedScope(code: CodeBuilder, opener: StitcherToken): Unit = report(
+    LAYOUT_GROUP + "unclosed-scope"
 ) {
+    loc = doc.locate(opener)
     label = "Unclosed ${code.defName}"
-    details = "Missing closing `${code.mark.text}}` comment."
+    info = "Missing closing `${code.mark.text}}` comment."
     docs = "https://stonecutter.kikugie.dev/wiki/config/params#closed"
 }
 
-private fun FileProblemReporter.reportLookupNotFound(code: CodeBuilder, opener: ScopeToken.Lookup): Any = report(
-    LAYOUT_GROUP.child("lookup-not-found"), opener
+private fun ProblemReporter.reportLookupNotFound(code: CodeBuilder, opener: ScopeToken.Lookup): Unit = report(
+    LAYOUT_GROUP + "lookup-not-found"
 ) {
+    loc = doc.locate(opener)
     label = "Lookup string not found"
-    details = "Pattern '${opener.lookup?.unquote()}' wasn't found in the text ahead."
+    info = "Pattern '${opener.lookup?.unquote()}' wasn't found in the text ahead."
     docs = "https://stonecutter.kikugie.dev/wiki/config/params#lookup"
 
     // FIXME: it's built before the list of blocks is complete
     val candidate = code.parent.findLookupMatchBarrier(code)
     if (candidate != null) hint = buildString {
         appendLine("${candidate.defTitle} at this position stops the search:")
-        append(locate(candidate.blamePosition).toLinkString())
+        append(doc.locate(candidate.blamePosition).link())
     }
 }
 //</editor-fold>

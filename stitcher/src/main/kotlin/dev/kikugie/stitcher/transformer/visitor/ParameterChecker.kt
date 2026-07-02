@@ -1,7 +1,8 @@
 package dev.kikugie.stitcher.transformer.visitor
 
 import dev.kikugie.commons.collections.present
-import dev.kikugie.stitcher.issue.FileProblemReporter
+import dev.kikugie.stitcher.document.locate
+import dev.kikugie.stitcher.issue.ProblemReporter
 import dev.kikugie.stitcher.issue.report
 import dev.kikugie.stitcher.issue.runMarked
 import dev.kikugie.stitcher.parser.SYNTAX_GROUP
@@ -18,7 +19,7 @@ import dev.kikugie.stitcher.util.id
 import dev.kikugie.stitcher.util.text
 import dev.kikugie.stitcher.util.unquote
 
-class ParameterChecker(val parameters: TransformParameters, val problems: FileProblemReporter) :
+class ParameterChecker(val parameters: TransformParameters, val problems: ProblemReporter) :
     BlockToken.Visitor<Unit>, DefinitionToken.Visitor<Unit>, ExpressionToken.Visitor<Unit> {
     private val replacementIds = parameters.replacements.asSequence()
         .mapNotNull(Replacement::identifier).toMutableSet()
@@ -40,16 +41,18 @@ class ParameterChecker(val parameters: TransformParameters, val problems: FilePr
     }
 
     override fun visitSwapOpener(swap: DefinitionToken.SwapOpener) {
-        val insertion = parameters.swaps[swap.id] ?: problems.report(SYNTAX_GROUP.child("invalid-swap-id"), swap.identifier) {
+        val insertion = parameters.swaps[swap.id] ?: return problems.report(SYNTAX_GROUP + "invalid-swap-id") {
+            loc = doc.locate(swap.identifier)
             label = "Unresolved swap '${swap.id}'"
             docs = "https://stonecutter.kikugie.dev/wiki/config/params#string-swaps"
             hint = "Available swaps: ${parameters.swaps.keys.present()}"
-        }.let { return }
+        }
 
         val placeholders = insertion.findInsertionPlaces().maxOfOrNull { it.number } ?: 0
-        if (swap.arguments.size < placeholders) problems.report(SYNTAX_GROUP.child("insufficient-swap-insertions"), swap.arguments.first()) {
+        if (swap.arguments.size < placeholders) problems.report(SYNTAX_GROUP + "insufficient-swap-insertions") {
+            loc = doc.locate(swap.arguments.last().end)
             label = "Insufficient insertions for swap '${swap.id}'"
-            details = "The substituted string requires $placeholders parameters, but only ${swap.arguments.size} were provided."
+            info = "The substituted string requires $placeholders parameters, but only ${swap.arguments.size} were provided."
             docs = "https://stonecutter.kikugie.dev/wiki/config/params#swap-parameters"
         }
     }
@@ -68,7 +71,8 @@ class ParameterChecker(val parameters: TransformParameters, val problems: FilePr
 
     override fun visitReplacementToggle(repl: DefinitionToken.ReplacementToggle) {
         for (entry in repl.entries) if (entry.id !in replacementIds)
-            problems.report(SYNTAX_GROUP.child("invalid-repl-id"), entry) {
+            problems.report(SYNTAX_GROUP + "invalid-repl-id") {
+                loc = doc.locate(entry)
                 label = "Unresolved replacement '${entry.id}'"
                 docs = "https://stonecutter.kikugie.dev/wiki/config/params#replacements"
                 hint = "Available replacements: ${parameters.replacements.mapNotNull(Replacement::identifier).toSet().present()}"
@@ -76,9 +80,10 @@ class ParameterChecker(val parameters: TransformParameters, val problems: FilePr
     }
 
     override fun visitReplacementLocal(repl: DefinitionToken.ReplacementLocal) {
-        fun reportEmpty(token: LeafToken) = problems.report(SYNTAX_GROUP.child("empty-repl-value"), token) {
+        fun reportEmpty(token: LeafToken) = problems.report(SYNTAX_GROUP + "empty-repl-value") {
+            loc = doc.locate(token)
             label = "Empty replacement value"
-            details = "An empty string can't be located in text to be replaced."
+            info = "An empty string can't be located in text to be replaced."
         }
 
         repl.expression.accept(this)
@@ -107,7 +112,8 @@ class ParameterChecker(val parameters: TransformParameters, val problems: FilePr
     }
 
     override fun visitConstant(constant: ExpressionToken.Constant) {
-        if (constant.text !in parameters.constants) problems.report(SYNTAX_GROUP.child("invalid-constant-id"), constant) {
+        if (constant.text !in parameters.constants) problems.report(SYNTAX_GROUP + "invalid-constant-id") {
+            loc = doc.locate(constant)
             label = "Unresolved constant '${constant.text}'"
             docs = "https://stonecutter.kikugie.dev/wiki/config/params#condition-constants"
             hint = "Available constants: ${parameters.constants.keys.present()}"
@@ -120,12 +126,14 @@ class ParameterChecker(val parameters: TransformParameters, val problems: FilePr
             else reportImplicit(assignment.predicates.first())
     }
 
-    private fun reportImplicit(predicate: StitcherToken) = problems.report(SYNTAX_GROUP.child("invalid-dependency-id"), predicate) {
+    private fun reportImplicit(predicate: StitcherToken) = problems.report(SYNTAX_GROUP + "invalid-dependency-id") {
+        loc = doc.locate(predicate)
         label = "No default dependency specified"
         hint = "You're doing something *really* wrong with Stonecutter to achieve this..."
     }
 
-    private fun reportExplicit(target: LeafToken) = problems.report(SYNTAX_GROUP.child("invalid-dependency-id"), target) {
+    private fun reportExplicit(target: LeafToken) = problems.report(SYNTAX_GROUP + "invalid-dependency-id") {
+        loc = doc.locate(target)
         label = "Unresolved dependency '${target.text}'"
         docs = "https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies"
         hint = "Available dependencies: ${parameters.dependencies.keys.present()}"

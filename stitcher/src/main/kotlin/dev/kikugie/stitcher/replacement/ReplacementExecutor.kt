@@ -1,8 +1,8 @@
 package dev.kikugie.stitcher.replacement
 
 import dev.kikugie.commons.collections.present
-import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.ProblemID
+import dev.kikugie.stitcher.issue.ProblemReporter
 import dev.kikugie.stitcher.issue.report
 import org.pcre4j.Pcre2MatchData
 import org.pcre4j.option.Pcre2SubstituteOption.EXTENDED
@@ -30,7 +30,7 @@ internal interface ReplacementExecutorBase {
     }
 }
 
-internal class ReplacementExecutor(replacements: List<Replacement>, problems: FileProblemReporter) : ReplacementExecutorBase {
+internal class ReplacementExecutor(replacements: List<Replacement>, problems: ProblemReporter) : ReplacementExecutorBase {
     override val identifiers: MutableSet<String> = HashSet()
     private val stringExecutor: StringExecutor = StringExecutor(replacements, problems, identifiers)
     private val regexExecutor: RegexExecutor = RegexExecutor(replacements, problems, identifiers)
@@ -60,7 +60,7 @@ internal class ReplacementExecutor(replacements: List<Replacement>, problems: Fi
 
 private class StringExecutor(
     replacements: List<Replacement>,
-    private val problems: FileProblemReporter,
+    private val problems: ProblemReporter,
     override val identifiers: Set<String>,
 ) : ReplacementExecutorBase {
     private val replacements = mutableMapOf<String, MutableList<StringReplacement>>()
@@ -119,16 +119,17 @@ private class StringExecutor(
         return candidates.singleOrNull()
     }
 
-    private fun AhoCorasick.Match.reportAmbiguousTransition(offset: Int, prev: String, candidates: Set<String>) {
-        problems.report(REPLACEMENT_GROUP.child("ambiguous-transition"), offset + start) {
-            label = "Ambiguous replacement"
-            details = buildString {
-                append("Pattern $pattern")
-                if (prev != pattern) append(" (through $prev)")
-                appendLine(" can be replaced with multiple values:\n")
-                append(candidates.present { "'$it'" })
-                append('.')
-            }
+    private fun AhoCorasick.Match.reportAmbiguousTransition(offset: Int, prev: String, candidates: Set<String>) = problems.report(
+        REPLACEMENT_GROUP + "ambiguous-transition"
+    ) {
+        loc = doc.locate(offset + start)
+        label = "Ambiguous replacement"
+        info = buildString {
+            append("Pattern $pattern")
+            if (prev != pattern) append(" (through $prev)")
+            appendLine(" can be replaced with multiple values:\n")
+            append(candidates.present { "'$it'" })
+            append('.')
         }
     }
 
@@ -145,7 +146,7 @@ private class StringExecutor(
 
 private class RegexExecutor(
     replacements: List<Replacement>,
-    private val problems: FileProblemReporter,
+    private val problems: ProblemReporter,
     override val identifiers: Set<String>,
 ) : ReplacementExecutorBase {
     private val replacements = replacements.filterIsInstance<RegexReplacement>()
@@ -191,7 +192,7 @@ private class RegexExecutor(
 
 private class PerlExecutor(
     replacements: List<Replacement>,
-    private val problems: FileProblemReporter,
+    private val problems: ProblemReporter,
     override val identifiers: Set<String>,
 ) : ReplacementExecutorBase {
     private val replacements = replacements.filterIsInstance<PerlReplacement>()
@@ -222,11 +223,10 @@ private class PerlExecutor(
         ""
     }
 
-    private fun reportSubstituteError(index: Int, error: Throwable) {
-        problems.report(REPLACEMENT_GROUP.child("pcre-error"), index) {
-            label = "PCRE substitution error"
-            exception = error
-        }
+    private fun reportSubstituteError(index: Int, error: Throwable): Unit = problems.report(REPLACEMENT_GROUP + "pcre-error") {
+        loc = doc.locate(index)
+        label = "PCRE substitution error"
+        err = error
     }
 
     private class PerlEmit(override val start: Int, override val end: Int, val value: String) : EmitQueue.Entry {

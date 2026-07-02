@@ -5,7 +5,7 @@ package dev.kikugie.stitcher.util
 import dev.kikugie.commons.takeAs
 import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.stitcher.antlr.AntlrToken
-import dev.kikugie.stitcher.issue.FileProblemReporter
+import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.token.StitcherToken
 import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.token.impl.LeafToken
@@ -26,10 +26,10 @@ internal fun <T : AntlrToken> TokenFactory<T>.create(
 internal fun <T : AntlrToken> TokenFactory<T>.create(
     src: Pair<TokenSource?, CharStream?>,
     token: StitcherToken,
-    problems: FileProblemReporter,
+    document: Document,
     type: StitcherType = token.type
 ): T {
-    val location = problems.index.locate(token.start)
+    val location = document.locate(token.start)
     return create(
         src,
         type.value,
@@ -38,7 +38,7 @@ internal fun <T : AntlrToken> TokenFactory<T>.create(
         token.start,
         token.end - 1,
         location.line,
-        location.charOffset
+        location.columnIndex
     )
 }
 
