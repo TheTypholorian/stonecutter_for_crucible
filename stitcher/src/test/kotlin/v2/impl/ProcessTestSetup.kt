@@ -1,6 +1,7 @@
 package v2.impl
 
 import dev.kikugie.semver.data.Version
+import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.issue.BailException
 import dev.kikugie.stitcher.issue.FullProblemFormatter
 import dev.kikugie.stitcher.issue.ProblemReport
@@ -17,8 +18,11 @@ import dev.kikugie.stitcher.transformer.strategy.SwappingStrategy
 import dev.kikugie.stitcher.transformer.strategy.UncommentingStrategy
 import io.kotest.core.test.TestScope
 import io.kotest.matchers.shouldBe
+import org.antlr.v4.runtime.CharStreams
 import org.intellij.lang.annotations.Language
 import org.pcre4j.option.Pcre2CompileOption
+import util.IMMEDIATE_THROW
+import kotlin.io.path.Path
 
 class ProcessTestSetup : TestSetup {
     val swaps: MutableMap<String, String> = mutableMapOf()
@@ -38,7 +42,8 @@ class ProcessTestSetup : TestSetup {
     override suspend fun TestScope.invoke() {
         val reporter = ProblemCollector()
         val result = try {
-            process("test@${testCase.name.name.replace(' ', '_')}", input, buildParameters(), reporter)
+            val document = Document(Path("test@${testCase.name.name.replace(' ', '_')}"), CharStreams.fromString(input), IMMEDIATE_THROW)
+            process(document, buildParameters())
         } catch (_: BailException) {
             reporter.complete(true, onError)
         }

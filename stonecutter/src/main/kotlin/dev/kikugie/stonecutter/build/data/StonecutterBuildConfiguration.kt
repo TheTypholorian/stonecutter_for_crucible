@@ -3,6 +3,9 @@
 package dev.kikugie.stonecutter.build.data
 
 import dev.kikugie.semver.data.Version
+import dev.kikugie.stitcher.document.Document
+import dev.kikugie.stitcher.document.io.LineNormalizingReader
+import dev.kikugie.stitcher.document.io.LineNormalizingWriter
 import dev.kikugie.stitcher.issue.BailException
 import dev.kikugie.stitcher.issue.ProblemConsumer
 import dev.kikugie.stitcher.issue.ProblemReport
@@ -18,7 +21,6 @@ import dev.kikugie.stonecutter.build.config.SwapContainer
 import dev.kikugie.stonecutter.build.task.StonecutterBuildTasks
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService.Companion.collect
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService.Companion.log
-import dev.kikugie.stonecutter.build.task.forFile
 import dev.kikugie.stonecutter.controller.StonecutterControllerExtension
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.HandlerModel
@@ -28,10 +30,11 @@ import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.StructuredPropertyConfigImpl
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
+import dev.kikugie.stonecutter.settings.properties.StructuredPropertyConfigImpl
 import dev.kikugie.stonecutter.util.overwriteText
 import dev.kikugie.stonecutter.util.toRegularFile
+import org.antlr.v4.runtime.CharStreams
 import org.gradle.api.Named
 import org.gradle.api.Project
 import org.gradle.api.model.ObjectFactory
@@ -42,8 +45,12 @@ import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.the
 import java.io.File
+import java.io.StringWriter
 import java.nio.file.NoSuchFileException
+import java.nio.file.StandardOpenOption
 import javax.inject.Inject
+import kotlin.io.path.createParentDirectories
+import kotlin.io.path.writer
 
 @OptIn(StonecutterInternalAPI::class)
 internal abstract class StonecutterBuildConfiguration @Inject constructor(
@@ -67,24 +74,29 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
 
     override fun process(file: File, destination: String): File {
         val project = node.project
-        val parameters = collectTransformParams(file, project, data)
+        val parameters: TransformParameters = collectTransformParams(file, project, data)
         val problems: MutableCollection<ProblemReport> = mutableListOf()
-        val reporter: ProblemConsumer = {
+        val reporter = ProblemConsumer {
             if (it.sev == ProblemSeverity.ERROR) problems += it
             project.logger.log(it)
         }
 
-        val contents = try {
-            val text = project.providers.fileContents(file.toRegularFile(project.objects)).asText.orNull
+        val modified: String = try {
+            val text: String = project.providers.fileContents(file.toRegularFile(project.objects)).asText.orNull
                 ?: throw NoSuchFileException(file.absolutePath)
-            dev.kikugie.stitcher.process(file.toPath(), text, parameters, reporter)
+            val stream = CharStreams.fromReader(LineNormalizingReader(text.reader()), file.absolutePath)
+            val document = Document(file.toPath(), stream, reporter)
+            dev.kikugie.stitcher.process(document, parameters)
         } catch (_: BailException) {
             problems.collect()
         }
-        val output = project.layout.projectDirectory.file(destination)
+
+        val file = project.layout.projectDirectory.file(destination)
             .also(project.providers::fileContents).asFile
-        output.overwriteText(contents, true)
-        return output
+        val writer = StringWriter()
+        LineNormalizingWriter(writer).write(modified)
+        file.overwriteText(writer.toString(), true)
+        return file
     }
 }
 

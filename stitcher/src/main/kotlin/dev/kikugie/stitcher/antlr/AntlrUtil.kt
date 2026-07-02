@@ -7,10 +7,6 @@ import dev.kikugie.stitcher.token.StitcherType
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.tree.ParseTreeVisitor
 import org.antlr.v4.runtime.tree.TerminalNode
-import java.io.InputStream
-import java.nio.charset.Charset
-import java.nio.charset.StandardCharsets
-import java.nio.file.Path
 
 typealias AntlrToken = Token
 
@@ -27,25 +23,30 @@ var CommonToken.endIndex: Int
     }
 
 val TerminalNode.type: Int
-inline get() = symbol.type
+    inline get() = symbol.type
 val TerminalNode.startIndex: Int
-inline get() = symbol.startIndex
+    inline get() = symbol.startIndex
 val TerminalNode.endIndex: Int
-inline get() = symbol.endIndex
+    inline get() = symbol.endIndex
 val TerminalNode.lineIndex: Int
-inline get() = symbol.lineIndex
+    inline get() = symbol.lineIndex
 
 val ParserRuleContext.isValid: Boolean
-inline get() = start != null && stop != null
+    inline get() = start != null && stop != null
 val ParserRuleContext.startIndex: Int
-inline get() = start.startIndex
+    inline get() = start.startIndex
 val ParserRuleContext.endIndex: Int
-inline get() = stop.endIndex
+    inline get() = stop.endIndex
+
+val CharStream.length: Int
+    inline get() = size() - 1
 
 inline fun Vocabulary.displayName(token: AntlrToken): String =
     getDisplayName(token.type)
+
 inline fun Vocabulary.indexedName(token: AntlrToken): String =
     indexedName(token.type)
+
 fun Vocabulary.indexedName(type: Int): String =
     "$type ('${getDisplayName(type)}')"
 

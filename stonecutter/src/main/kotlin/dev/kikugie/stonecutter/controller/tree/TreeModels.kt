@@ -14,7 +14,9 @@ import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stitcher.replacement.Replacement
+import dev.kikugie.stitcher.transformer.TransformParameters
 import dev.kikugie.stonecutter.StonecutterPlugin
+import dev.kikugie.stonecutter.controller.file.HandlerModel
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
@@ -25,6 +27,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import java.nio.file.Path
 import kotlin.io.path.Path
+import kotlin.io.path.extension
 import kotlin.io.path.invariantSeparatorsPathString
 
 /**
@@ -156,6 +159,11 @@ public data class ParametersModel(
         data.dependencies.get().mapValues { (_, it) -> LenientOperations.parse(it) },
         data.replacements.get().toList()
     )
+
+    internal fun forFile(file: Path, handlers: Map<String, HandlerModel>): TransformParameters? {
+        val handler = handlers[file.extension.lowercase()] ?: return null
+        return TransformParameters(handler.scanner, handler.commenter, handler.uncommenter, handler.swapper, swaps, constants, dependencies, replacements)
+    }
 }
 
 /**Serializes a [Path] as an absolute path string.*/

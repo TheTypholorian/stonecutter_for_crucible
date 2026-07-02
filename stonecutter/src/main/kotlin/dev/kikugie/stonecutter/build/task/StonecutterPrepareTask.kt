@@ -1,6 +1,9 @@
 package dev.kikugie.stonecutter.build.task
 
+import dev.kikugie.stitcher.antlr.length
 import dev.kikugie.stitcher.document.Document
+import dev.kikugie.stitcher.document.io.LineNormalizingReader
+import dev.kikugie.stitcher.document.io.LineNormalizingWriter
 import dev.kikugie.stitcher.issue.*
 import dev.kikugie.stitcher.process
 import dev.kikugie.stitcher.transformer.TransformParameters
@@ -12,6 +15,7 @@ import dev.kikugie.stonecutter.controller.tree.ParametersModel
 import dev.kikugie.stonecutter.util.clearIfNotIncremental
 import dev.kikugie.stonecutter.util.overwriteText
 import org.antlr.v4.runtime.CharStreams
+import org.antlr.v4.runtime.misc.Interval
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
@@ -29,12 +33,21 @@ import org.gradle.workers.WorkParameters
 import org.gradle.workers.WorkQueue
 import org.gradle.workers.WorkerExecutor
 import java.io.File
+import java.io.StringWriter
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 import javax.inject.Inject
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.bufferedReader
+import kotlin.io.path.createParentDirectories
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.exists
 import kotlin.io.path.extension
+import kotlin.io.path.notExists
 import kotlin.io.path.readText
+import kotlin.io.path.writer
+
+private val PREPARE_TASK: ProblemID = ProblemID("file-processing")
 
 /**
  * Task responsible for preprocessing files for a given [SourceSet].
@@ -98,30 +111,6 @@ public abstract class StonecutterPrepareTask : DefaultTask() {
 }
 
 private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
-    private val source: Path get() = parameters.source.asFile.get().toPath()
-    private val output: Path get() = parameters.output.asFile.get().toPath()
-
-    override fun execute() {
-        val reporter: ProblemConsumer = { parameters.reporter.get().report(parameters.task.get(), it) }
-        val transform = parameters.model.get().forFile(source, parameters.handlers.get().parameters.handlers.get())
-        val document = Document(source, CharStreams.fromString(""), reporter)
-
-        if (transform == null) reporter.invoke(ProblemReport(ProblemID("invalid-extension"), document).apply {
-            label = "No file handler registered for ${source.extension}"
-            sev = ProblemSeverity.WARN
-        })
-        if (!source.exists() || transform == null) { output.deleteIfExists(); return }
-        val contents = source.readText()
-        val modified = try {
-            process(source, transform, reporter)
-        } catch (_: BailException) {
-            output.deleteIfExists()
-            return // Will be rethrown as GradleException
-        }
-        // TODO: Use a writer here
-        if (contents == modified) output.deleteIfExists() else output.overwriteText(modified, true)
-    }
-
     interface Parameters : WorkParameters {
         val source: RegularFileProperty
         val output: RegularFileProperty
@@ -131,9 +120,61 @@ private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
         val reporter: Property<StonecutterErrorsService>
         val task: Property<String>
     }
-}
 
-internal fun ParametersModel.forFile(file: Path, handlers: Map<String, HandlerModel>): TransformParameters? {
-    val handler = handlers[file.extension.lowercase()] ?: return null
-    return TransformParameters(handler.scanner, handler.commenter, handler.uncommenter, handler.swapper, swaps, constants, dependencies, replacements)
+    private val source: Path get() = parameters.source.asFile.get().toPath()
+    private val output: Path get() = parameters.output.asFile.get().toPath()
+
+    override fun execute() {
+        if (source.notExists()) return handleNoFile()
+
+        val parameters = createTransformParameters() ?: return handleNoParams()
+        val document = createSourceDocument()
+
+        val modified = try { process(document, parameters) } catch (_: BailException) { return }
+        if (!isModified(document, modified)) return output.deleteIfExists().let { }
+
+        val writer = StringWriter()
+        LineNormalizingWriter(writer).write(modified)
+
+        output.overwriteText(writer.toString(), true)
+    }
+
+    private fun handleNoFile(): Unit = createDummyDocument().report(PREPARE_TASK + "no-source") {
+        label = "No such file"
+        output.deleteIfExists()
+    }
+
+    private fun handleNoParams(): Unit = createDummyDocument().report(PREPARE_TASK + "invalid-extension") {
+        label = "No file handler registered for ${source.extension}"
+        sev = ProblemSeverity.WARN
+        output.deleteIfExists()
+    }
+
+    private fun createProblemConsumer(): ProblemConsumer {
+        val reporter: StonecutterErrorsService = parameters.reporter.get()
+        val task: String = parameters.task.get()
+        return ProblemConsumer { reporter.report(task, it) }
+    }
+
+    private fun createTransformParameters(): TransformParameters? {
+        val handlers: Map<String, HandlerModel> = parameters.handlers.get().parameters.handlers.get()
+        return parameters.model.get().forFile(source, handlers)
+    }
+
+    private fun createSourceDocument(): Document {
+        val source = source
+        val stream = CharStreams.fromReader(LineNormalizingReader(source.bufferedReader()), source.absolutePathString())
+        return Document(source, stream, createProblemConsumer())
+    }
+
+    private fun createDummyDocument(): Document =
+        Document(source, CharStreams.fromString(""), createProblemConsumer())
+
+    private fun isModified(document: Document, new: String): Boolean {
+        val size = document.source.length
+        if (size != new.length) return true
+
+        val original = document.source.getText(Interval.of(0, size - 1))
+        return original != new
+    }
 }
