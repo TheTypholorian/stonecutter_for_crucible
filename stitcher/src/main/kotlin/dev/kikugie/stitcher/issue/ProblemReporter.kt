@@ -1,135 +1,42 @@
-@file:Suppress("NOTHING_TO_INLINE", "unused")
+@file:Suppress("NOTHING_TO_INLINE")
 
 package dev.kikugie.stitcher.issue
 
-import dev.kikugie.stitcher.issue.lines.LineIndex
-import java.nio.file.Path
+import dev.kikugie.stitcher.document.Document
 
 @DslMarker
 @Retention(AnnotationRetention.SOURCE)
+@Target(AnnotationTarget.CLASS, AnnotationTarget.TYPEALIAS)
 private annotation class ProblemDsl
 
+@ProblemDsl
 typealias ProblemConsumer = (report: ProblemReport) -> Unit
 
 @ProblemDsl
-interface ProblemMarker {
-    val isDirty: Boolean
-}
-
-/**
- * Receives problem reports during processing
- */
-@ProblemDsl
 interface ProblemReporter {
-    fun mark(): ProblemMarker
-    /**
-     * Accepts the given [report] for handling
-     */
+    fun mark(): Marker
+    fun create(id: ProblemID): ProblemReport
     fun accept(report: ProblemReport)
+
+    interface Marker {
+        val isDirty: Boolean
+    }
 }
 
-/**
- * Reporter that is scoped to a single file
- */
 @ProblemDsl
-interface FileProblemReporter : ProblemReporter {
-    /**
-     * File associated with all reported problems
-     */
-    val file: Path
-    val index: LineIndex
-}
+internal class ProblemReporterImpl(private val doc: Document, private val consumer: ProblemConsumer) : ProblemReporter {
+    private var counter: Int = 0
 
-inline fun FileProblemReporter.locate(index: Int): ProblemLocation =
-    this.index.locate(file, index)
+    override fun mark(): Marker = Marker(counter)
+    override fun create(id: ProblemID): ProblemReport = ProblemReport(id, doc)
 
-/**
- * Creates a location within the associated [file][FileProblemReporter.file] using [line], [column], and [index]
- */
-inline fun FileProblemReporter.location(line: Int = -1, column: Int = -1, index: Int = -1): ProblemLocation =
-    ProblemLocation(this.file, line, column, index)
+    override fun accept(report: ProblemReport) {
+        counter++
+        consumer(report)
+    }
 
-/**
- * Builds and reports a problem identified by [id] at [location] using [builder]
- */
-inline fun ProblemReporter.report(id: ProblemID, location: ProblemLocation? = null, builder: ProblemReport.() -> Unit): ProblemReport =
-    ProblemReport.create(id, location, builder).also(::accept)
-
-/**
- * Reports a problem identified by [id] at [location] and then throws [BailException]
- */
-inline fun ProblemReporter.bail(id: ProblemID, location: ProblemLocation? = null, builder: ProblemReport.() -> Unit): Nothing =
-    report(id, location, builder).let { throw BailException() }
-
-/**
- * Builds and reports a problem identified by [id] at [line] and [column] using [builder]
- */
-inline fun FileProblemReporter.report(id: ProblemID, line: Int, column: Int, builder: ProblemReport.() -> Unit): ProblemReport =
-    report(id, location(line, column), builder)
-
-/**
- * Builds and reports a problem identified by [id] at [index] using [builder]
- */
-inline fun FileProblemReporter.report(id: ProblemID, index: Int, builder: ProblemReport.() -> Unit): ProblemReport =
-    report(id, locate(index = index), builder)
-
-/**
- * Reports a problem identified by [id] at [line] and [column] and then throws [BailException]
- */
-inline fun FileProblemReporter.bail(id: ProblemID, line: Int, column: Int, builder: ProblemReport.() -> Unit): Nothing =
-    bail(id, location(line, column), builder)
-
-/**
- * Reports a problem identified by [id] at [index] and then throws [BailException]
- */
-inline fun FileProblemReporter.bail(id: ProblemID, index: Int, builder: ProblemReport.() -> Unit): Nothing =
-    bail(id, locate(index = index), builder)
-
-/**
- * Runs [action] and captures non-bail exceptions into a [Result]
- */
-inline fun <T> runBailing(action: () -> T): Result<T> = try {
-    Result.success(action())
-} catch (bail: BailException) {
-    throw bail
-} catch (e: Exception) {
-    Result.failure(e)
-}
-
-/**
- * Runs [action] on the receiver and captures non-bail exceptions into a [Result]
- */
-inline fun <R, T> R.runBailingOn(action: R.() -> T): Result<T> = try {
-    Result.success(action())
-} catch (bail: BailException) {
-    throw bail
-} catch (e: Exception) {
-    Result.failure(e)
-}
-
-/**
- * Runs [action] and returns null on [BailException]
- */
-inline fun <T : Any> tryBailing(action: () -> T): Result<T?> = try {
-    Result.success(action())
-} catch (_: BailException) {
-    Result.success(null)
-} catch (e: Exception) {
-    Result.failure(e)
-}
-
-/**
- * Runs [action] on the receiver and returns null on [BailException]
- */
-inline fun <R, T : Any> R.tryBailingOn(action: R.() -> T): Result<T?> = try {
-    Result.success(action())
-} catch (_: BailException) {
-    Result.success(null)
-} catch (e: Exception) {
-    Result.failure(e)
-}
-
-inline fun <T, R> ProblemReporter.runMarked(action: () -> T, handler: (result: T, ok: Boolean) -> R): R {
-    val marker = mark()
-    return handler(action(), !marker.isDirty)
+    @ProblemDsl
+    inner class Marker internal constructor(private val value: Int) : ProblemReporter.Marker {
+        override val isDirty: Boolean get() = value < this@ProblemReporterImpl.counter
+    }
 }
