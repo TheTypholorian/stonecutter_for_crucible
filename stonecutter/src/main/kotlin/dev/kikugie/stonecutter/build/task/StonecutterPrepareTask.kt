@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.build.task
 
+import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.issue.*
 import dev.kikugie.stitcher.process
 import dev.kikugie.stitcher.transformer.TransformParameters
@@ -10,6 +11,7 @@ import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.controller.tree.ParametersModel
 import dev.kikugie.stonecutter.util.clearIfNotIncremental
 import dev.kikugie.stonecutter.util.overwriteText
+import org.antlr.v4.runtime.CharStreams
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
@@ -102,19 +104,21 @@ private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
     override fun execute() {
         val reporter: ProblemConsumer = { parameters.reporter.get().report(parameters.task.get(), it) }
         val transform = parameters.model.get().forFile(source, parameters.handlers.get().parameters.handlers.get())
+        val document = Document(source, CharStreams.fromString(""), reporter)
 
-        if (transform == null) reporter.invoke(ProblemReport(ProblemID("invalid-extension"), ProblemLocation(source)).apply {
+        if (transform == null) reporter.invoke(ProblemReport(ProblemID("invalid-extension"), document).apply {
             label = "No file handler registered for ${source.extension}"
-            severity = ProblemSeverity.WARN
+            sev = ProblemSeverity.WARN
         })
         if (!source.exists() || transform == null) { output.deleteIfExists(); return }
         val contents = source.readText()
         val modified = try {
-            process(source, contents, transform, reporter)
+            process(source, transform, reporter)
         } catch (_: BailException) {
             output.deleteIfExists()
             return // Will be rethrown as GradleException
         }
+        // TODO: Use a writer here
         if (contents == modified) output.deleteIfExists() else output.overwriteText(modified, true)
     }
 

@@ -1,6 +1,6 @@
 package dev.kikugie.stonecutter.controller.file
 
-import dev.kikugie.stitcher.issue.FileProblemReporter
+import dev.kikugie.stitcher.issue.ProblemReporter
 import dev.kikugie.stitcher.parser.ScannerAdapter
 import dev.kikugie.stitcher.transformer.strategy.CommentingStrategy
 import dev.kikugie.stitcher.transformer.strategy.SwappingStrategy
@@ -20,7 +20,7 @@ internal data class ScannerModel(
         builder.lexer.get()
     )
 
-    override fun create(input: CharStream, problems: FileProblemReporter): ScannerAdapter =
+    override fun create(input: CharStream, problems: ProblemReporter): ScannerAdapter =
         ScannerAdapter(lexer.create(input), openers, closers, problems)
 
     override fun equals(other: Any?): Boolean {

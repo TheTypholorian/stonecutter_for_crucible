@@ -76,4 +76,4 @@ private fun patchImplicitDependency(
     this[key] = implicit
 }
 
-private fun ProblemReport.thr(): Nothing = throw GradleException("$label:\n$details")
+private fun ProblemReport.thr(): Nothing = throw GradleException("$label:\n$info")

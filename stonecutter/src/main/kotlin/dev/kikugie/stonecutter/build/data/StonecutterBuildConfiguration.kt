@@ -70,7 +70,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
         val parameters = collectTransformParams(file, project, data)
         val problems: MutableCollection<ProblemReport> = mutableListOf()
         val reporter: ProblemConsumer = {
-            if (it.severity == ProblemSeverity.ERROR) problems += it
+            if (it.sev == ProblemSeverity.ERROR) problems += it
             project.logger.log(it)
         }
 

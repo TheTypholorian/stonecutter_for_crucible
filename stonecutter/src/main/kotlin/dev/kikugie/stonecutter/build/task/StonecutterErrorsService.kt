@@ -26,7 +26,7 @@ internal abstract class StonecutterErrorsService : BuildService<StonecutterError
 
     fun report(task: String, report: ProblemReport) = with(bucket(task)) {
         reports.add(report)
-        if (report.severity == ProblemSeverity.ERROR)
+        if (report.sev == ProblemSeverity.ERROR)
             errors.add(report)
         if (immediate && printed.add(report))
             Logging.getLogger(task.substringAfterLast(':')).log(report)
@@ -60,7 +60,7 @@ internal abstract class StonecutterErrorsService : BuildService<StonecutterError
     companion object {
         const val NAME: String = "StonecutterTaskErrors"
 
-        val ProblemReport.level get() = when(severity) {
+        val ProblemReport.level get() = when(sev) {
             ProblemSeverity.INFO -> LogLevel.LIFECYCLE
             ProblemSeverity.WARN -> LogLevel.WARN
             ProblemSeverity.ERROR -> LogLevel.ERROR
