@@ -5,7 +5,7 @@ import dev.kikugie.stitcher.antlr.scanner.HashStyleScanner.HASH_COMMENT_END
 import dev.kikugie.stitcher.antlr.scanner.HashStyleScanner.HASH_COMMENT_START
 import dev.kikugie.stitcher.antlr.scanner.SlashStyleScanner
 import dev.kikugie.stitcher.antlr.scanner.SlashStyleScanner.*
-import dev.kikugie.stitcher.parser.adapter.ScannerAdapter
+import dev.kikugie.stitcher.parser.ScannerAdapter
 import dev.kikugie.stitcher.transformer.impl.LineCommentStrategy
 import dev.kikugie.stitcher.transformer.impl.SlashStarCommentStrategy
 import dev.kikugie.stitcher.transformer.impl.StandardSwapStrategy

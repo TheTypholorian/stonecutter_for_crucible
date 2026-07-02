@@ -1,7 +1,7 @@
 package dev.kikugie.stonecutter.controller.file
 
 import dev.kikugie.stitcher.issue.FileProblemReporter
-import dev.kikugie.stitcher.parser.adapter.ScannerAdapter
+import dev.kikugie.stitcher.parser.ScannerAdapter
 import dev.kikugie.stitcher.transformer.strategy.CommentingStrategy
 import dev.kikugie.stitcher.transformer.strategy.SwappingStrategy
 import dev.kikugie.stitcher.transformer.strategy.UncommentingStrategy

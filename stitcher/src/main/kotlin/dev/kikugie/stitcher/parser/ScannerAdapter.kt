@@ -1,4 +1,4 @@
-package dev.kikugie.stitcher.parser.adapter
+package dev.kikugie.stitcher.parser
 
 import dev.kikugie.commons.collections.FixedQueue
 import dev.kikugie.commons.then

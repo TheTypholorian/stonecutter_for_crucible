@@ -79,6 +79,9 @@ dokka {
 tasks {
     compileKotlin {
         mustRunAfter("generateGrammarSource")
+        compilerOptions {
+            freeCompilerArgs.add("-Xcontext-parameters")
+        }
     }
 
     compileTestKotlin {
