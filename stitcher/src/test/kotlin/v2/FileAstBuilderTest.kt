@@ -37,7 +37,7 @@ class FileAstBuilderTest : ShouldSpec({
 
         errors {
             shouldBeSingleton {
-                it.id shouldBe LAYOUT_GROUP.child("unclosed-scope")
+                it.id shouldBe LAYOUT_GROUP + "unclosed-scope"
             }
         }
     }
@@ -51,7 +51,7 @@ class FileAstBuilderTest : ShouldSpec({
 
         errors {
             shouldBeSingleton {
-                it.id shouldBe LAYOUT_GROUP.child("unmatched-root-closer")
+                it.id shouldBe LAYOUT_GROUP + "unmatched-root-closer"
                 it.hint.shouldBeNull()
             }
         }
@@ -67,7 +67,7 @@ class FileAstBuilderTest : ShouldSpec({
 
         errors {
             shouldBeSingleton {
-                it.id shouldBe LAYOUT_GROUP.child("unmatched-root-closer")
+                it.id shouldBe LAYOUT_GROUP + "unmatched-root-closer"
                 it.hint.shouldBeNull()
             }
         }
@@ -82,7 +82,7 @@ class FileAstBuilderTest : ShouldSpec({
 
         errors {
             shouldBeSingleton {
-                it.id shouldBe LAYOUT_GROUP.child("unmatched-root-closer")
+                it.id shouldBe LAYOUT_GROUP + "unmatched-root-closer"
                 it.hint.shouldNotBeNull()
             }
         }
@@ -96,7 +96,7 @@ class FileAstBuilderTest : ShouldSpec({
 
         errors {
             shouldBeSingleton {
-                it.id shouldBe LAYOUT_GROUP.child("unmatched-root-closer")
+                it.id shouldBe LAYOUT_GROUP + "unmatched-root-closer"
                 it.hint.shouldNotBeNull { this shouldContain "may need to end with `{`" }
             }
         }
@@ -113,7 +113,7 @@ class FileAstBuilderTest : ShouldSpec({
 
         errors {
             shouldBeSingleton {
-                it.id shouldBe LAYOUT_GROUP.child("mismatched-closer-type")
+                it.id shouldBe LAYOUT_GROUP + "mismatched-closer-type"
             }
         }
     }
@@ -262,7 +262,7 @@ class FileAstBuilderTest : ShouldSpec({
 
         errors {
             shouldBeSingleton {
-                it.id shouldBe LAYOUT_GROUP.child("lookup-not-found")
+                it.id shouldBe LAYOUT_GROUP + "lookup-not-found"
                 it.hint.shouldBeNull()
             }
         }
@@ -278,7 +278,7 @@ class FileAstBuilderTest : ShouldSpec({
 
         errors {
             shouldBeSingleton {
-                it.id shouldBe LAYOUT_GROUP.child("lookup-not-found")
+                it.id shouldBe LAYOUT_GROUP + "lookup-not-found"
                 it.hint shouldContain "stops the search"
             }
         }
@@ -296,7 +296,7 @@ class FileAstBuilderTest : ShouldSpec({
 
         errors {
             shouldBeSingleton {
-                it.id shouldBe LAYOUT_GROUP.child("dangling-implicit-extension")
+                it.id shouldBe LAYOUT_GROUP + "dangling-implicit-extension"
             }
         }
     }
@@ -344,7 +344,7 @@ class FileAstBuilderTest : ShouldSpec({
 
         errors {
             shouldBeSingleton {
-                it.id shouldBe LAYOUT_GROUP.child("unmatched-implicit-extension")
+                it.id shouldBe LAYOUT_GROUP + "unmatched-implicit-extension"
                 it.hint shouldContain "Start this"
             }
         }
@@ -367,7 +367,7 @@ class FileAstBuilderTest : ShouldSpec({
 
         errors {
             shouldBeSingleton {
-                it.id shouldBe LAYOUT_GROUP.child("unmatched-implicit-extension")
+                it.id shouldBe LAYOUT_GROUP + "unmatched-implicit-extension"
                 it.hint.shouldNotBeNull()
             }
         }

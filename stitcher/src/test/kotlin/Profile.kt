@@ -45,7 +45,7 @@ private class ProjectModel(val directory: Path) {
 
             val took = try {
                 measureTime {
-                    dev.kikugie.stitcher.process(file, contents, params, IMMEDIATE_THROW)
+                    dev.kikugie.stitcher.process(file, params, IMMEDIATE_THROW)
                 }
             } catch (e: Exception) {
                 println("Failed to process $file:\n$e")

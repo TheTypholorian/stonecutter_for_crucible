@@ -1,3 +1,5 @@
+import dev.kikugie.stitcher.antlr.charStream
+import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.issue.ProblemReporterImpl
 import dev.kikugie.stitcher.replacement.PerlReplacement
 import dev.kikugie.stitcher.replacement.RegexReplacement
@@ -93,8 +95,8 @@ class ReplacementTest : FunSpec({
 })
 
 private infix fun List<Replacement>.apply(text: String): String {
-    val reporter = ProblemReporterImpl(Path(""), text, IMMEDIATE_THROW)
-    val executor = ReplacementExecutor(this, reporter)
+    val document = Document(Path(""), text.charStream(), IMMEDIATE_THROW)
+    val executor = ReplacementExecutor(this, document)
     val builder = StringBuilder(text)
     executor.replace(0, builder)
     return builder.toString()

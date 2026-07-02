@@ -3,11 +3,11 @@ package util
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stitcher.antlr.scanner.HashStyleScanner
 import dev.kikugie.stitcher.antlr.scanner.SlashStyleScanner
-import dev.kikugie.stitcher.issue.FileProblemReporter
 import dev.kikugie.stitcher.issue.FullProblemFormatter
 import dev.kikugie.stitcher.issue.ProblemReport
+import dev.kikugie.stitcher.issue.ProblemReporter
 import dev.kikugie.stitcher.issue.ShortProblemFormatter
-import dev.kikugie.stitcher.parser.adapter.ScannerAdapter
+import dev.kikugie.stitcher.parser.ScannerAdapter
 import dev.kikugie.stitcher.process
 import dev.kikugie.stitcher.replacement.RegexReplacement
 import dev.kikugie.stitcher.replacement.Replacement
@@ -23,7 +23,6 @@ import dev.kikugie.stitcher.transformer.strategy.UncommentingStrategy
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.Lexer
 import org.intellij.lang.annotations.Language
-import kotlin.io.path.Path
 
 val IMMEDIATE_THROW: (ProblemReport) -> Unit = { report: ProblemReport ->
     System.err.println(report.accept(FullProblemFormatter))
@@ -32,7 +31,7 @@ val IMMEDIATE_THROW: (ProblemReport) -> Unit = { report: ProblemReport ->
 
 inline fun process(contents: String, parameters: TransformParametersBuilder.() -> Unit = {}): String {
     val parameters = TransformParametersBuilder().apply(parameters).build()
-    return process(Path(""), contents, parameters, IMMEDIATE_THROW)
+    return process("", contents, parameters, IMMEDIATE_THROW)
 }
 
 class TransformParametersBuilder {
@@ -88,7 +87,7 @@ class TransformParametersBuilder {
             val openers: Set<Int>,
             val closers: Set<Int>
         ) : ScannerAdapter.Factory {
-            override fun create(input: CharStream, problems: FileProblemReporter): ScannerAdapter =
+            override fun create(input: CharStream, problems: ProblemReporter): ScannerAdapter =
                 ScannerAdapter(constructor(input), openers.toIntArray(), closers.toIntArray(), problems)
         }
     }

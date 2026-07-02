@@ -21,7 +21,7 @@ class StitcherSyntaxText : FunSpec({
             input = "//?\n..."
 
             errors {
-                shouldBeSingleton { it.id shouldBe SYNTAX_GROUP.child("antlr-error") }
+                shouldBeSingleton { it.id shouldBe SYNTAX_GROUP + "antlr-error" }
             }
         }
 

@@ -1,8 +1,11 @@
 package v2.impl
 
 import dev.kikugie.semver.data.Version
-import dev.kikugie.stitcher.issue.*
-import dev.kikugie.stitcher.parser.adapter.ScannerAdapter
+import dev.kikugie.stitcher.issue.BailException
+import dev.kikugie.stitcher.issue.FullProblemFormatter
+import dev.kikugie.stitcher.issue.ProblemReport
+import dev.kikugie.stitcher.issue.ShortProblemFormatter
+import dev.kikugie.stitcher.parser.ScannerAdapter
 import dev.kikugie.stitcher.process
 import dev.kikugie.stitcher.replacement.PerlReplacement
 import dev.kikugie.stitcher.replacement.RegexReplacement
@@ -12,12 +15,10 @@ import dev.kikugie.stitcher.transformer.TransformParameters
 import dev.kikugie.stitcher.transformer.strategy.CommentingStrategy
 import dev.kikugie.stitcher.transformer.strategy.SwappingStrategy
 import dev.kikugie.stitcher.transformer.strategy.UncommentingStrategy
-import io.kotest.assertions.shouldFail
 import io.kotest.core.test.TestScope
 import io.kotest.matchers.shouldBe
 import org.intellij.lang.annotations.Language
 import org.pcre4j.option.Pcre2CompileOption
-import kotlin.io.path.Path
 
 class ProcessTestSetup : TestSetup {
     val swaps: MutableMap<String, String> = mutableMapOf()
@@ -37,7 +38,7 @@ class ProcessTestSetup : TestSetup {
     override suspend fun TestScope.invoke() {
         val reporter = ProblemCollector()
         val result = try {
-            process(Path("test@${testCase.name.name.replace(' ', '_')}"), input, buildParameters(), reporter)
+            process("test@${testCase.name.name.replace(' ', '_')}", input, buildParameters(), reporter)
         } catch (_: BailException) {
             reporter.complete(true, onError)
         }
