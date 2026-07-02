@@ -1,14 +1,14 @@
 package dev.kikugie.stitcher.util
 
 import dev.kikugie.semver.data.Version
-import dev.kikugie.stitcher.antlr.StitcherLexer
+import dev.kikugie.stitcher.antlr.StitcherLexer.Tokens
 import dev.kikugie.stitcher.token.impl.BlockToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.ExpressionToken
 import dev.kikugie.stitcher.token.impl.LeafToken
 
 fun LeafToken.unquote(): String = when(type.value) {
-    StitcherLexer.QUOTED -> text.removeSurrounding("'")
+    Tokens.QUOTED -> text.removeSurrounding("'")
     else -> text
 }
 

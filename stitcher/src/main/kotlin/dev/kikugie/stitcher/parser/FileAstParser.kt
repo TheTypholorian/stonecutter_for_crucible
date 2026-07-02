@@ -1,9 +1,14 @@
 package dev.kikugie.stitcher.parser
 
+import dev.kikugie.antlr.ParseTreeAccessException
+import dev.kikugie.antlr.util.LC
+import dev.kikugie.antlr.util.advance
+import dev.kikugie.antlr.util.endIndex
 import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.stitcher.antlr.*
-import dev.kikugie.stitcher.document.Document
+import dev.kikugie.stitcher.antlr.StitcherLexer.Tokens
 import dev.kikugie.stitcher.document.locate
+import dev.kikugie.stitcher.issue.BailException
 import dev.kikugie.stitcher.issue.ProblemReporter
 import dev.kikugie.stitcher.issue.bail
 import dev.kikugie.stitcher.issue.link
@@ -67,9 +72,14 @@ internal class FileAstParser private constructor(
             errorListener = listener
             errorHandler = StitcherErrorStrategy
         }
-        parser.runCatching { definition().accept(builder) }
-            .onFailure { problems.reportParserError(body, it) }
-            .getOrNull()
+        parser.tryBuildDefinition()
+    }
+
+    private fun StitcherParser.tryBuildDefinition(): MarkedTokenBuilder.Result? = try {
+        definition().accept(builder)
+    } catch (e: RuntimeException) {
+        if (e !is BailException && e !is ParseTreeAccessException) throw e
+        null
     }
 }
 
@@ -569,9 +579,9 @@ private val CodeBuilder.defTitle: String
 
 private val CodeBuilder.defName: String
     get() = when (mark.type) {
-        StitcherLexer.COND_MARK -> "condition"
-        StitcherLexer.SWAP_MARK -> "swap"
-        StitcherLexer.REPL_MARK -> "replacement"
+        Tokens.COND_MARK -> "condition"
+        Tokens.SWAP_MARK -> "swap"
+        Tokens.REPL_MARK -> "replacement"
         else -> "definition"
     }
 

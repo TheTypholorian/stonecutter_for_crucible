@@ -2,8 +2,8 @@
 
 package dev.kikugie.stitcher.document
 
+import dev.kikugie.antlr.util.startIndex
 import dev.kikugie.stitcher.antlr.AntlrToken
-import dev.kikugie.stitcher.antlr.startIndex
 import dev.kikugie.stitcher.token.StitcherToken
 import org.antlr.v4.runtime.tree.TerminalNode
 

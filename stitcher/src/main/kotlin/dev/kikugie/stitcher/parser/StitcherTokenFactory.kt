@@ -1,7 +1,7 @@
 package dev.kikugie.stitcher.parser
 
+import dev.kikugie.antlr.util.endIndex
 import dev.kikugie.stitcher.antlr.AntlrToken
-import dev.kikugie.stitcher.antlr.endIndex
 import dev.kikugie.stitcher.issue.ProblemID
 import dev.kikugie.stitcher.token.StitcherType
 import dev.kikugie.stitcher.token.impl.LeafToken

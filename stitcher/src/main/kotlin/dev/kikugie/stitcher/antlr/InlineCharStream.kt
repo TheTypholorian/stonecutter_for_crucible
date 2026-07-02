@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.antlr
 
+import dev.kikugie.antlr.util.endIndex
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.IntStream
 

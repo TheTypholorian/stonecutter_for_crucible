@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.parser
 
+import dev.kikugie.antlr.util.startIndex
 import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.StringVersion
@@ -7,21 +8,16 @@ import dev.kikugie.semver.data.VersionOperator
 import dev.kikugie.semver.data.VersionPredicate
 import dev.kikugie.stitcher.antlr.AntlrToken
 import dev.kikugie.stitcher.antlr.StitcherBaseVisitor
-import dev.kikugie.stitcher.antlr.StitcherLexer
+import dev.kikugie.stitcher.antlr.StitcherLexer.Tokens
 import dev.kikugie.stitcher.antlr.StitcherParser
 import dev.kikugie.stitcher.antlr.acceptAs
-import dev.kikugie.stitcher.antlr.startIndex
 import dev.kikugie.stitcher.issue.BailException
 import dev.kikugie.stitcher.issue.ProblemReporter
 import dev.kikugie.stitcher.issue.bail
 import dev.kikugie.stitcher.issue.report
 import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.StitcherToken
-import dev.kikugie.stitcher.token.impl.DefinitionToken
-import dev.kikugie.stitcher.token.impl.ExpressionToken
-import dev.kikugie.stitcher.token.impl.LeafToken
-import dev.kikugie.stitcher.token.impl.PredicateToken
-import dev.kikugie.stitcher.token.impl.ScopeToken
+import dev.kikugie.stitcher.token.impl.*
 import dev.kikugie.stitcher.util.addNotNull
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.ParseTree
@@ -31,15 +27,15 @@ internal class MarkedTokenBuilder(problems: ProblemReporter, factory: StitcherTo
     private val delegate: TokenBuilder = TokenBuilder(problems, factory)
 
     override fun visitConditionDefinition(ctx: StitcherParser.ConditionDefinitionContext): Result? {
-        return Result(ctx.COND_MARK().symbol, ctx.condition()?.accept(delegate) as? DefinitionToken ?: return null)
+        return Result(ctx.COND_MARK.symbol, ctx.condition.accept(delegate) as? DefinitionToken ?: return null)
     }
 
     override fun visitSwapDefinition(ctx: StitcherParser.SwapDefinitionContext): Result? {
-        return Result(ctx.SWAP_MARK().symbol, ctx.swap()?.accept(delegate) as? DefinitionToken ?: return null)
+        return Result(ctx.SWAP_MARK.symbol, ctx.swap.accept(delegate) as? DefinitionToken ?: return null)
     }
 
     override fun visitReplacementDefinition(ctx: StitcherParser.ReplacementDefinitionContext): Result? {
-        return Result(ctx.REPL_MARK().symbol, ctx.replacement()?.accept(delegate) as? DefinitionToken ?: return null)
+        return Result(ctx.REPL_MARK.symbol, ctx.replacement.accept(delegate) as? DefinitionToken ?: return null)
     }
 
     data class Result(val marker: AntlrToken, val definition: DefinitionToken)
@@ -47,105 +43,105 @@ internal class MarkedTokenBuilder(problems: ProblemReporter, factory: StitcherTo
 
 private class TokenBuilder(private val problems: ProblemReporter, private val factory: StitcherTokenFactory) : StitcherBaseVisitor<StitcherToken>() {
     override fun visitOpenerCondition(ctx: StitcherParser.OpenerConditionContext): DefinitionToken.ConditionOpener {
-        val sugar = listOfNotNull(ctx.SUGAR_IF()).map(factory::fromAntlrNode)
-        val expression = ctx.conditionExpression().acceptAs<ExpressionToken>(this)
-        val opener = ctx.scopeOpener()?.acceptAs<ScopeToken>(this)
+        val sugar = listOfNotNull(ctx.SUGAR_IF).map(factory::fromAntlrNode)
+        val expression = ctx.conditionExpression.acceptAs<ExpressionToken>(this)
+        val opener = ctx.scopeOpener?.acceptAs<ScopeToken>(this)
         return DefinitionToken.ConditionOpener(sugar, expression, opener)
     }
 
     override fun visitExtensionCondition(ctx: StitcherParser.ExtensionConditionContext): DefinitionToken.ConditionExtension {
-        val closer = factory.fromAntlrNodeOrNull(ctx.SCOPE_CLOSE())
-        val sugar = ctx.elseSugar().collectToLeaves(factory)
-        val expression = ctx.conditionExpression().acceptAs<ExpressionToken>(this)
-        val opener = ctx.scopeOpener()?.acceptAs<ScopeToken>(this)
+        val closer = factory.fromAntlrNodeOrNull(ctx.SCOPE_CLOSE)
+        val sugar = ctx.elseSugar.collectToLeaves(factory)
+        val expression = ctx.conditionExpression.acceptAs<ExpressionToken>(this)
+        val opener = ctx.scopeOpener?.acceptAs<ScopeToken>(this)
         return DefinitionToken.ConditionExtension(closer, sugar, expression, opener)
     }
 
     override fun visitElseExtCondition(ctx: StitcherParser.ElseExtConditionContext): DefinitionToken.ConditionExtension {
-        val closer = factory.fromAntlrNodeOrNull(ctx.SCOPE_CLOSE())
-        val sugar = listOf(factory.fromAntlrNode(ctx.SUGAR_ELSE()))
-        val opener = ctx.scopeOpener()?.acceptAs<ScopeToken>(this)
+        val closer = factory.fromAntlrNodeOrNull(ctx.SCOPE_CLOSE)
+        val sugar = listOf(factory.fromAntlrNode(ctx.SUGAR_ELSE))
+        val opener = ctx.scopeOpener?.acceptAs<ScopeToken>(this)
         return DefinitionToken.ConditionExtension(closer, sugar, null, opener)
     }
 
     override fun visitCloserCondition(ctx: StitcherParser.CloserConditionContext): DefinitionToken.ConditionCloser {
-        val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE())
+        val closer = factory.fromAntlrNode(ctx.SCOPE_CLOSE)
         return DefinitionToken.ConditionCloser(closer)
     }
 
     override fun visitIdentifierSwap(ctx: StitcherParser.IdentifierSwapContext): DefinitionToken.SwapOpener {
-        val identifier = factory.fromAntlrNode(ctx.IDENTIFIER())
-        val arguments = ctx.swapArguments()?.literal().orEmpty<StitcherParser.LiteralContext>()
+        val identifier = factory.fromAntlrNode(ctx.IDENTIFIER)
+        val arguments = ctx.swapArguments?.literal?.toList().orEmpty()
             .map { factory.fromAntlrToken(it.start) }
-        val opener = ctx.scopeOpener()?.acceptAs<ScopeToken>(this)
+        val opener = ctx.scopeOpener?.acceptAs<ScopeToken>(this)
         return DefinitionToken.SwapOpener(identifier, arguments, opener)
     }
 
     override fun visitLocalSwap(ctx: StitcherParser.LocalSwapContext): DefinitionToken.SwapLocal {
         val expressions = buildList<DefinitionToken.SwapLocal.Entry> {
-            addNotNull(ctx.swapPrimary()?.acceptAs(this@TokenBuilder))
-            for (ext in ctx.swapExtension())
-                addNotNull(ext?.acceptAs(this@TokenBuilder))
-            addNotNull(ctx.swapFallback()?.acceptAs(this@TokenBuilder))
+            addNotNull(ctx.swapPrimary.acceptAs(this@TokenBuilder))
+            for (ext in ctx.swapExtension.toList())
+                addNotNull(ext.acceptAs(this@TokenBuilder))
+            addNotNull(ctx.swapFallback.acceptAs(this@TokenBuilder))
         }
-        val opener = ctx.scopeOpener()?.acceptAs<ScopeToken>(this)
+        val opener = ctx.scopeOpener?.acceptAs<ScopeToken>(this)
         return DefinitionToken.SwapLocal(expressions, opener)
     }
 
     override fun visitCloserSwap(ctx: StitcherParser.CloserSwapContext): DefinitionToken.SwapCloser =
-        DefinitionToken.SwapCloser(factory.fromAntlrNode(ctx.SCOPE_CLOSE()))
+        DefinitionToken.SwapCloser(factory.fromAntlrNode(ctx.SCOPE_CLOSE))
 
     override fun visitToggleReplacement(ctx: StitcherParser.ToggleReplacementContext): DefinitionToken.ReplacementToggle {
-        val entries = ctx.replacementToggle().map { it.acceptAs<DefinitionToken.ReplacementToggle.Entry>(this) }
+        val entries = ctx.replacementToggle.toList().map { it.acceptAs<DefinitionToken.ReplacementToggle.Entry>(this) }
         return DefinitionToken.ReplacementToggle(entries)
     }
 
     override fun visitLocalReplacement(ctx: StitcherParser.LocalReplacementContext): DefinitionToken.ReplacementLocal {
-        val sugar = factory.fromAntlrNode(ctx.SUGAR_IF())
-        val expression = ctx.conditionExpression().acceptAs<ExpressionToken>(this)
-        val entries = ctx.replacementEntry().map { it.acceptAs<DefinitionToken.ReplacementLocal.Entry>(this) }
-        val opener = (ctx.scopeOpener() ?: ctx.scopeNamed())?.acceptAs<ScopeToken>(this)
+        val sugar = factory.fromAntlrNode(ctx.SUGAR_IF)
+        val expression = ctx.conditionExpression.acceptAs<ExpressionToken>(this)
+        val entries = ctx.replacementEntry.toList().map { it.acceptAs<DefinitionToken.ReplacementLocal.Entry>(this) }
+        val opener = (ctx.scopeOpener ?: ctx.scopeNamed)?.acceptAs<ScopeToken>(this)
         return DefinitionToken.ReplacementLocal(sugar, expression, entries, opener)
     }
 
     override fun visitCloserReplacement(ctx: StitcherParser.CloserReplacementContext): DefinitionToken.ReplacementCloser =
-        DefinitionToken.ReplacementCloser(factory.fromAntlrNode(ctx.SCOPE_CLOSE()))
+        DefinitionToken.ReplacementCloser(factory.fromAntlrNode(ctx.SCOPE_CLOSE))
 
     override fun visitBinaryExpression(ctx: StitcherParser.BinaryExpressionContext): ExpressionToken.Binary {
         val operator = factory.fromAntlrToken(ctx.op)
-        val left = ctx.conditionExpression(0).acceptAs<ExpressionToken>(this)
-        val right = ctx.conditionExpression(1).acceptAs<ExpressionToken>(this)
+        val left = ctx.conditionExpression[0].acceptAs<ExpressionToken>(this)
+        val right = ctx.conditionExpression[1].acceptAs<ExpressionToken>(this)
         return ExpressionToken.Binary(left, operator, right)
     }
 
     override fun visitUnaryExpression(ctx: StitcherParser.UnaryExpressionContext): ExpressionToken.Unary {
-        val operator = factory.fromAntlrNode(ctx.OP_NOT())
-        val target = ctx.conditionExpression().acceptAs<ExpressionToken>(this)
+        val operator = factory.fromAntlrNode(ctx.OP_NOT)
+        val target = ctx.conditionExpression.acceptAs<ExpressionToken>(this)
         return ExpressionToken.Unary(operator, target)
     }
 
     override fun visitGroupExpression(ctx: StitcherParser.GroupExpressionContext): ExpressionToken.Group {
-        val lb = factory.fromAntlrNode(ctx.LEFT_BRACE())
-        val rb = factory.fromAntlrNode(ctx.RIGHT_BRACE())
-        val body = ctx.conditionExpression().acceptAs<ExpressionToken>(this)
+        val lb = factory.fromAntlrNode(ctx.LEFT_BRACE)
+        val rb = factory.fromAntlrNode(ctx.RIGHT_BRACE)
+        val body = ctx.conditionExpression.acceptAs<ExpressionToken>(this)
         return ExpressionToken.Group(lb, body, rb)
     }
 
     override fun visitAssignmentExpression(ctx: StitcherParser.AssignmentExpressionContext): ExpressionToken.Assignment {
-        val identifier = ctx.IDENTIFIER()?.let(factory::fromAntlrNode)
-        val operator = ctx.OP_ASSIGN()?.let(factory::fromAntlrNode)
-        val predicates = ctx.versionPredicate().mapNotNull { it.tryToPredicate(this, problems) }
+        val identifier = ctx.IDENTIFIER?.let(factory::fromAntlrNode)
+        val operator = ctx.OP_ASSIGN?.let(factory::fromAntlrNode)
+        val predicates = ctx.versionPredicate.toList().mapNotNull { it.tryToPredicate(this, problems) }
         return ExpressionToken.Assignment(identifier, operator, predicates)
     }
 
     override fun visitConstantExpression(ctx: StitcherParser.ConstantExpressionContext): ExpressionToken.Constant {
-        val identifier = factory.fromAntlrNode(ctx.IDENTIFIER())
+        val identifier = factory.fromAntlrNode(ctx.IDENTIFIER)
         return ExpressionToken.Constant(identifier)
     }
 
     override fun visitSemanticPredicate(ctx: StitcherParser.SemanticPredicateContext): PredicateToken {
-        val comparator: ParserRuleContext? = (ctx.semanticComparator() ?: ctx.stringComparator())
-        val version: StitcherParser.SemanticVersionContext = ctx.semanticVersion()
+        val comparator = (ctx.semanticComparator ?: ctx.stringComparator)
+        val version = ctx.semanticVersion
         return PredicateToken(
             comparator?.acceptAs(this), version.acceptAs(this),
             VersionPredicate(comparator?.toVersionOperator(problems) ?: VersionOperator.IMPLICIT_EQUAL, version.toSemanticVersion())
@@ -153,11 +149,11 @@ private class TokenBuilder(private val problems: ProblemReporter, private val fa
     }
 
     override fun visitStringPredicate(ctx: StitcherParser.StringPredicateContext): PredicateToken {
-        val comparator: StitcherParser.StringComparatorContext? = ctx.stringComparator()
-        val version: StitcherParser.StringVersionContext = ctx.stringVersion()
+        val comparator = ctx.stringComparator
+        val version = ctx.stringVersion!!
         return PredicateToken(
-            comparator?.acceptAs(this), version.acceptAs(this),
-            VersionPredicate(comparator?.toVersionOperator(problems) ?: VersionOperator.IMPLICIT_EQUAL, version.toStringVersion())
+            comparator.acceptAs(this), version.acceptAs(this),
+            VersionPredicate(comparator.toVersionOperator(problems), version.toStringVersion())
         )
     }
 
@@ -174,67 +170,67 @@ private class TokenBuilder(private val problems: ProblemReporter, private val fa
         factory.fromAntlrRule(ctx, NativeStitcherType.VERSION)
 
     override fun visitClosedScopeOpener(ctx: StitcherParser.ClosedScopeOpenerContext): ScopeToken.Closed =
-        ScopeToken.Closed(factory.fromAntlrNode(ctx.SCOPE_OPEN()))
+        ScopeToken.Closed(factory.fromAntlrNode(ctx.SCOPE_OPEN))
 
     override fun visitLookupScopeOpener(ctx: StitcherParser.LookupScopeOpenerContext): ScopeToken.Lookup {
-        val marker = factory.fromAntlrNode(ctx.SCOPE_LOOKUP())
-        val plus = ctx.PLUS()?.let(factory::fromAntlrNode)
-        val lookup = ctx.literal()?.let { factory.fromAntlrToken(it.start) }
+        val marker = factory.fromAntlrNode(ctx.SCOPE_LOOKUP)
+        val plus = ctx.PLUS?.let(factory::fromAntlrNode)
+        val lookup = ctx.literal?.let { factory.fromAntlrToken(it.start) }
         return ScopeToken.Lookup(marker, plus, lookup)
     }
 
     override fun visitScopeNamed(ctx: StitcherParser.ScopeNamedContext): ScopeToken.Named {
-        val marker = factory.fromAntlrNode(ctx.SCOPE_AS())
-        val identifier = factory.fromAntlrNode(ctx.IDENTIFIER())
+        val marker = factory.fromAntlrNode(ctx.SCOPE_AS)
+        val identifier = factory.fromAntlrNode(ctx.IDENTIFIER)
         return ScopeToken.Named(marker, identifier)
     }
 
     override fun visitSwapPrimary(ctx: StitcherParser.SwapPrimaryContext): DefinitionToken.SwapLocal.Entry {
-        val sugar = listOf(factory.fromAntlrNode(ctx.SUGAR_IF()))
-        val expression = ctx.conditionExpression().acceptAs<ExpressionToken>(this)
-        val literal = factory.fromAntlrToken(ctx.literal().start)
+        val sugar = listOf(factory.fromAntlrNode(ctx.SUGAR_IF))
+        val expression = ctx.conditionExpression.acceptAs<ExpressionToken>(this)
+        val literal = factory.fromAntlrToken(ctx.literal.start)
         return DefinitionToken.SwapLocal.Entry(sugar, expression, literal)
     }
 
     override fun visitSwapExtension(ctx: StitcherParser.SwapExtensionContext): DefinitionToken.SwapLocal.Entry {
-        val sugar = ctx.elseSugar().collectToLeaves(factory)
-        val expression = ctx.conditionExpression().acceptAs<ExpressionToken>(this)
-        val literal = factory.fromAntlrToken(ctx.literal().start)
+        val sugar = ctx.elseSugar.collectToLeaves(factory)
+        val expression = ctx.conditionExpression.acceptAs<ExpressionToken>(this)
+        val literal = factory.fromAntlrToken(ctx.literal.start)
         return DefinitionToken.SwapLocal.Entry(sugar, expression, literal)
     }
 
     override fun visitSwapFallback(ctx: StitcherParser.SwapFallbackContext): DefinitionToken.SwapLocal.Entry {
-        val sugar = listOf(factory.fromAntlrNode(ctx.SUGAR_ELSE()))
-        val literal = factory.fromAntlrToken(ctx.literal().start)
+        val sugar = listOf(factory.fromAntlrNode(ctx.SUGAR_ELSE))
+        val literal = factory.fromAntlrToken(ctx.literal.start)
         return DefinitionToken.SwapLocal.Entry(sugar, null, literal)
     }
 
     override fun visitReplacementToggle(ctx: StitcherParser.ReplacementToggleContext): DefinitionToken.ReplacementToggle.Entry {
-        val op = ctx.OP_NOT()?.let(factory::fromAntlrNode)
-        val identifier = factory.fromAntlrNode(ctx.IDENTIFIER())
-        val comma = ctx.COMMA()?.let(factory::fromAntlrNode)
+        val op = ctx.OP_NOT?.let(factory::fromAntlrNode)
+        val identifier = factory.fromAntlrNode(ctx.IDENTIFIER)
+        val comma = ctx.COMMA?.let(factory::fromAntlrNode)
         return DefinitionToken.ReplacementToggle.Entry(op, identifier, comma)
     }
 
     override fun visitReplacementEntry(ctx: StitcherParser.ReplacementEntryContext): DefinitionToken.ReplacementLocal.Entry {
-        val dir = factory.fromAntlrNode(ctx.OP_DIR())
-        val from = factory.fromAntlrToken(ctx.literal(0).start)
-        val to = factory.fromAntlrToken(ctx.literal(1).start)
-        val comma = ctx.COMMA()?.let(factory::fromAntlrNode)
+        val dir = factory.fromAntlrNode(ctx.OP_DIR)
+        val from = factory.fromAntlrToken(ctx.literal[0].start)
+        val to = factory.fromAntlrToken(ctx.literal[1].start)
+        val comma = ctx.COMMA?.let(factory::fromAntlrNode)
         return DefinitionToken.ReplacementLocal.Entry(from, dir, to, comma)
     }
 }
 
 private val OPERATOR_TYPES: IntArray = intArrayOf(
-    StitcherLexer.COMP_EQUAL, StitcherLexer.COMP_NEQUAL, StitcherLexer.COMP_MORE, StitcherLexer.COMP_LESS,
-    StitcherLexer.COMP_GMORE, StitcherLexer.COMP_GLESS, StitcherLexer.COMP_MAJOR, StitcherLexer.REPL_MARK,
+    Tokens.COMP_EQUAL, Tokens.COMP_NEQUAL, Tokens.COMP_MORE, Tokens.COMP_LESS,
+    Tokens.COMP_GMORE, Tokens.COMP_GLESS, Tokens.COMP_MAJOR, Tokens.REPL_MARK,
 )
 
 private val ParseTree?.type: Int
     get() = this?.takeAsOrNull<TerminalNode>()?.symbol?.type ?: -1
 
 private fun StitcherParser.ElseSugarContext?.collectToLeaves(factory: StitcherTokenFactory): List<LeafToken> =
-    if (this == null) emptyList() else listOfNotNull(SUGAR_ELIF(), SUGAR_ELSE(), SUGAR_IF()).map(factory::fromAntlrNode)
+    if (this == null) emptyList() else listOfNotNull(SUGAR_ELIF, SUGAR_ELSE, SUGAR_IF).map(factory::fromAntlrNode)
 
 private fun StitcherParser.VersionPredicateContext.tryToPredicate(visitor: TokenBuilder, problems: ProblemReporter): PredicateToken? = try {
     acceptAs(visitor)
@@ -249,14 +245,14 @@ private fun StitcherParser.VersionPredicateContext.tryToPredicate(visitor: Token
 }
 
 private fun ParserRuleContext.toVersionOperator(problems: ProblemReporter): VersionOperator = when(val type = getChild(0)?.type) {
-    StitcherLexer.COMP_EQUAL -> VersionOperator.EQUAL
-    StitcherLexer.COMP_NEQUAL -> VersionOperator.NOT_EQUAL
-    StitcherLexer.COMP_MORE -> VersionOperator.GREATER
-    StitcherLexer.COMP_GMORE -> VersionOperator.GREATER_EQUAL
-    StitcherLexer.COMP_LESS -> VersionOperator.LESS
-    StitcherLexer.COMP_GLESS -> VersionOperator.LESS_EQUAL
-    StitcherLexer.REPL_MARK -> VersionOperator.SAME_MINOR
-    StitcherLexer.COMP_MAJOR -> VersionOperator.SAME_MAJOR
+    Tokens.COMP_EQUAL -> VersionOperator.EQUAL
+    Tokens.COMP_NEQUAL -> VersionOperator.NOT_EQUAL
+    Tokens.COMP_MORE -> VersionOperator.GREATER
+    Tokens.COMP_GMORE -> VersionOperator.GREATER_EQUAL
+    Tokens.COMP_LESS -> VersionOperator.LESS
+    Tokens.COMP_GLESS -> VersionOperator.LESS_EQUAL
+    Tokens.REPL_MARK -> VersionOperator.SAME_MINOR
+    Tokens.COMP_MAJOR -> VersionOperator.SAME_MAJOR
     else -> problems.bail(SYNTAX_GROUP + "invalid-comparison-operator") {
         label = "Invalid predicate operator type"
         info = "Token type $type is not in [${OPERATOR_TYPES.joinToString()}]"
@@ -265,9 +261,9 @@ private fun ParserRuleContext.toVersionOperator(problems: ProblemReporter): Vers
 }
 
 private fun StitcherParser.SemanticVersionContext.toSemanticVersion(): SemanticVersion {
-    val components = versionCore().NUMERIC().map<TerminalNode, Int> { it.text.toInt() }
-    val preRelease = preRelease()?.text.orEmpty()
-    val buildMetadata = buildMetadata()?.text.orEmpty()
+    val components = versionCore.NUMERIC.toList().map { it.text.toInt() }
+    val preRelease = preRelease?.text.orEmpty()
+    val buildMetadata = buildMetadata?.text.orEmpty()
     return SemanticVersion(components, preRelease, buildMetadata)
 }
 

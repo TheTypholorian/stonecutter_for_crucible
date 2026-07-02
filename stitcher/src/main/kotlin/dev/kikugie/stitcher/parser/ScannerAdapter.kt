@@ -1,9 +1,9 @@
 package dev.kikugie.stitcher.parser
 
+import dev.kikugie.antlr.util.endIndex
 import dev.kikugie.commons.collections.FixedQueue
 import dev.kikugie.commons.then
 import dev.kikugie.stitcher.antlr.AntlrToken
-import dev.kikugie.stitcher.antlr.endIndex
 import dev.kikugie.stitcher.antlr.indexedName
 import dev.kikugie.stitcher.document.locate
 import dev.kikugie.stitcher.issue.ProblemID

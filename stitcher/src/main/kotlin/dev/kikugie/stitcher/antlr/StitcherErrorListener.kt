@@ -1,7 +1,7 @@
 package dev.kikugie.stitcher.antlr
 
 import dev.kikugie.commons.collections.present
-import dev.kikugie.stitcher.antlr.StitcherLexer.*
+import dev.kikugie.stitcher.antlr.StitcherLexer.Tokens
 import dev.kikugie.stitcher.document.DocumentLocation
 import dev.kikugie.stitcher.issue.ProblemReporter
 import dev.kikugie.stitcher.issue.report
@@ -37,10 +37,14 @@ internal class StitcherErrorListener(val problems: ProblemReporter) : BaseErrorL
 // TODO: Add hints and doc links
 internal object StitcherErrorStrategy : DefaultErrorStrategy() {
     private val EOF_INTR = TokenInterpreter { it.consume("<comment end>", AntlrToken.EOF) }
-    private val ID_INTR = TokenInterpreter { it.consume("identifier", IDENTIFIER) }
-    private val NUM_INTR = TokenInterpreter { it.consume("number", NUMERIC) }
+    private val ID_INTR = TokenInterpreter { it.consume("identifier", Tokens.IDENTIFIER) }
+    private val NUM_INTR = TokenInterpreter { it.consume("number", Tokens.NUMERIC) }
     private val COMP_INTR = TokenInterpreter {
-        it.consume("version comparator", REPL_MARK, COMP_MAJOR, COMP_EQUAL, COMP_NEQUAL, COMP_MORE, COMP_GMORE, COMP_LESS, COMP_GLESS)
+        it.consume(
+            "version comparator",
+            Tokens.REPL_MARK, Tokens.COMP_MAJOR, Tokens.COMP_EQUAL, Tokens.COMP_NEQUAL,
+            Tokens.COMP_MORE, Tokens.COMP_GMORE, Tokens.COMP_LESS, Tokens.COMP_GLESS,
+        )
     }
 
     private val INTERPRETERS = listOf(EOF_INTR, ID_INTR, NUM_INTR, COMP_INTR)
