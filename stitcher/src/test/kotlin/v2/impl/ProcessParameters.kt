@@ -1,10 +1,13 @@
 package v2.impl
 
-import dev.kikugie.stitcher.antlr.scanner.HashStyleScanner
-import dev.kikugie.stitcher.antlr.scanner.HashStyleScanner.HASH_COMMENT_END
-import dev.kikugie.stitcher.antlr.scanner.HashStyleScanner.HASH_COMMENT_START
-import dev.kikugie.stitcher.antlr.scanner.SlashStyleScanner
-import dev.kikugie.stitcher.antlr.scanner.SlashStyleScanner.*
+import dev.kikugie.stitcher.antlr.HashStyleScanner
+import dev.kikugie.stitcher.antlr.HashStyleScanner.Tokens.HASH_COMMENT_END
+import dev.kikugie.stitcher.antlr.HashStyleScanner.Tokens.HASH_COMMENT_START
+import dev.kikugie.stitcher.antlr.SlashStyleScanner
+import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.SLASH_COMMENT_END
+import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.SLASH_COMMENT_START
+import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.STAR_COMMENT_END
+import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.STAR_COMMENT_START
 import dev.kikugie.stitcher.parser.ScannerAdapter
 import dev.kikugie.stitcher.transformer.impl.LineCommentStrategy
 import dev.kikugie.stitcher.transformer.impl.SlashStarCommentStrategy

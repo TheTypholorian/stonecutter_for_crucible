@@ -1,8 +1,7 @@
 package dev.kikugie.stonecutter.controller.file
 
-import dev.kikugie.stitcher.antlr.scanner.HashStyleScanner
-import dev.kikugie.stitcher.antlr.scanner.SlashStyleScanner
-import dev.kikugie.stitcher.transformer.impl.LineCommentStrategy
+import dev.kikugie.stitcher.antlr.HashStyleScanner
+import dev.kikugie.stitcher.antlr.SlashStyleScanner
 import dev.kikugie.stitcher.transformer.impl.SlashStarCommentStrategy
 import dev.kikugie.stitcher.transformer.impl.StarRemoveCommentStrategy
 
@@ -38,15 +37,15 @@ private fun HandlerBuilder.useSlashScanner(nested: Boolean) = scanner {
     if (!nested) lexer.set(::SlashStyleScanner)
     else lexer.set { SlashStyleScanner(it).apply { nestMultiLineComments = true } }
 
-    openers(SlashStyleScanner.SLASH_COMMENT_START, SlashStyleScanner.STAR_COMMENT_START)
-    closers(SlashStyleScanner.SLASH_COMMENT_END, SlashStyleScanner.STAR_COMMENT_END)
+    openers(SlashStyleScanner.Tokens.SLASH_COMMENT_START, SlashStyleScanner.Tokens.STAR_COMMENT_START)
+    closers(SlashStyleScanner.Tokens.SLASH_COMMENT_END, SlashStyleScanner.Tokens.STAR_COMMENT_END)
 }
 
 private fun FileHandlerContainer.configureHash() = configure("cfg", "aw", "accesswidener", "ct", "classtweaker", "yml", "yaml") {
     scanner {
         lexer.set(::HashStyleScanner)
-        openers(HashStyleScanner.HASH_COMMENT_START)
-        closers(HashStyleScanner.HASH_COMMENT_END)
+        openers(HashStyleScanner.Tokens.HASH_COMMENT_START)
+        closers(HashStyleScanner.Tokens.HASH_COMMENT_END)
     }
 
     commenter.set(line("#"))

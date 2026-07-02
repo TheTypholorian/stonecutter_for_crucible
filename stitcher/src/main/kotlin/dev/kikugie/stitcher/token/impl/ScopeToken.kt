@@ -1,6 +1,7 @@
 package dev.kikugie.stitcher.token.impl
 
 import dev.kikugie.stitcher.antlr.StitcherLexer
+import dev.kikugie.stitcher.antlr.StitcherLexer.Tokens
 import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.StitcherToken
 import dev.kikugie.stitcher.util.lastNotNull
@@ -17,8 +18,8 @@ sealed interface ScopeToken : StitcherToken {
 
         @Deprecated("")
         fun extractLookup(): String = when (lookup?.type?.value) {
-            StitcherLexer.IDENTIFIER -> lookup.text
-            StitcherLexer.QUOTED -> lookup.text.removeSurrounding("'")
+            Tokens.IDENTIFIER -> lookup.text
+            Tokens.QUOTED -> lookup.text.removeSurrounding("'")
             else -> error("Invalid type ${lookup?.type}")
         }
     }

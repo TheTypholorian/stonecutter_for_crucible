@@ -1,8 +1,9 @@
 package util
 
 import dev.kikugie.semver.data.Version
-import dev.kikugie.stitcher.antlr.scanner.HashStyleScanner
-import dev.kikugie.stitcher.antlr.scanner.SlashStyleScanner
+import dev.kikugie.stitcher.antlr.HashStyleScanner
+import dev.kikugie.stitcher.antlr.SlashStyleScanner
+import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.issue.FullProblemFormatter
 import dev.kikugie.stitcher.issue.ProblemReport
 import dev.kikugie.stitcher.issue.ProblemReporter
@@ -21,8 +22,10 @@ import dev.kikugie.stitcher.transformer.strategy.CommentingStrategy
 import dev.kikugie.stitcher.transformer.strategy.SwappingStrategy
 import dev.kikugie.stitcher.transformer.strategy.UncommentingStrategy
 import org.antlr.v4.runtime.CharStream
+import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.Lexer
 import org.intellij.lang.annotations.Language
+import kotlin.io.path.Path
 
 val IMMEDIATE_THROW: (ProblemReport) -> Unit = { report: ProblemReport ->
     System.err.println(report.accept(FullProblemFormatter))
@@ -30,8 +33,9 @@ val IMMEDIATE_THROW: (ProblemReport) -> Unit = { report: ProblemReport ->
 }
 
 inline fun process(contents: String, parameters: TransformParametersBuilder.() -> Unit = {}): String {
+    val document = Document(Path(""), CharStreams.fromString(contents), IMMEDIATE_THROW)
     val parameters = TransformParametersBuilder().apply(parameters).build()
-    return process("", contents, parameters, IMMEDIATE_THROW)
+    return process(document, parameters)
 }
 
 class TransformParametersBuilder {
@@ -59,8 +63,8 @@ class TransformParametersBuilder {
          */
         @JvmField public val Java: Template = Template(
             ::SlashStyleScanner,
-            setOf(SlashStyleScanner.SLASH_COMMENT_START, SlashStyleScanner.STAR_COMMENT_START),
-            setOf(SlashStyleScanner.SLASH_COMMENT_END, SlashStyleScanner.STAR_COMMENT_END),
+            setOf(SlashStyleScanner.Tokens.SLASH_COMMENT_START, SlashStyleScanner.Tokens.STAR_COMMENT_START),
+            setOf(SlashStyleScanner.Tokens.SLASH_COMMENT_END, SlashStyleScanner.Tokens.STAR_COMMENT_END),
         )
 
         /**
@@ -69,8 +73,8 @@ class TransformParametersBuilder {
          */
         @JvmField public val Kotlin: Template = Template(
             { SlashStyleScanner(it).apply { nestMultiLineComments = true } },
-            setOf(SlashStyleScanner.SLASH_COMMENT_START, SlashStyleScanner.STAR_COMMENT_START),
-            setOf(SlashStyleScanner.SLASH_COMMENT_END, SlashStyleScanner.STAR_COMMENT_END),
+            setOf(SlashStyleScanner.Tokens.SLASH_COMMENT_START, SlashStyleScanner.Tokens.STAR_COMMENT_START),
+            setOf(SlashStyleScanner.Tokens.SLASH_COMMENT_END, SlashStyleScanner.Tokens.STAR_COMMENT_END),
         )
 
         /**
@@ -78,8 +82,8 @@ class TransformParametersBuilder {
          */
         @JvmField public val Hash: Template = Template(
             ::HashStyleScanner,
-            setOf(HashStyleScanner.HASH_COMMENT_START),
-            setOf(HashStyleScanner.HASH_COMMENT_END)
+            setOf(HashStyleScanner.Tokens.HASH_COMMENT_START),
+            setOf(HashStyleScanner.Tokens.HASH_COMMENT_END)
         )
 
         data class Template(

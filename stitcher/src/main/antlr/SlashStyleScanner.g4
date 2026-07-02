@@ -1,8 +1,8 @@
 lexer grammar SlashStyleScanner;
 
 @members {
-public boolean nestMultiLineComments = false;
-private byte commentDepth = 0;
+public var nestMultiLineComments: Boolean = false
+private var commentDepth: Int = 0
 }
 
 fragment LINE_BREAK: '\r'|'\n'|'\r\n';
@@ -22,9 +22,9 @@ SLASH_COMMENT_END: LINE_BREAK -> popMode;
 SLASH_THE_REST: . -> skip;
 
 mode IN_STAR;
-STAR_COMMENT_NEST: {nestMultiLineComments}? '/*' {commentDepth++;} -> skip;
+STAR_COMMENT_NEST: {nestMultiLineComments}? '/*' {commentDepth++} -> skip;
 STAR_COMMENT_END: {commentDepth == 0}? '*/' -> popMode;
-STAR_COMMENT_END_SKIP: '*/' {commentDepth--;} -> skip;
+STAR_COMMENT_END_SKIP: '*/' {commentDepth--} -> skip;
 STAR_THE_REST: . -> skip;
 
 mode IN_CHAR;

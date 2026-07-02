@@ -255,6 +255,7 @@ public open class <parser.name>(input: TokenStream) : <superClass; null="Parser"
 
     init {
         _interp = ParserATNSimulator(this, ATN, DECISION_TO_DFA, SHARED_CONTEXT_CACHE)
+        _parseListeners = ArrayList()
     }
 
     override fun getGrammarFileName(): String = "<parser.grammarFileName>"

@@ -1,6 +1,6 @@
 package dev.kikugie.stitcher.document
 
-import dev.kikugie.stitcher.antlr.advance
+import dev.kikugie.antlr.util.advance
 import dev.kikugie.stitcher.antlr.charStream
 import org.antlr.v4.runtime.IntStream
 

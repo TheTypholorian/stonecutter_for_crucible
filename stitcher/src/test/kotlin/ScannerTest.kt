@@ -1,7 +1,7 @@
+import dev.kikugie.antlr.util.toSequence
 import dev.kikugie.commons.text.getOrDefault
 import dev.kikugie.stitcher.antlr.charStream
-import dev.kikugie.stitcher.antlr.scanner.SlashStyleScanner
-import dev.kikugie.stitcher.antlr.toSequence
+import dev.kikugie.stitcher.antlr.SlashStyleScanner
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
@@ -45,8 +45,8 @@ class ScannerTest : FunSpec({
     context("java-like") {
         withData(sequence {
             val template = ScanSpec.Template(::SlashStyleScanner,
-                intArrayOf(SlashStyleScanner.SLASH_COMMENT_START, SlashStyleScanner.STAR_COMMENT_START),
-                intArrayOf(SlashStyleScanner.SLASH_COMMENT_END, SlashStyleScanner.STAR_COMMENT_END))
+                intArrayOf(SlashStyleScanner.Tokens.SLASH_COMMENT_START, SlashStyleScanner.Tokens.STAR_COMMENT_START),
+                intArrayOf(SlashStyleScanner.Tokens.SLASH_COMMENT_END, SlashStyleScanner.Tokens.STAR_COMMENT_END))
 
             template.yield("+-", """
                 // comment

@@ -1,6 +1,6 @@
 package dev.kikugie.stonecutter.build.task
 
-import dev.kikugie.stitcher.antlr.length
+import dev.kikugie.antlr.util.length
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.io.LineNormalizingReader
 import dev.kikugie.stitcher.document.io.LineNormalizingWriter
@@ -35,17 +35,8 @@ import org.gradle.workers.WorkerExecutor
 import java.io.File
 import java.io.StringWriter
 import java.nio.file.Path
-import java.nio.file.StandardOpenOption
 import javax.inject.Inject
-import kotlin.io.path.absolutePathString
-import kotlin.io.path.bufferedReader
-import kotlin.io.path.createParentDirectories
-import kotlin.io.path.deleteIfExists
-import kotlin.io.path.exists
-import kotlin.io.path.extension
-import kotlin.io.path.notExists
-import kotlin.io.path.readText
-import kotlin.io.path.writer
+import kotlin.io.path.*
 
 private val PREPARE_TASK: ProblemID = ProblemID("file-processing")
 

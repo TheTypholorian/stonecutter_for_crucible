@@ -1,4 +1,5 @@
 import dev.kikugie.semver.data.Version
+import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.replacement.Replacement
 import dev.kikugie.stitcher.transformer.TransformParameters
 import dev.kikugie.stitcher.transformer.impl.StandardSwapStrategy
@@ -6,6 +7,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
+import org.antlr.v4.runtime.CharStreams
 import util.IMMEDIATE_THROW
 import util.TransformParametersBuilder
 import java.nio.file.Path
@@ -40,12 +42,13 @@ private class ProjectModel(val directory: Path) {
     fun process(node: NodeModelStub, counter: Counter) {
         for (file in directory.resolve("src/main").walk()) {
             val contents = file.readText()
+            val document = Document(file, CharStreams.fromString(contents), IMMEDIATE_THROW)
             val params = node.parameters.buildFor(file)
                 ?: continue
 
             val took = try {
                 measureTime {
-                    dev.kikugie.stitcher.process(file, params, IMMEDIATE_THROW)
+                    dev.kikugie.stitcher.process(document, params)
                 }
             } catch (e: Exception) {
                 println("Failed to process $file:\n$e")

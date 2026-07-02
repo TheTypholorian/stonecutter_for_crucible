@@ -42,7 +42,7 @@ class ProcessTestSetup : TestSetup {
     override suspend fun TestScope.invoke() {
         val reporter = ProblemCollector()
         val result = try {
-            val document = Document(Path("test@${testCase.name.name.replace(' ', '_')}"), CharStreams.fromString(input), IMMEDIATE_THROW)
+            val document = Document(Path("test@${testCase.name.name.replace(' ', '_')}"), CharStreams.fromString(input), reporter)
             process(document, buildParameters())
         } catch (_: BailException) {
             reporter.complete(true, onError)
