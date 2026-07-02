@@ -1,7 +1,9 @@
 package dev.kikugie.stonecutter.controller.task
 
-import dev.kikugie.commons.collections.present
+import dev.kikugie.commons.takeAs
 import dev.kikugie.stonecutter.Identifier
+import dev.kikugie.stonecutter.StonecutterInternalAPI
+import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.controller.StonecutterControllerImpl
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
@@ -9,12 +11,9 @@ import dev.kikugie.stonecutter.controller.tree.BranchModel
 import dev.kikugie.stonecutter.controller.tree.TreeModel
 import dev.kikugie.stonecutter.data.tree.ProjectBranch
 import dev.kikugie.stonecutter.data.tree.ProjectNode
+import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.whatever.TaskProviderMap
 import dev.kikugie.stonecutter.util.SCJSON
-import dev.kikugie.stonecutter.util.buildDirectory
-import dev.kikugie.commons.takeAs
-import dev.kikugie.stonecutter.build.StonecutterBuildExtension
-import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.util.set
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
@@ -44,8 +43,9 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
         return property
     }
 
+    @OptIn(StonecutterInternalAPI::class)
     override fun orderImpl(name: String, ordering: Comparator<ProjectNode>, filter: ProjectNode.() -> Boolean) {
-        val lock = controller.root.buildDirectory.resolve("stonecutter-cache/$name.lock")
+        val lock = StonecutterTaskMutexService.create(controller.root.gradle, name)
         val nodes = controller.tree.nodes.filter(filter).sortedWith(ordering)
         if (nodes.size <= 1) return
 
@@ -55,7 +55,7 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
             dependencies += node.task(name)
             node.project.afterEvaluate {
                 if (name in tasks.names) tasks.named(name) {
-                    outputs.file(lock)
+                    usesService(lock)
                     mustRunAfter(*copy)
                 }
             }
