@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm")
+    id("shared-setup")
 }
 
 repositories {
@@ -16,6 +17,5 @@ java {
 }
 
 kotlin {
-    jvmToolchain(21)
     explicitApiWarning()
 }
