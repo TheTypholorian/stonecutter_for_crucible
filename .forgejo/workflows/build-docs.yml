@@ -15,7 +15,7 @@ jobs:
   build-docs:
     name: Build docs
     runs-on: own-forgejo
-    container: eclipse-temurin:21-jdk-alpine
+    container: eclipse-temurin:25-jdk-alpine
     if: ${{ inputs.run-own }}
     steps:
       - name: Install deps
