@@ -47,10 +47,7 @@ import org.gradle.kotlin.dsl.the
 import java.io.File
 import java.io.StringWriter
 import java.nio.file.NoSuchFileException
-import java.nio.file.StandardOpenOption
 import javax.inject.Inject
-import kotlin.io.path.createParentDirectories
-import kotlin.io.path.writer
 
 @OptIn(StonecutterInternalAPI::class)
 internal abstract class StonecutterBuildConfiguration @Inject constructor(

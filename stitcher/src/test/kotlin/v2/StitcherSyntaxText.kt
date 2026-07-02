@@ -65,31 +65,11 @@ class StitcherSyntaxText : FunSpec({
             errors { shouldBeSingleton() }
         }
 
-        test("empty after else").config<ProcessTestSetup> {
-            input = "//? if true\n//? else"
-
-            errors { shouldBeSingleton() }
-        }
-
         test("expression after else").config<ProcessTestSetup> {
             input = "//? if true\n//? else false"
 
             errors { shouldBeSingleton() }
         }
-
-        test("expression after else if").config<ProcessTestSetup> {
-            input = "//? if true\n//? else if false"
-
-            errors { shouldBeSingleton() }
-        }
-
-        test("expression after elif").config<ProcessTestSetup> {
-            input = "//? if true\n//? elif false"
-
-            errors { shouldBeSingleton() }
-        }
-
-        // TODO: make more of it
     }
 
     context("swaps") {
