@@ -1,6 +1,5 @@
 plugins {
     kotlin("jvm")
-    id("shared-setup")
 }
 
 repositories {
@@ -14,6 +13,8 @@ dependencies {
 
 java {
     withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 kotlin {
