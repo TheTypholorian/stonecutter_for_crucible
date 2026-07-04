@@ -72,13 +72,14 @@ internal class FileAstParser private constructor(
             errorListener = listener
             errorHandler = StitcherErrorStrategy
         }
-        parser.tryBuildDefinition()
+        parser.tryBuildDefinition(body)
     }
 
-    private fun StitcherParser.tryBuildDefinition(): MarkedTokenBuilder.Result? = try {
+    private fun StitcherParser.tryBuildDefinition(body: AntlrToken): MarkedTokenBuilder.Result? = try {
         definition().accept(builder)
     } catch (e: RuntimeException) {
-        if (e !is BailException && e !is ParseTreeAccessException) throw e
+        if (e !is BailException && e !is ParseTreeAccessException)
+            problems.reportParserError(body, e)
         null
     }
 }
