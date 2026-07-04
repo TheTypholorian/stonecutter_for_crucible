@@ -139,5 +139,56 @@ class BlockTransformerTest : ShouldSpec({
                 //?}
             """.trimIndent()
         }
+
+        should("capture statements in unfinished line scopes").config<ProcessTestSetup> {
+            input = """
+                //? if false
+                    //? if true
+                    ...
+            """.trimIndent()
+
+            output = """
+                //? if false
+                    /*//? if true
+                    ...*/
+            """.trimIndent()
+        }
+
+        should("capture extended statements in unfinished line scopes").config<ProcessTestSetup> {
+            input = """
+                //? if false
+                    //? if true
+                    ...
+                    //? else
+                    //...
+            """.trimIndent()
+
+            output = """
+                //? if false
+                    /*//? if true
+                    ...
+                    //? else
+                    //...
+                    */
+            """.trimIndent()
+        }
+
+        should("capture closed statements in unfinished line scopes").config<ProcessTestSetup> {
+            input = """
+                //? if false
+                    //? if true {
+                    ...
+                    //?}
+                    ...
+            """.trimIndent()
+
+            output = """
+                //? if false
+                    /*//? if true {
+                    ...
+                    //?}
+                    */...
+            """.trimIndent()
+        }
     }
 })

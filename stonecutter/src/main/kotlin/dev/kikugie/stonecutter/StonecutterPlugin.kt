@@ -38,7 +38,7 @@ public abstract class StonecutterPlugin @Inject constructor(
     override fun apply(target: ExtensionAware): Unit = when (target) {
         is Settings -> {
             check(SemanticVersion.parse(target.gradle.gradleVersion) >= GRADLE_COMPAT) {
-                "Stonecutter requires at least Gradle ${GRADLE_COMPAT.value}. See https://gradle.org/releases/"
+                "Stonecutter requires at least Gradle $GRADLE_COMPAT. See https://gradle.org/releases/"
             }
             target.stonecutter<StonecutterSettingsExtension, StonecutterSettingsImpl>(registry)
         }
