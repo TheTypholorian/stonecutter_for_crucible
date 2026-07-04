@@ -17,6 +17,8 @@ dependencies {
     antlr(project("antlr"))
 
     api(libs.pcre4j)
+    api(project(":model"))
+
     implementation(libs.pcre4j.ffm)
     implementation(libs.pcre4j.bundle)
     implementation(common.misc.semver)

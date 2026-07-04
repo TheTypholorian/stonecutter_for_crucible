@@ -30,9 +30,11 @@ sourceSets.main {
 }
 
 dependencies {
-    api(project(":stitcher"))
     api(common.misc.semver)
     api(common.misc.commons)
+    api(project(":model"))
+    api(project(":stitcher"))
+
     implementation(common.kotlin.serialization)
     implementation(common.kotlin.serialization.json)
     implementation(common.kotlin.serialization.toml)
