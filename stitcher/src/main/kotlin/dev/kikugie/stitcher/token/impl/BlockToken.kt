@@ -1,11 +1,13 @@
 package dev.kikugie.stitcher.token.impl
 
+import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.StitcherToken
 import dev.kikugie.stitcher.util.firstNotNull
 import dev.kikugie.stitcher.util.lastNotNull
 
 sealed interface BlockToken : StitcherToken {
+    val document: Document
     fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T
 
     interface Visitor<T, C> {
@@ -16,6 +18,7 @@ sealed interface BlockToken : StitcherToken {
     }
 
     data class Content(val leaf: LeafToken) : BlockToken, StitcherToken by leaf {
+        override val document: Document get() = leaf.document
         override val type: NativeStitcherType get() = NativeStitcherType.CONTENT
 
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitContent(this, ctx)
@@ -23,6 +26,7 @@ sealed interface BlockToken : StitcherToken {
     }
 
     data class Comment(val opener: LeafToken?, val body: LeafToken, val closer: LeafToken?) : BlockToken {
+        override val document: Document get() = body.document
         override val type: NativeStitcherType get() = NativeStitcherType.COMMENT
         override val start: Int = firstNotNull(opener, body).start
         override val end: Int = lastNotNull(body, closer).end
@@ -32,6 +36,7 @@ sealed interface BlockToken : StitcherToken {
     }
 
     data class Code(val host: Comment, val code: CodeToken, val scope: List<BlockToken> = emptyList()) : BlockToken {
+        override val document: Document get() = host.document
         override val type: NativeStitcherType get() = NativeStitcherType.CODE
         override val start: Int get() = host.start
         override val end: Int = lastNotNull(host, scope.lastOrNull()).end
@@ -42,7 +47,7 @@ sealed interface BlockToken : StitcherToken {
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitCode(this, ctx)
     }
 
-    data class Root(val scope: List<BlockToken>) : BlockToken {
+    data class Root(override val document: Document, val scope: List<BlockToken>) : BlockToken {
         override val type: NativeStitcherType get() = NativeStitcherType.ROOT
         override val start: Int = scope.firstOrNull()?.start ?: 0
         override val end: Int = scope.lastOrNull()?.end ?: 0

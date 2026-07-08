@@ -4,6 +4,7 @@ package dev.kikugie.stitcher.document
 
 import dev.kikugie.stitcher.issue.*
 import org.antlr.v4.runtime.CharStream
+import org.antlr.v4.runtime.misc.Interval
 import java.nio.file.Path
 import kotlin.io.path.absolutePathString
 
@@ -19,6 +20,9 @@ class Document(val path: Path, val source: CharStream, reporter: ProblemConsumer
     override fun mark(): ProblemReporter.Marker = problems.mark()
     override fun create(id: ProblemID): ProblemReport = problems.create(id)
     override fun report(report: ProblemReport): Unit = problems.report(report)
+
+    operator fun get(startIndex: Int, endIndex: Int): String =
+        source.getText(Interval.of(startIndex, endIndex - 1))
 
     fun locate(index: Int): DocumentLocation =
         lines.locate(index)

@@ -16,6 +16,3 @@ interface StitcherToken {
      */
     val end: Int
 }
-
-val StitcherToken.length: Int
-    inline get() = end - start
