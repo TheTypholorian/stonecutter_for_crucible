@@ -60,7 +60,7 @@ conditionExpression
 
 versionPredicate
     : (stringComparator | semanticComparator)? semanticVersion # semanticPredicate
-    | stringComparator stringVersion?                          # stringPredicate
+    | stringComparator stringVersion                           # stringPredicate
     ;
 
 semanticVersion
@@ -78,11 +78,11 @@ semanticComparator
 
 stringComparator
     : COMP_EQUAL
-    | COMP_NEQUAL
+    | COMP_NOT_EQUAL
     | COMP_MORE
-    | COMP_GMORE
+    | COMP_GR_MORE
     | COMP_LESS
-    | COMP_GLESS
+    | COMP_GR_LESS
     ;
 
 versionCore: NUMERIC (DOT NUMERIC)*;
@@ -124,11 +124,11 @@ SUGAR_ELIF: 'elif';
 
 COMP_MAJOR: '^';
 COMP_EQUAL: '=';
-COMP_NEQUAL: '!=';
+COMP_NOT_EQUAL: '!=';
 COMP_MORE: '>';
-COMP_GMORE: '>=';
+COMP_GR_MORE: '>=';
 COMP_LESS: '<';
-COMP_GLESS: '<=';
+COMP_GR_LESS: '<=';
 
 OP_ASSIGN: ':';
 OP_NOT: '!';
