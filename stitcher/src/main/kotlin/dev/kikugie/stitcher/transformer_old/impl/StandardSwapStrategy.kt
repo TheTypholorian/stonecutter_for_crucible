@@ -1,4 +1,4 @@
-package dev.kikugie.stitcher.transformer.impl
+package dev.kikugie.stitcher.transformer_old.impl
 
 import dev.kikugie.stitcher.transformer.strategy.SwappingStrategy
 import dev.kikugie.stitcher.util.LINE_BREAKS

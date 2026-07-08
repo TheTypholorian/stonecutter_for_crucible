@@ -1,4 +1,4 @@
-package dev.kikugie.stitcher.transformer
+package dev.kikugie.stitcher.transformer_old
 
 import dev.kikugie.stitcher.replacement.ReplacementExecutor
 import dev.kikugie.stitcher.token.NativeStitcherType

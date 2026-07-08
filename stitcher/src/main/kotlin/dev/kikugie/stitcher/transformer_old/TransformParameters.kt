@@ -1,4 +1,4 @@
-package dev.kikugie.stitcher.transformer
+package dev.kikugie.stitcher.transformer_old
 
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stitcher.parser.ScannerAdapter

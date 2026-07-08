@@ -14,17 +14,8 @@ val StitcherToken.length: Int
 fun AntlrToken.toLeafToken(doc: Document, type: StitcherType = StitcherType.of(this.type)): LeafToken =
     LeafToken(doc, type, startIndex, endIndex)
 
-fun AntlrToken?.toLeafTokenOrNull(doc: Document, type: StitcherType = StitcherType.of(this?.type ?: -1)): LeafToken? =
-    if (this == null) null else LeafToken(doc, type, startIndex, endIndex)
-
 fun TerminalNode.toLeafToken(doc: Document, type: StitcherType = StitcherType.of(symbol.type)): LeafToken =
     LeafToken(doc, type, startIndex, endIndex)
 
-fun TerminalNode?.toLeafTokenOrNull(doc: Document, type: StitcherType = StitcherType.of(this?.symbol?.type ?: -1)): LeafToken? =
-    if (this == null) null else LeafToken(doc, type, startIndex, endIndex)
-
 fun ParserRuleContext.toLeafToken(doc: Document, type: StitcherType): LeafToken =
     LeafToken(doc, type, startIndex, endIndex)
-
-fun ParserRuleContext?.toLeafTokenOrNull(doc: Document, type: StitcherType): LeafToken? =
-    if (this == null) null else LeafToken(doc, type, startIndex, endIndex)
