@@ -228,7 +228,7 @@ public abstract class <file.grammarName>BaseVisitor\<T> : AbstractParseTreeVisit
  * @param T The return type of the visit operation.
  *          Use [Unit] for operations with no return type
  */
-public abstract class <file.grammarName>ContextualBaseVisitor\<T, C> : CAbstractParseTreeVisitor\<T, C>(), <file.grammarName>ContextualVisitor\<T, C> {
+public abstract class <file.grammarName>BaseContextualVisitor\<T, C> : CAbstractParseTreeVisitor\<T, C>(), <file.grammarName>ContextualVisitor\<T, C> {
 <file.visitorNames:{lname |
     /**The default implementation returns the result of calling [visitChildren] on [rule].*/
     override fun visit<lname; format="cap">(rule: <file.parserName>.<lname; format="cap">Context, ctx: C): T =
