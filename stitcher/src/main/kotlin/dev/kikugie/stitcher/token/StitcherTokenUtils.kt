@@ -11,11 +11,11 @@ import org.antlr.v4.runtime.tree.TerminalNode
 val StitcherToken.length: Int
     inline get() = end - start
 
-fun AntlrToken.toLeafToken(doc: Document, type: StitcherType = StitcherType.of(this.type)): LeafToken =
-    LeafToken(doc, type, startIndex, endIndex)
+fun AntlrToken.toLeafToken(doc: Document, type: StitcherType = StitcherType.of(this.type), text: String? = null): LeafToken =
+    LeafToken(doc, type, startIndex, endIndex).apply { if (text != null) this.text = text }
 
-fun TerminalNode.toLeafToken(doc: Document, type: StitcherType = StitcherType.of(symbol.type)): LeafToken =
-    LeafToken(doc, type, startIndex, endIndex)
+fun TerminalNode.toLeafToken(doc: Document, type: StitcherType = StitcherType.of(symbol.type), text: String? = null): LeafToken =
+    LeafToken(doc, type, startIndex, endIndex).apply { if (text != null) this.text = text }
 
-fun ParserRuleContext.toLeafToken(doc: Document, type: StitcherType): LeafToken =
-    LeafToken(doc, type, startIndex, endIndex)
+fun ParserRuleContext.toLeafToken(doc: Document, type: StitcherType, text: String? = null): LeafToken =
+    LeafToken(doc, type, startIndex, endIndex).apply { if (text != null) this.text = text }

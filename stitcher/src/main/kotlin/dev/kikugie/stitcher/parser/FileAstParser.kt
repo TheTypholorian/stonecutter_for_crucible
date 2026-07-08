@@ -1,24 +1,19 @@
 package dev.kikugie.stitcher.parser
 
-import dev.kikugie.antlr.ParseTreeAccessException
 import dev.kikugie.antlr.util.LC
 import dev.kikugie.antlr.util.advance
 import dev.kikugie.antlr.util.endIndex
 import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.stitcher.antlr.*
 import dev.kikugie.stitcher.antlr.StitcherLexer.Tokens
+import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.locate
-import dev.kikugie.stitcher.issue.BailException
-import dev.kikugie.stitcher.issue.ProblemReporter
-import dev.kikugie.stitcher.issue.bail
-import dev.kikugie.stitcher.issue.link
-import dev.kikugie.stitcher.issue.report
+import dev.kikugie.stitcher.issue.*
 import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.StitcherToken
-import dev.kikugie.stitcher.token.impl.BlockToken
-import dev.kikugie.stitcher.token.impl.DefinitionToken
+import dev.kikugie.stitcher.token.impl.*
 import dev.kikugie.stitcher.token.impl.DefinitionToken.Kind
-import dev.kikugie.stitcher.token.impl.ScopeToken
+import dev.kikugie.stitcher.token.toLeafToken
 import dev.kikugie.stitcher.util.*
 import org.antlr.v4.runtime.CommonToken
 import org.antlr.v4.runtime.CommonTokenStream
@@ -28,26 +23,20 @@ import java.util.*
 private val MARKERS: CharArray = charArrayOf('?', '$', '~')
 
 internal class FileAstParser private constructor(
+    val document: Document,
     val stream: TokenStream,
-    val problems: ProblemReporter,
-    val factory: StitcherTokenFactory,
+    parent: BlockToken.Code? = null
 ) {
-    companion object {
-        fun parse(stream: TokenStream, problems: ProblemReporter, factory: StitcherTokenFactory): BlockToken.Root =
-            FileAstParser(stream, problems, factory).build()
-    }
+    private val stack: BlockBuilderStack = BlockBuilderStack(document, parent)
+    private val listener: StitcherErrorListener = StitcherErrorListener(document)
 
-    private val stack: BlockBuilderStack = BlockBuilderStack(problems)
-    private val builder: MarkedTokenBuilder = MarkedTokenBuilder(problems, factory)
-    private val listener: StitcherErrorListener = StitcherErrorListener(problems)
-
-    private fun build(): BlockToken.Root {
+    fun build(): BlockToken.Root {
         while (stream.LA(1) != AntlrToken.EOF) when (NativeStitcherType.of(stream.LA(1))) {
             NativeStitcherType.CONTENT -> processContent(stream.advance())
             NativeStitcherType.COMMENT_OPEN -> processComment(stream.advance(), stream.advance(), stream.advance())
-            else -> problems.reportUnknownToken(stream.advance())
+            else -> document.reportUnknownToken(stream.advance())
         }
-        return stack.build(factory)
+        return stack.build()
     }
 
     private fun processContent(token: AntlrToken) {
@@ -56,12 +45,12 @@ internal class FileAstParser private constructor(
 
     private fun processComment(opener: AntlrToken, body: AntlrToken, closer: AntlrToken) {
         val comment = CommentBuilder(opener, body, closer)
-        val (marker, definition) = parseCommentBody(body)
+        val code = parseCommentBody(body)
             ?: return stack.handle(comment)
-        stack.handle(CodeBuilder(comment, marker, definition))
+        stack.handle(CodeBuilder(comment, code))
     }
 
-    private fun parseCommentBody(body: AntlrToken): MarkedTokenBuilder.Result? = InlineCharStream(body).use { input ->
+    private fun parseCommentBody(body: AntlrToken): CodeToken? = InlineCharStream(body).use { input ->
         if (input.LC(1) !in MARKERS) return@use null
 
         val lexer = StitcherLexer(input).apply {
@@ -75,16 +64,17 @@ internal class FileAstParser private constructor(
         parser.tryBuildDefinition(body)
     }
 
-    private fun StitcherParser.tryBuildDefinition(body: AntlrToken): MarkedTokenBuilder.Result? = try {
-        definition().accept(builder)
+    private fun StitcherParser.tryBuildDefinition(body: AntlrToken): CodeToken? = try {
+        document.runThrowing { definition() }.acceptAs(TokenBuilder, document)
+    } catch (_: BailException) {
+        null
     } catch (e: RuntimeException) {
-        if (e !is BailException && e !is ParseTreeAccessException)
-            problems.reportParserError(body, e)
+        document.reportParserError(body, e)
         null
     }
 }
 
-private class BlockBuilderStack(val problems: ProblemReporter) {
+private class BlockBuilderStack(val document: Document, parent: BlockToken.Code?) {
     private val direct: Deque<BlockBuilder.Scoped> = ArrayDeque(4)
 
     val top: BlockBuilder.Scoped
@@ -92,19 +82,20 @@ private class BlockBuilderStack(val problems: ProblemReporter) {
 
     init {
         direct += RootBuilder()
+        if (parent != null) direct += unbuild(parent)
     }
 
-    fun build(factory: StitcherTokenFactory): BlockToken.Root {
+    fun build(): BlockToken.Root {
         while (direct.isNotEmpty()) when (val it = pop(true)) {
-            is RootBuilder -> return it.build(factory)
+            is RootBuilder -> return it.build(document)
             else -> {}
         }
 
-        problems.bailConsumedRoot()
+        document.bailConsumedRoot()
     }
 
     fun pop(done: Boolean = false): BlockBuilder.Scoped =
-        direct.removeLast().apply { finalize(problems, done) }
+        direct.removeLast().apply { finalize(document, done) }
 
     fun push(block: BlockBuilder.Scoped): Unit =
         direct.addLast(block)
@@ -136,6 +127,11 @@ private class BlockBuilderStack(val problems: ProblemReporter) {
             handle(it.remainder)
         }
     }
+
+    private fun unbuild(block: BlockToken.Code): CodeBuilder = with(block) {
+        val host = CommentBuilder(host.opener?.toAntlrToken(), host.body.toAntlrToken(), host.closer?.toAntlrToken())
+        CodeBuilder(host, code)
+    }
 }
 
 private sealed interface BlockAcceptResult {
@@ -147,7 +143,7 @@ private sealed interface BlockAcceptResult {
 
 private sealed interface BlockBuilder {
     var parent: Scoped
-    fun build(factory: StitcherTokenFactory): BlockToken
+    fun build(document: Document): BlockToken
 
     sealed interface Scoped : BlockBuilder {
         val entries: MutableList<BlockBuilder>
@@ -157,12 +153,12 @@ private sealed interface BlockBuilder {
     }
 }
 
-private class ContentBuilder(val start: Int, val end: Int, val text: String) : BlockBuilder {
+private class ContentBuilder(val token: AntlrToken) : BlockBuilder {
     override lateinit var parent: BlockBuilder.Scoped
-    constructor(token: AntlrToken) : this(token.startIndex, token.endIndex, token.text)
+    val text: String by lazy { token.text }
 
-    override fun build(factory: StitcherTokenFactory): BlockToken.Content = BlockToken.Content(
-        factory.create(NativeStitcherType.CONTENT, start, end, text)
+    override fun build(document: Document): BlockToken.Content = BlockToken.Content(
+        token.toLeafToken(document, text = text),
     )
 }
 
@@ -170,15 +166,18 @@ private class CommentBuilder(val opener: AntlrToken?, val body: AntlrToken, val 
     override lateinit var parent: BlockBuilder.Scoped
     val text: String by lazy { body.text }
 
-    override fun build(factory: StitcherTokenFactory): BlockToken.Comment = BlockToken.Comment(
-        factory.fromAntlrTokenOrNull(opener), factory.fromAntlrToken(body), factory.fromAntlrTokenOrNull(closer)
+    override fun build(document: Document): BlockToken.Comment = BlockToken.Comment(
+        opener?.toLeafToken(document),
+        body.toLeafToken(document, text = text),
+        closer?.toLeafToken(document),
     )
 }
 
 private class RootBuilder(override val entries: MutableList<BlockBuilder> = mutableListOf()) : BlockBuilder.Scoped {
     override var parent: BlockBuilder.Scoped = this
-    override fun build(factory: StitcherTokenFactory): BlockToken.Root = BlockToken.Root(
-        entries.map { it.build(factory) }
+    override fun build(document: Document): BlockToken.Root = BlockToken.Root(
+        document,
+        entries.map { it.build(document) },
     )
 
     override fun accept(block: BlockBuilder, stack: BlockBuilderStack): BlockAcceptResult = when (block) {
@@ -191,13 +190,13 @@ private class RootBuilder(override val entries: MutableList<BlockBuilder> = muta
 
     private fun acceptCode(code: CodeBuilder, stack: BlockBuilderStack): BlockAcceptResult {
         // `}` is always invalid in the root scope
-        if (code.def.closer != null) stack.problems.reportRootCloser(code, this)
+        if (code.def.closer != null) stack.document.reportRootCloser(code, this)
 
         // For line extensions, try merging empty content into the previous scope
         else if (code.kind.isExtension && code.def.closer == null) with(stack.top) {
             val candidate = findImplicitConditionCandidate()
             if (candidate != null) mergeDanglingBlocks(candidate)
-            else stack.problems.reportDanglingImplicitExtension(code, this)
+            else stack.document.reportDanglingImplicitExtension(code, this)
         }
 
         entries += code.also { it.parent = this }
@@ -207,17 +206,18 @@ private class RootBuilder(override val entries: MutableList<BlockBuilder> = muta
 }
 
 private class CodeBuilder(
-    val host: CommentBuilder, val mark: AntlrToken, val def: DefinitionToken,
+    val host: CommentBuilder, val token: CodeToken,
     override val entries: MutableList<BlockBuilder> = mutableListOf()
 ) : BlockBuilder.Scoped {
     override lateinit var parent: BlockBuilder.Scoped
-    val kind: Kind
-        inline get() = def.kind
+    val mark: LeafToken inline get() = token.marker
+    val def: DefinitionToken inline get() = token.definition
+    val kind: Kind inline get() = def.kind
     var satisfied: Boolean = kind.isScoped
         private set
 
-    override fun build(factory: StitcherTokenFactory): BlockToken.Code = BlockToken.Code(
-        host.build(factory), factory.fromAntlrToken(mark), def, entries.map { it.build(factory) }
+    override fun build(document: Document): BlockToken.Code = BlockToken.Code(
+        host.build(document), token, entries.map { it.build(document) }
     )
 
     override fun finalize(problems: ProblemReporter, done: Boolean) = when (val opener = def.opener) {
@@ -238,14 +238,14 @@ private class CodeBuilder(
         is CodeBuilder if (block.kind.isExtension && block.def.closer == null) -> with(stack.top) {
             val candidate = findImplicitConditionCandidate()
             if (candidate != null) mergeDanglingBlocks(candidate)
-            else stack.problems.reportDanglingImplicitExtension(block, this)
+            else stack.document.reportDanglingImplicitExtension(block, this)
             stack.push(block)
             BlockAcceptResult.ConsumedOpen
         }
 
         is CodeBuilder if (block.kind.isCloser) -> {
             if (block notSameAs this)
-                stack.problems.reportMismatchedCloser(block, this)
+                stack.document.reportMismatchedCloser(block, this)
             stack.replace(block)
             BlockAcceptResult.ConsumedOpen
         }
@@ -277,7 +277,7 @@ private class CodeBuilder(
 
         is CodeBuilder if (block.kind.isExtension) -> {
             if (block notSameAs this || block.def.closer == null && def.opener is ScopeToken.Closed)
-                stack.problems.reportUnmatchedImplicitExtension(block, this)
+                stack.document.reportUnmatchedImplicitExtension(block, this)
             stack.replace(block)
             BlockAcceptResult.ConsumedOpen
         }
@@ -288,7 +288,7 @@ private class CodeBuilder(
     private fun acceptLookup(block: BlockBuilder, stack: BlockBuilderStack): BlockAcceptResult = when (block) {
         is CodeBuilder if (block.kind.isExtension) -> {
             if (block notSameAs this || block.def.closer == null && def.opener is ScopeToken.Closed)
-                stack.problems.reportUnmatchedImplicitExtension(block, this)
+                stack.document.reportUnmatchedImplicitExtension(block, this)
             stack.replace(block)
             BlockAcceptResult.ConsumedOpen
         }
@@ -331,8 +331,13 @@ private class CodeBuilder(
 
         else -> with(block) {
             satisfied = true
-            entries += ContentBuilder(start, start + split, text.take(split))
-            ContentBuilder(start + split, end, text.substring(split)).let(BlockAcceptResult::ConsumedPartial)
+            entries += CommonToken(block.token)
+                .apply { text = text.take(split); endIndex = startIndex + split }
+                .let(::ContentBuilder)
+            CommonToken(block.token)
+                .apply { text = text.substring(split); startIndex += split }
+                .let(::ContentBuilder)
+                .let(BlockAcceptResult::ConsumedPartial)
         }
     }
 
@@ -579,7 +584,7 @@ private val CodeBuilder.defTitle: String
     inline get() = defName.titlecase()
 
 private val CodeBuilder.defName: String
-    get() = when (mark.type) {
+    get() = when (mark.type.value) {
         Tokens.COND_MARK -> "condition"
         Tokens.SWAP_MARK -> "swap"
         Tokens.REPL_MARK -> "replacement"
@@ -588,8 +593,13 @@ private val CodeBuilder.defName: String
 
 private val BlockBuilder.blamePosition: Int
     get() = when (this) {
-        is ContentBuilder -> start
+        is ContentBuilder -> token.startIndex
         is CommentBuilder -> body.startIndex
         is CodeBuilder -> host.opener!!.startIndex
         else -> 0
     }
+
+private fun LeafToken.toAntlrToken(): AntlrToken = CommonToken(type.value, text).apply {
+    startIndex = start
+    endIndex = end
+}

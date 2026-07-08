@@ -15,7 +15,7 @@ import dev.kikugie.stitcher.token.StitcherToken
 import dev.kikugie.stitcher.token.impl.*
 import dev.kikugie.stitcher.token.toLeafToken
 
-internal class TokenBuilder : StitcherBaseContextualVisitor<StitcherToken, Document>() {
+internal object TokenBuilder : StitcherBaseContextualVisitor<StitcherToken, Document>() {
     override fun visitConditionDefinition(rule: StitcherParser.ConditionDefinitionContext, ctx: Document): StitcherToken =
         CodeToken(rule.condMark.toLeafToken(ctx), rule.condition.acceptAs(this, ctx))
 

@@ -17,5 +17,10 @@ inline fun <T, R> ProblemReporter.runMarked(action: () -> T, handler: (result: T
     return handler(action(), !marker.isDirty)
 }
 
+inline fun <T> ProblemReporter.runThrowing(action: () -> T): T {
+    val marker = mark()
+    return action().also { if (marker.isDirty) throw BailException() }
+}
+
 context(report: ProblemReport)
 inline fun DocumentLocation.link(): String = report.doc.link(this)

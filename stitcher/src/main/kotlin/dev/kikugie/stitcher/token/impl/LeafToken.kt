@@ -10,5 +10,14 @@ data class LeafToken(
     override val start: Int,
     override val end: Int,
 ) : StitcherToken {
-    val text by lazy { document[start, end] }
+    private lateinit var _text: String
+
+    var text: String
+        get() {
+            if (!::_text.isInitialized) _text = document[start, end]
+            return _text
+        }
+        set(value) {
+            _text = value
+        }
 }
