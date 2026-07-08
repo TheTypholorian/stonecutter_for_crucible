@@ -2,11 +2,13 @@
 
 package dev.kikugie.stitcher.antlr
 
+import dev.kikugie.antlr.tree.CParseTree
+import dev.kikugie.antlr.tree.CParseTreeVisitor
 import dev.kikugie.antlr.util.endIndex
 import dev.kikugie.antlr.util.isEOF
-import dev.kikugie.commons.takeAs
 import dev.kikugie.stitcher.token.StitcherType
 import org.antlr.v4.runtime.*
+import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.tree.ParseTreeVisitor
 
 typealias AntlrToken = Token
@@ -42,5 +44,8 @@ inline fun TokenStream.forEach(action: (AntlrToken) -> Unit) {
     }
 }
 
-inline fun <reified T> RuleContext.acceptAs(visitor: ParseTreeVisitor<in T>): T =
-    accept(visitor).takeAs()
+inline fun <reified T> ParseTree.acceptAs(visitor: ParseTreeVisitor<in T>): T =
+    accept(visitor) as T
+
+inline fun <reified T, C> CParseTree.acceptAs(visitor: CParseTreeVisitor<in T, C>, ctx: C): T =
+    accept(visitor, ctx) as T
