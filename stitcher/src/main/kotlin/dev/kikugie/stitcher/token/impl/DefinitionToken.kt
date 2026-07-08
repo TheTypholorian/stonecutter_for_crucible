@@ -13,20 +13,24 @@ sealed interface DefinitionToken : StitcherToken {
     val closer: LeafToken? get() = null
     val opener: ScopeToken? get() = null
 
-    fun <T> accept(visitor: Visitor<T>): T
+    fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T
 
-    interface Visitor<T> {
-        fun visitSwapLocal(swap: SwapLocal): T
-        fun visitSwapOpener(swap: SwapOpener): T
-        fun visitSwapCloser(swap: SwapCloser): T
+    interface Visitor<T, C> {
+        fun visitSwapLocal(swap: SwapLocal, ctx: C): T
+        fun visitSwapOpener(swap: SwapOpener, ctx: C): T
+        fun visitSwapCloser(swap: SwapCloser, ctx: C): T
 
-        fun visitConditionOpener(cond: ConditionOpener): T
-        fun visitConditionExtension(cond: ConditionExtension): T
-        fun visitConditionCloser(cond: ConditionCloser): T
+        fun visitConditionOpener(cond: ConditionOpener, ctx: C): T
+        fun visitConditionExtension(cond: ConditionExtension, ctx: C): T
+        fun visitConditionCloser(cond: ConditionCloser, ctx: C): T
 
-        fun visitReplacementToggle(repl: ReplacementToggle): T
-        fun visitReplacementLocal(repl: ReplacementLocal): T
-        fun visitReplacementCloser(repl: ReplacementCloser): T
+        fun visitReplacementToggle(repl: ReplacementToggle, ctx: C): T
+        fun visitReplacementLocal(repl: ReplacementLocal, ctx: C): T
+        fun visitReplacementCloser(repl: ReplacementCloser, ctx: C): T
+        
+        fun visitSwapLocalEntry(entry: SwapLocal.Entry, ctx: C): T
+        fun visitReplacementLocalEntry(entry: ReplacementLocal.Entry, ctx: C): T
+        fun visitReplacementToggleEntry(entry: ReplacementToggle.Entry, ctx: C): T
     }
 
     enum class Kind {
@@ -75,7 +79,7 @@ sealed interface DefinitionToken : StitcherToken {
         override val start: Int get() = entries.first().start
         override val end: Int = lastNotNull(entries.last(), opener).end
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitSwapLocal(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitSwapLocal(this, ctx)
 
         data class Entry(
             val sugar: List<LeafToken>,
@@ -85,6 +89,7 @@ sealed interface DefinitionToken : StitcherToken {
             override val type: StitcherType get() = NativeStitcherType.SWAP_EXPR
             override val start: Int = firstNotNull(sugar.firstOrNull(), expression, literal).start
             override val end: Int get() = literal.end
+            fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitSwapLocalEntry(this, ctx)
         }
     }
 
@@ -94,14 +99,14 @@ sealed interface DefinitionToken : StitcherToken {
         override val start: Int get() = identifier.start
         override val end: Int = lastNotNull(identifier, arguments.lastOrNull(), opener).end
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitSwapOpener(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitSwapOpener(this, ctx)
     }
 
     data class SwapCloser(override val closer: LeafToken) : Swap, StitcherToken by closer {
         override val type: NativeStitcherType get() = NativeStitcherType.SWAP_CLOSE
         override val kind: Kind get() = Kind.CLOSER
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitSwapCloser(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitSwapCloser(this, ctx)
     }
 
     sealed interface Condition : DefinitionToken {
@@ -118,7 +123,7 @@ sealed interface DefinitionToken : StitcherToken {
         override val start: Int = firstNotNull(sugar.firstOrNull(), expression).start
         override val end: Int = lastNotNull(expression, opener).end
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitConditionOpener(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitConditionOpener(this, ctx)
     }
 
     data class ConditionExtension(
@@ -130,14 +135,14 @@ sealed interface DefinitionToken : StitcherToken {
         override val start: Int = firstNotNullOrNull(closer, sugar.firstOrNull(), expression, opener)?.start ?: 0
         override val end: Int = lastNotNull(sugar.lastOrNull(), expression, opener).end
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitConditionExtension(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitConditionExtension(this, ctx)
     }
 
     data class ConditionCloser(override val closer: LeafToken) : Condition, StitcherToken by closer {
         override val type: NativeStitcherType get() = NativeStitcherType.COND_CLOSE
         override val kind: Kind get() = Kind.CLOSER
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitConditionCloser(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitConditionCloser(this, ctx)
     }
 
     sealed interface Replacement : DefinitionToken
@@ -148,12 +153,13 @@ sealed interface DefinitionToken : StitcherToken {
         override val start: Int = entries.first().start
         override val end: Int = entries.last().end
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitReplacementToggle(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitReplacementToggle(this, ctx)
 
         data class Entry(val op: LeafToken?, val identifier: LeafToken, val comma: LeafToken?) : StitcherToken {
             override val type: StitcherType get() = NativeStitcherType.REPL_TOGGLE_ENTRY
             override val start: Int get() = op?.start ?: identifier.start
             override val end: Int get() = comma?.end ?: identifier.end
+            fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitReplacementToggleEntry(this, ctx)
         }
     }
 
@@ -166,12 +172,13 @@ sealed interface DefinitionToken : StitcherToken {
         override val end: Int get() = opener?.end ?: entries.last().end
         override val kind: Kind = if (opener is ScopeToken.Named) Kind.INDEPENDENT else opener.openerKind()
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitReplacementLocal(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitReplacementLocal(this, ctx)
 
         data class Entry(val source: LeafToken, val dir: LeafToken, val target: LeafToken, val comma: LeafToken?) : StitcherToken {
             override val type: StitcherType get() = NativeStitcherType.REPL_LOCAL_ENTRY
             override val start: Int get() = source.start
             override val end: Int get() = comma?.end ?: target.end
+            fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitReplacementLocalEntry(this, ctx)
         }
     }
 
@@ -179,7 +186,7 @@ sealed interface DefinitionToken : StitcherToken {
         override val type: StitcherType get() = NativeStitcherType.REPL_CLOSE
         override val kind: Kind get() = Kind.CLOSER
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitReplacementCloser(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitReplacementCloser(this, ctx)
     }
 }
 

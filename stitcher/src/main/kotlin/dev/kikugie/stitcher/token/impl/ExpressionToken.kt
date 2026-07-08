@@ -4,14 +4,14 @@ import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.StitcherToken
 
 sealed interface ExpressionToken : StitcherToken {
-    fun <T> accept(visitor: Visitor<T>): T
+    fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T
 
-    interface Visitor<T> {
-        fun visitGroup(group: Group): T
-        fun visitUnary(unary: Unary): T
-        fun visitBinary(binary: Binary): T
-        fun visitConstant(constant: Constant): T
-        fun visitAssignment(assignment: Assignment): T
+    interface Visitor<T, C> {
+        fun visitGroup(group: Group, ctx: C): T
+        fun visitUnary(unary: Unary, ctx: C): T
+        fun visitBinary(binary: Binary, ctx: C): T
+        fun visitConstant(constant: Constant, ctx: C): T
+        fun visitAssignment(assignment: Assignment, ctx: C): T
     }
 
     data class Group(val lb: LeafToken, val body: ExpressionToken, val rb: LeafToken) : ExpressionToken {
@@ -19,7 +19,7 @@ sealed interface ExpressionToken : StitcherToken {
         override val start: Int get() = lb.start
         override val end: Int get() = rb.end
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitGroup(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitGroup(this, ctx)
     }
 
     data class Unary(val operator: LeafToken, val target: ExpressionToken) : ExpressionToken {
@@ -27,7 +27,7 @@ sealed interface ExpressionToken : StitcherToken {
         override val start: Int get() = operator.start
         override val end: Int get() = target.end
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitUnary(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitUnary(this, ctx)
     }
 
     data class Binary(val left: ExpressionToken, val operator: LeafToken, val right: ExpressionToken) : ExpressionToken {
@@ -35,7 +35,7 @@ sealed interface ExpressionToken : StitcherToken {
         override val start: Int get() = left.start
         override val end: Int get() = right.end
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitBinary(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitBinary(this, ctx)
     }
 
     data class Constant(val value: LeafToken) : ExpressionToken {
@@ -43,7 +43,7 @@ sealed interface ExpressionToken : StitcherToken {
         override val start: Int get() = value.start
         override val end: Int get() = value.end
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitConstant(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitConstant(this, ctx)
     }
 
     data class Assignment(
@@ -55,6 +55,6 @@ sealed interface ExpressionToken : StitcherToken {
         override val start: Int = target?.start ?: predicates.first().start
         override val end: Int = predicates.last().end
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitAssignment(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitAssignment(this, ctx)
     }
 }

@@ -6,19 +6,19 @@ import dev.kikugie.stitcher.util.firstNotNull
 import dev.kikugie.stitcher.util.lastNotNull
 
 sealed interface BlockToken : StitcherToken {
-    fun <T> accept(visitor: Visitor<T>): T
+    fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T
 
-    interface Visitor<T> {
-        fun visitContent(content: Content): T
-        fun visitComment(comment: Comment): T
-        fun visitCode(code: Code): T
-        fun visitRoot(root: Root): T
+    interface Visitor<T, C> {
+        fun visitContent(content: Content, ctx: C): T
+        fun visitComment(comment: Comment, ctx: C): T
+        fun visitCode(code: Code, ctx: C): T
+        fun visitRoot(root: Root, ctx: C): T
     }
 
     data class Content(val leaf: LeafToken) : BlockToken, StitcherToken by leaf {
         override val type: NativeStitcherType get() = NativeStitcherType.CONTENT
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitContent(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitContent(this, ctx)
         fun isBlank(): Boolean = leaf.text.isBlank()
     }
 
@@ -27,19 +27,19 @@ sealed interface BlockToken : StitcherToken {
         override val start: Int = firstNotNull(opener, body).start
         override val end: Int = lastNotNull(body, closer).end
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitComment(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitComment(this, ctx)
         fun isBlank(): Boolean = body.text.isBlank()
     }
 
-    data class Code(
-        val host: Comment, val marker: LeafToken,
-        val definition: DefinitionToken, val scope: List<BlockToken> = emptyList()
-    ) : BlockToken {
+    data class Code(val host: Comment, val code: CodeToken, val scope: List<BlockToken> = emptyList()) : BlockToken {
         override val type: NativeStitcherType get() = NativeStitcherType.CODE
         override val start: Int get() = host.start
         override val end: Int = lastNotNull(host, scope.lastOrNull()).end
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitCode(this)
+        val marker: LeafToken inline get() = code.marker
+        val definition: DefinitionToken inline get() = code.definition
+
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitCode(this, ctx)
     }
 
     data class Root(val scope: List<BlockToken>) : BlockToken {
@@ -47,6 +47,6 @@ sealed interface BlockToken : StitcherToken {
         override val start: Int = scope.firstOrNull()?.start ?: 0
         override val end: Int = scope.lastOrNull()?.end ?: 0
 
-        override fun <T> accept(visitor: Visitor<T>): T = visitor.visitRoot(this)
+        override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitRoot(this, ctx)
     }
 }
