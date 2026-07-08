@@ -54,6 +54,8 @@ package <file.genPackage>
 
 import dev.kikugie.antlr.*
 import dev.kikugie.antlr.util.*
+import dev.kikugie.antlr.tree.*
+import dev.kikugie.antlr.parser.*
 import org.antlr.v4.runtime.atn.*
 import org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER
 import org.antlr.v4.runtime.dfa.DFA
@@ -147,6 +149,7 @@ package <file.genPackage>
 <endif>
 <header>
 
+import dev.kikugie.antlr.tree.CParseTreeVisitor
 import org.antlr.v4.runtime.tree.ParseTreeVisitor
 
 /**
@@ -163,11 +166,30 @@ public interface <file.grammarName>Visitor\<T> : ParseTreeVisitor\<T> {
     <else>
      * Visit a parse tree produced by [<file.parserName>.<lname>].
     <endif>
-     * @param ctx The parse tree
+     */
+    public fun visit<lname; format="cap">(rule: <file.parserName>.<lname; format="cap">Context): T
+}; separator="\n\n">
+}
+
+/**
+ * This interface defines a complete generic visitor for a parse tree produced by [<file.parserName>].
+ *
+ * @param T The return type of the visit operation.
+ *          Use [Unit] for operations with no return type
+ * @param C The context parameter passed to each visit call
+ */
+public interface <file.grammarName>ContextualVisitor\<T, C> : CParseTreeVisitor\<T, C> {
+<file.visitorNames:{lname |
+    /**
+    <if(file.visitorLabelRuleNames.(lname))>
+     * Visit a parse tree produced by the `<lname>` labeled alternative in [<file.parserName>.<file.visitorLabelRuleNames.(lname)>].
+    <else>
+     * Visit a parse tree produced by [<file.parserName>.<lname>].
+    <endif>
      * @return The visitor result
      */
-    public fun visit<lname; format="cap">(ctx: <file.parserName>.<lname; format="cap">Context): T
-}; separator="\n">
+    public fun visit<lname; format="cap">(rule: <file.parserName>.<lname; format="cap">Context, ctx: C): T
+}; separator="\n\n">
 }
 
 >>
@@ -179,6 +201,7 @@ package <file.genPackage>
 <endif>
 <header>
 
+import dev.kikugie.antlr.tree.CAbstractParseTreeVisitor
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor
 
 /**
@@ -191,10 +214,26 @@ import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor
  */
 public abstract class <file.grammarName>BaseVisitor\<T> : AbstractParseTreeVisitor\<T>(), <file.grammarName>Visitor\<T> {
 <file.visitorNames:{lname |
-    /**The default implementation returns the result of calling [visitChildren] on [ctx].*/
-    override fun visit<lname; format="cap">(ctx: <file.parserName>.<lname; format="cap">Context): T {
-        return this.visitChildren(ctx)
-    \}}; separator="\n\n">
+    /**The default implementation returns the result of calling [visitChildren] on [rule].*/
+    override fun visit<lname; format="cap">(rule: <file.parserName>.<lname; format="cap">Context): T =
+        visitChildren(rule)
+    }; separator="\n\n">
+}
+
+/**
+ * This class provides an empty implementation of [<file.grammarName>Visitor],
+ * which can be extended to create a visitor which only needs to handle a subset
+ * of the available methods.
+ *
+ * @param T The return type of the visit operation.
+ *          Use [Unit] for operations with no return type
+ */
+public abstract class <file.grammarName>ContextualBaseVisitor\<T, C> : CAbstractParseTreeVisitor\<T, C>(), <file.grammarName>ContextualVisitor\<T, C> {
+<file.visitorNames:{lname |
+    /**The default implementation returns the result of calling [visitChildren] on [rule].*/
+    override fun visit<lname; format="cap">(rule: <file.parserName>.<lname; format="cap">Context, ctx: C): T =
+        visitChildren(rule, ctx)
+    }; separator="\n\n">
 }
 
 >>
@@ -212,7 +251,7 @@ Parser_(parser, funcs, atn, sempredFuncs, superClass) ::= <<
     "unused", "ClassName", "FunctionName", "LocalVariableName", "ConstPropertyName", "ConvertSecondaryConstructorToPrimary",
     "RedundantVisibilityModifier", "CanBeVal", "SpellCheckingInspection", "VariableNeverRead",
 )
-public open class <parser.name>(input: TokenStream) : <superClass; null="Parser">(input) {
+public open class <parser.name>(input: TokenStream) : <superClass; null="CParser">(input) {
     public companion object {
         init {
             RuntimeMetaData.checkVersion("<file.ANTLRVersion>", RuntimeMetaData.getRuntimeVersion())
@@ -759,7 +798,7 @@ RuleContextDecl(r) ::= "public var <r.escapedName>: <r.ctxName>? = null"
 RuleContextListDecl(rdecl) ::= "public var <rdecl.escapedName>: MutableList\<<rdecl.ctxName>> = ArrayList()"
 
 ContextTokenGetterDecl(t) ::= <<
-public val <t.escapedName>: TerminalNode<if(t.optional)>?<endif>
+public val <t.escapedName; format="camel">: TerminalNode<if(t.optional)>?<endif>
     get() = tokenOfType<if(t.optional)>OrNull<endif>(Tokens.<t.escapedName>)
 >>
 
@@ -796,11 +835,11 @@ CaptureNextToken(d) ::= "<d.varName> = _input.LT(1)"
 CaptureNextTokenType(d) ::= "<d.varName> = _input.LA(1)"
 
 StructDecl(struct, ctorAttrs, attrs, getters, dispatchMethods, interfaces, extensionMembers, signatures) ::= <<
-public open class <struct.name> : <if(contextSuperClass)><contextSuperClass><else>ParserRuleContext<endif><if(interfaces)> : <interfaces; separator=", "><endif> {
+public open class <struct.name> : <if(contextSuperClass)><contextSuperClass><else>CParserRuleContext<endif><if(interfaces)> : <interfaces; separator=", "><endif> {
     <attrs:{a | <a>}; separator="\n">
     <getters:{g | <g>}; separator="\n">
 
-    public constructor(parent: ParserRuleContext?, invokingState: Int<struct.ctorAttrs:{a | , <attributeDeclAndInit(a)>}>) : super(parent, invokingState) {
+    public constructor(parent: CParserRuleContext?, state: Int<struct.ctorAttrs:{a | , <attributeDeclAndInit(a)>}>) : super(parent, state) {
         <struct.ctorAttrs:{a | this.<a.escapedName> = <a.escapedName>}; separator="\n">
     }
 
@@ -810,8 +849,8 @@ public open class <struct.name> : <if(contextSuperClass)><contextSuperClass><els
 
     override fun getRuleIndex(): Int = Rules.<struct.derivedFromName; format="cap">
 
-    public fun copyFrom(ctx: <struct.name>) {
-        super.copyFrom(ctx)
+    public fun copyFrom(rule: <struct.name>) {
+        super.copyFrom(rule)
         <struct.attrs:{a | this.<a.escapedName> = ctx.<a.escapedName>}; separator="\n">
     }
     <endif>
@@ -826,8 +865,8 @@ public open class <struct.name> : <currentRule.name; format="cap">Context {
     <attrs:{a | <a>}; separator="\n">
     <getters:{g | <g>}; separator="\n">
 
-    public constructor(ctx: <currentRule.name; format="cap">Context) {
-        copyFrom(ctx)
+    public constructor(rule: <currentRule.name; format="cap">Context) {
+        copyFrom(rule)
     }
 
     <dispatchMethods; separator="\n\n">
@@ -845,6 +884,11 @@ VisitorDispatchMethod(method) ::= <<
 override fun \<T> accept(visitor: ParseTreeVisitor\<out T>): T = when (visitor) {
     is <parser.grammarName>Visitor -> visitor.visit<struct.derivedFromName; format="cap">(this)
     else -> visitor.visitChildren(this)
+}
+
+override fun \<T, C> accept(visitor: CParseTreeVisitor\<out T, C>, ctx: C): T = when (visitor) {
+    is <parser.grammarName>ContextualVisitor -> visitor.visit<struct.derivedFromName; format="cap">(this, ctx)
+    else -> visitor.visitChildren(this, ctx)
 }
 >>
 

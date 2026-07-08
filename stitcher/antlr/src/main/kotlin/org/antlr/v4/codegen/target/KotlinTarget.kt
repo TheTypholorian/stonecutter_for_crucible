@@ -1,17 +1,33 @@
 package org.antlr.v4.codegen.target
 
+import dev.kikugie.antlr.util.toCamelCase
 import org.antlr.v4.codegen.CodeGenerator
+import org.stringtemplate.v4.STGroup
+import org.stringtemplate.v4.StringRenderer
+import java.util.Locale
 
 public class KotlinTarget(gen: CodeGenerator) : JavaTarget(gen) {
     override fun getVersion(): String = ANTLR_VERSION
     override fun getReservedWords(): Set<String> = RESERVED_KEYWORDS
     override fun getTargetCharValueEscape(): Map<Char, String> = CHAR_ESCAPES
 
+    override fun loadTemplates(): STGroup? = super.loadTemplates().apply {
+        registerRenderer(String::class.java, StringRendererEx())
+    }
+
     override fun getTargetStringLiteralFromANTLRStringLiteral(
         generator: CodeGenerator, literal: String, addQuotes: Boolean, escapeSpecial: Boolean
     ): String = super
         .getTargetStringLiteralFromANTLRStringLiteral(generator, literal, addQuotes, escapeSpecial)
         .replace("$", "\\$")
+
+    private class StringRendererEx : StringRenderer() {
+        override fun toString(value: String?, formatString: String?, locale: Locale?): String? = when (formatString) {
+            "camel" -> value?.toCamelCase(false, locale ?: Locale.getDefault(), '_', '-', ' ', '.')
+            "pascal" -> value?.toCamelCase(true, locale ?: Locale.getDefault(), '_', '-', ' ', '.')
+            else -> super.toString(value, formatString, locale)
+        }
+    }
 
     private companion object {
         const val ANTLR_VERSION = "4.13.2"

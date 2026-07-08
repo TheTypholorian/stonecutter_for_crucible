@@ -11,6 +11,7 @@ import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.TokenSource
 import org.antlr.v4.runtime.WritableToken
 import org.antlr.v4.runtime.tree.TerminalNode
+import org.antlr.v4.runtime.tree.Tree
 
 /**Returns `true` if this is [Token.EOF].*/
 public val Token.isEOF: Boolean
@@ -66,6 +67,11 @@ public val TerminalNode.tokenSource: TokenSource
 /**[Token.getInputStream] of [TerminalNode.getSymbol]*/
 public val TerminalNode.inputStream: CharStream
     inline get() = symbol.inputStream
+
+
+public fun Tree.childrenSequence(): Sequence<Tree> = sequence {
+    for (i in 0 until childCount) yield(getChild(i))
+}
 
 
 /**The start index of this context.*/
