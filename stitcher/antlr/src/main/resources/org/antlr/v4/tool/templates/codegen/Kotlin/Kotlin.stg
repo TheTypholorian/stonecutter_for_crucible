@@ -803,7 +803,7 @@ public val <t.escapedName; format="camel">: TerminalNode<if(t.optional)>?<endif>
 >>
 
 ContextTokenListGetterDecl(t) ::= <<
-public val <t.escapedName>: ParseTreeAccessor\<TerminalNode> =
+public val <t.escapedName; format="camel">: ParseTreeAccessor\<TerminalNode> =
     TerminalNodesAccessor(this, Tokens.<t.escapedName>)
 >>
 
