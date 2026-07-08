@@ -38,6 +38,7 @@ open class SharedSetupPlugin : Plugin<Project> {
 
                 compilerOptions {
                     freeCompilerArgs.add("-Xcontext-parameters")
+                    freeCompilerArgs.add("-Xexplicit-backing-fields")
                 }
             }
         }
