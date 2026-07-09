@@ -5,22 +5,25 @@ import java.util.LinkedList
 import kotlin.math.max
 import kotlin.math.min
 
-class ModificationTracker {
+class ModificationTracker(val document: Document, val length: Int) {
     data class Event(override val start: Int, override val end: Int, val text: String) : NonOverlappingList.Entry {
         val textLength: Int inline get() = text.length
     }
-    val modifications: List<Event> field = EventList()
-    var modified: UInt = 0u
+    internal val modifications: List<Event> field = EventList()
+    internal var modified: UInt = 0u
         private set
 
     fun insert(index: Int, text: String): Boolean =
-        modifications.add(Event(index, index, text)).also { if (it) modified++ }
+        replace(index, index, text)
 
     fun delete(start: Int, end: Int): Boolean =
-        modifications.add(Event(start, end, "")).also { if (it) modified++ }
+        replace(start, end, "")
 
-    fun replace(start: Int, end: Int, text: String): Boolean =
-        modifications.add(Event(start, end, text)).also { if (it) modified++ }
+    fun replace(start: Int, end: Int, text: String): Boolean {
+        require(start in 0..<end && end in start..length) { "Text range $start..<$end !in 0..<${length + 1}" }
+        return modifications.add(Event(start, end, text))
+            .also { if (it) modified++ }
+    }
 }
 
 private class EventList : NonOverlappingList<ModificationTracker.Event>(LinkedList()) {

@@ -53,6 +53,7 @@ class SourceDocument(override val path: Path, val source: CharStream, private va
 }
 
 class InjectedDocument(val parent: Document, val start: Int, val end: Int, val tracker: ModificationTracker) : Document by parent {
+    constructor(parent: Document, start: Int, end: Int) : this(parent, start, end, ModificationTracker(parent, end - start))
     private var textSegments: MutableList<Segment> = mutableListOf()
     private var lastModCount: UInt = 0u
     private var cachedLength: Int = end - start

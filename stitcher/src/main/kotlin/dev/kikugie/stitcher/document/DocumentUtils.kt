@@ -21,3 +21,6 @@ fun Document.link(loc: DocumentLocation): String = when (loc.packed) {
     -1L -> "file://${path.absolutePathString()}"
     else -> "file://${path.absolutePathString()}:${loc.line}:${loc.column}"
 }
+
+fun Document.fullText(): String =
+    get(0, length)
