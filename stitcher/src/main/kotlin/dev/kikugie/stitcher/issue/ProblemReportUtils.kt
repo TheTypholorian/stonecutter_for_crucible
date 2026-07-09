@@ -2,6 +2,7 @@
 
 package dev.kikugie.stitcher.issue
 
+import dev.kikugie.commons.result.mapResult
 import dev.kikugie.stitcher.document.DocumentLocation
 import dev.kikugie.stitcher.document.link
 
@@ -21,6 +22,14 @@ inline fun <T, R> ProblemReporter.runMarked(action: () -> T, handler: (result: T
 inline fun <T> ProblemReporter.runThrowing(action: () -> T): T {
     val marker = mark()
     return action().also { if (marker.isDirty()) throw BailException() }
+}
+
+inline fun <T> ProblemReporter.runCatching(action: () -> T): Result<T> {
+    val marker = mark()
+    return kotlin.runCatching(action).mapResult {
+        if (marker.isDirty()) Result.failure(BailException())
+        else Result.success(it)
+    }
 }
 
 context(report: ProblemReport)

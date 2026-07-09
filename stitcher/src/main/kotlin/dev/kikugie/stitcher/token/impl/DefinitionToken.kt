@@ -27,10 +27,6 @@ sealed interface DefinitionToken : StitcherToken {
         fun visitReplacementToggle(repl: ReplacementToggle, ctx: C): T
         fun visitReplacementLocal(repl: ReplacementLocal, ctx: C): T
         fun visitReplacementCloser(repl: ReplacementCloser, ctx: C): T
-        
-        fun visitSwapLocalEntry(entry: SwapLocal.Entry, ctx: C): T
-        fun visitReplacementLocalEntry(entry: ReplacementLocal.Entry, ctx: C): T
-        fun visitReplacementToggleEntry(entry: ReplacementToggle.Entry, ctx: C): T
     }
 
     enum class Kind {
@@ -89,7 +85,7 @@ sealed interface DefinitionToken : StitcherToken {
             override val type: StitcherType get() = NativeStitcherType.SWAP_EXPR
             override val start: Int = firstNotNull(sugar.firstOrNull(), expression, literal).start
             override val end: Int get() = literal.end
-            fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitSwapLocalEntry(this, ctx)
+            fun <T, C> accept(visitor: StitcherToken.Visitor<Entry, T, C>, ctx: C): T = visitor.visitToken(this, ctx)
         }
     }
 
@@ -159,7 +155,7 @@ sealed interface DefinitionToken : StitcherToken {
             override val type: StitcherType get() = NativeStitcherType.REPL_TOGGLE_ENTRY
             override val start: Int get() = op?.start ?: identifier.start
             override val end: Int get() = comma?.end ?: identifier.end
-            fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitReplacementToggleEntry(this, ctx)
+            fun <T, C> accept(visitor: StitcherToken.Visitor<Entry, T, C>, ctx: C): T = visitor.visitToken(this, ctx)
         }
     }
 
@@ -178,7 +174,7 @@ sealed interface DefinitionToken : StitcherToken {
             override val type: StitcherType get() = NativeStitcherType.REPL_LOCAL_ENTRY
             override val start: Int get() = source.start
             override val end: Int get() = comma?.end ?: target.end
-            fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitReplacementLocalEntry(this, ctx)
+            fun <T, C> accept(visitor: StitcherToken.Visitor<Entry, T, C>, ctx: C): T = visitor.visitToken(this, ctx)
         }
     }
 
