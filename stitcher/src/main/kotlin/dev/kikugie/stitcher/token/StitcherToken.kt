@@ -15,4 +15,8 @@ interface StitcherToken {
      * The exclusive end index of the token in the source file.
      */
     val end: Int
+
+    fun interface Visitor<S : StitcherToken, T, C> {
+        fun visitToken(token: S, ctx: C): T
+    }
 }

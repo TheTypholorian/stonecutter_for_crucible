@@ -5,8 +5,8 @@ import dev.kikugie.stitcher.document.locate
 import dev.kikugie.stitcher.issue.ProblemReporter
 import dev.kikugie.stitcher.issue.ProblemSeverity
 import dev.kikugie.stitcher.issue.report
-import dev.kikugie.stitcher.parser.SYNTAX_GROUP
 import dev.kikugie.stitcher.replacement.template.findInsertionPlaces
+import dev.kikugie.stitcher.token.SYNTAX_GROUP
 import dev.kikugie.stitcher.token.StitcherToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.ExpressionToken
@@ -63,12 +63,12 @@ object ExpressionChecker : DefinitionToken.Visitor<Unit, ExpressionChecker.Conte
     }
 
     override fun visitReplacementToggle(repl: DefinitionToken.ReplacementToggle, ctx: Context) {
-        for (it in repl.entries) it.accept(this, ctx)
+        for (it in repl.entries) it.accept(::visitReplacementToggleEntry, ctx)
     }
 
     override fun visitReplacementLocal(repl: DefinitionToken.ReplacementLocal, ctx: Context) {
         repl.expression.accept(this, ctx)
-        for (it in repl.entries) it.accept(this, ctx)
+        for (it in repl.entries) it.accept(::visitReplacementLocalEntry, ctx)
         if (repl.opener is ScopeToken.Named) {
             val id = repl.opener.identifier.text
             ctx.knownReplacementIds += id
@@ -77,29 +77,6 @@ object ExpressionChecker : DefinitionToken.Visitor<Unit, ExpressionChecker.Conte
     }
 
     override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser, ctx: Context) {
-    }
-
-    override fun visitSwapLocalEntry(entry: DefinitionToken.SwapLocal.Entry, ctx: Context) {
-    }
-
-    override fun visitReplacementLocalEntry(entry: DefinitionToken.ReplacementLocal.Entry, ctx: Context) {
-        if (entry.source.unquote().isEmpty())
-            ctx.problems.reportEmptyReplacementValue(entry.source)
-        if (entry.target.unquote().isEmpty())
-            ctx.problems.reportEmptyReplacementValue(entry.target)
-    }
-
-    override fun visitReplacementToggleEntry(entry: DefinitionToken.ReplacementToggle.Entry, ctx: Context): Unit = when (entry.id) {
-        !in ctx.knownReplacementIds ->
-            ctx.problems.reportUnresolvedReplacementId(entry, ctx.knownReplacementIds)
-
-        !in ctx.activeReplacementIds ->
-            if (entry.op == null) ctx.activeReplacementIds += entry.id
-            else ctx.problems.reportDuplicateDisabledReplacement(entry)
-
-        else ->
-            if (entry.op != null) ctx.activeReplacementIds -= entry.id
-            else ctx.problems.reportDuplicateEnabledReplacement(entry)
     }
 
     override fun visitGroup(group: ExpressionToken.Group, ctx: Context) {
@@ -125,6 +102,26 @@ object ExpressionChecker : DefinitionToken.Visitor<Unit, ExpressionChecker.Conte
             null -> ctx.problems.reportUnresolvedImplicitTarget(assignment)
             else -> ctx.problems.reportUnresolvedExplicitTarget(it, ctx.params.targets.keys)
         }
+    }
+
+    fun visitReplacementLocalEntry(entry: DefinitionToken.ReplacementLocal.Entry, ctx: Context) {
+        if (entry.source.unquote().isEmpty())
+            ctx.problems.reportEmptyReplacementValue(entry.source)
+        if (entry.target.unquote().isEmpty())
+            ctx.problems.reportEmptyReplacementValue(entry.target)
+    }
+
+    fun visitReplacementToggleEntry(entry: DefinitionToken.ReplacementToggle.Entry, ctx: Context): Unit = when (entry.id) {
+        !in ctx.knownReplacementIds ->
+            ctx.problems.reportUnresolvedReplacementId(entry, ctx.knownReplacementIds)
+
+        !in ctx.activeReplacementIds ->
+            if (entry.op == null) ctx.activeReplacementIds += entry.id
+            else ctx.problems.reportDuplicateDisabledReplacement(entry)
+
+        else ->
+            if (entry.op != null) ctx.activeReplacementIds -= entry.id
+            else ctx.problems.reportDuplicateEnabledReplacement(entry)
     }
 }
 
