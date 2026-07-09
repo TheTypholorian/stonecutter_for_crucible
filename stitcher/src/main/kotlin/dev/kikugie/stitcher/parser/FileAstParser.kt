@@ -9,6 +9,7 @@ import dev.kikugie.stitcher.antlr.StitcherLexer.Tokens
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.locate
 import dev.kikugie.stitcher.issue.*
+import dev.kikugie.stitcher.token.LAYOUT_GROUP
 import dev.kikugie.stitcher.token.NativeStitcherType
 import dev.kikugie.stitcher.token.StitcherToken
 import dev.kikugie.stitcher.token.impl.*
@@ -22,12 +23,8 @@ import java.util.*
 
 private val MARKERS: CharArray = charArrayOf('?', '$', '~')
 
-internal class FileAstParser private constructor(
-    val document: Document,
-    val stream: TokenStream,
-    parent: BlockToken.Code? = null
-) {
-    private val stack: BlockBuilderStack = BlockBuilderStack(document, parent)
+internal class FileAstParser(val document: Document, val stream: TokenStream) {
+    private val stack: BlockBuilderStack = BlockBuilderStack(document)
     private val listener: StitcherErrorListener = StitcherErrorListener(document)
 
     fun build(): BlockToken.Root {
@@ -74,7 +71,7 @@ internal class FileAstParser private constructor(
     }
 }
 
-private class BlockBuilderStack(val document: Document, parent: BlockToken.Code?) {
+private class BlockBuilderStack(val document: Document) {
     private val direct: Deque<BlockBuilder.Scoped> = ArrayDeque(4)
 
     val top: BlockBuilder.Scoped
@@ -82,7 +79,6 @@ private class BlockBuilderStack(val document: Document, parent: BlockToken.Code?
 
     init {
         direct += RootBuilder()
-        if (parent != null) direct += unbuild(parent)
     }
 
     fun build(): BlockToken.Root {
@@ -126,11 +122,6 @@ private class BlockBuilderStack(val document: Document, parent: BlockToken.Code?
             pop()
             handle(it.remainder)
         }
-    }
-
-    private fun unbuild(block: BlockToken.Code): CodeBuilder = with(block) {
-        val host = CommentBuilder(host.opener?.toAntlrToken(), host.body.toAntlrToken(), host.closer?.toAntlrToken())
-        CodeBuilder(host, code)
     }
 }
 
