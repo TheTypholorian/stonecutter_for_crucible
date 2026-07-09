@@ -21,6 +21,9 @@ public val Token.isEOF: Boolean
 public val Token.endIndex: Int
     inline get() = stopIndex + 1
 
+public val Token.length: Int
+    inline get() = endIndex - startIndex
+
 /**Exclusive end index for the token = `stopIndex + 1`.*/
 public var CommonToken.endIndex: Int
     inline get() = stopIndex + 1
