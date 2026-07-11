@@ -17,6 +17,9 @@ inline fun Document.locate(token: AntlrToken): DocumentLocation =
 inline fun Document.locate(node: TerminalNode): DocumentLocation =
     locate(node.startIndex)
 
+inline operator fun Document.get(range: OpenEndRange<Int>): String =
+    get(range.start, range.endExclusive)
+
 fun Document.link(loc: DocumentLocation): String = when (loc.packed) {
     -1L -> "file://${path.absolutePathString()}"
     else -> "file://${path.absolutePathString()}:${loc.line}:${loc.column}"
