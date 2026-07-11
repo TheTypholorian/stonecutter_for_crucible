@@ -1,374 +1,364 @@
 package dev.kikugie.stitcher.parser
 
-import dev.kikugie.antlr.util.LC
-import dev.kikugie.antlr.util.advance
-import dev.kikugie.antlr.util.endIndex
-import dev.kikugie.commons.takeAsOrNull
-import dev.kikugie.stitcher.antlr.*
+import dev.kikugie.commons.then
 import dev.kikugie.stitcher.antlr.StitcherLexer.Tokens
 import dev.kikugie.stitcher.document.Document
-import dev.kikugie.stitcher.document.locate
 import dev.kikugie.stitcher.issue.*
 import dev.kikugie.stitcher.token.LAYOUT_GROUP
-import dev.kikugie.stitcher.token.NativeStitcherType
-import dev.kikugie.stitcher.token.StitcherToken
-import dev.kikugie.stitcher.token.impl.*
+import dev.kikugie.stitcher.token.impl.BlockToken
+import dev.kikugie.stitcher.token.impl.DefinitionToken
 import dev.kikugie.stitcher.token.impl.DefinitionToken.Kind
-import dev.kikugie.stitcher.token.toLeafToken
-import dev.kikugie.stitcher.util.*
-import org.antlr.v4.runtime.CommonToken
-import org.antlr.v4.runtime.CommonTokenStream
-import org.antlr.v4.runtime.TokenStream
-import java.util.*
+import dev.kikugie.stitcher.token.impl.LeafToken
+import dev.kikugie.stitcher.token.impl.ScopeToken
+import dev.kikugie.stitcher.util.LINE_BREAKS
+import dev.kikugie.stitcher.util.WHITESPACES
+import dev.kikugie.stitcher.util.titlecase
+import dev.kikugie.stitcher.util.unquote
 
-private val MARKERS: CharArray = charArrayOf('?', '$', '~')
-
-internal class FileAstParser(val document: Document, val stream: TokenStream) {
-    private val stack: BlockBuilderStack = BlockBuilderStack(document)
-    private val listener: StitcherErrorListener = StitcherErrorListener(document)
-
-    fun build(): BlockToken.Root {
-        while (stream.LA(1) != AntlrToken.EOF) when (NativeStitcherType.of(stream.LA(1))) {
-            NativeStitcherType.CONTENT -> processContent(stream.advance())
-            NativeStitcherType.COMMENT_OPEN -> processComment(stream.advance(), stream.advance(), stream.advance())
-            else -> document.reportUnknownToken(stream.advance())
-        }
-        return stack.build()
-    }
-
-    private fun processContent(token: AntlrToken) {
-        if (token.text.isNotEmpty()) stack.handle(ContentBuilder(token))
-    }
-
-    private fun processComment(opener: AntlrToken, body: AntlrToken, closer: AntlrToken) {
-        val comment = CommentBuilder(opener, body, closer)
-        val code = parseCommentBody(body)
-            ?: return stack.handle(comment)
-        stack.handle(CodeBuilder(comment, code))
-    }
-
-    private fun parseCommentBody(body: AntlrToken): CodeToken? = InlineCharStream(body).use { input ->
-        if (input.LC(1) !in MARKERS) return@use null
-
-        val lexer = StitcherLexer(input).apply {
-            errorListener = listener
-            tokenFactory = InlineTokenFactory(body.lineIndex, body.charPositionInLine)
-        }
-        val parser = StitcherParser(CommonTokenStream(lexer)).apply {
-            errorListener = listener
-            errorHandler = StitcherErrorStrategy
-        }
-        parser.tryBuildDefinition(body)
-    }
-
-    private fun StitcherParser.tryBuildDefinition(body: AntlrToken): CodeToken? = try {
-        document.runThrowing { definition() }.acceptAs(TokenBuilder, document)
-    } catch (_: BailException) {
-        null
-    } catch (e: RuntimeException) {
-        document.reportParserError(body, e)
-        null
+object FileAstParser {
+    fun parse(stream: FileTokenStream): BlockToken.Root {
+        val stack = ScopeBuilderStack(stream.document)
+        for (token in stream)
+            stack.accept(token.accept(BlockWrapper, null))
+        return stack.build(stream.document)
     }
 }
 
-private class BlockBuilderStack(val document: Document) {
-    private val direct: Deque<BlockBuilder.Scoped> = ArrayDeque(4)
-
-    val top: BlockBuilder.Scoped
-        get() = direct.peekLast()
-
-    init {
-        direct += RootBuilder()
+@JvmInline
+private value class ScopeBuilderStack private constructor(val deque: ArrayDeque<ScopeBuilder>) {
+    constructor(document: Document) : this(ArrayDeque(4)) {
+        deque += RootBuilder(document)
     }
 
-    fun build(): BlockToken.Root {
-        while (direct.isNotEmpty()) when (val it = pop(true)) {
-            is RootBuilder -> return it.build(document)
+    val first: RootBuilder inline get() = deque.first() as RootBuilder
+    val last: ScopeBuilder inline get() = deque.last()
+
+    fun pop(by: ScopeBuilder? = null): ScopeBuilder = when (deque.size) {
+        1 -> first.document.reportConsumedRoot(by) then last
+        else -> deque.removeLast()
+    }
+
+    fun push(scope: CodeBuilder): Unit =
+        deque.addLast(scope)
+
+    fun replace(scope: CodeBuilder): ScopeBuilder =
+        pop(by = scope).also { push(scope) }
+
+    fun build(document: Document): BlockToken.Root {
+        while (deque.isNotEmpty()) when (val it = pop()) {
+            is RootBuilder -> return it.build()
             else -> {}
         }
 
-        document.bailConsumedRoot()
+        document.reportConsumedRoot()
+        throw BailException()
     }
 
-    fun pop(done: Boolean = false): BlockBuilder.Scoped =
-        direct.removeLast().apply { finalize(document, done) }
-
-    fun push(block: BlockBuilder.Scoped): Unit =
-        direct.addLast(block)
-
-    fun replace(block: CodeBuilder) {
-        pop()
-        top.entries += block
-        if (!block.kind.isEmpty) push(block)
-    }
-
-    tailrec fun handle(builder: BlockBuilder): Unit = when (val it = top.accept(builder, this)) {
+    tailrec fun accept(scope: ScopeBuilder): Unit = when (val it = last.accept(scope, this)) {
         // Can accept more – do nothing
-        BlockAcceptResult.ConsumedOpen -> Unit
+        AcceptResult.Consumed -> {}
 
         // Can't accept more – pop the scope
-        BlockAcceptResult.ConsumedFinal -> {
-            pop().let { }
+        AcceptResult.Closed -> {
+            pop(by = scope)
+            run {}
         }
 
         // Can't accept this – pop the scope and try again
-        BlockAcceptResult.Rejected -> {
-            pop()
-            handle(builder)
+        AcceptResult.Rejected -> {
+            pop(by = scope)
+            accept(scope)
         }
 
         // Can't accept more – pop the scope and accept the remainder
-        is BlockAcceptResult.ConsumedPartial -> {
-            pop()
-            handle(it.remainder)
+        is AcceptResult.Partial -> {
+            pop(by = scope)
+            accept(it.remainder)
         }
     }
 }
 
-private sealed interface BlockAcceptResult {
-    object Rejected : BlockAcceptResult
-    object ConsumedOpen : BlockAcceptResult
-    object ConsumedFinal : BlockAcceptResult
-    class ConsumedPartial(val remainder: BlockBuilder) : BlockAcceptResult
+private sealed interface AcceptResult {
+    object Rejected : AcceptResult
+    object Consumed : AcceptResult
+    object Closed : AcceptResult
+    class Partial(val remainder: ScopeBuilder) : AcceptResult
 }
 
-private sealed interface BlockBuilder {
-    var parent: Scoped
-    fun build(document: Document): BlockToken
+private sealed interface ScopeBuilder {
+    val stub: BlockToken
+    val entries: MutableList<ScopeBuilder>
+        get() = throw UnsupportedOperationException()
 
-    sealed interface Scoped : BlockBuilder {
-        val entries: MutableList<BlockBuilder>
+    fun build(): BlockToken = stub
+    fun accept(builder: ScopeBuilder, stack: ScopeBuilderStack): AcceptResult = AcceptResult.Rejected
+}
 
-        fun accept(block: BlockBuilder, stack: BlockBuilderStack): BlockAcceptResult
-        fun finalize(problems: ProblemReporter, done: Boolean) {}
+private object BlockWrapper : BlockToken.Visitor<ScopeBuilder, Nothing?> {
+    override fun visitContent(content: BlockToken.Content, ctx: Nothing?): ScopeBuilder =
+        ContentBuilder(content)
+
+    override fun visitComment(comment: BlockToken.Comment, ctx: Nothing?): ScopeBuilder =
+        CommentBuilder(comment)
+
+    override fun visitRoot(root: BlockToken.Root, ctx: Nothing?): ScopeBuilder =
+        RootBuilder(root.document)
+
+    override fun visitCode(code: BlockToken.Code, ctx: Nothing?): ScopeBuilder = when (code.marker.type.value) {
+        Tokens.COND_MARK -> ConditionBuilder(code)
+        Tokens.SWAP_MARK -> SwapBuilder(code)
+        Tokens.REPL_MARK -> ReplacementBuilder(code)
+        else -> error("Invalid definition type ${code.marker.type}")
     }
 }
 
-private class ContentBuilder(val token: AntlrToken) : BlockBuilder {
-    override lateinit var parent: BlockBuilder.Scoped
-    val text: String by lazy { token.text }
+private class ContentBuilder(override val stub: BlockToken.Content) : ScopeBuilder {
+    val text by lazy { stub.leaf.text }
+    val blank: Boolean by lazy { text.isBlank() }
 
-    override fun build(document: Document): BlockToken.Content = BlockToken.Content(
-        token.toLeafToken(document, text = text),
-    )
+    override fun toString(): String = "ContentBuilder(stub=$stub)"
 }
 
-private class CommentBuilder(val opener: AntlrToken?, val body: AntlrToken, val closer: AntlrToken?) : BlockBuilder {
-    override lateinit var parent: BlockBuilder.Scoped
-    val text: String by lazy { body.text }
+private class CommentBuilder(override val stub: BlockToken.Comment) : ScopeBuilder {
+    val text by lazy { stub.body.text }
+    val blank: Boolean by lazy { text.isBlank() }
 
-    override fun build(document: Document): BlockToken.Comment = BlockToken.Comment(
-        opener?.toLeafToken(document),
-        body.toLeafToken(document, text = text),
-        closer?.toLeafToken(document),
-    )
+    override fun toString(): String = "CommentBuilder(stub=$stub)"
 }
 
-private class RootBuilder(override val entries: MutableList<BlockBuilder> = mutableListOf()) : BlockBuilder.Scoped {
-    override var parent: BlockBuilder.Scoped = this
-    override fun build(document: Document): BlockToken.Root = BlockToken.Root(
-        document,
-        entries.map { it.build(document) },
-    )
+private class RootBuilder(override val stub: BlockToken.Root) : ScopeBuilder {
+    constructor(document: Document) : this(BlockToken.Root(document, emptyList()))
+    override val entries: MutableList<ScopeBuilder> = ArrayList()
 
-    override fun accept(block: BlockBuilder, stack: BlockBuilderStack): BlockAcceptResult = when (block) {
-        is CodeBuilder -> acceptCode(block, stack)
+    override fun toString(): String = "RootBuilder(stub=$stub)"
+
+    override fun build(): BlockToken.Root = when(entries.size) {
+        0 -> stub
+        else -> stub.copy(scope = entries.map(ScopeBuilder::build))
+    }
+
+    override fun accept(builder: ScopeBuilder, stack: ScopeBuilderStack): AcceptResult {
+        if (builder is CodeBuilder) return acceptCode(builder, stack)
+
+        entries += builder
+        return AcceptResult.Consumed
+    }
+
+    private fun acceptCode(builder: CodeBuilder, stack: ScopeBuilderStack): AcceptResult {
+        if (builder.kind.isCloser) document.reportRootCloser(builder)
+
+        entries += builder
+        if (!builder.kind.isEmpty) stack.push(builder)
+        return AcceptResult.Consumed
+    }
+}
+
+private sealed class CodeBuilder(override val stub: BlockToken.Code) : ScopeBuilder {
+    override val entries: MutableList<ScopeBuilder> = ArrayList()
+
+    val kind: Kind inline get() = definition.kind
+    val marker: LeafToken inline get() = stub.marker
+    open val definition: DefinitionToken get() = stub.definition
+    open val next: CodeBuilder? get() = null
+
+    protected var effectiveScopeSize: Int = 0
+    protected var eagerLookupMatch: Boolean = false
+
+    override fun toString(): String = "CodeBuilder(stub=$stub)"
+
+    override fun build(): BlockToken = when(entries.size) {
+        0 -> stub
+        else -> stub.copy(scope = entries.map(ScopeBuilder::build))
+    }
+
+    override fun accept(builder: ScopeBuilder, stack: ScopeBuilderStack): AcceptResult = when {
+        kind.isEmpty -> AcceptResult.Rejected
+        else -> acceptMatch(builder, stack)
+    }
+
+    open operator fun plusAssign(builder: ScopeBuilder) {
+        entries += builder
+        eagerLookupMatch = eagerLookupMatch || builder.isNotBlank()
+    }
+
+    protected open fun acceptMatch(builder: ScopeBuilder, stack: ScopeBuilderStack): AcceptResult = when (builder) {
+        is ContentBuilder -> acceptContent(builder, stack)
+        is CommentBuilder -> acceptComment(builder, stack)
+        is CodeBuilder -> acceptCode(builder, stack)
+        else -> AcceptResult.Rejected
+    }
+
+    protected open fun acceptContent(builder: ContentBuilder, stack: ScopeBuilderStack): AcceptResult = when {
+        kind.isScoped -> plusAssign(builder) then AcceptResult.Consumed
+        kind.isOpen && effectiveScopeSize > 0 -> consumeContentSplit(builder)
+        else -> AcceptResult.Rejected
+    }
+
+    protected open fun acceptComment(builder: CommentBuilder, stack: ScopeBuilderStack): AcceptResult = when {
+        kind.isScoped -> plusAssign(builder) then AcceptResult.Consumed
+        kind.isOpen && effectiveScopeSize > 0 -> consumeCommentSplit(builder)
+        else -> AcceptResult.Rejected
+    }
+
+    protected abstract fun acceptCode(builder: CodeBuilder, stack: ScopeBuilderStack): AcceptResult
+
+    protected fun consumeFinal(builder: ScopeBuilder): AcceptResult {
+        this += builder
+        effectiveScopeSize = entries.size
+        return AcceptResult.Closed
+    }
+
+    protected fun consumeContentSplit(builder: ContentBuilder, split: Int = findScopeSplit(builder, eagerLookupMatch)): AcceptResult = when (split) {
+        -1 -> plusAssign(builder) then AcceptResult.Consumed
+        0 -> AcceptResult.Rejected.also { effectiveScopeSize = entries.size }
+        builder.text.length -> consumeFinal(builder)
+
+        else -> with(builder) {
+            val leaf = stub.leaf
+
+            this@CodeBuilder += leaf.copy(end = leaf.start + split)
+                .apply { text = text.take(split) }
+                .let { ContentBuilder(BlockToken.Content(it)) }
+            effectiveScopeSize = entries.size
+            leaf.copy(start = leaf.start + split)
+                .apply { text = text.drop(split) }
+                .let { AcceptResult.Partial(ContentBuilder(BlockToken.Content(it))) }
+        }
+    }
+
+    protected fun consumeCommentSplit(builder: CommentBuilder, split: Int = findScopeSplit(builder, eagerLookupMatch)): AcceptResult = when (split) {
+        -1 -> plusAssign(builder) then AcceptResult.Consumed
+        0 -> AcceptResult.Rejected.also { effectiveScopeSize = entries.size }
+        builder.text.length -> consumeFinal(builder)
+
+        else -> with(builder) {
+            val body = stub.body
+
+            this@CodeBuilder += body.copy(end = body.start + split)
+                .apply { text = text.take(split) }
+                .let { CommentBuilder(stub.copy(body = it, closer = null)) }
+            effectiveScopeSize = entries.size
+            body.copy(start = body.start + split)
+                .apply { text = text.drop(split) }
+                .let { AcceptResult.Partial(CommentBuilder(stub.copy(body = it, opener = null))) }
+        }
+    }
+}
+
+private class ConditionBuilder(stub: BlockToken.Code) : CodeBuilder(stub) {
+    override val definition: DefinitionToken.Condition get() = super.definition as DefinitionToken.Condition
+    override var next: ConditionBuilder? = null
+
+    override fun acceptContent(builder: ContentBuilder, stack: ScopeBuilderStack): AcceptResult =
+        postAppendResult(builder, super.acceptContent(builder, stack))
+
+    override fun acceptComment(builder: CommentBuilder, stack: ScopeBuilderStack): AcceptResult =
+        postAppendResult(builder, super.acceptComment(builder, stack))
+
+    override fun acceptCode(builder: CodeBuilder, stack: ScopeBuilderStack): AcceptResult = when {
+        kind.isScoped -> consumeClosed(builder, stack)
+        kind.isOpen -> consumeOpen(builder, stack)
+        else -> AcceptResult.Rejected
+    }
+
+    private fun consumeClosed(builder: CodeBuilder, stack: ScopeBuilderStack): AcceptResult = when (builder) {
+        // `?}` / `? else` statement - chain it and replace the stack head
+        is ConditionBuilder if (builder.kind.isCloser) -> {
+            // `? else` is probably missing `}`, so it's added anyway
+            if (builder.definition.closer == null) document.reportMissingClosingBracket(builder)
+
+            next = builder.also(stack::replace)
+            AcceptResult.Consumed
+        }
+
         else -> {
-            entries += block.also { it.parent = this }
-            BlockAcceptResult.ConsumedOpen
+            // It's a closer of a different type, and cross-scopes are not allowed
+            if (builder.kind.isCloser) document.reportInvalidCloserType(builder)
+
+            // If it's not a single statement, like replacements, push it up
+            if (builder.kind.isOpener) stack.push(builder)
+
+            this += builder
+            AcceptResult.Consumed
         }
     }
 
-    private fun acceptCode(code: CodeBuilder, stack: BlockBuilderStack): BlockAcceptResult {
-        // `}` is always invalid in the root scope
-        if (code.def.closer != null) stack.document.reportRootCloser(code, this)
-
-        // For line extensions, try merging empty content into the previous scope
-        else if (code.kind.isExtension && code.def.closer == null) with(stack.top) {
-            val candidate = findImplicitConditionCandidate()
-            if (candidate != null) mergeDanglingBlocks(candidate)
-            else stack.document.reportDanglingImplicitExtension(code, this)
+    private fun consumeOpen(builder: CodeBuilder, stack: ScopeBuilderStack): AcceptResult = when (builder) {
+        // `? else` statement - chain it and replace the stack head; scoped closers are pushed down
+        is ConditionBuilder if (builder.kind.isCloser && builder.definition.closer == null) -> {
+            next = builder.also(stack::replace)
+            AcceptResult.Consumed
         }
 
-        entries += code.also { it.parent = this }
-        stack.push(code)
-        return BlockAcceptResult.ConsumedOpen
+        // Allows nesting open conditions, but only with blank text in-between
+        else if (!eagerLookupMatch) -> {
+            // TODO: Check if lookup match was found
+
+            this += builder.also(stack::push)
+            AcceptResult.Consumed
+        }
+
+        else -> AcceptResult.Rejected
     }
 }
 
-private class CodeBuilder(
-    val host: CommentBuilder, val token: CodeToken,
-    override val entries: MutableList<BlockBuilder> = mutableListOf()
-) : BlockBuilder.Scoped {
-    override lateinit var parent: BlockBuilder.Scoped
-    val mark: LeafToken inline get() = token.marker
-    val def: DefinitionToken inline get() = token.definition
-    val kind: Kind inline get() = def.kind
-    var satisfied: Boolean = kind.isScoped
-        private set
+private class ReplacementBuilder(stub: BlockToken.Code) : CodeBuilder(stub) {
+    override val definition: DefinitionToken.Replacement get() = super.definition as DefinitionToken.Replacement
+    override var next: ReplacementBuilder? = null
 
-    override fun build(document: Document): BlockToken.Code = BlockToken.Code(
-        host.build(document), token, entries.map { it.build(document) }
-    )
-
-    override fun finalize(problems: ProblemReporter, done: Boolean) = when (val opener = def.opener) {
-        is ScopeToken.Lookup if opener.lookup != null && !satisfied -> problems.reportLookupNotFound(this, opener)
-        is ScopeToken.Closed if done -> problems.reportUnclosedScope(this, opener)
-        else -> Unit
+    override fun acceptCode(builder: CodeBuilder, stack: ScopeBuilderStack): AcceptResult = when {
+        kind.isScoped -> consumeClosed(builder, stack)
+        kind.isOpen -> consumeOpen(builder, stack)
+        else -> AcceptResult.Rejected
     }
 
-    override fun accept(block: BlockBuilder, stack: BlockBuilderStack): BlockAcceptResult = when (kind) {
-        Kind.LINE_OPENER, Kind.LINE_EXTENSION -> acceptLine(block, stack)
-        Kind.SCOPED_OPENER, Kind.SCOPED_EXTENSION -> acceptClosed(block, stack)
-        Kind.LOOKUP_OPENER, Kind.LOOKUP_EXTENSION -> acceptLookup(block, stack)
-        else -> BlockAcceptResult.Rejected
-    }
-
-    private fun acceptClosed(block: BlockBuilder, stack: BlockBuilderStack): BlockAcceptResult = when (block) {
-        // For line extensions, try merging empty content into the previous scope
-        is CodeBuilder if (block.kind.isExtension && block.def.closer == null) -> with(stack.top) {
-            val candidate = findImplicitConditionCandidate()
-            if (candidate != null) mergeDanglingBlocks(candidate)
-            else stack.document.reportDanglingImplicitExtension(block, this)
-            stack.push(block)
-            BlockAcceptResult.ConsumedOpen
-        }
-
-        is CodeBuilder if (block.kind.isCloser) -> {
-            if (block notSameAs this)
-                stack.document.reportMismatchedCloser(block, this)
-            stack.replace(block)
-            BlockAcceptResult.ConsumedOpen
-        }
-
-        is CodeBuilder -> {
-            entries += block.also { it.parent = this }
-            stack.push(block)
-            BlockAcceptResult.ConsumedOpen
+    private fun consumeClosed(builder: CodeBuilder, stack: ScopeBuilderStack): AcceptResult = when (builder) {
+        is ReplacementBuilder if (builder.kind.isCloser) -> {
+            next = builder.also(stack::replace)
+            AcceptResult.Consumed
         }
 
         else -> {
-            entries += block.also { it.parent = this }
-            BlockAcceptResult.ConsumedOpen
+            this += builder
+            AcceptResult.Consumed
         }
     }
 
-    private fun acceptLine(block: BlockBuilder, stack: BlockBuilderStack): BlockAcceptResult = when (block) {
-        is ContentBuilder if (!satisfied) -> {
-            val split = block.text.findLineSplit(isImmediate())
-            consumeContentSplit(block, split)
+    private fun consumeOpen(builder: CodeBuilder, stack: ScopeBuilderStack): AcceptResult = when (builder) {
+        // Allows nesting open conditions, but only with blank text in-between
+        else if (!eagerLookupMatch) -> {
+            // TODO: Check if lookup match was found
+
+            this += builder.also(stack::push)
+            AcceptResult.Consumed
         }
 
-        is CommentBuilder if (!satisfied) -> {
-            var split = block.text.findLineSplit(isImmediate())
-            if (split < 0 && block.isNotBlank() && block.closer?.text.orEmpty().any(LINE_BREAKS::contains))
-                split = block.text.length
-            consumeCommentSplit(block, split)
-        }
-
-        is CodeBuilder if (block.kind.isExtension) -> {
-            if (block notSameAs this || block.def.closer == null && def.opener is ScopeToken.Closed)
-                stack.document.reportUnmatchedImplicitExtension(block, this)
-            stack.replace(block)
-            BlockAcceptResult.ConsumedOpen
-        }
-
-        else -> BlockAcceptResult.Rejected
+        else -> AcceptResult.Rejected
     }
+}
 
-    private fun acceptLookup(block: BlockBuilder, stack: BlockBuilderStack): BlockAcceptResult = when (block) {
-        is CodeBuilder if (block.kind.isExtension) -> {
-            if (block notSameAs this || block.def.closer == null && def.opener is ScopeToken.Closed)
-                stack.document.reportUnmatchedImplicitExtension(block, this)
-            stack.replace(block)
-            BlockAcceptResult.ConsumedOpen
+private class SwapBuilder(stub: BlockToken.Code) : CodeBuilder(stub) {
+    override val definition: DefinitionToken.Swap get() = super.definition as DefinitionToken.Swap
+    override var next: SwapBuilder? = null
+
+    override fun acceptCode(builder: CodeBuilder, stack: ScopeBuilderStack): AcceptResult = when (builder) {
+        is SwapBuilder if (kind.isScoped && builder.kind.isCloser) -> {
+            next = builder
+            AcceptResult.Consumed
         }
 
-        else -> def.opener?.takeAsOrNull<ScopeToken.Lookup>()
-            ?.let { acceptLookup(block, it) }
-            ?: BlockAcceptResult.Rejected
+        else if (kind.isScoped) -> {
+            this += builder
+            AcceptResult.Consumed
+        }
+
+        else -> AcceptResult.Rejected
     }
-
-    private fun acceptLookup(block: BlockBuilder, scope: ScopeToken.Lookup): BlockAcceptResult = when (block) {
-        is ContentBuilder -> {
-            val match = scope.lookup?.unquote()
-            val split = if (match == null) block.text.findWordSplit()
-            else block.text.findLookupSplit(match, scope.plus != null)
-
-            consumeContentSplit(block, split)
-        }
-
-        is CommentBuilder -> {
-            val match = scope.lookup?.unquote()
-            val split = if (match == null) block.text.findWordSplit()
-            else block.text.findLookupSplit(match, scope.plus != null)
-
-            consumeCommentSplit(block, split)
-        }
-
-        else -> BlockAcceptResult.Rejected
-    }
-
-    private fun consumeContentSplit(block: ContentBuilder, split: Int): BlockAcceptResult = when (split) {
-        -1 -> {
-            entries += block; BlockAcceptResult.ConsumedOpen
-        }
-
-        0 -> {
-            satisfied = true; BlockAcceptResult.Rejected
-        }
-
-        block.text.length -> consumeFinal(block)
-
-        else -> with(block) {
-            satisfied = true
-            entries += CommonToken(block.token)
-                .apply { text = text.take(split); endIndex = startIndex + split }
-                .let(::ContentBuilder)
-            CommonToken(block.token)
-                .apply { text = text.substring(split); startIndex += split }
-                .let(::ContentBuilder)
-                .let(BlockAcceptResult::ConsumedPartial)
-        }
-    }
-
-    private fun consumeCommentSplit(block: CommentBuilder, split: Int): BlockAcceptResult = when (split) {
-        -1 -> {
-            entries += block.also { it.parent = this }
-            BlockAcceptResult.ConsumedOpen
-        }
-
-        0 -> {
-            satisfied = true
-            BlockAcceptResult.Rejected
-        }
-
-        block.text.length -> consumeFinal(block)
-
-        else -> with(block) {
-            satisfied = true
-
-            val partial = CommonToken(body).apply { text = text.take(split); endIndex = startIndex + split }
-            entries += CommentBuilder(opener, partial, null).also { it.parent = this@CodeBuilder }
-
-            val remainder = CommonToken(body).apply { text = text.substring(split); startIndex += split }
-            CommentBuilder(null, remainder, closer).let(BlockAcceptResult::ConsumedPartial)
-        }
-    }
-
-    private fun consumeFinal(block: BlockBuilder): BlockAcceptResult {
-        satisfied = true
-        entries += block.also { it.parent = this }
-        return BlockAcceptResult.ConsumedFinal
-    }
-
-    private fun isImmediate(): Boolean = entries.any(BlockBuilder::isNotBlank)
 }
 
 //<editor-fold desc="=#= Problem reports =#=">
-private fun ProblemReporter.bailConsumedRoot(): Nothing = bail(
-    LAYOUT_GROUP + "consumed-root"
-) {
+private fun ProblemReporter.reportConsumedRoot(location: ScopeBuilder? = null): Unit = report(LAYOUT_GROUP + "consumed-root") {
+    if (location != null) loc = doc.locate(location.blame)
     label = "Consumed root scope"
     info = "Parser got hungry and ate the whole AST (っ´ཀ`)っ."
     hint = """
@@ -377,112 +367,52 @@ private fun ProblemReporter.bailConsumedRoot(): Nothing = bail(
     """.trimIndent()
 }
 
-private fun ProblemReporter.reportUnknownToken(token: AntlrToken): Unit = report(
-    LAYOUT_GROUP + "unexpected-token"
-) {
-    loc = doc.locate(token)
-
-    label = "Unknown file layout token"
-    info = "Token type ${token.type} was not expected to appear ꒰•́ ｡ •̀꒱?."
-    hint = """
-        Please report this to https://codeberg.org/stonecutter/stonecutter/issues
-        with the problematic file and stacktrace attached.
-    """.trimIndent()
-}
-
-private fun ProblemReporter.reportParserError(body: AntlrToken, error: Throwable): Unit = report(
-    LAYOUT_GROUP + "parser-failure"
-) {
-    loc = doc.locate(body)
-    label = "Invalid expression"
-    info = "Parser tried to do its job and had a burnout ╮(⊙_ʖ⊙)╭."
-    hint = """
-        Please report this to https://codeberg.org/stonecutter/stonecutter/issues
-        with the problematic file and stacktrace attached.
-    """.trimIndent()
-    err = error
-}
-
-private fun ProblemReporter.reportRootCloser(code: CodeBuilder, parent: BlockBuilder.Scoped): Unit = report(
-    LAYOUT_GROUP + "unmatched-root-closer"
-) {
-    loc = doc.locate(code.host.body)
-    label = "Unmatched ${code.defName} closer"
-    info = "${code.defTitle} must have a corresponding `${code.mark.text} ... {` comment."
+context(parent: RootBuilder)
+private fun ProblemReporter.reportRootCloser(code: CodeBuilder): Unit = report(LAYOUT_GROUP + "unmatched-root-closer") {
+    loc = doc.locate(code.blame)
+    label = "Unmatched ${code.name} closer"
+    info = "${code.title} must have a corresponding `${code.marker.text} ... {` comment."
 
     val candidate = parent.findRootCloserCandidate(code)
     if (candidate != null) hint = buildString {
-        appendLine("${code.defTitle} at this location may need to end with `{`:")
-        append(doc.locate(candidate.host.body.endIndex).link())
+        appendLine("${code.title} at this location may need to end with `{`:")
+        append(doc.locate(candidate.stub.host.body.end).link())
     }
 }
 
-private fun ProblemReporter.reportMismatchedCloser(code: CodeBuilder, parent: CodeBuilder): Unit = report(
-    LAYOUT_GROUP + "mismatched-closer-type"
-) {
-    loc = doc.locate(code.host.body)
+context(parent: CodeBuilder)
+private fun ProblemReporter.reportSwapNesting(code: CodeBuilder): Unit = report(LAYOUT_GROUP + "swap-nesting") {
+    loc = doc.locate(code.blame)
+    label = "Ignored ${code.name}"
+    info = "${code.title}s and other statements are not processed inside ${parent.name} scopes."
+    hint = buildString {
+        appendLine("${parent.title} scope is defined at this location:")
+        append(doc.locate(parent.blame).link())
+    }
+    sev = ProblemSeverity.WARN
+}
+
+context(parent: CodeBuilder)
+private fun ProblemReporter.reportInvalidCloserType(code: CodeBuilder): Unit = report(LAYOUT_GROUP + "mismatched-closer-type") {
+    loc = doc.locate(code.blame)
     label = "Mismatched closer type"
-    info = "${parent.defTitle} can't be closed with a ${code.defTitle} marker."
+    info = "${parent.title} can't be closed with a ${code.title} marker."
     hint = buildString {
-        appendLine("${parent.defTitle} at this location needs to be closed with `${parent.mark.text}}`:")
-        append(doc.locate(parent.host.body.endIndex).link())
+        appendLine("${parent.title} at this location needs to be closed with `${parent.marker.text}}`:")
+        append(doc.locate(parent.blame).link())
     }
 }
 
-private fun ProblemReporter.reportUnmatchedImplicitExtension(code: CodeBuilder, parent: BlockBuilder.Scoped): Unit = report(
-    LAYOUT_GROUP + "unmatched-implicit-extension"
-) {
-    loc = doc.locate(code.host.body)
+context(parent: CodeBuilder)
+private fun ProblemReporter.reportMissingClosingBracket(code: CodeBuilder): Unit = report(LAYOUT_GROUP + "mismatched-extension-closer") {
+    loc = doc.locate(code.blame)
     label = "Unmatched extension"
-    info = "${code.defTitle} doesn't follow a ${parent.defName} ending with `{`."
-    hint = "Start this ${code.defName} with `${code.mark.text}}`."
-}
-
-private fun ProblemReporter.reportDanglingExtensionCandidate(code: CodeBuilder, candidate: BlockBuilder): Unit = report(
-    LAYOUT_GROUP + "dangling-implicit-extension"
-) {
-    loc = doc.locate(code.host.body)
-    label = "Dangling implicit extension"
-    info = "${code.defTitle} doesn't follow a valid ${code.defName}."
-    hint = buildString {
-        appendLine("${candidate.defTitle} at this location prevents the ${code.defName} from extending the chain:")
-        append(doc.locate(candidate.blamePosition).link())
-    }
-}
-
-private fun ProblemReporter.reportDanglingImplicitExtension(code: CodeBuilder, parent: BlockBuilder.Scoped) {
-    val candidate = parent.findImplicitExtensionBarrier(code.kind.isLookup)
-    if (candidate == null) reportUnmatchedImplicitExtension(code, parent)
-    else reportDanglingExtensionCandidate(code, candidate)
-}
-
-private fun ProblemReporter.reportUnclosedScope(code: CodeBuilder, opener: StitcherToken): Unit = report(
-    LAYOUT_GROUP + "unclosed-scope"
-) {
-    loc = doc.locate(opener)
-    label = "Unclosed ${code.defName}"
-    info = "Missing closing `${code.mark.text}}` comment."
-    docs = "https://stonecutter.kikugie.dev/wiki/config/params#closed"
-}
-
-private fun ProblemReporter.reportLookupNotFound(code: CodeBuilder, opener: ScopeToken.Lookup): Unit = report(
-    LAYOUT_GROUP + "lookup-not-found"
-) {
-    loc = doc.locate(opener)
-    label = "Lookup string not found"
-    info = "Pattern '${opener.lookup?.unquote()}' wasn't found in the text ahead."
-    docs = "https://stonecutter.kikugie.dev/wiki/config/params#lookup"
-
-    // FIXME: it's built before the list of blocks is complete
-    val candidate = code.parent.findLookupMatchBarrier(code)
-    if (candidate != null) hint = buildString {
-        appendLine("${candidate.defTitle} at this position stops the search:")
-        append(doc.locate(candidate.blamePosition).link())
-    }
+    info = "${code.title} doesn't follow a line or lookup ${parent.name}."
+    hint = "Start this ${code.name} with `${code.marker.text}}`."
 }
 //</editor-fold>
 
-private fun BlockBuilder.Scoped.findRootCloserCandidate(target: CodeBuilder): CodeBuilder? {
+private fun RootBuilder.findRootCloserCandidate(target: CodeBuilder): CodeBuilder? {
     for (block in entries.asReversed()) when (block) {
         is CodeBuilder if (block sameAs target && block.kind.isLine) -> return block
         is CodeBuilder if (block sameAs target) -> break
@@ -491,37 +421,43 @@ private fun BlockBuilder.Scoped.findRootCloserCandidate(target: CodeBuilder): Co
     return null
 }
 
-private fun BlockBuilder.Scoped.findImplicitExtensionBarrier(lookup: Boolean): BlockBuilder? {
-    var candidate: BlockBuilder? = null
-    for (block in entries.asReversed()) when (block) {
-        is CodeBuilder if (block.def is DefinitionToken.Condition && block.kind.isOpen) -> break
-        is CodeBuilder -> return null
-        else -> if (lookup || block.isNotBlank()) candidate = block
-    }
-    return candidate
+// If the remainder is empty, append it anyway, so following statements can be chained
+private fun CodeBuilder.postAppendResult(builder: ScopeBuilder, result: AcceptResult): AcceptResult = when (result) {
+    AcceptResult.Consumed, AcceptResult.Consumed ->
+        AcceptResult.Consumed
+
+    AcceptResult.Rejected if (builder.isBlank()) ->
+        plusAssign(builder) then AcceptResult.Consumed
+
+    is AcceptResult.Partial if (result.remainder.isBlank()) ->
+        plusAssign(builder) then AcceptResult.Consumed
+
+    else -> result
 }
 
-private fun BlockBuilder.Scoped.findLookupMatchBarrier(target: CodeBuilder): BlockBuilder? = when (val index = entries.indexOf(target)) {
-    -1 -> null
-    entries.lastIndex -> target.parent.takeAsOrNull<CodeBuilder>()
-    else -> entries[index + 1]
+private fun CodeBuilder.findScopeSplit(content: ContentBuilder, immediate: Boolean): Int = when (val op = definition.opener) {
+    is ScopeToken.Lookup -> op.lookup?.unquote().let {
+        if (it == null) content.text.findWordSplit()
+        else content.text.findLookupSplit(it, op.plus != null)
+    }
+
+    null -> content.text.findLineSplit(immediate)
+
+    else -> -1
 }
 
-
-private fun BlockBuilder.Scoped.findImplicitConditionCandidate(): CodeBuilder? {
-    for (block in entries.asReversed()) when (block) {
-        is CodeBuilder if (block.def is DefinitionToken.Condition && block.kind.isOpen) -> return block
-        else -> if (block.isNotBlank()) break
+private fun CodeBuilder.findScopeSplit(comment: CommentBuilder, immediate: Boolean): Int = when (val op = definition.opener) {
+    is ScopeToken.Lookup -> op.lookup?.unquote().let {
+        if (it == null) comment.text.findWordSplit()
+        else comment.text.findLookupSplit(it, op.plus != null)
     }
-    return null
-}
 
-private fun BlockBuilder.Scoped.mergeDanglingBlocks(target: CodeBuilder) {
-    val iter = entries.run { listIterator(size) }
-    while (iter.hasPrevious()) when (val it = iter.previous()) {
-        target -> break
-        else -> target.entries += it.also { iter.remove() }
+    null -> comment.text.findLineSplit(immediate).let {
+        if (it >= 0 || !comment.isNotBlank() || '\n' !in comment.stub.closer?.text.orEmpty()) it
+        else comment.text.length
     }
+
+    else -> -1
 }
 
 private tailrec fun String.findLineSplit(immediate: Boolean, start: Int = 0): Int = when (val index = indexOfAny(LINE_BREAKS, start)) {
@@ -545,52 +481,43 @@ private fun String.findLookupSplit(match: String, capturing: Boolean): Int = whe
     else -> index + match.length
 }
 
-@Suppress("NOTHING_TO_INLINE")
-private inline infix fun CodeBuilder.notSameAs(other: CodeBuilder): Boolean =
-    mark.type != other.mark.type
+private infix fun CodeBuilder.notSameAs(other: CodeBuilder): Boolean =
+    marker.type != other.marker.type
 
-@Suppress("NOTHING_TO_INLINE")
-private inline infix fun CodeBuilder.sameAs(other: CodeBuilder): Boolean =
-    mark.type == other.mark.type
+private infix fun CodeBuilder.sameAs(other: CodeBuilder): Boolean =
+    marker.type == other.marker.type
 
-private fun BlockBuilder.isNotBlank(): Boolean = when (this) {
-    is ContentBuilder -> text.isNotBlank()
-    is CommentBuilder -> text.isNotBlank()
-    is RootBuilder -> entries.all(BlockBuilder::isNotBlank)
-    is CodeBuilder -> false
-}
+private val ScopeBuilder.document: Document
+    inline get() = stub.document
 
-private val BlockBuilder.defTitle: String
-    inline get() = defName.titlecase()
+private val ScopeBuilder.title: String
+    inline get() = name.titlecase()
 
-private val BlockBuilder.defName: String
+private val ScopeBuilder.name: String
     get() = when (this) {
         is ContentBuilder -> "text"
         is CommentBuilder -> "comment"
-        is CodeBuilder -> defName
-        else -> ""
+        is ConditionBuilder -> "condition"
+        is SwapBuilder -> "swap"
+        is ReplacementBuilder -> "replacement"
+        is CodeBuilder -> "definition"
+        is RootBuilder -> "root"
     }
 
-private val CodeBuilder.defTitle: String
-    inline get() = defName.titlecase()
-
-private val CodeBuilder.defName: String
-    get() = when (mark.type.value) {
-        Tokens.COND_MARK -> "condition"
-        Tokens.SWAP_MARK -> "swap"
-        Tokens.REPL_MARK -> "replacement"
-        else -> "definition"
-    }
-
-private val BlockBuilder.blamePosition: Int
+private val ScopeBuilder.blame: Int
     get() = when (this) {
-        is ContentBuilder -> token.startIndex
-        is CommentBuilder -> body.startIndex
-        is CodeBuilder -> host.opener!!.startIndex
-        else -> 0
+        is ContentBuilder -> stub.start
+        is CommentBuilder -> stub.start
+        is CodeBuilder -> marker.start
+        is RootBuilder -> 0
     }
 
-private fun LeafToken.toAntlrToken(): AntlrToken = CommonToken(type.value, text).apply {
-    startIndex = start
-    endIndex = end
+private fun ScopeBuilder.isNotBlank(): Boolean =
+    !isBlank()
+
+private fun ScopeBuilder.isBlank(): Boolean = when (this) {
+    is ContentBuilder -> blank
+    is CommentBuilder -> blank
+    is CodeBuilder -> false
+    is RootBuilder -> entries.isEmpty()
 }
