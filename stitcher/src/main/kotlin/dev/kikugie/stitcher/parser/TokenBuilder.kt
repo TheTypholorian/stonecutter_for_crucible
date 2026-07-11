@@ -17,13 +17,13 @@ import dev.kikugie.stitcher.token.toLeafToken
 
 internal object TokenBuilder : StitcherBaseContextualVisitor<StitcherToken, Document>() {
     override fun visitConditionDefinition(rule: StitcherParser.ConditionDefinitionContext, ctx: Document): StitcherToken =
-        CodeToken(rule.condMark.toLeafToken(ctx), rule.condition.acceptAs(this, ctx))
+        rule.condition.acceptAs<DefinitionToken.Condition, _>(this, ctx)
 
     override fun visitSwapDefinition(rule: StitcherParser.SwapDefinitionContext, ctx: Document): StitcherToken =
-        CodeToken(rule.swapMark.toLeafToken(ctx), rule.swap.acceptAs(this, ctx))
+        rule.swap.acceptAs<DefinitionToken.Swap, _>(this, ctx)
 
     override fun visitReplacementDefinition(rule: StitcherParser.ReplacementDefinitionContext, ctx: Document): StitcherToken =
-        CodeToken(rule.replMark.toLeafToken(ctx), rule.replacement.acceptAs(this, ctx))
+        rule.replacement.acceptAs<DefinitionToken.Replacement, _>(this, ctx)
 
     override fun visitOpenerCondition(rule: StitcherParser.OpenerConditionContext, ctx: Document): StitcherToken {
         val sugar = listOfNotNull(rule.sugarIf?.toLeafToken(ctx))
