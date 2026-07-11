@@ -40,14 +40,14 @@ data class AntlrStitcherType private constructor(override val value: Int, overri
 @Suppress("NOTHING_TO_INLINE")
 enum class NativeStitcherType : StitcherType {
     ROOT, CODE, CONTENT, COMMENT, COMMENT_OPEN, COMMENT_BODY, COMMENT_CLOSE,
-    CODE_DEF, COND_OPEN, COND_EXT, COND_CLOSE,
+    COND_OPEN, COND_EXT, COND_CLOSE,
     SWAP_OPEN, SWAP_CLOSE, SWAP_LOCAL, SWAP_EXPR,
     REPL_TOGGLE, REPL_LOCAL, REPL_CLOSE, REPL_TOGGLE_ENTRY, REPL_LOCAL_ENTRY,
     GROUP, UNARY, BINARY, CONSTANT, ASSIGNMENT,
     OPERATOR, VERSION, PREDICATE,
     CLOSED_SCOPE, LOOKUP_SCOPE, NAMED_SCOPE;
 
-    override val value: Int get() = INIT_TYPE + ordinal
+    override val value: Int = INIT_TYPE + ordinal
     override fun toString(): String = "NativeStitcherType(name=$name, value=$value)"
     inline operator fun component1(): Int = value
     inline operator fun component2(): String = name

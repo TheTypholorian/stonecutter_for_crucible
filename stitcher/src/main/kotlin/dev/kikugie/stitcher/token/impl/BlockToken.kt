@@ -35,14 +35,11 @@ sealed interface BlockToken : StitcherToken {
         fun isBlank(): Boolean = body.text.isBlank()
     }
 
-    data class Code(val host: Comment, val code: CodeToken, val scope: List<BlockToken> = emptyList()) : BlockToken {
+    data class Code(val host: Comment, val marker: LeafToken, val definition: DefinitionToken, val scope: List<BlockToken> = emptyList()) : BlockToken {
         override val document: Document get() = host.document
         override val type: NativeStitcherType get() = NativeStitcherType.CODE
         override val start: Int get() = host.start
         override val end: Int = lastNotNull(host, scope.lastOrNull()).end
-
-        val marker: LeafToken inline get() = code.marker
-        val definition: DefinitionToken inline get() = code.definition
 
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitCode(this, ctx)
     }
