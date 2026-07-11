@@ -24,6 +24,7 @@ dependencies {
     implementation(common.misc.semver)
     implementation(common.misc.commons)
     implementation(common.kotlin.stdlib)
+    implementation(common.kotlin.reflect)
     implementation(common.kotlin.serialization)
 
     testImplementation(common.kotest.runner)
