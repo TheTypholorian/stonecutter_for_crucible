@@ -46,7 +46,7 @@ private value class ScopeBuilderStack private constructor(val deque: ArrayDeque<
 
     fun build(document: Document): BlockToken.Root {
         while (deque.isNotEmpty()) when (val it = pop()) {
-            is RootBuilder -> return it.build()
+            is RootBuilder -> return it.stub.copy(scope = buildList { it.build(this) })
             else -> {}
         }
 
@@ -90,7 +90,7 @@ private sealed interface ScopeBuilder {
     val entries: MutableList<ScopeBuilder>
         get() = throw UnsupportedOperationException()
 
-    fun build(): BlockToken = stub
+    fun build(collector: MutableList<BlockToken>): Unit = collector.plusAssign(stub)
     fun accept(builder: ScopeBuilder, stack: ScopeBuilderStack): AcceptResult = AcceptResult.Rejected
 }
 
@@ -132,9 +132,8 @@ private class RootBuilder(override val stub: BlockToken.Root) : ScopeBuilder {
 
     override fun toString(): String = "RootBuilder(stub=$stub)"
 
-    override fun build(): BlockToken.Root = when(entries.size) {
-        0 -> stub
-        else -> stub.copy(scope = entries.map(ScopeBuilder::build))
+    override fun build(collector: MutableList<BlockToken>) {
+        for (it in entries) it.build(collector)
     }
 
     override fun accept(builder: ScopeBuilder, stack: ScopeBuilderStack): AcceptResult {
@@ -166,9 +165,10 @@ private sealed class CodeBuilder(override val stub: BlockToken.Code) : ScopeBuil
 
     override fun toString(): String = "CodeBuilder(stub=$stub)"
 
-    override fun build(): BlockToken = when(entries.size) {
-        0 -> stub
-        else -> stub.copy(scope = entries.map(ScopeBuilder::build))
+    override fun build(collector: MutableList<BlockToken>) {
+        // TODO: limit entries
+        collector += stub.copy(scope = buildList { for (it in entries) it.build(this) })
+        next?.build(collector)
     }
 
     override fun accept(builder: ScopeBuilder, stack: ScopeBuilderStack): AcceptResult = when {
