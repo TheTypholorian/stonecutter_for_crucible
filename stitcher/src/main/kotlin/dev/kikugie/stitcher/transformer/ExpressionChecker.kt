@@ -19,109 +19,107 @@ import dev.kikugie.stonecutter.model.Identifier
 import dev.kikugie.stonecutter.model.process.ProcessParameters
 import kotlin.math.max
 
-object ExpressionChecker : DefinitionToken.Visitor<Unit, ExpressionChecker.Context>, ExpressionToken.Visitor<Unit, ExpressionChecker.Context> {
-    class Context(val params: ProcessParameters, val problems: ProblemReporter) {
-        val knownReplacementIds: MutableSet<Identifier> = mutableSetOf()
-        val activeReplacementIds: MutableSet<Identifier> = mutableSetOf()
+class ExpressionChecker(val params: ProcessParameters) : DefinitionToken.Visitor<Unit, ProblemReporter>, ExpressionToken.Visitor<Unit, ProblemReporter> {
+    val knownReplacementIds: MutableSet<Identifier> = mutableSetOf()
+    val activeReplacementIds: MutableSet<Identifier> = mutableSetOf()
 
-        init {
-            for (repl in params.replacements) repl.identifier?.let {
-                knownReplacementIds += it
-                if (repl.defaultEnabled) activeReplacementIds += it
-            }
+    init {
+        for (repl in params.replacements) repl.identifier?.let {
+            knownReplacementIds += it
+            if (repl.defaultEnabled) activeReplacementIds += it
         }
     }
  
-    override fun visitSwapLocal(swap: DefinitionToken.SwapLocal, ctx: Context) {
+    override fun visitSwapLocal(swap: DefinitionToken.SwapLocal, ctx: ProblemReporter) {
         for (it in swap.entries) it.expression?.accept(this, ctx)
     }
 
-    override fun visitSwapOpener(swap: DefinitionToken.SwapOpener, ctx: Context) {
-        val template = ctx.params.swaps[swap.id]
-            ?: return ctx.problems.reportUnresolvedSwapId(swap, ctx.params.swaps.keys)
+    override fun visitSwapOpener(swap: DefinitionToken.SwapOpener, ctx: ProblemReporter) {
+        val template = params.swaps[swap.id]
+            ?: return ctx.reportUnresolvedSwapId(swap, params.swaps.keys)
         if (swap.arguments.isEmpty()) return
 
         var placeholders = 0
         for (it in template.findInsertionPlaces())
             placeholders = max(it.number, placeholders)
         if (swap.arguments.size < placeholders)
-            ctx.problems.reportInsufficientSwapInsertions(swap, placeholders)
+            ctx.reportInsufficientSwapInsertions(swap, placeholders)
     }
 
-    override fun visitSwapCloser(swap: DefinitionToken.SwapCloser, ctx: Context) {
+    override fun visitSwapCloser(swap: DefinitionToken.SwapCloser, ctx: ProblemReporter) {
     }
 
-    override fun visitConditionOpener(cond: DefinitionToken.ConditionOpener, ctx: Context) {
+    override fun visitConditionOpener(cond: DefinitionToken.ConditionOpener, ctx: ProblemReporter) {
         cond.expression.accept(this, ctx)
     }
 
-    override fun visitConditionExtension(cond: DefinitionToken.ConditionExtension, ctx: Context) {
+    override fun visitConditionExtension(cond: DefinitionToken.ConditionExtension, ctx: ProblemReporter) {
         cond.expression?.accept(this, ctx)
     }
 
-    override fun visitConditionCloser(cond: DefinitionToken.ConditionCloser, ctx: Context) {
+    override fun visitConditionCloser(cond: DefinitionToken.ConditionCloser, ctx: ProblemReporter) {
     }
 
-    override fun visitReplacementToggle(repl: DefinitionToken.ReplacementToggle, ctx: Context) {
+    override fun visitReplacementToggle(repl: DefinitionToken.ReplacementToggle, ctx: ProblemReporter) {
         for (it in repl.entries) it.accept(::visitReplacementToggleEntry, ctx)
     }
 
-    override fun visitReplacementLocal(repl: DefinitionToken.ReplacementLocal, ctx: Context) {
+    override fun visitReplacementLocal(repl: DefinitionToken.ReplacementLocal, ctx: ProblemReporter) {
         repl.expression.accept(this, ctx)
         for (it in repl.entries) it.accept(::visitReplacementLocalEntry, ctx)
         if (repl.opener is ScopeToken.Named) {
             val id = repl.opener.identifier.text
-            ctx.knownReplacementIds += id
-            ctx.activeReplacementIds += id
+            knownReplacementIds += id
+            activeReplacementIds += id
         }
     }
 
-    override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser, ctx: Context) {
+    override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser, ctx: ProblemReporter) {
     }
 
-    override fun visitGroup(group: ExpressionToken.Group, ctx: Context) {
+    override fun visitGroup(group: ExpressionToken.Group, ctx: ProblemReporter) {
         group.body.accept(this, ctx)
     }
 
-    override fun visitUnary(unary: ExpressionToken.Unary, ctx: Context) {
+    override fun visitUnary(unary: ExpressionToken.Unary, ctx: ProblemReporter) {
         unary.target.accept(this, ctx)
     }
 
-    override fun visitBinary(binary: ExpressionToken.Binary, ctx: Context) {
+    override fun visitBinary(binary: ExpressionToken.Binary, ctx: ProblemReporter) {
         binary.left.accept(this, ctx)
         binary.right.accept(this, ctx)
     }
 
-    override fun visitConstant(constant: ExpressionToken.Constant, ctx: Context) {
-        if (constant.text !in ctx.params.constants)
-            ctx.problems.reportUnresolvedConstant(constant, ctx.params.constants.keys)
+    override fun visitConstant(constant: ExpressionToken.Constant, ctx: ProblemReporter) {
+        if (constant.text !in params.constants)
+            ctx.reportUnresolvedConstant(constant, params.constants.keys)
     }
 
-    override fun visitAssignment(assignment: ExpressionToken.Assignment, ctx: Context) {
-        if (assignment.id !in ctx.params.targets) when (val it = assignment.target) {
-            null -> ctx.problems.reportUnresolvedImplicitTarget(assignment)
-            else -> ctx.problems.reportUnresolvedExplicitTarget(it, ctx.params.targets.keys)
+    override fun visitAssignment(assignment: ExpressionToken.Assignment, ctx: ProblemReporter) {
+        if (assignment.id !in params.targets) when (val it = assignment.target) {
+            null -> ctx.reportUnresolvedImplicitTarget(assignment)
+            else -> ctx.reportUnresolvedExplicitTarget(it, params.targets.keys)
         }
     }
 
-    fun visitReplacementLocalEntry(entry: DefinitionToken.ReplacementLocal.Entry, ctx: Context) {
+    fun visitReplacementLocalEntry(entry: DefinitionToken.ReplacementLocal.Entry, ctx: ProblemReporter) {
         if (entry.source.unquote().isEmpty())
-            ctx.problems.reportEmptyReplacementValue(entry.source)
+            ctx.reportEmptyReplacementValue(entry.source)
         if (entry.target.unquote().isEmpty())
-            ctx.problems.reportEmptyReplacementValue(entry.target)
+            ctx.reportEmptyReplacementValue(entry.target)
     }
 
-    fun visitReplacementToggleEntry(entry: DefinitionToken.ReplacementToggle.Entry, ctx: Context): Unit = when (entry.id) {
-        !in ctx.knownReplacementIds ->
-            ctx.problems.reportUnresolvedReplacementId(entry, ctx.knownReplacementIds)
+    fun visitReplacementToggleEntry(entry: DefinitionToken.ReplacementToggle.Entry, ctx: ProblemReporter): Unit = when (entry.id) {
+        !in knownReplacementIds ->
+            ctx.reportUnresolvedReplacementId(entry, knownReplacementIds)
 
-        !in ctx.activeReplacementIds ->
-            if (entry.op == null) ctx.activeReplacementIds += entry.id
-            else ctx.problems.reportDuplicateDisabledReplacement(entry)
+        !in activeReplacementIds ->
+            if (entry.op == null) activeReplacementIds += entry.id
+            else ctx.reportDuplicateDisabledReplacement(entry)
 
         else ->
-            if (entry.op != null) ctx.activeReplacementIds -= entry.id
-            else ctx.problems.reportDuplicateEnabledReplacement(entry)
+            if (entry.op != null) activeReplacementIds -= entry.id
+            else ctx.reportDuplicateEnabledReplacement(entry)
     }
 }
 
