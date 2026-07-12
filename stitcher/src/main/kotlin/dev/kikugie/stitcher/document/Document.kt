@@ -89,8 +89,8 @@ class InjectedDocument(val parent: Document, val start: Int, val end: Int, val t
     }
 
     private fun updateState() {
-        if (lastModCount == tracker.modified) return
-        lastModCount = tracker.modified
+        if (lastModCount == tracker.timesModified) return
+        lastModCount = tracker.timesModified
 
         updateOffsetShifts()
     }
@@ -98,7 +98,7 @@ class InjectedDocument(val parent: Document, val start: Int, val end: Int, val t
     private fun updateOffsetShifts() {
         textSegments.clear()
         val baseLength = end - start
-        if (tracker.modifications.isEmpty()) {
+        if (tracker.changeList.isEmpty()) {
             cachedLength = baseLength
             return
         }
@@ -106,7 +106,7 @@ class InjectedDocument(val parent: Document, val start: Int, val end: Int, val t
         var cumulativeDelta = 0
         var lastEventEnd = 0
 
-        for (event in tracker.modifications.iterator()) {
+        for (event in tracker.changeList.iterator()) {
             if (event.start > lastEventEnd)
                 textSegments += ParentSegment(lastEventEnd, event.start, cumulativeDelta)
             textSegments += EventSegment(event, cumulativeDelta)

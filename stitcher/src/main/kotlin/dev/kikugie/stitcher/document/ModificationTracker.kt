@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package dev.kikugie.stitcher.document
 
 import dev.kikugie.stitcher.util.NonOverlappingList
@@ -9,20 +11,26 @@ class ModificationTracker(val document: Document, val length: Int) {
     data class Event(override val start: Int, override val end: Int, val text: String) : NonOverlappingList.Entry {
         val textLength: Int inline get() = text.length
     }
-    internal val modifications: List<Event> field = EventList()
-    internal var modified: UInt = 0u
+    internal val changeList: List<Event> field = EventList()
+    internal var timesModified: UInt = 0u
         private set
 
-    fun insert(index: Int, text: String): Boolean =
+    inline fun insert(index: Int, text: String): Boolean =
         replace(index, index, text)
 
-    fun delete(start: Int, end: Int): Boolean =
+    inline fun delete(range: OpenEndRange<Int>): Boolean =
+        replace(range.start, range.endExclusive, "")
+
+    inline fun delete(start: Int, end: Int): Boolean =
         replace(start, end, "")
+
+    inline fun replace(range: OpenEndRange<Int>, text: String): Boolean =
+        replace(range.start, range.endExclusive, text)
 
     fun replace(start: Int, end: Int, text: String): Boolean {
         require(start in 0..<end && end in start..length) { "Text range $start..<$end !in 0..<${length + 1}" }
-        return modifications.add(Event(start, end, text))
-            .also { if (it) modified++ }
+        return changeList.add(Event(start, end, text))
+            .also { if (it) timesModified++ }
     }
 }
 
