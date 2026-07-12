@@ -14,22 +14,20 @@ inline fun ProblemReporter.bail(id: ProblemID, builder: ProblemReport.() -> Unit
     throw BailException()
 }
 
-inline fun <T, R> ProblemReporter.runMarked(action: () -> T, handler: (result: T, ok: Boolean) -> R): R {
+inline fun <T, R> ProblemReporter.runMarked(action: ProblemReporter.() -> T, handler: (result: T, ok: Boolean) -> R): R {
     val marker = mark()
     return handler(action(), !marker.isDirty())
 }
 
-inline fun <T> ProblemReporter.runThrowing(action: () -> T): T {
+inline fun <T> ProblemReporter.runThrowing(action: ProblemReporter.() -> T): T {
     val marker = mark()
     return action().also { if (marker.isDirty()) throw BailException() }
 }
 
-inline fun <T> ProblemReporter.runCatching(action: () -> T): Result<T> {
-    val marker = mark()
-    return kotlin.runCatching(action).mapResult {
-        if (marker.isDirty()) Result.failure(BailException())
-        else Result.success(it)
-    }
+inline fun <T> ProblemReporter.runCatching(action: ProblemReporter.() -> T): Result<T> = try {
+    Result.success(runThrowing(action))
+} catch (e: RuntimeException) {
+    Result.failure(e)
 }
 
 context(report: ProblemReport)
