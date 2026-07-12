@@ -1,9 +1,5 @@
 package dev.kikugie.stitcher.document
 
-import dev.kikugie.antlr.util.advance
-import dev.kikugie.stitcher.antlr.charStream
-import org.antlr.v4.runtime.IntStream
-
 /**
  * A mapping of line positions within a document.
  *
@@ -11,28 +7,12 @@ import org.antlr.v4.runtime.IntStream
  * @property length The number of characters in the document.
  */
 class DocumentLineIndex private constructor(val positions: List<Int>, val length: Int) {
-    constructor(text: String) : this(text.charStream().buildLineIndex(), text.length)
-    constructor(stream: IntStream) : this(stream.buildLineIndex(), stream.size())
-
-    /**
-     * Returns the text range for the line at the [index], including the trailing `\n` character if present.
-     *
-     * If [index] is out of bounds, returns [IntRange.EMPTY].
-     */
-    fun line(index: Int): IntRange {
-        if (length <= 0 || index !in 0 until length) return IntRange.EMPTY
-
-        val lineIndex = searchIndex(index)
-        val start = positions[lineIndex]
-        val end = if (lineIndex == positions.lastIndex) length else positions[lineIndex + 1]
-        return start..<end
-    }
+    constructor(text: String) : this(buildLineIndex(text), text.length)
 
     /**
      * Returns the [DocumentLocation] representing the line and column at the [index].
-     *
-     * If [index] is exactly at the `\n` character, it counts towards the line before the break.
-     * If [index] is out of bounds, returns [DocumentLocation.UNKNOWN].
+     * - If [index] is exactly at the `\n` character, it counts towards the line before the break.
+     * - If [index] is out of bounds, returns [DocumentLocation.UNKNOWN].
      */
     fun locate(index: Int): DocumentLocation {
         if (length <= 0 || index !in 0 until length) return DocumentLocation.UNKNOWN
@@ -44,16 +24,16 @@ class DocumentLineIndex private constructor(val positions: List<Int>, val length
 
     /**
      * Returns the character position for the [lineIndex] and [columnIndex].
-     *
-     * If [lineIndex] or [columnIndex] is out of bounds, returns -1.
+     * - If the text is empty, [lineIndex] is negative, or [lineIndex] is negative, returns `-1`.
+     * - If [lineIndex] is beyond the last line, returns [length].
+     * - If [columnIndex] is beyond the line boundary, returns the index of the line's '\n' character.
      */
-    fun reverse(lineIndex: Int, columnIndex: Int): Int {
-        if (length <= 0) return -1
+    fun index(lineIndex: Int, columnIndex: Int): Int {
+        if (length <= 0 || lineIndex < 0 || columnIndex < 0) return -1
 
-        val lineStart = positions.getOrElse(lineIndex) { return -1 }
+        val lineStart = positions.getOrElse(lineIndex) { return length }
         val lineEnd = if (lineIndex == positions.lastIndex) length else positions[lineIndex + 1]
-        if (columnIndex !in 0 until (lineEnd - lineStart)) return -1
-
+        val columnIndex = columnIndex.coerceAtMost(lineEnd - lineStart - 1).coerceAtLeast(0)
         return lineStart + columnIndex
     }
 
@@ -69,23 +49,11 @@ class DocumentLineIndex private constructor(val positions: List<Int>, val length
     }
 }
 
-private fun IntStream.buildLineIndex(): List<Int> {
-    if (LA(1) == IntStream.EOF) return emptyList()
+private fun buildLineIndex(text: String): List<Int> =
+    if (text.isEmpty()) emptyList()
+    else mutableListOf(0).apply { collectLineIndexes(this, text, 0) }
 
-    var index = -1
-    return try {
-        index = index()
-        seek(0)
-        collectLinePositions()
-    } finally {
-        if (index != -1) seek(index)
-    }
-}
-
-private fun IntStream.collectLinePositions(): List<Int> = buildList(32) {
-    this += 0
-    while (true) when (advance()) {
-        '\n'.code -> this += index()
-        IntStream.EOF -> break
-    }
+private tailrec fun collectLineIndexes(list: MutableList<Int>, text: String, offset: Int): Unit = when (val it = text.indexOf('\n', offset)) {
+    -1 -> {}
+    else -> collectLineIndexes(list, text, (it + 1).also(list::add))
 }
