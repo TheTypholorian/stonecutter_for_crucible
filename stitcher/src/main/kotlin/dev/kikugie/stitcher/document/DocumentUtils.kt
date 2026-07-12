@@ -17,13 +17,36 @@ inline fun Document.locate(token: AntlrToken): DocumentLocation =
 inline fun Document.locate(node: TerminalNode): DocumentLocation =
     locate(node.startIndex)
 
-inline operator fun Document.get(range: OpenEndRange<Int>): String =
-    get(range.start, range.endExclusive)
+fun Document.min(): Int = when (this) {
+    is InjectedDocument -> getMinOffset(this, 0)
+    else -> 0
+}
+
+fun Document.max(): Int = when (this) {
+    is InjectedDocument -> getMaxOffset(this, length)
+    else -> length
+}
 
 fun Document.link(loc: DocumentLocation): String = when (loc.packed) {
     -1L -> "file://${path.absolutePathString()}"
     else -> "file://${path.absolutePathString()}:${loc.line}:${loc.column}"
 }
 
-fun Document.fullText(): String =
-    get(0, length)
+fun Document.lineAt(index: Int): IntRange {
+    val location = locate(index)
+    if (!location.isKnown) return IntRange.EMPTY
+
+    val startIndex = index(location.lineIndex, 0)
+    val endIndex = index(location.lineIndex, Int.MAX_VALUE)
+    return startIndex until endIndex
+}
+
+private tailrec fun getMinOffset(document: InjectedDocument, offset: Int): Int = when (val it = document.parent) {
+    is InjectedDocument -> getMinOffset(it, offset - document.start)
+    else -> offset
+}
+
+private tailrec fun getMaxOffset(document: InjectedDocument, offset: Int): Int = when (val it = document.parent) {
+    is InjectedDocument -> getMaxOffset(it, offset + (it.length - document.end))
+    else -> offset
+}

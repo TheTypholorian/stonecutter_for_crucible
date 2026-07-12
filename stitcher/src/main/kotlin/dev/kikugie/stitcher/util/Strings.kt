@@ -1,4 +1,5 @@
 @file:OptIn(ExperimentalContracts::class)
+@file:Suppress("NOTHING_TO_INLINE")
 
 package dev.kikugie.stitcher.util
 
@@ -31,3 +32,6 @@ fun Regex(pattern: String, flags: Int): Regex =
 
 internal fun String.titlecase(): String =
     replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+
+internal inline fun String.substring(range: OpenEndRange<Int>): String =
+    substring(range.start, range.endExclusive)
