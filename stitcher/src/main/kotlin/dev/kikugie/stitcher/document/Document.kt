@@ -1,13 +1,10 @@
-@file:Suppress("NOTHING_TO_INLINE")
+@file:Suppress("NOTHING_TO_INLINE", "JavaDefaultMethodsNotOverriddenByDelegation")
 
 package dev.kikugie.stitcher.document
 
-import dev.kikugie.antlr.util.length
 import dev.kikugie.stitcher.issue.*
 import dev.kikugie.stitcher.util.NonOverlappingList
 import dev.kikugie.stitcher.util.NonOverlappingList.Entry.Companion.length
-import org.antlr.v4.runtime.CharStream
-import org.antlr.v4.runtime.misc.Interval
 import java.nio.file.Path
 
 @DslMarker
@@ -15,26 +12,27 @@ import java.nio.file.Path
 private annotation class DocumentDsl
 
 @DocumentDsl
-interface Document : ProblemReporter {
+interface Document : CharSequence, ProblemReporter {
     val path: Path
-    val length: Int
 
-    operator fun get(startIndex: Int, endIndex: Int): String
     fun locate(index: Int): DocumentLocation
+    fun index(lineIndex: Int, columnIndex: Int): Int
+    fun join(builder: Appendable, startIndex: Int, endIndex: Int)
 }
 
-class SourceDocument(override val path: Path, val source: CharStream, private val reporter: ProblemConsumer) : Document {
-    private val lineIndex: DocumentLineIndex = DocumentLineIndex(source)
+class SourceDocument(override val path: Path, val source: String, private val reporter: ProblemConsumer) : Document, CharSequence by source {
+    private val lines: DocumentLineIndex = DocumentLineIndex(source)
     private var problemCounter: UInt = 0u
 
-    override val length: Int
-        get() = source.length
-
-    override fun get(startIndex: Int, endIndex: Int): String =
-        source.getText(Interval.of(startIndex, endIndex - 1))
-
     override fun locate(index: Int): DocumentLocation =
-        lineIndex.locate(index)
+        lines.locate(index)
+
+    override fun index(lineIndex: Int, columnIndex: Int): Int =
+        lines.index(lineIndex, columnIndex)
+
+    override fun join(builder: Appendable, startIndex: Int, endIndex: Int) {
+        builder.append(source, startIndex, endIndex)
+    }
 
     override fun mark(): ProblemReporter.Marker =
         ProblemMarker(problemCounter)
@@ -61,29 +59,46 @@ class InjectedDocument(val parent: Document, val start: Int, val end: Int, val t
     override val length: Int
         get() = updateState().let { cachedLength }
 
-    override fun get(startIndex: Int, endIndex: Int): String {
-        if (endIndex - startIndex <= 0) return ""
-        updateState()
-
-        val builder = StringBuilder()
-        var startIndex = startIndex
-        for (segment in textSegments.listIterator(findSegmentIndex(startIndex))) {
-            startIndex = segment.appendTo(builder, startIndex, endIndex)
-            if (startIndex >= endIndex) break
-        }
-
-        return builder.toString()
+    override fun get(index: Int): Char = when {
+        index < 0 -> parent[start + index]
+        index > length -> parent[end + (index - length)]
+        else -> textSegments[findSegmentIndex(index)].get(index)
     }
 
-    override fun locate(index: Int): DocumentLocation {
-        if (index !in 0..<length) return DocumentLocation.UNKNOWN
-        updateState()
+    override fun locate(index: Int): DocumentLocation = when {
+        index < 0 -> parent.locate(start + index)
+        index > length -> parent.locate(end + (index - length))
+        else -> parent.locate(start + textSegments[findSegmentIndex(index)].map(index))
+    }
 
-        val segment = findSegmentIndex(index).let(textSegments::get)
-        return parent.locate(start + segment.mapIndex(index))
+    override fun index(lineIndex: Int, columnIndex: Int): Int {
+        val index = parent.index(lineIndex, columnIndex)
+        return if (index == -1) -1 else index - start
+    }
+
+    override fun join(builder: Appendable, startIndex: Int, endIndex: Int) {
+        if (endIndex <= startIndex) return
+
+        // Handle joining text before this injected fragment
+        if (startIndex < 0) parent.join(builder, start + startIndex, start)
+
+        var localStartIndex = startIndex.coerceAtLeast(0)
+        val localEndIndex = endIndex.coerceAtMost(length)
+        for (index in findSegmentIndex(startIndex) until textSegments.size) {
+            localStartIndex = textSegments[index].join(builder, localStartIndex, localEndIndex)
+            if (localStartIndex >= localEndIndex) break
+        }
+
+        // Handle joining text after this injected fragment
+        if (endIndex > length) parent.join(builder, end, end + (endIndex - length))
+    }
+
+    override fun subSequence(startIndex: Int, endIndex: Int): CharSequence = StringBuilder().apply {
+        join(this, startIndex, endIndex)
     }
 
     private fun findSegmentIndex(index: Int): Int {
+        updateState()
         val index = textSegments.binarySearch { it.start - index }
         return if (index < 0) (-index - 2).coerceAtLeast(0) else index
     }
@@ -120,26 +135,33 @@ class InjectedDocument(val parent: Document, val start: Int, val end: Int, val t
     }
 
     private sealed interface Segment : NonOverlappingList.Entry {
-        fun mapIndex(index: Int): Int
-        fun appendTo(builder: StringBuilder, startIndex: Int, endIndex: Int): Int
+        fun get(index: Int): Char
+        fun map(index: Int): Int
+        fun join(builder: Appendable, startIndex: Int, endIndex: Int): Int
     }
 
     private class EventSegment(val event: ModificationTracker.Event, delta: Int) : Segment {
         override val start: Int = event.start + delta
         override val end: Int = event.start + event.textLength + delta
 
-        override fun mapIndex(index: Int): Int = when {
+        override fun get(index: Int): Char =
+            event.text[index - start]
+
+        override fun map(index: Int): Int = when {
             event.text.isEmpty() || event.length == 0 -> event.start
             else -> event.start + (index - start).coerceAtMost(event.textLength)
         }
 
-        override fun appendTo(builder: StringBuilder, startIndex: Int, endIndex: Int): Int {
+        override fun join(builder: Appendable, startIndex: Int, endIndex: Int): Int {
+            // The requested range is after this segment
             if (startIndex >= end) return end
+
+            // The requested range is before this segment
             if (start >= endIndex) return endIndex
 
             val textStart = startIndex - start
             val textEnd = (endIndex - startIndex).coerceAtMost(event.textLength)
-            builder.append(event.text.substring(textStart, textEnd))
+            builder.append(event.text, textStart, textEnd)
 
             return startIndex + textEnd
         }
@@ -149,28 +171,38 @@ class InjectedDocument(val parent: Document, val start: Int, val end: Int, val t
         override val start: Int = textStart + delta
         override val end: Int = textEnd + delta
 
-        override fun mapIndex(index: Int): Int =
+        private val baseStartOffset: Int = this@InjectedDocument.start - delta
+
+        override fun get(index: Int): Char =
+            parent[baseStartOffset + index]
+
+        override fun map(index: Int): Int =
             textStart + (index - start)
 
-        override fun appendTo(builder: StringBuilder, startIndex: Int, endIndex: Int): Int {
+        override fun join(builder: Appendable, startIndex: Int, endIndex: Int): Int {
+            // The requested range is after this segment
             if (startIndex >= end) return end
+
+            // The requested range is before this segment
             if (start >= endIndex) return endIndex
 
-            val startOffset = textStart + this@InjectedDocument.start + (startIndex - start)
+            val textStart = baseStartOffset + startIndex
             val textLength = endIndex.coerceAtMost(end) - startIndex
-            builder.append(parent[startOffset, startOffset + textLength])
+            parent.join(builder, textStart, textStart + textLength)
 
             return startIndex + textLength
         }
     }
 }
 
-class SyntheticDocument(val text: String) : Document {
+class SyntheticDocument(val text: String) : Document, CharSequence by text {
     override val path: Nothing get() = throwUnsupported()
-    override val length: Int get() = text.length
 
-    override fun get(startIndex: Int, endIndex: Int): String =
-        text.substring(startIndex, endIndex)
+    override fun join(builder: Appendable, startIndex: Int, endIndex: Int) {
+        builder.append(text, startIndex, endIndex)
+    }
+
+    override fun index(lineIndex: Int, columnIndex: Int): Int = -1
 
     override fun locate(index: Int): Nothing = throwUnsupported()
     override fun mark(): Nothing = throwUnsupported()
