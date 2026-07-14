@@ -5,7 +5,7 @@ import dev.kikugie.stitcher.token.impl.LeafToken
 import java.io.Serializable as JavaSerializable
 
 fun interface CommentingStrategy : JavaSerializable {
-    fun comment(tracker: ModificationTracker)
+    fun comment(tracker: ModificationTracker, tokens: Sequence<LeafToken>)
 }
 
 fun interface UncommentingStrategy : JavaSerializable {
