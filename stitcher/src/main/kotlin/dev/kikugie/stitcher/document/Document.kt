@@ -24,6 +24,8 @@ class SourceDocument(override val path: Path, val source: String, private val re
     private val lines: DocumentLineIndex = DocumentLineIndex(source)
     private var problemCounter: UInt = 0u
 
+    override fun toString(): String = source
+
     override fun locate(index: Int): DocumentLocation =
         lines.locate(index)
 
@@ -58,6 +60,15 @@ class InjectedDocument(val parent: Document, val start: Int, val end: Int, val t
 
     override val length: Int
         get() = updateState().let { cachedLength }
+
+    override fun toString(): String = buildString {
+        var startIndex = 0
+        val endIndex = length
+        for (it in textSegments) {
+            startIndex = it.join(this, startIndex, endIndex)
+            if (startIndex >= endIndex) break
+        }
+    }
 
     override fun get(index: Int): Char = when {
         index < 0 -> parent[start + index]
@@ -197,6 +208,8 @@ class InjectedDocument(val parent: Document, val start: Int, val end: Int, val t
 
 class SyntheticDocument(val text: String) : Document, CharSequence by text {
     override val path: Nothing get() = throwUnsupported()
+
+    override fun toString(): String = text
 
     override fun join(builder: Appendable, startIndex: Int, endIndex: Int) {
         builder.append(text, startIndex, endIndex)

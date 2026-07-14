@@ -7,7 +7,6 @@ import dev.kikugie.stitcher.StitcherParameters
 import dev.kikugie.stitcher.antlr.StitcherErrorListener
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.InjectedDocument
-import dev.kikugie.stitcher.document.fullText
 import dev.kikugie.stitcher.issue.runCatching
 import dev.kikugie.stitcher.parser.FileAstParser
 import dev.kikugie.stitcher.parser.FileTokenStream
@@ -96,7 +95,7 @@ class BlockUnwrapper(val params: StitcherParameters)
     }
 
     private fun processInjected(document: Document, shallow: Boolean): List<BlockToken> {
-        val input = CharStreams.fromString(document.fullText(), document.path.absolutePathString())
+        val input = CharStreams.fromString(document.toString(), document.path.absolutePathString())
         val scanner = params.scanner.create(input, document)
             .apply { scanner.errorListener = StitcherErrorListener(document) }
         val stream = FileTokenStream(document, CommonTokenStream(scanner))
@@ -111,4 +110,4 @@ private fun isCommented(code: BlockToken.Code): Boolean = code.scope.isNotEmpty(
 }
 
 private fun LeafToken.injected(document: InjectedDocument, type: StitcherType = this.type, start: Int = this.start, end: Int = this.end): LeafToken =
-    LeafToken(document, type, start - document.start, end - document.start)
+    LeafToken(document, type, start - document.start, end - document.start).also { if (!it.isEmpty()) it.text = text }
