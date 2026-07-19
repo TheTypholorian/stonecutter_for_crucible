@@ -25,6 +25,7 @@ public abstract interface class dev/kikugie/stonecutter/build/StonecutterBuildEx
 	public abstract fun getFilters ()Lorg/gradle/api/tasks/util/PatternFilterable;
 	public abstract fun getFlags ()Ldev/kikugie/stonecutter/controller/flag/StonecutterFlagsView;
 	public abstract fun getNode ()Ldev/kikugie/stonecutter/data/tree/ProjectNode;
+	public abstract fun getProject ()Lorg/gradle/api/Project;
 	public abstract fun getReplacements ()Ldev/kikugie/stonecutter/build/config/ReplacementContainer;
 	public fun getSemantics ()Ldev/kikugie/stonecutter/data/version/VersionOperations;
 	public abstract fun getSwaps ()Ldev/kikugie/stonecutter/build/config/SwapContainer;

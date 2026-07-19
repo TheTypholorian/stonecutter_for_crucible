@@ -56,9 +56,6 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     private val nodeContainer: ProjectNodeContainer = root.gradle.getContainer<ProjectNodeContainer>().also { it += tree }
     private var hasInitialized: Boolean = false
 
-    @get:Inject
-    protected abstract val buildFeatures: BuildFeatures
-
     init {
         root.afterEvaluate {
             if (!hasInitialized) {
@@ -77,7 +74,7 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
         check(!hasInitialized) { "Stonecutter has already been initialized!" }
         tree.assignActive(root, tasks, provider.resolveActive())
 
-        if (!buildFeatures.isolatedProjects.active.getOrElse(false) && flags[StonecutterFlag.APPLY_PLUGIN_TO_NODES])
+        if (flags[StonecutterFlag.APPLY_PLUGIN_TO_NODES])
             for (it in tree.nodes) it.project.plugins.apply(StonecutterPlugin::class)
 
         if (tree.current != null) tree.createSwitchTasks(root, tasks)

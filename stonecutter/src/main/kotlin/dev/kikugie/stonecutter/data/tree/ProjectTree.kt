@@ -27,7 +27,6 @@ public interface GradleMember {
      * This property **is not available** at task runtime.
      */
     @get:Throws
-    @get:Deprecated("Can break project isolation in upcoming Gradle releases")
     public val project: Project
 }
 

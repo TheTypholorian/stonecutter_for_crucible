@@ -34,6 +34,9 @@ private annotation class BuildDsl
  */
 @BuildDsl
 public interface StonecutterBuildExtension : VersionOperations<Version>, StructuredPropertiesProvider {
+    /**
+     * Gradle project this extension is applied to.
+     */
     public val project: Project
     /**
      * Node associated with the applied Gradle [Project][org.gradle.api.Project].
