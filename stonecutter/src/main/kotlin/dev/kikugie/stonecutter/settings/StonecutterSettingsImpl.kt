@@ -9,8 +9,8 @@ import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.configureDefaults
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
-import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.createContainer
-import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
+import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.createContainer
+import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
 import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
 import dev.kikugie.stonecutter.data.version.LenientOperations
@@ -44,7 +44,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
 ) : StonecutterSettingsExtension(objects, settings.providers), VersionOperations<Version> by LenientOperations {
     override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(settings, objects)
 
-    internal val treeBuilderContainer: TreeBuilderContainer = settings.gradle.createContainer()
+    internal val treeBuilderContainer: TreeBuilderContainer = settings.gradle.createContainer<TreeBuilderContainer>().get()
     internal val isHardMode: Boolean by lazy {
         settings.providers.gradleProperty("dev.kikugie.stonecutter.hard_mode").getOrElse("false").toBoolean()
     }
@@ -56,7 +56,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
         // This is the ugliest configuration block I have
         with(settings.gradle) {
             createContainer<ProjectNodeContainer>()
-            val handlers = createContainer<FileHandlerContainer>()
+            val handlers = createContainer<FileHandlerContainer>().get()
             handlers.configureDefaults()
             configureSyncTask()
             configureServices(handlers, registry)
@@ -99,7 +99,7 @@ private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: B
         parameters.handlers.value(handlers.build()).finalizeValue()
     }
     sharedServices.registerIfAbsent(StonecutterErrorsService.NAME, StonecutterErrorsService::class) {
-        for (node in gradle.getContainer<ProjectNodeContainer>().collection)
+        for (node in gradle.getContainer<ProjectNodeContainer>().projects)
             parameters.active.put(node.hierarchy.path, node.metadata.isActive)
     }.let(registry::onTaskCompletion)
 }

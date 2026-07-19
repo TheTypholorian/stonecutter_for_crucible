@@ -9,7 +9,7 @@ import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsView
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
-import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
+import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
 import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.util.isIdeaSync
@@ -41,9 +41,9 @@ internal abstract class StonecutterBuildImpl private constructor(val config: Sto
         project.configureManifest(flags, node)
         tasks.registerNodeModelTask()
 
-        val handlers = project.gradle.getContainer<FileHandlerContainer>().handlers
-        filters.include {
-            it.isDirectory || it.file.extension.lowercase() in handlers.names
+        project.afterEvaluate {
+            val extensions = gradle.getContainer<FileHandlerContainer>().formats()
+            filters.include { it.isDirectory || it.file.extension.lowercase() in extensions }
         }
     }
 }

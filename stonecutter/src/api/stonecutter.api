@@ -239,8 +239,8 @@ public abstract interface class dev/kikugie/stonecutter/controller/StonecutterCo
 	public fun tasks (Lorg/gradle/api/Action;)V
 }
 
-public abstract class dev/kikugie/stonecutter/controller/file/FileHandlerContainer {
-	public fun <init> (Lorg/gradle/api/model/ObjectFactory;)V
+public abstract class dev/kikugie/stonecutter/controller/file/FileHandlerContainer : dev/kikugie/stonecutter/data/container/GradleContainerService {
+	public fun <init> ()V
 	public final fun configure ([Ljava/lang/String;Lorg/gradle/api/Action;)V
 	public final fun inherit (Ljava/lang/String;[Ljava/lang/String;)V
 	public final fun named (Ljava/lang/String;)Lorg/gradle/api/NamedDomainObjectProvider;
