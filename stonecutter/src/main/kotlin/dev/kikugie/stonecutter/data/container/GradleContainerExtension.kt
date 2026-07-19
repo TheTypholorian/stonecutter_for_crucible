@@ -1,16 +1,23 @@
 package dev.kikugie.stonecutter.data.container
 
+import dev.kikugie.stonecutter.build.StonecutterBuildExtension
+import dev.kikugie.stonecutter.build.data.StonecutterBuildConfiguration
 import dev.kikugie.stonecutter.data.ProjectHierarchy
+import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
+import org.gradle.api.Action
 import org.gradle.api.Named
 import org.gradle.api.NamedDomainObjectSet
+import org.gradle.api.Project
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.ProviderFactory
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.namedDomainObjectSet
+import org.gradle.kotlin.dsl.newInstance
 import javax.inject.Inject
 import kotlin.reflect.KClass
 
@@ -44,13 +51,25 @@ internal open class TreeBuilderContainer @Inject constructor(objects: ObjectFact
         get("TreeBuilderImpl@$hierarchy")
 }
 
-internal open class ProjectNodeContainer @Inject constructor(objects: ObjectFactory)
+internal open class ProjectNodeContainer @Inject constructor(val objects: ObjectFactory)
     : GradleContainerExtension<ProjectNode>(objects, ProjectNode::class) {
+    private val configurations: NamedDomainObjectSet<StonecutterBuildConfiguration> =
+        objects.namedDomainObjectSet(StonecutterBuildConfiguration::class)
 
-    operator fun get(hierarchy: ProjectHierarchy): ProjectNode? =
-        get("ProjectNode@$hierarchy")
+    operator fun get(project: Project): StonecutterBuildConfiguration? = synchronized(configurations) {
+        val node = get("ProjectNode@${project.hierarchy}")
+            ?: return@synchronized null
+        val name = "StonecutterBuildConfiguration@${project.hierarchy}"
+        configurations.findByName(name) ?: objects.newInstance<StonecutterBuildConfiguration>(name, node, project)
+            .also(configurations::add)
+    }
 
     operator fun plusAssign(tree: ProjectTree): Unit = synchronized(collection) {
         for (node in tree.nodes) collection.add(node)
+    }
+
+    fun configure(tree: ProjectTree, action: Action<StonecutterBuildExtension>): Unit = synchronized(configurations) {
+        val nodes = tree.nodes.map { "StonecutterBuildConfiguration@${it.hierarchy}" }.toSet()
+        configurations.named { it in nodes }.all(action)
     }
 }

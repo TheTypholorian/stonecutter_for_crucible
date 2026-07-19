@@ -2,7 +2,6 @@ package dev.kikugie.stonecutter.build
 
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.StonecutterPlugin
-import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
 import dev.kikugie.stonecutter.build.data.StonecutterBuildConfiguration
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData
 import dev.kikugie.stonecutter.build.task.StonecutterBuildTasksImpl
@@ -36,7 +35,7 @@ internal abstract class StonecutterBuildImpl private constructor(val project: Pr
         project.plugins.apply("java")
         project.sourceSets.all {
             tasks.configureSource(this)
-            createProcessingTasks(node, config.data, filters, tasks)
+            createProcessingTasks(project, config.data, filters, tasks)
         }
         project.refreshConfiguration(flags, tasks)
         project.configureManifest(flags, node)
@@ -49,10 +48,7 @@ internal abstract class StonecutterBuildImpl private constructor(val project: Pr
     }
 }
 
-private fun Project.findConfig(): StonecutterBuildConfiguration =
-    gradle.getContainer<BuildConfigurationContainer>()[findNode()]
-
-private fun Project.findNode(): ProjectNode = checkNotNull(gradle.getContainer<ProjectNodeContainer>()[hierarchy]) {
+private fun Project.findConfig(): StonecutterBuildConfiguration = checkNotNull(gradle.getContainer<ProjectNodeContainer>()[this]) {
     "$hierarchy is not a registered Stonecutter node"
 }
 
@@ -67,27 +63,31 @@ private fun Project.refreshConfiguration(flags: StonecutterFlagsView, impls: Sto
 
 @OptIn(StonecutterInternalAPI::class)
 private fun SourceSet.createProcessingTasks(
-    node: ProjectNode,
+    project: Project,
     data: StonecutterBuildData,
     filters: PatternFilterable,
     impls: StonecutterBuildTasksImpl
 ) {
+    val layout = project.layout
+
     val name = name
     val sourceDir = "src/$name"
-    val localSource = node.location.resolve(sourceDir).toFile()
-    val sharedSource = node.branch.location.resolve(sourceDir).toFile()
+    val localSource = layout.projectDirectory.dir(sourceDir)
+    val sharedSource = layout.projectDirectory.dir("../../$sourceDir")
 
+    val sharedSourceFile = sharedSource.asFile
     val prepareTask = impls.registerPrepareTask(this) {
         params.set(data)
-        root.set(sharedSource)
-        source.setFrom(node.branch.project.fileTree(sourceDir).matching(filters))
+        root.set(sharedSourceFile)
+        source.setFrom(project.fileTree(sharedSource).matching(filters))
         destination.set(impls.processedCacheDir.dir(name))
     }
 
+    val localSourceFile = localSource.asFile
     impls.registerGenerateTask(this) {
         duplicatesStrategy = DuplicatesStrategy.INCLUDE
         from(sharedSource, prepareTask.map { it.destination })
-        exclude { !it.isDirectory && it.relativePath.getFile(localSource).exists() }
+        exclude { !it.isDirectory && it.relativePath.getFile(localSourceFile).exists() }
         into(impls.generatedSourcesDir.dir(name))
     }
 

@@ -24,14 +24,13 @@ import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.StructuredPropertyConfigImpl
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
+import dev.kikugie.stonecutter.settings.properties.StructuredPropertyConfigImpl
 import dev.kikugie.stonecutter.util.overwriteText
 import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Named
 import org.gradle.api.Project
 import org.gradle.api.model.ObjectFactory
-import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.util.PatternFilterable
 import org.gradle.api.tasks.util.PatternSet
 import org.gradle.kotlin.dsl.get
@@ -42,27 +41,24 @@ import java.nio.file.NoSuchFileException
 import javax.inject.Inject
 
 internal abstract class StonecutterBuildConfiguration @Inject constructor(
-    override val node: ProjectNode,
-    factory: ProviderFactory,
-    objects: ObjectFactory
+    override val node: ProjectNode, val project: Project, objects: ObjectFactory
 ) : Named, StonecutterBuildExtension, VersionOperations<Version> by LenientOperations {
     internal val controller: StonecutterControllerExtension = node.tree.project.the()
-    internal val data: StonecutterBuildData = objects.newInstance(controller, current.version, factory)
+    internal val data: StonecutterBuildData = objects.newInstance(controller, current.version, project.providers)
 
     override val swaps: SwapContainer = objects.newInstance(data.swaps)
     override val constants: ConstantContainer = objects.newInstance(data.constants)
     override val dependencies: DependencyContainer = objects.newInstance(data.dependencies)
     override val replacements: ReplacementContainerImpl = objects.newInstance(data::addString, data::addRegex)
     override val filters: PatternFilterable = PatternSet()
-    override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(node, objects)
+    override val properties: StructuredPropertiesProvider.Config = project.setupDefaultProperties(node, objects)
 
     override val flags: StonecutterFlagsView = controller.flags
     override val tasks: StonecutterBuildTasks
         get() = throw UnsupportedOperationException("Build tasks are not available in the controller")
 
     override fun process(file: File, destination: String): File {
-        val project = node.project
-        val parameters = collectTransformParams(file, project, data)
+        val parameters = project.collectTransformParams(file, data)
         val problems: MutableCollection<ProblemReport> = mutableListOf()
         val reporter: ProblemConsumer = {
             if (it.severity == ProblemSeverity.ERROR) problems += it
@@ -83,15 +79,15 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     }
 }
 
-private fun setupDefaultProperties(node: ProjectNode, objects: ObjectFactory): StructuredPropertiesProvider.Config {
-    val impl = StructuredPropertyConfigImpl(node.project, objects)
+private fun Project.setupDefaultProperties(node: ProjectNode, objects: ObjectFactory): StructuredPropertiesProvider.Config {
+    val impl = StructuredPropertyConfigImpl(this, objects)
     impl.tags(node.branch.id, node.metadata.project)
-    impl.loadDefaults(node.project.layout.projectDirectory)
+    impl.loadDefaults(layout.projectDirectory)
     return impl
 }
 
-private fun collectTransformParams(file: File, project: Project, data: StonecutterBuildData): TransformParameters {
-    val handlers = project.gradle.getContainer<FileHandlerContainer>()
+private fun Project.collectTransformParams(file: File, data: StonecutterBuildData): TransformParameters {
+    val handlers = gradle.getContainer<FileHandlerContainer>()
         .handlers[file.extension.lowercase()].let { mapOf(it.name to HandlerModel(it)) }
     return ParametersModel(data).forFile(file.toPath(), handlers)!!
 }

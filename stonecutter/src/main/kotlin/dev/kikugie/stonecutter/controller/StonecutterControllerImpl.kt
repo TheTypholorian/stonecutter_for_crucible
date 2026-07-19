@@ -3,7 +3,6 @@ package dev.kikugie.stonecutter.controller
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
-import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager.Companion.getController
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
@@ -54,7 +53,6 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(root, objects)
 
     private val nodeContainer: ProjectNodeContainer = root.gradle.getContainer<ProjectNodeContainer>().also { it += tree }
-    private val configContainer: BuildConfigurationContainer = root.gradle.getContainer()
     private var hasInitialized: Boolean = false
 
     init {
@@ -86,7 +84,7 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     }
 
     override fun parameters(action: Action<StonecutterBuildExtension>) {
-        configContainer[tree] = action
+        nodeContainer.configure(tree, action)
     }
 }
 

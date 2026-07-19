@@ -4,7 +4,6 @@ import dev.kikugie.commons.takeAs
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
 import dev.kikugie.stonecutter.StonecutterPlugin
-import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
@@ -57,7 +56,6 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
         // This is the ugliest configuration block I have
         with(settings.gradle) {
             createContainer<ProjectNodeContainer>()
-            createContainer<BuildConfigurationContainer>()
             val handlers = createContainer<FileHandlerContainer>()
             handlers.configureDefaults()
             configureSyncTask()
