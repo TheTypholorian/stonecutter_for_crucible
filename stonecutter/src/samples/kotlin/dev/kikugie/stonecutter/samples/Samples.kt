@@ -1,9 +1,8 @@
-@file:Suppress("ClassName", "FunctionName", "SimplifyBooleanWithConstants", "RedundantNullableReturnType", "unused")
-@file:OptIn(StonecutterExperimentalAPI::class)
+@file:Suppress("ClassName", "FunctionName", "SimplifyBooleanWithConstants", "RedundantNullableReturnType", "unused", "PublicApiImplicitType",
+    "UnusedVariable"
+)
 
 package dev.kikugie.stonecutter.samples
-
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.deserialization.SCElement
@@ -18,7 +17,7 @@ private object constants {
     private lateinit var sc: StonecutterBuildExtension
     private lateinit var stonecutter: StonecutterBuildExtension
 
-    private inline fun stonecutter(action: StonecutterBuildExtension.() -> Unit) = Unit
+    private inline fun stonecutter(action: StonecutterBuildExtension.() -> Unit): Unit = Unit
 
     fun match_vararg() {
         val (version, loader) = sc.current.project.split('-', limit = 2)

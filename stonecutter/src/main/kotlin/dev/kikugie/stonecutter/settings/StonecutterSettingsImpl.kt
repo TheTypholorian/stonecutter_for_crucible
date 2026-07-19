@@ -1,12 +1,8 @@
-@file:OptIn(StonecutterInternalAPI::class)
-
 package dev.kikugie.stonecutter.settings
 
 import dev.kikugie.commons.takeAs
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
-import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
@@ -80,7 +76,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     }
 
     private companion object {
-        val LOGGER = Logging.getLogger("StonecutterSettings")
+        val LOGGER: Logger = Logging.getLogger("StonecutterSettings")
     }
 }
 
@@ -100,7 +96,7 @@ private fun Gradle.configureSyncTask() {
     }
 }
 
-private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: BuildEventsListenerRegistry) = projectsEvaluated {
+private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: BuildEventsListenerRegistry): Unit = projectsEvaluated {
     sharedServices.registerIfAbsent(FileHandlerService.NAME, FileHandlerService::class) {
         parameters.handlers.value(handlers.build()).finalizeValue()
     }
@@ -113,7 +109,7 @@ private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: B
     }.let(registry::onTaskCompletion)
 }
 
-@OptIn(StonecutterExperimentalAPI::class) @Suppress("UnstableApiUsage")
+@Suppress("UnstableApiUsage")
 private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): StructuredPropertiesProvider.Config {
     val loader: StructuredPropertiesLoader = settings.gradle.extensions.create("StructuredProperties")
     return StructuredPropertyConfigImpl(settings.rootProject.hierarchy, settings.extra, loader, objects)

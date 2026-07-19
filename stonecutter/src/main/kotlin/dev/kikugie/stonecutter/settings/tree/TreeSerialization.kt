@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalSerializationApi::class, ExperimentalContracts::class)
+@file:OptIn(ExperimentalContracts::class)
 @file:Suppress("SENSELESS_COMPARISON")
 
 package dev.kikugie.stonecutter.settings.tree
@@ -15,8 +15,9 @@ import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
+import kotlin.reflect.KFunction1
 
-private val DECODE_JSON = JsonDecoder::decodeJsonElement
+private val DECODE_JSON: KFunction1<JsonDecoder, JsonElement> = JsonDecoder::decodeJsonElement
 
 private inline fun <T> serCheckNotNull(value: T?, message: () -> String): T {
     contract {

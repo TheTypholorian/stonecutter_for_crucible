@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalContracts::class, StonecutterInternalAPI::class)
+@file:OptIn(ExperimentalContracts::class)
 
 package dev.kikugie.stonecutter.data.deserialization
 
@@ -7,7 +7,6 @@ import com.charleskorn.kaml.YamlPath
 import dev.eav.tomlkt.TomlElement
 import dev.kikugie.commons.takeAs
 import dev.kikugie.commons.takeAsOrNull
-import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.util.escape
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerializationException

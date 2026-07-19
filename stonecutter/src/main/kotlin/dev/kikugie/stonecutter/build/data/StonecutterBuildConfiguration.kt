@@ -1,5 +1,3 @@
-@file:OptIn(StonecutterInternalAPI::class)
-
 package dev.kikugie.stonecutter.build.data
 
 import dev.kikugie.semver.data.Version
@@ -8,8 +6,6 @@ import dev.kikugie.stitcher.issue.ProblemConsumer
 import dev.kikugie.stitcher.issue.ProblemReport
 import dev.kikugie.stitcher.issue.ProblemSeverity
 import dev.kikugie.stitcher.transformer.TransformParameters
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
-import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.build.config.ConstantContainer
 import dev.kikugie.stonecutter.build.config.DependencyContainer
@@ -45,7 +41,6 @@ import java.io.File
 import java.nio.file.NoSuchFileException
 import javax.inject.Inject
 
-@OptIn(StonecutterInternalAPI::class)
 internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override val node: ProjectNode,
     factory: ProviderFactory,
@@ -88,7 +83,6 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     }
 }
 
-@OptIn(StonecutterExperimentalAPI::class)
 private fun setupDefaultProperties(node: ProjectNode, objects: ObjectFactory): StructuredPropertiesProvider.Config {
     val impl = StructuredPropertyConfigImpl(node.project, objects)
     impl.tags(node.branch.id, node.metadata.project)

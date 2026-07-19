@@ -1,10 +1,7 @@
-@file:OptIn(StonecutterExperimentalAPI::class)
-
 package dev.kikugie.stonecutter.settings.tree
 
 import dev.kikugie.stonecutter.AnyVersion
 import dev.kikugie.stonecutter.Identifier
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.deserialization.determineConverter

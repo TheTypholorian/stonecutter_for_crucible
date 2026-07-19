@@ -1,11 +1,8 @@
-@file:OptIn(StonecutterExperimentalAPI::class)
-
 package dev.kikugie.stonecutter.settings.tree
 
 import dev.kikugie.stitcher.util.isValidIdentifier
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.ProjectReference
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
@@ -56,7 +53,7 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
         tree.applyTo(this)
     }
 
-    internal fun getVcsProject() = knownVersions[resolveVcs()]!!
+    internal fun getVcsProject(): StonecutterProject = knownVersions[resolveVcs()]!!
 
     internal fun getRootNodes(): List<NodeBuilderImpl> =
         checkNotNull(branchBuilders[""]?.nodeBuilders) { "Root branch is not initialised yet" }
@@ -163,7 +160,7 @@ internal abstract class NodeBuilderImpl @Inject constructor(
     val branch: BranchBuilderImpl
 ) : NodeBuilder()
 
-private fun getDefaultBuildscript(ext: StonecutterSettingsImpl, dir: Path, type: String) = when {
+private fun getDefaultBuildscript(ext: StonecutterSettingsImpl, dir: Path, type: String): String = when {
     dir.resolve("$type.gradle.kts").exists() -> "$type.gradle.kts"
     dir.resolve("$type.gradle").exists() || ext.isHardMode -> "$type.gradle"
     else -> "$type.gradle.kts"

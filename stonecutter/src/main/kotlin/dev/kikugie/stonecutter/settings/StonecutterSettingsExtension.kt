@@ -3,7 +3,6 @@ package dev.kikugie.stonecutter.settings
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
@@ -30,7 +29,7 @@ private annotation class SettingsDsl
  * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params">Wiki #1</a>
  * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings">Wiki #2</a>
  */
-@SettingsDsl @OptIn(StonecutterExperimentalAPI::class)
+@SettingsDsl
 public abstract class StonecutterSettingsExtension(
     protected val objects: ObjectFactory,
     protected val providers: ProviderFactory

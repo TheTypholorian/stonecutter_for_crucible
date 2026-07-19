@@ -25,6 +25,6 @@ public sealed interface StonecutterFlags : StonecutterFlagsView {
 }
 
 internal class StonecutterFlagsImpl(val storage: StonecutterFlagStorage) : StonecutterFlags {
-    override fun <T : Any> get(key: StonecutterFlag<T>): T = storage.get(key)
+    override fun <T : Any> get(key: StonecutterFlag<T>): T = storage[key]
     override fun <T : Any> set(key: StonecutterFlag<T>, value: T) = storage.set(key, value)
 }

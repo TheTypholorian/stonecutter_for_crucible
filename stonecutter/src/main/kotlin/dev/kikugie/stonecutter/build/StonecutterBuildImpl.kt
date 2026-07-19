@@ -8,7 +8,6 @@ import dev.kikugie.stonecutter.build.data.StonecutterBuildData
 import dev.kikugie.stonecutter.build.task.StonecutterBuildTasksImpl
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
-import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsView
 import dev.kikugie.stonecutter.controller.tree.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
@@ -24,12 +23,10 @@ import org.gradle.api.invocation.Gradle
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.util.PatternFilterable
 import org.gradle.jvm.tasks.Jar
-import org.gradle.kotlin.dsl.attributes
 import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.withType
 import javax.inject.Inject
 
-@OptIn(StonecutterInternalAPI::class)
 internal abstract class StonecutterBuildImpl private constructor(val project: Project, val config: StonecutterBuildConfiguration) :
     StonecutterBuildExtension by config {
     @Inject constructor(project: Project) : this(project, project.findConfig())
@@ -59,7 +56,7 @@ private fun Project.findNode(): ProjectNode = checkNotNull(gradle.getContainer<P
     "$hierarchy is not a registered Stonecutter node"
 }
 
-private fun Project.refreshConfiguration(flags: StonecutterFlagsView, impls: StonecutterBuildTasksImpl) = afterEvaluate {
+private fun Project.refreshConfiguration(flags: StonecutterFlagsView, impls: StonecutterBuildTasksImpl): Unit = afterEvaluate {
     if (flags[StonecutterFlag.APPEND_SOURCES_AFTER_EVAL])
         sourceSets.forEach(impls::configureSource)
 
@@ -110,7 +107,7 @@ private fun Project.configureManifest(flags: StonecutterFlagsView, node: Project
     }
 }
 
-private fun buildStonecutterManifest(node: ProjectNode, gradle: Gradle) = buildMap {
+private fun buildStonecutterManifest(node: ProjectNode, gradle: Gradle): Map<String, String> = buildMap {
     this["Stonecutter-Plugin-Version"] = StonecutterPlugin.VERSION
     this["Stonecutter-Gradle-Version"] = gradle.gradleVersion
     this["Stonecutter-Node-Project"] = node.metadata.project

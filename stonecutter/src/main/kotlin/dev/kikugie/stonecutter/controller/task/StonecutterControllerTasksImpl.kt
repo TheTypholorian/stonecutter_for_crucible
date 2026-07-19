@@ -19,6 +19,8 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.provider.MapProperty
+import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.mapProperty
 import org.gradle.kotlin.dsl.register
@@ -111,7 +113,7 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
 private fun ProjectNode.task(name: String): String =
     "${hierarchy.orEmpty()}:$name"
 
-private fun ProjectTree.collectMergeTasks(root: Project, project: Identifier) = nodes
+private fun ProjectTree.collectMergeTasks(root: Project, project: Identifier): List<Provider<Collection<TaskProvider<Copy>>>> = nodes
     .filter { it.metadata.project == project }
     .map { root.provider { it.project.the<StonecutterBuildExtension>().tasks.merge.values } }
 
