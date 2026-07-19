@@ -345,6 +345,15 @@ public abstract class dev/kikugie/stonecutter/controller/task/StonecutterSwitchT
 	public abstract fun getVersion ()Lorg/gradle/api/provider/Property;
 }
 
+public abstract interface class dev/kikugie/stonecutter/controller/task/StonecutterTaskMutexService : org/gradle/api/services/BuildService {
+	public static final field Companion Ldev/kikugie/stonecutter/controller/task/StonecutterTaskMutexService$Companion;
+	public static fun create (Lorg/gradle/api/invocation/Gradle;Ljava/lang/String;)Lorg/gradle/api/provider/Provider;
+}
+
+public final class dev/kikugie/stonecutter/controller/task/StonecutterTaskMutexService$Companion {
+	public final fun create (Lorg/gradle/api/invocation/Gradle;Ljava/lang/String;)Lorg/gradle/api/provider/Provider;
+}
+
 public final class dev/kikugie/stonecutter/controller/tree/BranchInfo : java/lang/Record {
 	public static final field Companion Ldev/kikugie/stonecutter/controller/tree/BranchInfo$Companion;
 	public fun <init> (Ljava/lang/String;Ljava/nio/file/Path;)V
@@ -924,7 +933,7 @@ public abstract interface class dev/kikugie/stonecutter/data/tree/GradleMember {
 	public abstract fun getProject ()Lorg/gradle/api/Project;
 }
 
-public abstract interface class dev/kikugie/stonecutter/data/tree/ProjectBranch : dev/kikugie/stonecutter/data/tree/GradleMember, java/util/Map, kotlin/jvm/internal/markers/KMappedMarker {
+public abstract interface class dev/kikugie/stonecutter/data/tree/ProjectBranch : dev/kikugie/stonecutter/data/tree/GradleMember, java/util/Map, kotlin/jvm/internal/markers/KMappedMarker, org/gradle/api/Named {
 	public abstract fun get-qHRS2DI (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/tree/ProjectNode;
 	public abstract fun getId ()Ljava/lang/String;
 	public abstract fun getNodes ()Ljava/util/Collection;
@@ -932,7 +941,7 @@ public abstract interface class dev/kikugie/stonecutter/data/tree/ProjectBranch 
 	public abstract fun getVersions ()Ljava/util/Collection;
 }
 
-public abstract interface class dev/kikugie/stonecutter/data/tree/ProjectNode : dev/kikugie/stonecutter/data/tree/GradleMember {
+public abstract interface class dev/kikugie/stonecutter/data/tree/ProjectNode : dev/kikugie/stonecutter/data/tree/GradleMember, org/gradle/api/Named {
 	public fun find (Ljava/lang/String;Ljava/lang/String;)Ldev/kikugie/stonecutter/data/tree/ProjectNode;
 	public abstract fun getBranch ()Ldev/kikugie/stonecutter/data/tree/ProjectBranch;
 	public abstract fun getMetadata ()Ldev/kikugie/stonecutter/data/StonecutterProject;
@@ -941,7 +950,7 @@ public abstract interface class dev/kikugie/stonecutter/data/tree/ProjectNode : 
 	public fun sibling (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/tree/ProjectNode;
 }
 
-public abstract interface class dev/kikugie/stonecutter/data/tree/ProjectTree : dev/kikugie/stonecutter/data/tree/GradleMember, java/util/Map, kotlin/jvm/internal/markers/KMappedMarker {
+public abstract interface class dev/kikugie/stonecutter/data/tree/ProjectTree : dev/kikugie/stonecutter/data/tree/GradleMember, java/util/Map, kotlin/jvm/internal/markers/KMappedMarker, org/gradle/api/Named {
 	public abstract fun get-qHRS2DI (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/tree/ProjectBranch;
 	public abstract fun getBranches ()Ljava/util/Collection;
 	public abstract fun getCurrent ()Ldev/kikugie/stonecutter/data/StonecutterProject;
