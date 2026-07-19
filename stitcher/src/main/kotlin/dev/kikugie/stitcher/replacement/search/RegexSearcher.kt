@@ -34,7 +34,7 @@ value class RegexSearcher<T : SearchData>(val payloads: MutableList<Payload<T>> 
         override val end: Int get() = match.end()
 
         override fun apply(builder: StringBuilder, offset: Int): Int {
-            val value = process().also(::println)
+            val value = process()
             builder.replace(start + offset, end + offset, value)
             return value.length - this.length
         }
