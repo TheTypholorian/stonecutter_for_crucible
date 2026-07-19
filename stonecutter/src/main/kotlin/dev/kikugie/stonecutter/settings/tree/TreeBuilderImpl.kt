@@ -26,7 +26,7 @@ import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.notExists
 
-internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory, hierarchy: ProjectHierarchy)
+internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory, hierarchy: String)
     : TreeBuilder(), Named {
     private val name: String = "TreeBuilderImpl@$hierarchy"
     internal var localBuildScriptProvider: ((Identifier, StonecutterProject) -> String)? = null

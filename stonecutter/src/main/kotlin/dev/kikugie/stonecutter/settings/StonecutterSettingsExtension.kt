@@ -222,9 +222,9 @@ public abstract class StonecutterSettingsExtension(
     protected abstract fun create(ref: ProjectReference, builder: TreeBuilder)
 }
 
-private tailrec fun ProjectReference.toProjectHierarchy(): ProjectHierarchy = when (this) {
-    is CharSequence -> ProjectHierarchy(":${trim(':')}")
-    is ProjectDescriptor -> ProjectHierarchy(path)
+private tailrec fun ProjectReference.toProjectHierarchy(): String = when (this) {
+    is CharSequence -> ":${trim(':')}"
+    is ProjectDescriptor -> path
     is Provider<*> -> get().toProjectHierarchy()
     else -> throw IllegalArgumentException("Unsupported project type ${this::class.qualifiedName}")
 }
