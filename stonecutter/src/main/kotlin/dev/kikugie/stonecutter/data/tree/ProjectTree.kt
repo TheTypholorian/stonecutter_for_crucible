@@ -26,6 +26,7 @@ public interface GradleMember {
      * This property **is not available** at task runtime.
      */
     @get:Throws
+    @get:Deprecated("Can break project isolation in upcoming Gradle releases")
     public val project: Project
 }
 
@@ -63,7 +64,7 @@ public interface ProjectNode : GradleMember {
     /**
      * Retrieves a [ProjectNode] within the specified [branch] of the project hierarchy identified by the [node].
      */
-    public fun find(branch: Identifier, node: Identifier): ProjectNode? = this.branch.tree.get(branch)?.get(node)
+    public fun find(branch: Identifier, node: Identifier): ProjectNode? = this.branch.tree[branch]?.get(node)
 }
 
 /**
