@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     name: Run tests
-    runs-on: own-forgejo
+    runs-on: kiku-server
     container:
       image: eclipse-temurin:21-jdk-alpine
     steps:

@@ -14,7 +14,7 @@ env:
 jobs:
   build-docs:
     name: Build docs
-    runs-on: own-forgejo
+    runs-on: kiku-server
     container: eclipse-temurin:21-jdk-alpine
     if: ${{ inputs.run-own }}
     steps:
@@ -42,7 +42,7 @@ jobs:
 
   merge-docs:
     name: Build merged docs
-    runs-on: own-forgejo
+    runs-on: kiku-server
     container: eclipse-temurin:21-jdk-alpine
     if: ${{ forgejo.ref_name == env.MAIN }}
     steps:
