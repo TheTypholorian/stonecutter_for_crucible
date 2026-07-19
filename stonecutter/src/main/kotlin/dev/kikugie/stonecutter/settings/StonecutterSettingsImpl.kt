@@ -9,10 +9,11 @@ import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.configureDefaults
-import dev.kikugie.stonecutter.controller.tree.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.createContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
+import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
+import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertyConfigImpl
@@ -20,7 +21,6 @@ import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesLoader
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.TreeBuilder
-import dev.kikugie.stonecutter.settings.tree.TreeBuilderContainer
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.isIdeaSync
 import dev.kikugie.stonecutter.util.projectDirectory
@@ -101,11 +101,8 @@ private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: B
         parameters.handlers.value(handlers.build()).finalizeValue()
     }
     sharedServices.registerIfAbsent(StonecutterErrorsService.NAME, StonecutterErrorsService::class) {
-        val trees = gradle.getContainer<ProjectNodeContainer>().values.asSequence().map { it.tree }.toSet()
-        for (tree in trees) {
-            val active = tree.current ?: tree.versions.first()
-            for (node in tree.nodes) parameters.active.put(node.hierarchy.toString(), node.metadata == active)
-        }
+        for (node in gradle.getContainer<ProjectNodeContainer>().collection)
+            parameters.active.put(node.hierarchy.path, node.metadata.isActive)
     }.let(registry::onTaskCompletion)
 }
 

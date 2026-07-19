@@ -4,6 +4,7 @@ import dev.kikugie.stitcher.util.isValidIdentifier
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.ProjectReference
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
+import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
@@ -11,6 +12,7 @@ import dev.kikugie.stonecutter.data.deserialization.deserialize
 import dev.kikugie.stonecutter.settings.StonecutterSettingsImpl
 import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Action
+import org.gradle.api.Named
 import org.gradle.api.initialization.ProjectDescriptor
 import org.gradle.api.initialization.Settings
 import org.gradle.api.model.ObjectFactory
@@ -24,7 +26,9 @@ import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.notExists
 
-internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory) : TreeBuilder() {
+internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory, hierarchy: ProjectHierarchy)
+    : TreeBuilder(), Named {
+    private val name: String = "TreeBuilderImpl@$hierarchy"
     internal var localBuildScriptProvider: ((Identifier, StonecutterProject) -> String)? = null
         private set
     internal val branchBuilders: MutableMap<Identifier, BranchBuilderImpl> = mutableMapOf()
@@ -53,6 +57,8 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
         tree.applyTo(this)
     }
 
+    override fun getName(): String = name
+
     internal fun getVcsProject(): StonecutterProject = knownVersions[resolveVcs()]!!
 
     internal fun getRootNodes(): List<NodeBuilderImpl> =
@@ -65,7 +71,7 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
 
     internal fun createWith(ext: StonecutterSettingsImpl, ref: ProjectReference) {
         val project = ext.settings.rootProject.resolve(ref, ext.settings)
-        ext.treeBuilderContainer[project.hierarchy] = this
+        ext.treeBuilderContainer += this
 
         val vcs = resolveVcs()
         val controller = controllerType(ext, project)

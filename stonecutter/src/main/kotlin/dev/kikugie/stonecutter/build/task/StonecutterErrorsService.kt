@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 
 internal abstract class StonecutterErrorsService : BuildService<StonecutterErrorsService.Parameters>, OperationCompletionListener {
-    private val printed: ConcurrentHashMap.KeySetView<ProblemReport?, Boolean?>? = ConcurrentHashMap.newKeySet<ProblemReport>()
+    private val printed: ConcurrentHashMap.KeySetView<ProblemReport, Boolean> = ConcurrentHashMap.newKeySet()
     private val buckets: ConcurrentHashMap<String, TaskBucket> = ConcurrentHashMap<String, TaskBucket>()
 
     override fun onFinish(event: FinishEvent) {
