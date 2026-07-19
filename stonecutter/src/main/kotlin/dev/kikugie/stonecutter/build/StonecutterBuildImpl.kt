@@ -26,9 +26,9 @@ import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.withType
 import javax.inject.Inject
 
-internal abstract class StonecutterBuildImpl private constructor(val project: Project, val config: StonecutterBuildConfiguration) :
-    StonecutterBuildExtension by config {
-    @Inject constructor(project: Project) : this(project, project.findConfig())
+internal abstract class StonecutterBuildImpl private constructor(val config: StonecutterBuildConfiguration)
+    : StonecutterBuildExtension by config {
+    @Inject constructor(project: Project) : this(project.findConfig())
     override val tasks: StonecutterBuildTasksImpl = project.objects.newInstance(this)
 
     init {

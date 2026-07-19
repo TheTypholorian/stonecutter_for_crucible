@@ -41,7 +41,7 @@ import java.nio.file.NoSuchFileException
 import javax.inject.Inject
 
 internal abstract class StonecutterBuildConfiguration @Inject constructor(
-    override val node: ProjectNode, val project: Project, objects: ObjectFactory
+    override val node: ProjectNode, override val project: Project, objects: ObjectFactory
 ) : Named, StonecutterBuildExtension, VersionOperations<Version> by LenientOperations {
     internal val controller: StonecutterControllerExtension = node.tree.project.the()
     internal val data: StonecutterBuildData = objects.newInstance(controller, current.version, project.providers)

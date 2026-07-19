@@ -33,6 +33,7 @@ import dev.kikugie.stonecutter.util.requestTasks
 import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Action
 import org.gradle.api.Project
+import org.gradle.api.configuration.BuildFeatures
 import org.gradle.api.file.RegularFile
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
@@ -55,6 +56,9 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     private val nodeContainer: ProjectNodeContainer = root.gradle.getContainer<ProjectNodeContainer>().also { it += tree }
     private var hasInitialized: Boolean = false
 
+    @get:Inject
+    protected abstract val buildFeatures: BuildFeatures
+
     init {
         root.afterEvaluate {
             if (!hasInitialized) {
@@ -73,8 +77,8 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
         check(!hasInitialized) { "Stonecutter has already been initialized!" }
         tree.assignActive(root, tasks, provider.resolveActive())
 
-        if (flags[StonecutterFlag.APPLY_PLUGIN_TO_NODES]) for (it in tree.nodes)
-            it.project.plugins.apply(StonecutterPlugin::class)
+        if (!buildFeatures.isolatedProjects.active.getOrElse(false) && flags[StonecutterFlag.APPLY_PLUGIN_TO_NODES])
+            for (it in tree.nodes) it.project.plugins.apply(StonecutterPlugin::class)
 
         if (tree.current != null) tree.createSwitchTasks(root, tasks)
         tree.createModelTasks(tasks)
