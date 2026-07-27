@@ -2,6 +2,7 @@ package dev.kikugie.stitcher.document.io
 
 import java.io.Reader
 
+/** A [Reader] implementation that converts any platform line separator to `\n`. */
 class LineNormalizingReader(private val source: Reader, lock: Any = source) : Reader(lock) {
     private var lastWasCR: Boolean = false
 

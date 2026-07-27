@@ -1,12 +1,11 @@
-package v2
+@file:Suppress("PublicApiImplicitType")
 
+import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.stitcher.document.io.LineNormalizingWriter
-import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.io.StringWriter
-import java.io.Writer
 
-class LineNormalizingWriterTest : FunSpec({
+val LineNormalizingWriterTest by testSuite {
     test("write empty") {
         "" write "\n" shouldBe ""
     }
@@ -38,7 +37,7 @@ class LineNormalizingWriterTest : FunSpec({
     test("write with CRLF to LF") {
         "Hello\r\nWorld!" write "\n" shouldBe "Hello\nWorld!"
     }
-})
+}
 
 private infix fun String.write(separator: String): String {
     val writer = StringWriter()

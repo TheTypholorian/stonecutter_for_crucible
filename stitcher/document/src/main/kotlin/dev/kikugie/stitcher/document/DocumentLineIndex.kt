@@ -7,7 +7,7 @@ package dev.kikugie.stitcher.document
  * @property length The number of characters in the document.
  */
 class DocumentLineIndex private constructor(val positions: List<Int>, val length: Int) {
-    constructor(text: String) : this(buildLineIndex(text), text.length)
+    constructor(text: CharSequence) : this(buildLineIndex(text), text.length)
 
     /**
      * Returns the [DocumentLocation] representing the line and column at the [index].
@@ -49,11 +49,11 @@ class DocumentLineIndex private constructor(val positions: List<Int>, val length
     }
 }
 
-private fun buildLineIndex(text: String): List<Int> =
+private fun buildLineIndex(text: CharSequence): List<Int> =
     if (text.isEmpty()) emptyList()
     else mutableListOf(0).apply { collectLineIndexes(this, text, 0) }
 
-private tailrec fun collectLineIndexes(list: MutableList<Int>, text: String, offset: Int): Unit = when (val it = text.indexOf('\n', offset)) {
+private tailrec fun collectLineIndexes(list: MutableList<Int>, text: CharSequence, offset: Int): Unit = when (val it = text.indexOf('\n', offset)) {
     -1 -> {}
     else -> collectLineIndexes(list, text, (it + 1).also(list::add))
 }

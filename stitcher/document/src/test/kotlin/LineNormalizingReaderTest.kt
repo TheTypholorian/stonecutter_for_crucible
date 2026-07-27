@@ -1,10 +1,10 @@
-package v2
+@file:Suppress("PublicApiImplicitType")
 
+import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.stitcher.document.io.LineNormalizingReader
-import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 
-class LineNormalizingReaderTest : FunSpec({
+val LineNormalizingReaderTest by testSuite {
     test("read empty") {
         "" shouldBeReadAs ""
     }
@@ -54,7 +54,7 @@ class LineNormalizingReaderTest : FunSpec({
         val reader = LineNormalizingReader("Hello!".reader())
         reader.read(CharArray(16), off = 0, len = 16) shouldBe 6
     }
-})
+}
 
 private infix fun String.shouldBeReadAs(other: String): String =
     LineNormalizingReader(reader()).readText() shouldBe other

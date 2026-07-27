@@ -1,10 +1,9 @@
 @file:Suppress("NOTHING_TO_INLINE")
 
-package dev.kikugie.stitcher.issue
+package dev.kikugie.stitcher.document.issue
 
-import dev.kikugie.commons.result.mapResult
 import dev.kikugie.stitcher.document.DocumentLocation
-import dev.kikugie.stitcher.document.link
+import dev.kikugie.stitcher.document.toUriString
 
 inline fun ProblemReporter.report(id: ProblemID, builder: ProblemReport.() -> Unit): Unit =
     create(id).apply(builder).let(::report)
@@ -31,4 +30,4 @@ inline fun <T> ProblemReporter.runCatching(action: ProblemReporter.() -> T): Res
 }
 
 context(report: ProblemReport)
-inline fun DocumentLocation.link(): String = report.doc.link(this)
+inline fun DocumentLocation.link(): String = report.doc.toUriString(this)

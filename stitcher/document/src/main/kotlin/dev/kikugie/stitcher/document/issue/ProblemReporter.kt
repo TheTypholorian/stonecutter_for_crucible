@@ -1,16 +1,11 @@
 @file:Suppress("NOTHING_TO_INLINE")
 
-package dev.kikugie.stitcher.issue
+package dev.kikugie.stitcher.document.issue
 
 @DslMarker
 @Retention(AnnotationRetention.SOURCE)
 @Target(AnnotationTarget.CLASS, AnnotationTarget.TYPEALIAS)
 private annotation class ProblemDsl
-
-@ProblemDsl
-fun interface ProblemConsumer {
-    fun accept(report: ProblemReport)
-}
 
 @ProblemDsl
 interface ProblemReporter {

@@ -2,6 +2,7 @@ package dev.kikugie.stitcher.document.io
 
 import java.io.Writer
 
+/** A [Writer] implementation that converts line breaks to the [separator] ([System.lineSeparator] by default). */
 class LineNormalizingWriter(private val destination: Writer, separator: String = System.lineSeparator(), lock: Any = destination) : Writer(lock) {
     private val separators: CharArray = separator.toCharArray()
     private var lastWasCR: Boolean = false

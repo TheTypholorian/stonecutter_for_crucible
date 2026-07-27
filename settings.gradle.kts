@@ -9,11 +9,12 @@ pluginManagement {
 dependencyResolutionManagement {
     repositories {
         mavenLocal()
+        mavenCentral()
         maven("https://maven.kikugie.dev/releases")
     }
 
     versionCatalogs {
-        create("common") { from("dev.kikugie:stonecutter-versions:1.12.0") }
+        create("common") { from("dev.kikugie:stonecutter-versions:1.14.0") }
     }
 }
 
@@ -23,4 +24,8 @@ plugins {
 
 rootProject.name = "Stonecutter"
 includeBuild("build-logic")
-include("stonecutter", "stitcher", "stitcher:antlr", "model")
+include(
+    "stonecutter",
+    "stitcher", "stitcher:common", "stitcher:antlr", "stitcher:document",
+    "model"
+)
