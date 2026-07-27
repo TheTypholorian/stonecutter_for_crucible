@@ -3,17 +3,13 @@ package dev.kikugie.stitcher.parser
 import dev.kikugie.commons.then
 import dev.kikugie.stitcher.antlr.StitcherLexer.Tokens
 import dev.kikugie.stitcher.document.Document
-import dev.kikugie.stitcher.issue.*
-import dev.kikugie.stitcher.token.LAYOUT_GROUP
-import dev.kikugie.stitcher.token.impl.BlockToken
-import dev.kikugie.stitcher.token.impl.DefinitionToken
-import dev.kikugie.stitcher.token.impl.DefinitionToken.Kind
-import dev.kikugie.stitcher.token.impl.LeafToken
-import dev.kikugie.stitcher.token.impl.ScopeToken
+import dev.kikugie.stitcher.document.issue.*
+import dev.kikugie.stitcher.token.*
+import dev.kikugie.stitcher.token.DefinitionToken.Kind
 import dev.kikugie.stitcher.util.LINE_BREAKS
 import dev.kikugie.stitcher.util.WHITESPACES
 import dev.kikugie.stitcher.util.titlecase
-import dev.kikugie.stitcher.util.unquote
+import java.util.*
 
 object FileAstParser {
     fun parse(stream: FileTokenStream): BlockToken.Root {
@@ -26,10 +22,9 @@ object FileAstParser {
 
 @JvmInline
 private value class ScopeBuilderStack private constructor(val deque: ArrayDeque<ScopeBuilder>) {
-    constructor(document: Document) : this(ArrayDeque(4)) {
-        deque += RootBuilder(document)
-    }
+    constructor(document: Document) : this(ArrayDeque(4)) { deque += RootBuilder(document) }
 
+    val document: Document inline get() = first.document
     val first: RootBuilder inline get() = deque.first() as RootBuilder
     val last: ScopeBuilder inline get() = deque.last()
 
@@ -102,7 +97,7 @@ private object BlockWrapper : BlockToken.Visitor<ScopeBuilder, Nothing?> {
         CommentBuilder(comment)
 
     override fun visitRoot(root: BlockToken.Root, ctx: Nothing?): ScopeBuilder =
-        RootBuilder(root.document)
+        RootBuilder(root.ref.document)
 
     override fun visitCode(code: BlockToken.Code, ctx: Nothing?): ScopeBuilder = when (code.marker.type.value) {
         Tokens.COND_MARK -> ConditionBuilder(code)
@@ -166,7 +161,6 @@ private sealed class CodeBuilder(override val stub: BlockToken.Code) : ScopeBuil
     override fun toString(): String = "CodeBuilder(stub=$stub)"
 
     override fun build(collector: MutableList<BlockToken>) {
-        // TODO: limit entries
         collector += stub.copy(scope = buildList { for (it in entries) it.build(this) })
         next?.build(collector)
     }
@@ -216,12 +210,10 @@ private sealed class CodeBuilder(override val stub: BlockToken.Code) : ScopeBuil
         else -> with(builder) {
             val leaf = stub.leaf
 
-            this@CodeBuilder += leaf.copy(end = leaf.start + split)
-                .apply { text = text.take(split) }
+            this@CodeBuilder += leaf.copy(ref = leaf.ref.copy(end = leaf.start + split))
                 .let { ContentBuilder(BlockToken.Content(it)) }
             effectiveScopeSize = entries.size
-            leaf.copy(start = leaf.start + split)
-                .apply { text = text.drop(split) }
+            leaf.copy(ref = leaf.ref.copy(start = leaf.start + split))
                 .let { AcceptResult.Partial(ContentBuilder(BlockToken.Content(it))) }
         }
     }
@@ -234,12 +226,10 @@ private sealed class CodeBuilder(override val stub: BlockToken.Code) : ScopeBuil
         else -> with(builder) {
             val body = stub.body
 
-            this@CodeBuilder += body.copy(end = body.start + split)
-                .apply { text = text.take(split) }
+            this@CodeBuilder += body.copy(ref = body.ref.copy(end = body.start + split))
                 .let { CommentBuilder(stub.copy(body = it, closer = null)) }
             effectiveScopeSize = entries.size
-            body.copy(start = body.start + split)
-                .apply { text = text.drop(split) }
+            body.copy(ref = body.ref.copy(end = body.start + split))
                 .let { AcceptResult.Partial(CommentBuilder(stub.copy(body = it, opener = null))) }
         }
     }
@@ -358,7 +348,8 @@ private class SwapBuilder(stub: BlockToken.Code) : CodeBuilder(stub) {
 
 //<editor-fold desc="=#= Problem reports =#=">
 private fun ProblemReporter.reportConsumedRoot(location: ScopeBuilder? = null): Unit = report(LAYOUT_GROUP + "consumed-root") {
-    if (location != null) loc = doc.locate(location.blame)
+    if (location != null) at = location.stub.ref
+
     label = "Consumed root scope"
     info = "Parser got hungry and ate the whole AST (っ´ཀ`)っ."
     hint = """
@@ -369,43 +360,47 @@ private fun ProblemReporter.reportConsumedRoot(location: ScopeBuilder? = null): 
 
 context(parent: RootBuilder)
 private fun ProblemReporter.reportRootCloser(code: CodeBuilder): Unit = report(LAYOUT_GROUP + "unmatched-root-closer") {
-    loc = doc.locate(code.blame)
+    at = code.stub.ref
+
     label = "Unmatched ${code.name} closer"
     info = "${code.title} must have a corresponding `${code.marker.text} ... {` comment."
 
     val candidate = parent.findRootCloserCandidate(code)
     if (candidate != null) hint = buildString {
         appendLine("${code.title} at this location may need to end with `{`:")
-        append(doc.locate(candidate.stub.host.body.end).link())
+        append(parent.stub.ref.toUriString())
     }
 }
 
 context(parent: CodeBuilder)
 private fun ProblemReporter.reportSwapNesting(code: CodeBuilder): Unit = report(LAYOUT_GROUP + "swap-nesting") {
-    loc = doc.locate(code.blame)
+    at = code.stub.ref
+
     label = "Ignored ${code.name}"
     info = "${code.title}s and other statements are not processed inside ${parent.name} scopes."
     hint = buildString {
         appendLine("${parent.title} scope is defined at this location:")
-        append(doc.locate(parent.blame).link())
+        append(parent.stub.ref.toUriString())
     }
-    sev = ProblemSeverity.WARN
+    severity = ProblemReport.Severity.WARN
 }
 
 context(parent: CodeBuilder)
 private fun ProblemReporter.reportInvalidCloserType(code: CodeBuilder): Unit = report(LAYOUT_GROUP + "mismatched-closer-type") {
-    loc = doc.locate(code.blame)
+    at = code.marker.ref
+
     label = "Mismatched closer type"
     info = "${parent.title} can't be closed with a ${code.title} marker."
     hint = buildString {
         appendLine("${parent.title} at this location needs to be closed with `${parent.marker.text}}`:")
-        append(doc.locate(parent.blame).link())
+        append(parent.stub.ref.toUriString())
     }
 }
 
 context(parent: CodeBuilder)
 private fun ProblemReporter.reportMissingClosingBracket(code: CodeBuilder): Unit = report(LAYOUT_GROUP + "mismatched-extension-closer") {
-    loc = doc.locate(code.blame)
+    at = code.marker.ref.run { copy(start = end) }
+
     label = "Unmatched extension"
     info = "${code.title} doesn't follow a line or lookup ${parent.name}."
     hint = "Start this ${code.name} with `${code.marker.text}}`."
@@ -488,7 +483,7 @@ private infix fun CodeBuilder.sameAs(other: CodeBuilder): Boolean =
     marker.type == other.marker.type
 
 private val ScopeBuilder.document: Document
-    inline get() = stub.document
+    inline get() = stub.ref.document
 
 private val ScopeBuilder.title: String
     inline get() = name.titlecase()
@@ -506,8 +501,8 @@ private val ScopeBuilder.name: String
 
 private val ScopeBuilder.blame: Int
     get() = when (this) {
-        is ContentBuilder -> stub.start
-        is CommentBuilder -> stub.start
+        is ContentBuilder -> stub.leaf.start
+        is CommentBuilder -> stub.body.start
         is CodeBuilder -> marker.start
         is RootBuilder -> 0
     }

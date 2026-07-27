@@ -40,6 +40,9 @@ fun Document.toUriString(location: DocumentLocation): String = buildString {
 inline fun Document.reference(start: Int, end: Int = start): DocumentReference =
     DocumentReference(this, start, end)
 
+inline fun Document.reference(range: OpenEndRange<Int>): DocumentReference =
+    DocumentReference(this, range.start, range.endExclusive)
+
 inline fun Document.appendTo(builder: Appendable, range: OpenEndRange<Int>): Unit =
     appendTo(builder, range.start, range.endExclusive)
 

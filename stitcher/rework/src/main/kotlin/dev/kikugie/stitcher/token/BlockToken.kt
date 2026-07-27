@@ -1,6 +1,8 @@
 package dev.kikugie.stitcher.token
 
+import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.DocumentReference
+import dev.kikugie.stitcher.document.reference
 import dev.kikugie.stitcher.token.type.BuiltinTokenType
 
 sealed interface BlockToken : StitcherToken {
@@ -36,8 +38,9 @@ sealed interface BlockToken : StitcherToken {
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitCode(this, ctx)
     }
 
-    data class Root(override val ref: DocumentReference, val scope: List<BlockToken>) : BlockToken {
+    data class Root(val document: Document, val scope: List<BlockToken>) : BlockToken {
         override val type: BuiltinTokenType get() = BuiltinTokenType.ROOT
+        override val ref: DocumentReference = document.reference(0, document.length)
 
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitRoot(this, ctx)
     }

@@ -22,4 +22,3 @@ class InlineTokenFactory(val lineIndex: Int, val charOffset: Int) : CommonTokenF
         return super.create(source, type, text, channel, start, stop, line, offset)
     }
 }
-

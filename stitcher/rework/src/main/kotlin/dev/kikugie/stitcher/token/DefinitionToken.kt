@@ -142,23 +142,20 @@ sealed interface DefinitionToken : StitcherToken {
         val sugar: LeafToken, val expression: ExpressionToken,
         val entries: List<Entry>, override val opener: ScopeToken?
     ) : Replacement {
-        override val type: BuiltinTokenType get() = NativeStitcherType.REPL_LOCAL
-        override val start: Int get() = sugar.start
-        override val end: Int get() = opener?.end ?: entries.last().end
+        override val type: BuiltinTokenType get() = BuiltinTokenType.REPL_LOCAL
         override val kind: Kind = if (opener is ScopeToken.Named) Kind.INDEPENDENT else opener.openerKind()
 
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitReplacementLocal(this, ctx)
 
         data class Entry(val source: LeafToken, val dir: LeafToken, val target: LeafToken, val comma: LeafToken?) : StitcherToken {
-            override val type: StitcherType get() = NativeStitcherType.REPL_LOCAL_ENTRY
-            override val start: Int get() = source.start
-            override val end: Int get() = comma?.end ?: target.end
+            override val type: BuiltinTokenType get() = BuiltinTokenType.REPL_LOCAL_ENTRY
+
             fun <T, C> accept(visitor: StitcherToken.Visitor<Entry, T, C>, ctx: C): T = visitor.visitToken(this, ctx)
         }
     }
 
     data class ReplacementCloser(override val closer: LeafToken) : Replacement, StitcherToken by closer {
-        override val type: StitcherType get() = NativeStitcherType.REPL_CLOSE
+        override val type: BuiltinTokenType get() = BuiltinTokenType.REPL_CLOSE
         override val kind: Kind get() = Kind.CLOSER
 
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitReplacementCloser(this, ctx)
