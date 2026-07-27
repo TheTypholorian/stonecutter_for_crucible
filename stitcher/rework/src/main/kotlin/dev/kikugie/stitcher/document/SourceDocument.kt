@@ -1,6 +1,5 @@
 package dev.kikugie.stitcher.document
 
-import dev.kikugie.stitcher.document.issue.ProblemID
 import dev.kikugie.stitcher.document.issue.ProblemReport
 import dev.kikugie.stitcher.document.issue.ProblemReporter
 import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
@@ -26,9 +25,6 @@ class SourceDocument(override val file: Path, val text: CharSequence, private va
 
     override fun mark(): ProblemReporter.Marker =
         ProblemMarker(problemCounter)
-
-    override fun create(id: ProblemID): ProblemReport =
-        ProblemReport(id, this)
 
     override fun report(report: ProblemReport) {
         if (report.severity == ProblemReport.Severity.ERROR) problemCounter++

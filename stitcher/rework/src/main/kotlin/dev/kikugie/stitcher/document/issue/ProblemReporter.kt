@@ -10,7 +10,6 @@ private annotation class ProblemDsl
 @ProblemDsl
 interface ProblemReporter {
     fun mark(): Marker
-    fun create(id: ProblemID): ProblemReport
     fun report(report: ProblemReport)
 
     fun interface Marker {

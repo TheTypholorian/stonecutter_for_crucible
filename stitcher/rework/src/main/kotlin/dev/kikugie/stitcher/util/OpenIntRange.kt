@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.util
 
+/** [IntRange] if it wasn't cringe. */
 interface OpenIntRange : OpenEndRange<Int>, ClosedRange<Int> {
     val end: Int
 

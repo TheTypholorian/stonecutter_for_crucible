@@ -2,11 +2,8 @@
 
 package dev.kikugie.stitcher.document.issue
 
-import dev.kikugie.stitcher.document.DocumentLocation
-import dev.kikugie.stitcher.document.toUriString
-
 inline fun ProblemReporter.report(id: ProblemID, builder: ProblemReport.() -> Unit): Unit =
-    create(id).apply(builder).let(::report)
+    ProblemReport(id).apply(builder).let(this::report)
 
 inline fun ProblemReporter.bail(id: ProblemID, builder: ProblemReport.() -> Unit): Nothing {
     report(id, builder)
@@ -28,6 +25,3 @@ inline fun <T> ProblemReporter.runCatching(action: ProblemReporter.() -> T): Res
 } catch (e: RuntimeException) {
     Result.failure(e)
 }
-
-context(report: ProblemReport)
-inline fun DocumentLocation.link(): String = report.doc.toUriString(this)

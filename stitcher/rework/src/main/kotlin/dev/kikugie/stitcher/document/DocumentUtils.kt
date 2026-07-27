@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package dev.kikugie.stitcher.document
 
 import kotlin.io.path.absolutePathString
@@ -34,6 +36,12 @@ fun Document.toUriString(location: DocumentLocation): String = buildString {
     if (location.isKnown)
         append(':', location.line, ':', location.column)
 }
+
+inline fun Document.reference(start: Int, end: Int = start): DocumentReference =
+    DocumentReference(this, start, end)
+
+inline fun Document.appendTo(builder: Appendable, range: OpenEndRange<Int>): Unit =
+    appendTo(builder, range.start, range.endExclusive)
 
 private tailrec fun calculateMinOffset(doc: InjectedDocument, offset: Int): Int = when (val parent = doc.parent) {
     is InjectedDocument -> calculateMinOffset(parent, offset - doc.start)

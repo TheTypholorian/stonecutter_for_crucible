@@ -5,7 +5,7 @@ import dev.kikugie.stitcher.document.toUriString
 
 object FullProblemFormatter : ProblemFormatter {
     override fun format(report: ProblemReport): String = buildString {
-        append(report.prefix, ": ", report.doc.toUriString(report.at), ' ', report.decorateLabel(), '\n')
+        append(report.prefix, ": ", report.at.toUriString(), ' ', report.decorateLabel(), '\n')
         report.info?.let { appendLines(it, "> ") }
         report.hint?.let { appendLines(it.replaceFirstChar(Char::lowercaseChar), "- Hint: ") }
         report.docs?.let { appendLines(it.replaceFirstChar(Char::lowercaseChar), "- Docs: ") }
@@ -22,8 +22,8 @@ object FullProblemFormatter : ProblemFormatter {
         }
 
     private fun ProblemReport.decorateLabel(): String =
-        if (!at.line.rhymes()) label
-        else "~\n\u001B[41m\u001B[97mRoses are red\u001B[0m; \u001B[46m\u001B[97mViolets are blue\u001B[0m; $label on line ${at.line}"
+        if (!at.location.line.rhymes()) label
+        else "~\n\u001B[41m\u001B[97mRoses are red\u001B[0m; \u001B[46m\u001B[97mViolets are blue\u001B[0m; $label on line ${at.location.line}"
 
     private fun StringBuilder.appendLines(text: String, init: String, follow: String = "  ") {
         for ((index, line) in text.lineSequence().withIndex())
