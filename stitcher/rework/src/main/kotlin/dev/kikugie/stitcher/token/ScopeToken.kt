@@ -1,8 +1,6 @@
-package dev.kikugie.stitcher.token.impl
+package dev.kikugie.stitcher.token
 
-import dev.kikugie.stitcher.token.NativeStitcherType
-import dev.kikugie.stitcher.token.StitcherToken
-import dev.kikugie.stitcher.util.lastNotNull
+import dev.kikugie.stitcher.token.type.BuiltinTokenType
 
 sealed interface ScopeToken : StitcherToken {
     fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T
@@ -13,22 +11,21 @@ sealed interface ScopeToken : StitcherToken {
         fun visitNamed(scope: Named, ctx: C): T
     }
 
-    data class Closed(val marker: LeafToken) : ScopeToken, StitcherToken by marker {
-        override val type: NativeStitcherType get() = NativeStitcherType.CLOSED_SCOPE
+    data class Closed(val token: LeafToken) : ScopeToken {
+        override val type: BuiltinTokenType get() = BuiltinTokenType.CLOSED_SCOPE
+
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitClosed(this, ctx)
     }
 
     data class Lookup(val marker: LeafToken, val plus: LeafToken? = null, val lookup: LeafToken? = null) : ScopeToken {
-        override val type: NativeStitcherType get() = NativeStitcherType.LOOKUP_SCOPE
-        override val start: Int get() = marker.start
-        override val end: Int = lastNotNull(marker, plus, lookup).end
+        override val type: BuiltinTokenType get() = BuiltinTokenType.LOOKUP_SCOPE
+
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitLookup(this, ctx)
     }
 
     data class Named(val marker: LeafToken, val identifier: LeafToken) : ScopeToken {
-        override val type: NativeStitcherType get() = NativeStitcherType.NAMED_SCOPE
-        override val start: Int get() = marker.start
-        override val end: Int get() = identifier.end
+        override val type: BuiltinTokenType get() = BuiltinTokenType.NAMED_SCOPE
+
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitNamed(this, ctx)
     }
 }
