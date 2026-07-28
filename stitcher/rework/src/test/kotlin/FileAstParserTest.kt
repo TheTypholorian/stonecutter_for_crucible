@@ -223,7 +223,7 @@ val FileAstParserTest by testSuite {
                 code<ConditionOpener> {
                     check { definition.kind shouldBe Kind.SCOPED_OPENER }
 
-                    content { leaf.text.shouldBeEmpty() }
+                    content { leaf.text.shouldBeBlank() }
                     code<ConditionOpener> {
                         check { definition.kind shouldBe Kind.SCOPED_OPENER }
 
@@ -245,12 +245,13 @@ val FileAstParserTest by testSuite {
                 code<ConditionOpener> {
                     check { definition.kind shouldBe Kind.SCOPED_OPENER }
 
-                    content { leaf.text.shouldBeEmpty() }
+                    content { leaf.text.shouldBeBlank() }
                     code<ConditionOpener> {
                         check { definition.kind shouldBe Kind.LINE_OPENER }
 
                         content()
                     }
+                    content { leaf.text.shouldBeBlank() }
                 }
                 code<ConditionCloser>()
             }
@@ -265,7 +266,7 @@ val FileAstParserTest by testSuite {
                 code<ConditionOpener> {
                     check { definition.kind shouldBe Kind.LINE_OPENER }
 
-                    content { leaf.text.shouldBeEmpty() }
+                    content { leaf.text.shouldBeBlank() }
                     code<ConditionOpener> {
                         check { definition.kind shouldBe Kind.LINE_OPENER }
 
@@ -298,6 +299,7 @@ val FileAstParserTest by testSuite {
 
                         content { leaf.text.shouldBeBlank() }
                         comment()
+                        content { leaf.text.shouldBeBlank() }
                     }
                     code<ConditionCloser>()
                 }
