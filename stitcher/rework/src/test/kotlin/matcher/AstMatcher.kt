@@ -9,14 +9,14 @@ import kotlin.reflect.KClass
 
 @DslMarker
 @Retention(AnnotationRetention.SOURCE)
-private annotation class BlockTokenMatcherDsl
+private annotation class TokenMatcherDsl
 
 private val DO_NOTHING: Any?.() -> Unit = {}
 
 inline fun ast(builder: RootMatcher.() -> Unit): RootMatcher =
     RootMatcher().apply(builder)
 
-@BlockTokenMatcherDsl
+@TokenMatcherDsl
 sealed class BlockTokenMatcher {
     abstract fun test(token: BlockToken)
 }
@@ -40,7 +40,7 @@ class CommentMatcher : BlockTokenMatcher() {
 class RootMatcher : BlockTokenMatcher() {
     val entries: MutableList<BlockTokenMatcher> = ArrayList()
 
-    inline fun <reified T : DefinitionToken> code(builder: CodeMatcher.() -> Unit): CodeMatcher =
+    inline fun <reified T : DefinitionToken> code(builder: CodeMatcher.() -> Unit = {}): CodeMatcher =
         CodeMatcher(T::class).apply(builder).also { entries += it }
 
     fun content(action: BlockToken.Content.() -> Unit = DO_NOTHING): ContentMatcher =
@@ -62,7 +62,7 @@ class CodeMatcher(val type: KClass<out DefinitionToken>) : BlockTokenMatcher() {
     var check: BlockToken.Code.() -> Unit = DO_NOTHING
     val entries: MutableList<BlockTokenMatcher> = ArrayList()
 
-    inline fun <reified T : DefinitionToken> code(builder: CodeMatcher.() -> Unit): CodeMatcher =
+    inline fun <reified T : DefinitionToken> code(builder: CodeMatcher.() -> Unit = {}): CodeMatcher =
         CodeMatcher(T::class).apply(builder).also { entries += it }
 
     fun content(action: BlockToken.Content.() -> Unit = DO_NOTHING): ContentMatcher =
