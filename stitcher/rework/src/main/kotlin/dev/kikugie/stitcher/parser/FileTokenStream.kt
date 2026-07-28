@@ -47,10 +47,14 @@ class FileTokenStream(val document: Document, val stream: TokenStream) {
         if (it != null) consume()
     }
 
+    fun insert(token: BlockToken) {
+        buffer.add(cursor - base, token)
+    }
+
     private fun fill(target: Int): Boolean {
         while (!exhausted && base + buffer.size <= target)
             buffer += processNext() ?: run { exhausted = true; break }
-        return !exhausted
+        return target < base + buffer.size
     }
 
     private tailrec fun processNext(): BlockToken? = when (stream.LA(1)) {

@@ -11,4 +11,11 @@ data class AntlrTokenType private constructor(override val value: Int, override 
 
         @JvmStatic fun of(type: Int): AntlrTokenType = TYPES[type - 1]
     }
+
+    override fun equals(other: Any?): Boolean =
+        this === other || other is AntlrTokenType && value == other.value
+
+    override fun hashCode(): Int {
+        return value
+    }
 }

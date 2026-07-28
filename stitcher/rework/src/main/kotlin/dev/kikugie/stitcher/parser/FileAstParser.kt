@@ -2,6 +2,8 @@
 
 package dev.kikugie.stitcher.parser
 
+import dev.kikugie.commons.takeAsOrNull
+import dev.kikugie.stitcher.antlr.AntlrToken
 import dev.kikugie.stitcher.antlr.StitcherParser.Tokens
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.DocumentReference
@@ -15,9 +17,11 @@ import dev.kikugie.stitcher.token.LeafToken
 import dev.kikugie.stitcher.token.ScopeToken
 import dev.kikugie.stitcher.token.typeValue
 import dev.kikugie.stitcher.token.unquote
+import dev.kikugie.stitcher.token.withRef
 import dev.kikugie.stitcher.util.findLineSplit
 import dev.kikugie.stitcher.util.findLookupSplit
 import dev.kikugie.stitcher.util.findWordSplit
+import dev.kikugie.stitcher.util.length
 import dev.kikugie.stitcher.util.titlecase
 
 object FileAstParser {
@@ -71,15 +75,14 @@ private class RootBuilder(document: Document) : ScopeBuilder() {
     val entries: MutableList<ScopeBuilder> = ArrayList()
 
     override fun accept(stream: FileTokenStream) {
-        while (true) acceptBuilder(ScopeBuilder(stream.advance() ?: break), stream)
+        while (true) acceptToken(stream.advance() ?: break, stream)
     }
 
     override fun build(): BlockToken.Root =
         stub.copy(scope = entries.map(ScopeBuilder::build))
 
-    private fun acceptBuilder(builder: ScopeBuilder, stream: FileTokenStream) {
-        if (builder is CodeBuilder && builder.kind.isCloser)
-            reportRootCloser(builder)
+    private fun acceptToken(token: BlockToken, stream: FileTokenStream) {
+        val builder = ScopeBuilder(token)
 
         entries += builder
         builder.accept(stream)
@@ -93,8 +96,11 @@ private sealed class CodeBuilder(override val stub: BlockToken.Code, override va
     val definition: DefinitionToken inline get() = stub.definition
     val kind: Kind inline get() = definition.kind
 
-    protected var eagerLookupMatch: Boolean = false
+    protected var scopeIsNotBlank: Boolean = false
     protected var satisfiedLookup: Boolean = false
+
+    override fun build(): BlockToken =
+        stub.copy(scope = entries.map(ScopeBuilder::build))
 
     override fun accept(stream: FileTokenStream): Unit = when (kind) {
         Kind.SCOPED_OPENER, Kind.SCOPED_EXTENSION -> acceptScoped(stream)
@@ -106,20 +112,79 @@ private sealed class CodeBuilder(override val stub: BlockToken.Code, override va
     protected fun acceptScoped(stream: FileTokenStream) {
         while (true) when (val next: BlockToken = stream.peek(1) ?: break) {
             is BlockToken.Code if (next.marker.type == marker.type && next.definition.kind.isCloser) -> break
-            else -> acceptBuilder(ScopeBuilder(next), stream)
+            else -> acceptToken(next, stream)
         }
     }
 
     protected fun acceptLine(stream: FileTokenStream) {
+        while (true) when (val next: BlockToken = stream.peek(1) ?: break) {
+            is BlockToken.Content -> next.findLineSplit(scopeIsNotBlank).let {
+                acceptSplitContent(next, stream, it)
+                if (it >= 0) break
+            }
 
+            is BlockToken.Comment -> next.findLineSplit(scopeIsNotBlank).let {
+                acceptSplitComment(next, stream, it)
+                if (it >= 0) break
+            }
+
+            else -> TODO()
+        }
     }
 
     protected fun acceptLookup(stream: FileTokenStream) {
+        while (true) when (val next: BlockToken = stream.peek(1) ?: break) {
+            is BlockToken.Content -> next.findLookupSplit().let {
+                acceptSplitContent(next, stream, it)
+                if (it >= 0) break
+            }
 
+            is BlockToken.Comment -> next.findLookupSplit().let {
+                acceptSplitComment(next, stream, it)
+                if (it >= 0) break
+            }
+
+            else -> TODO()
+        }
     }
 
-    protected fun acceptBuilder(builder: ScopeBuilder, stream: FileTokenStream) {
+    protected fun acceptToken(token: BlockToken, stream: FileTokenStream) {
+        val builder = ScopeBuilder(token)
+        entries += builder
+        scopeIsNotBlank = scopeIsNotBlank || when (builder) {
+            is ContentBuilder -> builder.text.isNotBlank()
+            is CommentBuilder -> builder.text.isNotBlank()
+            else -> true
+        }
 
+        stream.consume()
+        builder.accept(stream)
+    }
+
+    private fun acceptSplitContent(token: BlockToken.Content, stream: FileTokenStream, split: Int): Unit = when (split) {
+        0 -> Unit
+        AntlrToken.EOF -> acceptToken(token, stream)
+        token.leaf.length -> acceptToken(token, stream).also { satisfiedLookup = true }
+        else -> with(token) {
+            val prev = leaf.withRef { copy(end = start + split) }
+            acceptToken(copy(leaf = prev), stream)
+
+            val next = leaf.withRef { copy(start = start + split) }
+            stream.insert(copy(leaf = next))
+        }
+    }
+
+    private fun acceptSplitComment(token: BlockToken.Comment, stream: FileTokenStream, split: Int): Unit = when (split) {
+        0 -> Unit
+        AntlrToken.EOF -> acceptToken(token, stream)
+        token.body.length -> acceptToken(token, stream).also { satisfiedLookup = true }
+        else -> with(token) {
+            val prev = body.withRef { copy(end = start + split) }
+            acceptToken(copy(body = prev, closer = null), stream)
+
+            val next = body.withRef { copy(start = start + split) }
+            stream.insert(copy(body = next, opener = null))
+        }
     }
 }
 
@@ -127,7 +192,6 @@ private class SwapBuilder(stub: BlockToken.Code, parent: ScopeBuilder) : CodeBui
 }
 
 private class ConditionBuilder(stub: BlockToken.Code, parent: ScopeBuilder) : CodeBuilder(stub, parent) {
-
 }
 
 private class ReplacementBuilder(stub: BlockToken.Code, parent: ScopeBuilder) : CodeBuilder(stub, parent) {
@@ -154,29 +218,27 @@ private fun ScopeBuilder.name(): String = when (this) {
     is RootBuilder -> "root"
 }
 
-private fun CodeBuilder.findScopeSplit(content: BlockToken.Content, immediate: Boolean): Int = when (val op: ScopeToken? = definition.opener) {
-    is ScopeToken.Lookup -> {
-        val lookup: String? = op.lookup?.unquote()
-        if (lookup == null) content.leaf.text.findWordSplit()
-        else content.leaf.text.findLookupSplit(lookup, op.plus != null)
-    }
+private fun BlockToken.Content.findLineSplit(immediate: Boolean): Int =
+    leaf.text.findLineSplit(immediate)
 
-    null -> content.leaf.text.findLineSplit(immediate)
-    else -> -1
+private fun BlockToken.Comment.findLineSplit(immediate: Boolean): Int {
+    val split = body.text.findLineSplit(immediate)
+    return if (split >= 0 || body.text.isBlank() || '\n' !in opener?.text.orEmpty()) split else body.text.length
 }
 
-private fun CodeBuilder.findScopeSplit(comment: BlockToken.Comment, immediate: Boolean): Int = when (val op: ScopeToken? = definition.opener) {
-    is ScopeToken.Lookup -> {
-        val lookup: String? = op.lookup?.unquote()
-        if (lookup == null) comment.body.text.findWordSplit()
-        else comment.body.text.findLookupSplit(lookup, op.plus != null)
-    }
+context(code: CodeBuilder)
+private fun BlockToken.Content.findLookupSplit(): Int =
+    findLookupSplit(code.definition.opener, leaf.text)
 
-    null -> {
-        val split = comment.body.text.findLineSplit(immediate)
-        if (split >= 0 || comment.body.text.isBlank() || '\n' !in comment.opener?.text.orEmpty()) split
-        else comment.body.text.length
-    }
+context(code: CodeBuilder)
+private fun BlockToken.Comment.findLookupSplit(): Int =
+    findLookupSplit(code.definition.opener, body.text)
 
-    else -> -1
+
+private fun findLookupSplit(opener: ScopeToken?, text: String): Int {
+    if (opener !is ScopeToken.Lookup) return -1
+
+    val lookup: String? = opener.lookup?.unquote()
+    return if (lookup == null) text.findWordSplit()
+    else text.findLookupSplit(lookup, opener.plus != null)
 }

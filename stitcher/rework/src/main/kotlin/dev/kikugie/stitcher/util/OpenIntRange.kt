@@ -15,3 +15,6 @@ interface OpenIntRange : OpenEndRange<Int>, ClosedRange<Int> {
     override fun isEmpty(): Boolean = super<ClosedRange>.isEmpty()
     override fun contains(value: Int): Boolean = super<OpenEndRange>.contains(value)
 }
+
+val OpenEndRange<Int>.length: Int
+    inline get() = endExclusive - start
