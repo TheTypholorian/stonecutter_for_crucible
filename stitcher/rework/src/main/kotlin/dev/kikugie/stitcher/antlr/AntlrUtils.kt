@@ -1,16 +1,9 @@
 package dev.kikugie.stitcher.antlr
 
-import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.token.LeafToken
-import dev.kikugie.stitcher.token.StitcherToken
 import dev.kikugie.stitcher.token.type.StitcherTokenType
-import org.antlr.v4.runtime.ANTLRErrorListener
-import org.antlr.v4.runtime.CharStream
-import org.antlr.v4.runtime.Recognizer
-import org.antlr.v4.runtime.Token
-import org.antlr.v4.runtime.TokenFactory
-import org.antlr.v4.runtime.TokenSource
+import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.Pair
 
 typealias AntlrToken = Token

@@ -1,7 +1,6 @@
 package dev.kikugie.stitcher.document.issue.output
 
 import dev.kikugie.stitcher.document.issue.ProblemReport
-import dev.kikugie.stitcher.document.toUriString
 
 object FullProblemFormatter : ProblemFormatter {
     override fun format(report: ProblemReport): String = buildString {
