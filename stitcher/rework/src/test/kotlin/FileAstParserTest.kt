@@ -5,6 +5,7 @@ import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.stitcher.antlr.StitcherErrorListener
 import dev.kikugie.stitcher.antlr.errorListener
 import dev.kikugie.stitcher.document.SourceDocument
+import dev.kikugie.stitcher.document.issue.LAYOUT_GROUP
 import dev.kikugie.stitcher.document.issue.ProblemReport
 import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
 import dev.kikugie.stitcher.document.issue.runThrowing
@@ -20,6 +21,9 @@ import dev.kikugie.stitcher.token.DefinitionToken.SwapCloser
 import dev.kikugie.stitcher.token.DefinitionToken.SwapOpener
 import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.matchers.collections.shouldBeOneOf
+import io.kotest.matchers.collections.shouldNotBeEmpty
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldBeBlank
 import io.kotest.matchers.string.shouldBeEmpty
@@ -32,6 +36,8 @@ import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.UnbufferedTokenStream
 import org.intellij.lang.annotations.Language
+import util.shouldHave
+import util.shouldNotHave
 import kotlin.io.path.Path
 
 val FileAstParserTest by testSuite {
@@ -334,6 +340,43 @@ val FileAstParserTest by testSuite {
                 }
             }
         }
+
+        test("interrupted line -> line nesting") {
+            """
+                //? if true
+                    func()//? if true
+                    println("ON")
+            """.trimIndent() shouldBeParsedAs ast {
+                code<ConditionOpener> {
+                    check { definition.kind shouldBe Kind.LINE_OPENER }
+
+                    content()
+                }
+                code<ConditionOpener> {
+                    check { definition.kind shouldBe Kind.LINE_OPENER }
+
+                    content()
+                }
+            }
+        }
+
+        test("unfinished closed -> line nesting") {
+            """
+                //? if true {
+                    //$ id
+                    func()//?}
+            """.trimIndent() shouldBeParsedAs ast {
+                code<ConditionOpener> {
+                    check { definition.kind shouldBe Kind.LINE_OPENER }
+
+                    content { leaf.text.shouldBeBlank() }
+                    code<SwapOpener> {
+                        content()
+                    }
+                }
+                code<ConditionCloser>()
+            }
+        }
     }
 
     testSuite("swaps") {
@@ -398,6 +441,162 @@ val FileAstParserTest by testSuite {
             }
         }
     }
+
+    testSuite("reported cases") {
+        test("root closer ignoring other types") {
+            """
+                //$ id {
+                func()
+                //$}
+                //?}
+            """.trimIndent() shouldHaveProblems {
+                shouldHave(LAYOUT_GROUP + "unmatched-root-closer") {
+                    hint.shouldBeNull()
+                }
+            }
+        }
+
+        test("root closer with a candidate") {
+            """
+                //? if true
+                func()
+                //?}
+            """.trimIndent() shouldHaveProblems {
+                shouldHave(LAYOUT_GROUP + "unmatched-root-closer") {
+                    hint.shouldNotBeNull()
+                }
+            }
+        }
+
+        test("root closer with a nested candidate") {
+            """
+                //? if true {
+                //? if true
+                func()
+                //?}
+                //?}
+            """.trimIndent() shouldHaveProblems {
+                shouldHave(LAYOUT_GROUP + "unmatched-root-closer") {
+                    hint.shouldNotBeNull()
+                }
+            }
+        }
+
+        test("missing closing bracket") {
+            """
+                //? if true {
+                func()
+            """.trimIndent() shouldHaveProblems {
+                shouldHave(LAYOUT_GROUP + "missing-scope-closer") {
+                    hint.shouldNotBeNull()
+                }
+            }
+        }
+
+        test("missing closing bracket in swap scope") {
+            """
+                //$ id {
+                //? if true {
+                func()
+                //$}
+            """.trimIndent() shouldHaveProblems {
+                shouldNotBeEmpty()
+                shouldNotHave(LAYOUT_GROUP + "missing-scope-closer")
+            }
+        }
+
+        test("code builders in swap scope") {
+            """
+                //$ id {
+                //? if true {
+                func()
+                //$}
+            """.trimIndent() shouldHaveProblems {
+                shouldHave(LAYOUT_GROUP + "definition-in-swap-scope") {
+                    severity shouldBe ProblemReport.Severity.WARN
+                }
+            }
+        }
+
+        test("invalid closer type") {
+            """
+                //? if true {
+                //~}
+            """.trimIndent() shouldHaveProblems {
+                shouldHave(LAYOUT_GROUP + "mismatched-closer-type")
+            }
+        }
+
+        test("invalid closer type ignored for open scope") {
+            """
+                //? if true
+                func()//~}
+            """.trimIndent() shouldHaveProblems {
+                shouldNotBeEmpty()
+                shouldNotHave(LAYOUT_GROUP + "mismatched-closer-type")
+            }
+        }
+
+        test("invalid closer type ignored for swap scope") {
+            """
+                //$ id {
+                //?}
+                func()
+                //$}
+            """.trimIndent() shouldHaveProblems {
+                shouldNotBeEmpty()
+                shouldNotHave(LAYOUT_GROUP + "mismatched-closer-type")
+            }
+        }
+
+        test("string lookup not found") {
+            """
+                //? if true >> 'A'
+                func()
+            """.trimIndent() shouldHaveProblems {
+                shouldHave(LAYOUT_GROUP + "lookup-not-found") {
+                    hint.shouldBeNull()
+                }
+            }
+        }
+
+        test("string lookup interrupted") {
+            """
+                //? if true >> 'A'
+                func()
+                //? if true
+                A()
+            """.trimIndent() shouldHaveProblems {
+                shouldHave(LAYOUT_GROUP + "lookup-not-found") {
+                    hint.shouldNotBeNull()
+                }
+            }
+        }
+
+        test("string lookup interrupted by a closer") {
+            """
+                //? if true {
+                //? if true >> 'A'
+                func()
+                //?}
+                A()
+            """.trimIndent() shouldHaveProblems {
+                shouldHave(LAYOUT_GROUP + "lookup-not-found") {
+                    hint.shouldNotBeNull()
+                }
+            }
+        }
+
+        test("word lookup ignored") {
+            """
+                //? if true >>
+                func()//? if true
+                A()
+            """.trimIndent() shouldHaveProblems {
+                shouldNotHave(LAYOUT_GROUP + "lookup-not-found")
+            }
+        }
+    }
 }
 
 context(scope: Test.ExecutionScope)
@@ -409,7 +608,7 @@ private inline infix fun @receiver:Language("kotlin") String.shouldBeParsedAs(ma
 context(scope: Test.ExecutionScope)
 private inline infix fun @receiver:Language("kotlin") String.shouldHaveProblems(action: List<ProblemReport>.() -> Unit) {
     val problems = mutableListOf<ProblemReport>()
-    shouldThrowAny { parseSnippet(this, problems::plusAssign) }
+    kotlin.runCatching { parseSnippet(this, problems::plusAssign) }
     action(problems)
 }
 

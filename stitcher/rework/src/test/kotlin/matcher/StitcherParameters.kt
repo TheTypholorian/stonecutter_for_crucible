@@ -9,6 +9,7 @@ import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.SLASH_COMMENT_START
 import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.STAR_COMMENT_END
 import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.STAR_COMMENT_START
 import dev.kikugie.stitcher.document.Document
+import dev.kikugie.stitcher.document.issue.ProblemReport.Severity
 import dev.kikugie.stitcher.document.issue.output.FullProblemFormatter
 import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
 import dev.kikugie.stitcher.document.issue.output.ShortProblemFormatter
@@ -18,7 +19,7 @@ import org.antlr.v4.runtime.Lexer
 
 val IMMEDIATE_THROW: ProblemConsumer = ProblemConsumer {
     System.err.println(it.accept(FullProblemFormatter))
-    throw AssertionError(it.accept(ShortProblemFormatter))
+    if (it.severity == Severity.ERROR) throw AssertionError(it.accept(ShortProblemFormatter))
 }
 
 object Scanner {

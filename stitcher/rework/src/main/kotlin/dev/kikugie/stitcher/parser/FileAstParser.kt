@@ -7,20 +7,11 @@ import dev.kikugie.stitcher.antlr.StitcherParser.Tokens
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.DocumentReference
 import dev.kikugie.stitcher.document.issue.LAYOUT_GROUP
+import dev.kikugie.stitcher.document.issue.ProblemReport.Severity
 import dev.kikugie.stitcher.document.issue.report
-import dev.kikugie.stitcher.token.BlockToken
-import dev.kikugie.stitcher.token.DefinitionToken
+import dev.kikugie.stitcher.token.*
 import dev.kikugie.stitcher.token.DefinitionToken.Kind
-import dev.kikugie.stitcher.token.LeafToken
-import dev.kikugie.stitcher.token.ScopeToken
-import dev.kikugie.stitcher.token.typeValue
-import dev.kikugie.stitcher.token.unquote
-import dev.kikugie.stitcher.token.withRef
-import dev.kikugie.stitcher.util.findLineSplit
-import dev.kikugie.stitcher.util.findLookupSplit
-import dev.kikugie.stitcher.util.findWordSplit
-import dev.kikugie.stitcher.util.length
-import dev.kikugie.stitcher.util.titlecase
+import dev.kikugie.stitcher.util.*
 
 object FileAstParser {
     fun parse(stream: FileTokenStream): BlockToken.Root =
@@ -70,17 +61,20 @@ private class CommentBuilder(override val stub: BlockToken.Comment, override val
 private sealed class ScopeBuilder : BlockTokenBuilder() {
     val entries: MutableList<BlockTokenBuilder> = ArrayList()
 
+    // [Content] and [Comment] tokens are blank if the body is blank - [Code] is not
     protected var scopeIsNotBlank: Boolean = false
 
-    protected fun acceptToken(token: BlockToken, stream: FileTokenStream) {
-        val builder = BlockTokenBuilder(token)
-        entries += builder
-        scopeIsNotBlank = scopeIsNotBlank || builder.isNotBlank()
+    // Adds this token to [entries], parses its children and returns the created builder
+    protected fun acceptToken(token: BlockToken, stream: FileTokenStream): BlockTokenBuilder = with(BlockTokenBuilder(token)) {
+        entries += this
+        scopeIsNotBlank = scopeIsNotBlank || isNotBlank()
 
         stream.consume()
-        acceptChild(builder, stream)
+        acceptChild(this, stream)
+        this
     }
 
+    // Parses [builder]'s scope, and if the next token is its closer, appends it to [entries]
     protected open fun acceptChild(builder: BlockTokenBuilder, stream: FileTokenStream) {
         builder.accept(stream)
 
@@ -95,7 +89,11 @@ private class RootBuilder(document: Document) : ScopeBuilder() {
     override val parent: BlockTokenBuilder get() = this
 
     override fun accept(stream: FileTokenStream) {
-        while (true) acceptToken(stream.peek(1) ?: break, stream)
+        while (true) {
+            // A closer reaching the top-level loop terminates nothing - matched closers are consumed by [acceptChild]
+            val builder = acceptToken(stream.peek(1) ?: break, stream)
+            if (builder is CodeBuilder && builder.kind.isCloser) reportRootCloser(builder)
+        }
     }
 
     override fun build(): BlockToken.Root =
@@ -120,32 +118,50 @@ private sealed class CodeBuilder(override val stub: BlockToken.Code, override va
     }
 
     protected fun acceptScoped(stream: FileTokenStream) {
-        while (true) when (val next: BlockToken = stream.peek(1) ?: break) {
+        while (true) when (val next: BlockToken = stream.peek(1) ?: return reportMissingClosingBracket(this)) {
             is BlockToken.Code if terminatedBy(next) -> break
+            is BlockToken.Code if isMismatchedCloser(next) -> {
+                reportInvalidCloserType(acceptToken(next, stream) as CodeBuilder)
+                break
+            }
+
             else -> acceptToken(next, stream)
         }
     }
+
+    // A closer of a different marker ends a typed scope with an error; swaps instead absorb it as ignored nesting.
+    protected open fun isMismatchedCloser(next: BlockToken.Code): Boolean =
+        next.definition.kind.isCloser
 
     protected fun acceptLine(stream: FileTokenStream) {
         while (true) when (val next: BlockToken = stream.peek(1) ?: break) {
             is BlockToken.Content -> if (acceptSplit(next, stream, next.findLineSplit(scopeIsNotBlank))) break
             is BlockToken.Comment -> if (acceptSplit(next, stream, next.findLineSplit(scopeIsNotBlank))) break
             is BlockToken.Code if terminatedBy(next) -> break
-            // A nested definition owns the rest of the line and possibly more, so this scope ends with it.
-            is BlockToken.Code -> { acceptToken(next, stream); break }
+            // A definition opening the line nests and owns the rest of it; one after content ends the scope before it.
+            is BlockToken.Code -> { if (!scopeIsNotBlank) acceptToken(next, stream); break }
             is BlockToken.Root -> break
         }
     }
 
     protected fun acceptLookup(stream: FileTokenStream) {
+        // The definition that ended the search early - a nested one may hide the match, a closer cuts it short.
+        var interrupter: BlockToken.Code? = null
         while (true) when (val next: BlockToken = stream.peek(1) ?: break) {
-            is BlockToken.Content -> if (acceptSplit(next, stream, next.findLookupSplit())) break
-            is BlockToken.Comment -> if (acceptSplit(next, stream, next.findLookupSplit())) break
+            is BlockToken.Content -> if (acceptSplit(next, stream, next.findLookupSplit())) { satisfiedLookup = true; break }
+            is BlockToken.Comment -> if (acceptSplit(next, stream, next.findLookupSplit())) { satisfiedLookup = true; break }
             is BlockToken.Code if terminatedBy(next) -> break
+            // A closer belongs to an enclosing scope and stops the search without being consumed.
+            is BlockToken.Code if next.definition.kind.isCloser -> { interrupter = next; break }
             // A lookup keeps searching for its match across nested definitions.
-            is BlockToken.Code -> acceptToken(next, stream)
+            is BlockToken.Code -> { interrupter = interrupter ?: next; acceptToken(next, stream) }
             is BlockToken.Root -> break
         }
+
+        // Word lookups (no literal) always match the next word, so only a specific string can go unfound.
+        val opener = definition.opener
+        if (!satisfiedLookup && opener is ScopeToken.Lookup && opener.lookup != null)
+            reportLookupStringNotFound(this, opener, interrupter)
     }
 
     private fun acceptChainGap(stream: FileTokenStream) {
@@ -165,7 +181,7 @@ private sealed class CodeBuilder(override val stub: BlockToken.Code, override va
     private fun acceptSplit(token: BlockToken.Content, stream: FileTokenStream, split: Int): Boolean = when (split) {
         0 -> Unit
         AntlrToken.EOF -> acceptToken(token, stream)
-        token.leaf.length -> acceptToken(token, stream).also { satisfiedLookup = true }
+        token.leaf.length -> acceptToken(token, stream)
         else -> with(token) {
             val prev = leaf.withRef { copy(end = start + split) }
             acceptToken(copy(leaf = prev), stream)
@@ -180,7 +196,7 @@ private sealed class CodeBuilder(override val stub: BlockToken.Code, override va
     private fun acceptSplit(token: BlockToken.Comment, stream: FileTokenStream, split: Int): Boolean = when (split) {
         0 -> Unit
         AntlrToken.EOF -> acceptToken(token, stream)
-        token.body.length -> acceptToken(token, stream).also { satisfiedLookup = true }
+        token.body.length -> acceptToken(token, stream)
         else -> with(token) {
             val prev = body.withRef { copy(end = start + split) }
             acceptToken(copy(body = prev, closer = null), stream)
@@ -194,9 +210,14 @@ private sealed class CodeBuilder(override val stub: BlockToken.Code, override va
 }
 
 private class SwapBuilder(stub: BlockToken.Code, parent: BlockTokenBuilder) : CodeBuilder(stub, parent) {
+    // Nested definitions are kept as unparsed leaves and reported instead of being processed
     override fun acceptChild(builder: BlockTokenBuilder, stream: FileTokenStream) {
-        if (builder !is CodeBuilder) super.acceptChild(builder, stream)
+        if (builder is CodeBuilder) reportSwapNesting(builder)
+        else super.acceptChild(builder, stream)
     }
+
+    // A foreign closer inside a swap scope is ignored nesting, not a mismatch
+    override fun isMismatchedCloser(next: BlockToken.Code): Boolean = false
 }
 
 private class ConditionBuilder(stub: BlockToken.Code, parent: BlockTokenBuilder) : CodeBuilder(stub, parent) {
@@ -218,9 +239,79 @@ private fun BlockTokenBuilder.isNotBlank(): Boolean = when (this) {
     else -> true
 }
 
+// Issued when a code builder starting with } is not terminating any scope
 private fun reportRootCloser(code: CodeBuilder): Unit = code.ref.report(LAYOUT_GROUP + "unmatched-root-closer") {
     label = "Unmatched ${code.name()} closer"
     info = "${code.title()} must have a corresponding `${code.marker.text} ... {` comment."
+
+    // A preceding open-scope definition of the same marker was likely meant to be closed by this token.
+    val candidate: CodeBuilder? = code.rootCloserCandidate()
+    if (candidate != null) hint = buildString {
+        appendLine("${candidate.title()} at this location may need to end with `{`:")
+        append(candidate.ref.toUriString())
+    }
+}
+
+// Locates an open-scope definition of the same marker - anywhere in the tree - that could have been closed instead
+private fun CodeBuilder.rootCloserCandidate(): CodeBuilder? =
+    (parent as? RootBuilder)?.findScopeCandidate(this)
+
+// Depth-first search for the last (in document order) open scope this extra closer could have been meant to close
+private fun ScopeBuilder.findScopeCandidate(closer: CodeBuilder): CodeBuilder? {
+    var candidate: CodeBuilder? = null
+    for (entry in entries) if (entry is CodeBuilder) {
+        if (entry !== closer && entry.marker.type == closer.marker.type && entry.kind.isOpen) candidate = entry
+        entry.findScopeCandidate(closer)?.let { candidate = it }
+    }
+    return candidate
+}
+
+// Issued when a scope is opened with { but never closed
+private fun reportMissingClosingBracket(code: CodeBuilder): Unit = code.ref.report(LAYOUT_GROUP + "missing-scope-closer") {
+    label = "Missing scope closer"
+    info = "${code.title()} doesn't have a matching `${code.marker.text}}` closer."
+    hint = "Add a `${code.marker.text}}` comment to close the scope opened here."
+}
+
+// Issues for every code builder inside a swap builder scope that is not its closer
+context(parent: CodeBuilder)
+private fun reportSwapNesting(code: CodeBuilder): Unit = code.ref.report(LAYOUT_GROUP + "definition-in-swap-scope") {
+    severity = Severity.WARN
+    label = "Ignored ${code.name()}"
+    info = "${code.title()}s and other statements are not processed inside swap scopes."
+
+    hint = buildString {
+        appendLine("Swap scope is defined at this location:")
+        append(parent.ref.toUriString())
+    }
+}
+
+// Issued when a closer or extension token is following a scoped opener of an invalid type; i.e.
+// `? if true { ... ~}` - ERR
+// `? if true ... ~}` - OK because it closes the replacement before
+// `$ id { ... ?}` - OK because it's reported by `reportSwapNesting`
+context(parent: CodeBuilder)
+private fun reportInvalidCloserType(code: CodeBuilder): Unit = code.ref.report(LAYOUT_GROUP + "mismatched-closer-type") {
+    severity = Severity.WARN
+    label = "Mismatched closer type"
+    info = "${parent.title()} can't be closed with a ${code.name()} marker."
+
+    hint = buildString {
+        appendLine("${parent.title()} at this location needs to be closed with `${parent.marker.text}}`:")
+        append(parent.ref.toUriString())
+    }
+}
+
+// Issued when a lookup scope builder with a specific match (i.e. token.lookup != null) is not found.
+// The [interrupter] that ended the search may be a nested definition or a closer of any enclosing scope.
+private fun reportLookupStringNotFound(code: CodeBuilder, token: ScopeToken.Lookup, interrupter: BlockToken.Code?): Unit = code.ref.report(LAYOUT_GROUP + "lookup-not-found") {
+    label = "Lookup string not found"
+    info = "${code.title()} expected to find '${token.lookup?.unquote()}' in the text ahead."
+
+    if (interrupter != null) hint = buildString {
+        appendLine("${interrupter.title()} at this location stops the search:")
+        append(interrupter.ref.toUriString())
+    }
 }
 
 private val BlockTokenBuilder.ref: DocumentReference
@@ -237,6 +328,16 @@ private fun BlockTokenBuilder.name(): String = when (this) {
     is ReplacementBuilder -> "replacement"
     is CodeBuilder -> "definition"
     is RootBuilder -> "root"
+}
+
+private fun BlockToken.Code.title(): String =
+    name().titlecase()
+
+private fun BlockToken.Code.name(): String = when (marker.typeValue) {
+    Tokens.COND_MARK -> "condition"
+    Tokens.SWAP_MARK -> "swap"
+    Tokens.REPL_MARK -> "replacement"
+    else -> "definition"
 }
 
 private fun BlockToken.Content.findLineSplit(immediate: Boolean): Int =
