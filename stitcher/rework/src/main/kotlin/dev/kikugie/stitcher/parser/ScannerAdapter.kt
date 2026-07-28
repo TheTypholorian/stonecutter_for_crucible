@@ -4,18 +4,16 @@ import dev.kikugie.antlr.util.endIndex
 import dev.kikugie.commons.collections.FixedQueue
 import dev.kikugie.commons.then
 import dev.kikugie.stitcher.antlr.AntlrToken
-import dev.kikugie.stitcher.antlr.indexedName
-import dev.kikugie.stitcher.document.locate
-import dev.kikugie.stitcher.issue.ProblemID
-import dev.kikugie.stitcher.issue.ProblemReporter
-import dev.kikugie.stitcher.issue.report
-import dev.kikugie.stitcher.token.NativeStitcherType.*
-import dev.kikugie.stitcher.token.StitcherType
-import dev.kikugie.stitcher.util.create
+import dev.kikugie.stitcher.antlr.create
+import dev.kikugie.stitcher.document.Document
+import dev.kikugie.stitcher.document.issue.SCANNER_GROUP
+import dev.kikugie.stitcher.document.issue.report
+import dev.kikugie.stitcher.document.reference
+import dev.kikugie.stitcher.token.type.BuiltinTokenType
+import dev.kikugie.stitcher.token.type.StitcherTokenType
 import org.antlr.v4.runtime.*
 import java.io.Serializable
 
-private val SCANNER_GROUP: ProblemID = ProblemID("scanner-adapter")
 
 /**
  * Adapts the output of a user-defined comment [Lexer],
@@ -49,24 +47,18 @@ class ScannerAdapter(
     internal val scanner: Lexer,
     private val openers: IntArray,
     private val closers: IntArray,
-    private val problems: ProblemReporter
+    private val document: Document,
 ) : TokenSource by scanner {
     /**
      * Encapsulates the creation of a [ScannerAdapter] configured with
      * a specific [Lexer], [openers][ScannerAdapter.openers] and [closers][ScannerAdapter.closers].
      */
     fun interface Factory : Serializable {
-        fun create(input: CharStream, problems: ProblemReporter): ScannerAdapter
+        // TODO: Make it use the document source directly
+        fun create(input: CharStream, document: Document): ScannerAdapter
     }
 
     private val queue: FixedQueue<AntlrToken> = FixedQueue(4)
-    private val scannerName: String by lazy {
-        scanner.grammarFileName
-            ?: scanner::class.qualifiedName?.takeIf { "org.antlr" !in it }
-            ?: "<unknown>"
-    }
-    private val scannerVocab: Vocabulary
-        inline get() = scanner.vocabulary
     private lateinit var checkpoint: CommonToken
 
     override fun getLine(): Int =
@@ -85,7 +77,7 @@ class ScannerAdapter(
 
     private fun advance() {
         if (!::checkpoint.isInitialized) checkpoint = tokenFactory
-            .create(scanner, inputStream, CONTENT, 0, 0, 1, 0) as CommonToken
+            .create(scanner, inputStream, BuiltinTokenType.CONTENT, 0, 0, 1, 0) as CommonToken
         if (checkpoint.line < 0) throw NoSuchElementException()
         do {
             val next = scanner.nextToken()
@@ -100,7 +92,7 @@ class ScannerAdapter(
 
     private fun handleEOF(token: AntlrToken): Boolean {
         if (checkpoint.isComment) handleCommentEnd(token)
-        else token.pushCheckpoint(COMMENT_BODY)
+        else token.pushCheckpoint(BuiltinTokenType.COMMENT_BODY)
         checkpoint.line = -1
         queue += token
         return true
@@ -109,46 +101,21 @@ class ScannerAdapter(
     private fun handleCommentStart(token: AntlrToken): Boolean {
         if (checkpoint.isComment)
             return reportInvalidOpener(token) then false
-        token.pushCheckpoint(COMMENT_BODY)
-        token.pushAs(COMMENT_OPEN)
+        token.pushCheckpoint(BuiltinTokenType.COMMENT_BODY)
+        token.pushAs(BuiltinTokenType.COMMENT_OPEN)
         return true
     }
 
     private fun handleCommentEnd(token: AntlrToken): Boolean {
         if (!checkpoint.isComment)
             return reportInvalidCloser(token) then false
-        token.pushCheckpoint(CONTENT)
-        token.pushAs(COMMENT_CLOSE)
+        token.pushCheckpoint(BuiltinTokenType.CONTENT)
+        token.pushAs(BuiltinTokenType.COMMENT_CLOSE)
         return true
     }
 
-    private fun reportInvalidOpener(token: AntlrToken) = problems.report(SCANNER_GROUP + "inconsistent-token") {
-        loc = doc.locate(token)
-        label = "Unexpected comment opener"
-
-        val options = closers.joinToString(", ", "[", "]") { scannerVocab.indexedName(it) }
-        info = "Comment scanner $scannerName provided token ${scannerVocab.indexedName(token)}, but $options were expected."
-        docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-ordering"
-    }
-
-    private fun reportInvalidCloser(token: AntlrToken) = problems.report(SCANNER_GROUP + "inconsistent-token") {
-        loc = doc.locate(token)
-        label = "Unexpected comment closer"
-
-        val options = openers.joinToString(", ", "[", "]") { scannerVocab.indexedName(it) }
-        info = "Comment scanner $scannerName provided token ${scannerVocab.indexedName(token)}, but $options were expected."
-        docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-ordering"
-    }
-
-    private fun reportUnknown(token: AntlrToken) = problems.report(SCANNER_GROUP + "unregistered-token") {
-        label = "Unknown token type"
-
-        info = "Comment scanner $scannerName provided token ${scannerVocab.indexedName(token)} which is not registered as an opener or a closer."
-        docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-counting"
-    }
-
-    private fun AntlrToken.pushCheckpoint(type: StitcherType) {
-        if (type == CONTENT || checkpoint.startIndex < startIndex) queue += checkpoint.apply {
+    private fun AntlrToken.pushCheckpoint(type: StitcherTokenType) {
+        if (type == BuiltinTokenType.CONTENT || checkpoint.startIndex < startIndex) queue += checkpoint.apply {
             endIndex = this@pushCheckpoint.startIndex
             text = null
         }
@@ -160,13 +127,39 @@ class ScannerAdapter(
         }
     }
 
-    private fun AntlrToken.pushAs(type: StitcherType) {
+    private fun AntlrToken.pushAs(type: StitcherTokenType) {
         queue += CommonToken(this).apply {
             this.type = type.value
             if (this@pushAs.type == AntlrToken.EOF) text = ""
         }
     }
 
-    private val AntlrToken.isComment: Boolean
-        inline get() = type == COMMENT_BODY.value
+    private fun reportInvalidOpener(token: AntlrToken): Unit = document.reference(token).report(SCANNER_GROUP + "inconsistent-token") {
+        label = "Unexpected comment opener"
+
+        val options = closers.joinToString(", ", "[", "]") { scanner.vocabulary.getDisplayName(it) }
+        info = "Comment scanner ${scanner.name} provided token ${scanner.vocabulary.getDisplayName(token.type)}, but $options were expected."
+        docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-ordering"
+    }
+
+    private fun reportInvalidCloser(token: AntlrToken): Unit = document.reference(token).report(SCANNER_GROUP + "inconsistent-token") {
+        label = "Unexpected comment closer"
+
+        val options = openers.joinToString(", ", "[", "]") { scanner.vocabulary.getDisplayName(it) }
+        info = "Comment scanner ${scanner.name} provided token ${scanner.vocabulary.getDisplayName(token.type)}, but $options were expected."
+        docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-ordering"
+    }
+
+    private fun reportUnknown(token: AntlrToken): Unit = document.reference(token).report(SCANNER_GROUP + "unregistered-token") {
+        label = "Unknown token type"
+
+        info = "Comment scanner ${scanner.name} provided token ${scanner.vocabulary.getDisplayName(token.type)} which is not registered as an opener or a closer."
+        docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-counting"
+    }
 }
+
+private val AntlrToken.isComment: Boolean
+    inline get() = type == BuiltinTokenType.COMMENT_BODY.value
+
+private val Lexer.name: String
+    get() = grammarFileName ?: this::class.simpleName ?: "<anonymous>"

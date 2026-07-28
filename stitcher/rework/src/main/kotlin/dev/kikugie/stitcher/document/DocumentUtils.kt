@@ -2,6 +2,8 @@
 
 package dev.kikugie.stitcher.document
 
+import dev.kikugie.antlr.util.endIndex
+import dev.kikugie.stitcher.antlr.AntlrToken
 import kotlin.io.path.absolutePathString
 
 /**
@@ -42,6 +44,9 @@ inline fun Document.reference(start: Int, end: Int = start): DocumentReference =
 
 inline fun Document.reference(range: OpenEndRange<Int>): DocumentReference =
     DocumentReference(this, range.start, range.endExclusive)
+
+inline fun Document.reference(token: AntlrToken): DocumentReference =
+    DocumentReference(this, token.startIndex, token.endIndex)
 
 inline fun Document.appendTo(builder: Appendable, range: OpenEndRange<Int>): Unit =
     appendTo(builder, range.start, range.endExclusive)

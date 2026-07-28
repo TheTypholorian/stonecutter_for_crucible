@@ -9,7 +9,7 @@ import java.nio.file.Path
  * Represents a document corresponding to the original [file] contents.
  */
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation")
-class SourceDocument(override val file: Path, val text: CharSequence, private val reporter: ProblemConsumer) : Document, CharSequence by text {
+class SourceDocument(override val file: Path, val text: String, private val reporter: ProblemConsumer) : Document, CharSequence by text {
     private val lines: DocumentLineIndex = DocumentLineIndex(text)
     private var problemCounter: Long = 0L
 

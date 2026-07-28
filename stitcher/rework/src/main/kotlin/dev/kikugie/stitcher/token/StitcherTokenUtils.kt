@@ -14,10 +14,10 @@ import org.antlr.v4.runtime.tree.TerminalNode
 val StitcherToken?.typeValue: Int
     inline get() = this?.type?.value ?: AntlrToken.EOF
 
-inline fun TerminalNode.toLeaf(doc: Document, type: StitcherTokenType = AntlrTokenType.of(symbol.type)): LeafToken =
+fun TerminalNode.toLeaf(doc: Document, type: StitcherTokenType = StitcherTokenType.of(symbol.type)): LeafToken =
     symbol.toLeaf(doc, type)
 
-inline fun AntlrToken.toLeaf(doc: Document, type: StitcherTokenType = AntlrTokenType.of(this.type)): LeafToken =
+fun AntlrToken.toLeaf(doc: Document, type: StitcherTokenType = StitcherTokenType.of(this.type)): LeafToken =
     LeafToken(type, doc.reference(startIndex, endIndex))
 
 fun LeafToken.unquote(): String = when(type.value) {
