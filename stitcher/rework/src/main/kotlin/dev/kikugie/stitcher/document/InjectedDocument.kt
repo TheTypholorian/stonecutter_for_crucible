@@ -19,6 +19,8 @@ class InjectedDocument(val parent: Document, val start: Int, val end: Int, track
         initImpl(tracker.toList())
     }
 
+    override fun toString(): String = text.toString()
+
     /**
      * Gets a character at the given [index].
      * - The [index] may be in [minIndex]..<[maxIndex] (i.e. less than zero or more than [length]).

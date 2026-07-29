@@ -55,6 +55,9 @@ value class ModificationList(val entries: LinkedList<Event> = LinkedList()) {
     private fun merge(prev: Event, next: Event): Event {
         if (prev == next) return prev
 
+        if (prev.end == next.start) return Event(prev.start, next.end, prev.text + next.text)
+        if (next.end == prev.start) return Event(next.start, prev.end, next.text + prev.text)
+
         val start = min(prev.start, next.start)
         val end = max(prev.end, next.end)
         val chars = CharArray(end - start)

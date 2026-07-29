@@ -13,6 +13,8 @@ class SourceDocument(override val file: Path, val text: String, private val repo
     private val lines: DocumentLineIndex = DocumentLineIndex(text)
     private var problemCounter: Long = 0L
 
+    override fun toString(): String = text
+
     override fun locate(charIndex: Int): DocumentLocation =
         lines.locate(charIndex)
 
