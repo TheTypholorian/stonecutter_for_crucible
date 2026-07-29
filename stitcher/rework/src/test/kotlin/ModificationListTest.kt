@@ -8,7 +8,7 @@ import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 
 val ModificationListTest by testSuite(compartment = { TestCompartment.Sequential }) {
-    testFixture { ModificationList() } asContextForEach {
+    testFixture { ModificationList() } asContextForAll {
         test("add to empty") {
             add(4..<9, "Hello") shouldBe true
             entries shouldContainExactly listOf(event(4..<9, "Hello"))
@@ -33,7 +33,9 @@ val ModificationListTest by testSuite(compartment = { TestCompartment.Sequential
             add(9..<10, " ")
             entries shouldContainExactly listOf(event(1..<3, "<<"), event(4..<15, "Hello World"), event(20..<23, ">>"))
         }
+    }
 
+    testFixture { ModificationList() } asContextForEach {
         test("a deletion after a replacement keeps the replacement text") {
             add(4..<5, "\n")
             add(5..<7, "")

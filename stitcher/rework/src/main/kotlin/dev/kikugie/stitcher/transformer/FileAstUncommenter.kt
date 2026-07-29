@@ -1,6 +1,5 @@
 package dev.kikugie.stitcher.transformer
 
-import dev.kikugie.commons.then
 import dev.kikugie.stitcher.StitcherParameters
 import dev.kikugie.stitcher.antlr.StitcherErrorListener
 import dev.kikugie.stitcher.antlr.errorListener
@@ -8,20 +7,15 @@ import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.DocumentReference
 import dev.kikugie.stitcher.document.InjectedDocument
 import dev.kikugie.stitcher.document.edit.ModificationTracker
-import dev.kikugie.stitcher.document.issue.runMarked
 import dev.kikugie.stitcher.parser.FileAstParser
 import dev.kikugie.stitcher.parser.FileTokenStream
 import dev.kikugie.stitcher.token.BlockToken
-import dev.kikugie.stitcher.token.BlockToken.Code
-import dev.kikugie.stitcher.token.BlockToken.Comment
-import dev.kikugie.stitcher.token.BlockToken.Content
-import dev.kikugie.stitcher.token.BlockToken.Root
+import dev.kikugie.stitcher.token.BlockToken.*
 import dev.kikugie.stitcher.token.DefinitionToken
 import dev.kikugie.stitcher.token.LeafToken
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import kotlin.io.path.absolutePathString
-import kotlin.text.isBlank
 
 class FileAstUncommenter(val params: StitcherParameters) : BlockToken.Visitor<BlockToken, Nothing?>, DefinitionToken.Visitor<Code, Code> {
     override fun visitContent(content: Content, ctx: Nothing?): BlockToken = content

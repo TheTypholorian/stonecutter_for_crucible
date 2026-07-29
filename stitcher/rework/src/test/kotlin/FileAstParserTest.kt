@@ -2,44 +2,22 @@
 
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.testSuite
-import dev.kikugie.stitcher.antlr.StitcherErrorListener
-import dev.kikugie.stitcher.antlr.errorListener
-import dev.kikugie.stitcher.document.SourceDocument
 import dev.kikugie.stitcher.document.issue.LAYOUT_GROUP
 import dev.kikugie.stitcher.document.issue.ProblemReport
-import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
-import dev.kikugie.stitcher.document.issue.runThrowing
-import dev.kikugie.stitcher.parser.FileAstParser
-import dev.kikugie.stitcher.parser.FileTokenStream
-import dev.kikugie.stitcher.token.BlockToken
-import dev.kikugie.stitcher.token.DefinitionToken
-import dev.kikugie.stitcher.token.DefinitionToken.ConditionCloser
-import dev.kikugie.stitcher.token.DefinitionToken.ConditionExtension
-import dev.kikugie.stitcher.token.DefinitionToken.ConditionOpener
-import dev.kikugie.stitcher.token.DefinitionToken.Kind
-import dev.kikugie.stitcher.token.DefinitionToken.SwapCloser
-import dev.kikugie.stitcher.token.DefinitionToken.SwapOpener
-import io.kotest.assertions.throwables.shouldThrowAny
-import io.kotest.matchers.collections.shouldBeOneOf
+import dev.kikugie.stitcher.token.DefinitionToken.*
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldBeBlank
-import io.kotest.matchers.string.shouldBeEmpty
 import io.kotest.matchers.string.shouldEndWith
 import matcher.IMMEDIATE_THROW
 import matcher.RootMatcher
-import matcher.Scanner
 import matcher.ast
 import matcher.parseSnippet
-import org.antlr.v4.runtime.CharStreams
-import org.antlr.v4.runtime.Token
-import org.antlr.v4.runtime.UnbufferedTokenStream
 import org.intellij.lang.annotations.Language
 import util.shouldHave
 import util.shouldNotHave
-import kotlin.io.path.Path
 
 val FileAstParserTest by testSuite {
     testSuite("conditions") {
