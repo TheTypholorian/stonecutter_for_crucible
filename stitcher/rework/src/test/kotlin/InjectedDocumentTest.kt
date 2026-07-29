@@ -44,8 +44,9 @@ val InjectedDocumentTest by testSuite {
             inject("abcdef", 0, 6) { insert(1, "X"); insert(4, "Y") }.fullText() shouldBe "aXbcdYef"
         }
 
-        test("edit inside a window is relative to the window start") {
-            inject("0123456789", 2, 8) { insert(1, "X") }.fullText() shouldBe "2X34567"
+        test("edit index is relative to the document, within the window") {
+            // Window [2, 8) is "234567"; inserting at document index 3 lands between '2' and '3'.
+            inject("0123456789", 2, 8) { insert(3, "X") }.fullText() shouldBe "2X34567"
         }
     }
 

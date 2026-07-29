@@ -22,6 +22,12 @@ class ModificationTracker(val document: Document, val start: Int, val end: Int) 
     inline fun replace(range: OpenEndRange<Int>, text: String): Boolean =
         replace(range.start, range.endExclusive, text)
 
+    /**
+     * Records a replacement of the range [startIndex]..<[endIndex] with [text].
+     *
+     * Indices are relative to the [document] and confined to the tracked [start]..[end] window.
+     * [end] is inclusive: passing it as [startIndex] appends at the end of the window.
+     */
     fun replace(startIndex: Int, endIndex: Int, text: String): Boolean {
         require(isLive) { "Modification tracker is frozen" }
         require(startIndex in start..endIndex && endIndex in 0..end) { "Invalid range $startIndex..<$endIndex" }

@@ -116,28 +116,30 @@ class InjectedDocument(val parent: Document, val start: Int, val end: Int, track
 
     private fun initImpl(events: Collection<ModificationEvent>) {
         var runningDelta = 0
-        var lastEventEnd = 0
+        var lastEventEnd = start
 
         for ((index, event) in events.withIndex()) {
-            segments[index] = Segment(event, runningDelta)
+            segments[index] = Segment(event, runningDelta, start)
             runningDelta += event.textLength - event.sourceLength
 
             if (lastEventEnd < event.start)
-                parent.appendTo(text, start + lastEventEnd, start + event.start)
+                parent.appendTo(text, lastEventEnd, event.start)
             text.append(event.text)
             lastEventEnd = event.end
         }
 
-        if (lastEventEnd < end - start)
-            parent.appendTo(text, start + lastEventEnd, end)
+        if (lastEventEnd < end)
+            parent.appendTo(text, lastEventEnd, end)
     }
 
-    private class Segment(val event: ModificationEvent, val delta: Int) : OpenIntRange {
-        override val start: Int = event.start + delta
+    private class Segment(val event: ModificationEvent, val delta: Int, windowStart: Int) : OpenIntRange {
+        // The event's [start]/[end] are parent indices; [sourceStart]/[sourceEnd] rebase them onto the window.
+        override val start: Int = event.start - windowStart + delta
         override val end: Int = start + event.textLength
 
         val deltaAfter: Int = delta + event.delta
-        val sourceStart: Int inline get() = event.start
+        val sourceStart: Int = event.start - windowStart
+        private val sourceEnd: Int = event.end - windowStart
 
         /** Maps a modified-space [charIndex] owned by this segment to a [parent] index within [doc]. */
         context(doc: InjectedDocument)
@@ -145,7 +147,7 @@ class InjectedDocument(val parent: Document, val start: Int, val end: Int, track
             // After this event, but before the next event
             charIndex >= end -> doc.start + charIndex - deltaAfter
             // Inside inserted or deleted text - can't be mapped to source
-            event.textLength == 0 || event.sourceLength == 0 -> doc.start + event.start
+            event.textLength == 0 || event.sourceLength == 0 -> event.start
             // Inside a replacement - try to find the middle ground
             else -> doc.start + charIndex - delta
         }
@@ -153,7 +155,7 @@ class InjectedDocument(val parent: Document, val start: Int, val end: Int, track
         /** Maps a window-relative [sourceIndex] owned by this segment to a modified-space index. */
         fun localIndexOf(sourceIndex: Int): Int = when {
             // Within this event's source range, which collapses onto the start of its replacement text.
-            sourceIndex < event.end -> start
+            sourceIndex < sourceEnd -> start
             // In the unmodified gap following this event.
             else -> sourceIndex + deltaAfter
         }

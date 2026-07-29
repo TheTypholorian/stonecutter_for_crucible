@@ -125,10 +125,10 @@ object ExpressionChecker : BlockToken.Visitor<Unit, Context>, DefinitionToken.Vi
             reportUnresolvedReplacementId(entry, ctx.knownReplacementIds)
         else if (entry.op == null) ->
             if (ctx.activeReplacementIds.add(id)) Unit
-            else reportDuplicateDisabledReplacement(entry)
+            else reportDuplicateEnabledReplacement(entry)
         else ->
             if (ctx.activeReplacementIds.remove(id)) Unit
-            else reportDuplicateEnabledReplacement(entry)
+            else reportDuplicateDisabledReplacement(entry)
     }
 }
 
