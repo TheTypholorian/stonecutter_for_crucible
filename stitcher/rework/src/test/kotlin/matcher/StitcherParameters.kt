@@ -2,6 +2,7 @@ package matcher
 
 import de.infix.testBalloon.framework.core.Test
 import dev.kikugie.semver.data.Version
+import dev.kikugie.stitcher.StitcherParameters
 import dev.kikugie.stitcher.antlr.HashStyleScanner
 import dev.kikugie.stitcher.antlr.HashStyleScanner.Tokens.HASH_COMMENT_END
 import dev.kikugie.stitcher.antlr.HashStyleScanner.Tokens.HASH_COMMENT_START
@@ -23,7 +24,12 @@ import dev.kikugie.stitcher.parser.FileAstParser
 import dev.kikugie.stitcher.parser.FileTokenStream
 import dev.kikugie.stitcher.parser.ScannerAdapter
 import dev.kikugie.stitcher.token.BlockToken
+import dev.kikugie.stitcher.token.type.BuiltinTokenType
+import dev.kikugie.stitcher.transformer.edit.SlashStarUncommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.UncommentingStrategy
 import dev.kikugie.stonecutter.model.Identifier
+import dev.kikugie.stonecutter.model.process.ConfigurationFlag
+import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 import dev.kikugie.stonecutter.model.process.PerlReplacement
 import dev.kikugie.stonecutter.model.process.ProcessParameters
 import dev.kikugie.stonecutter.model.process.RegexReplacement
@@ -54,8 +60,11 @@ fun Test.ExecutionScope.parseSnippet(value: String, consumer: ProblemConsumer = 
     }
 }
 
+inline fun params(action: StitcherParametersBuilder.() -> Unit = {}): StitcherParameters =
+    StitcherParametersBuilder().apply(action).buildParams()
+
 inline fun vars(action: ProcessParametersBuilder.() -> Unit = {}): ProcessParameters =
-    ProcessParametersBuilder().apply(action).build()
+    ProcessParametersBuilder().apply(action).buildVars()
 
 object Scanner {
     val Java: ScannerAdapter.Factory = Template(
@@ -86,9 +95,31 @@ object Scanner {
     }
 }
 
+object Uncommenter {
+    val Java: UncommentingStrategy = SlashStarUncommentingStrategy
+
+    val Lines: UncommentingStrategy = UncommentingStrategy { tracker, tokens ->
+        for (it in tokens) if (it.type == BuiltinTokenType.COMMENT_OPEN)
+            tracker.delete(it)
+    }
+}
+
 @DslMarker
 @Retention(AnnotationRetention.SOURCE)
 private annotation class VarsBuilderDsl
+
+@VarsBuilderDsl
+class StitcherParametersBuilder : ProcessParametersBuilder() {
+    val registry: MutableMap<ConfigurationFlag<*>, Any> = HashMap()
+
+    var scanner: ScannerAdapter.Factory = Scanner.Java
+    var uncommenter: UncommentingStrategy = Uncommenter.Java
+
+    fun buildParams(): StitcherParameters = StitcherParameters(
+        buildVars(), ConfigurationRegistry(registry),
+        scanner, uncommenter
+    )
+}
 
 @VarsBuilderDsl
 open class ProcessParametersBuilder {
@@ -114,5 +145,5 @@ open class ProcessParametersBuilder {
         replacements += PerlReplacement(from, to, 0, id, enabled)
     }
 
-    fun build(): ProcessParameters = ProcessParameters(constants, targets, swaps, replacements)
+    fun buildVars(): ProcessParameters = ProcessParameters(constants, targets, swaps, replacements)
 }

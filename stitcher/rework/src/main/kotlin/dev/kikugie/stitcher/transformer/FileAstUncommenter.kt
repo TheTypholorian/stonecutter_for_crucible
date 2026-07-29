@@ -23,47 +23,20 @@ import org.antlr.v4.runtime.CommonTokenStream
 import kotlin.io.path.absolutePathString
 import kotlin.text.isBlank
 
-class FileAstPreparer(val params: StitcherParameters) : BlockToken.Visitor<BlockToken, Nothing?>, DefinitionToken.Visitor<Code, Code> {
-    private val context: ExpressionChecker.Context = ExpressionChecker.Context(params.vars)
+class FileAstUncommenter(val params: StitcherParameters) : BlockToken.Visitor<BlockToken, Nothing?>, DefinitionToken.Visitor<Code, Code> {
     override fun visitContent(content: Content, ctx: Nothing?): BlockToken = content
-
     override fun visitComment(comment: Comment, ctx: Nothing?): BlockToken = comment
-
-    override fun visitCode(code: Code, ctx: Nothing?): BlockToken =
-        code.definition.accept(this, code)
-
-    override fun visitRoot(root: Root, ctx: Nothing?): BlockToken =
-        root.copy(scope = root.scope.map { it.accept(this, ctx) })
-
-    override fun visitSwapLocal(swap: DefinitionToken.SwapLocal, ctx: Code): Code =
-        checkFaulted(ctx, swap) then ctx
-
-    override fun visitSwapOpener(swap: DefinitionToken.SwapOpener, ctx: Code): Code =
-        checkFaulted(ctx, swap) then ctx
-
-    override fun visitSwapCloser(swap: DefinitionToken.SwapCloser, ctx: Code): Code =
-        ctx
-
-    override fun visitConditionOpener(cond: DefinitionToken.ConditionOpener, ctx: Code): Code =
-        checkFaulted(ctx, cond) then uncomment(ctx)
-
-    override fun visitConditionExtension(cond: DefinitionToken.ConditionExtension, ctx: Code): Code =
-        checkFaulted(ctx, cond) then uncomment(ctx)
-
-    override fun visitConditionCloser(cond: DefinitionToken.ConditionCloser, ctx: Code): Code =
-        ctx
-
-    override fun visitReplacementToggle(repl: DefinitionToken.ReplacementToggle, ctx: Code): Code =
-        checkFaulted(ctx, repl) then ctx
-
-    override fun visitReplacementLocal(repl: DefinitionToken.ReplacementLocal, ctx: Code): Code =
-        checkFaulted(ctx, repl) then reprocess(ctx)
-
-    override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser, ctx: Code): Code =
-        ctx
-
-    private fun checkFaulted(host: Code, def: DefinitionToken): Boolean =
-        host.ref.document.runMarked({ def.accept(ExpressionChecker, context) }, { _, ok -> ok })
+    override fun visitCode(code: Code, ctx: Nothing?): BlockToken = code.definition.accept(this, code)
+    override fun visitRoot(root: Root, ctx: Nothing?): BlockToken = root.copy(scope = root.scope.map { it.accept(this, ctx) })
+    override fun visitSwapLocal(swap: DefinitionToken.SwapLocal, ctx: Code): Code = ctx
+    override fun visitSwapOpener(swap: DefinitionToken.SwapOpener, ctx: Code): Code = ctx
+    override fun visitSwapCloser(swap: DefinitionToken.SwapCloser, ctx: Code): Code = ctx
+    override fun visitConditionOpener(cond: DefinitionToken.ConditionOpener, ctx: Code): Code = uncomment(ctx)
+    override fun visitConditionExtension(cond: DefinitionToken.ConditionExtension, ctx: Code): Code = uncomment(ctx)
+    override fun visitConditionCloser(cond: DefinitionToken.ConditionCloser, ctx: Code): Code = ctx
+    override fun visitReplacementToggle(repl: DefinitionToken.ReplacementToggle, ctx: Code): Code = ctx
+    override fun visitReplacementLocal(repl: DefinitionToken.ReplacementLocal, ctx: Code): Code = reprocess(ctx)
+    override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser, ctx: Code): Code = ctx
 
     private fun isCommented(code: Code): Boolean = code.scope.isNotEmpty() && code.scope.all {
         it is Comment || it is Content && it.leaf.text.isBlank()
