@@ -1,6 +1,8 @@
+@file:Suppress("PublicApiImplicitType")
+
+import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.stonecutter.model.process.ConfigurationFlag
 import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
-import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.json.Json
 
@@ -8,7 +10,7 @@ private val JSON = Json {
     prettyPrint = true
 }
 
-class ConfigurationRegistryTest : FunSpec({
+val ConfigurationRegistryTest by testSuite {
     test("flag serialization") {
         val bool = ConfigurationFlag("my-bool", false)
         val int = ConfigurationFlag("my-int", 0L)
@@ -44,5 +46,4 @@ class ConfigurationRegistryTest : FunSpec({
             }
         """.trimIndent()
     }
-
-})
+}

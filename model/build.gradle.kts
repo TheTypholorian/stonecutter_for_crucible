@@ -6,6 +6,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     id("shared-setup")
+    alias(common.plugins.kotlin.testballoon)
 }
 
 dependencies {
@@ -13,8 +14,8 @@ dependencies {
     implementation(common.kotlin.stdlib)
     implementation(common.kotlin.serialization)
 
-    testImplementation(common.kotest.runner)
-    testImplementation(common.kotest.assertions)
+    testImplementation(common.kotlin.testballoon)
+    testImplementation(common.kotlin.testballoon.assertions)
     testImplementation(common.kotlin.serialization.json)
 }
 
