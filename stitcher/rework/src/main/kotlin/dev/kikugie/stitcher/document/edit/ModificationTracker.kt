@@ -1,10 +1,12 @@
 package dev.kikugie.stitcher.document.edit
 
 import dev.kikugie.stitcher.document.Document
+import dev.kikugie.stitcher.document.DocumentReference
 import java.util.LinkedList
 
 @Suppress("NOTHING_TO_INLINE")
-class ModificationTracker(val document: Document) {
+class ModificationTracker(val document: Document, val start: Int, val end: Int) {
+    constructor(reference: DocumentReference) : this(reference.document, reference.start, reference.end)
     private val eventList: ModificationList = ModificationList()
     private var isLive: Boolean = true
 
@@ -22,7 +24,7 @@ class ModificationTracker(val document: Document) {
 
     fun replace(startIndex: Int, endIndex: Int, text: String): Boolean {
         require(isLive) { "Modification tracker is frozen" }
-        require(startIndex in 0..endIndex && endIndex in 0..document.length) { "Invalid range $startIndex..<$endIndex" }
+        require(startIndex in start..endIndex && endIndex in 0..end) { "Invalid range $startIndex..<$endIndex" }
         return eventList.add(ModificationEvent(startIndex, endIndex, text))
     }
 

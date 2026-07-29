@@ -9,6 +9,7 @@ import dev.kikugie.stitcher.util.OpenIntRange
  */
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation", "UNCHECKED_CAST")
 class InjectedDocument(val parent: Document, val start: Int, val end: Int, tracker: ModificationTracker) : Document by parent {
+    constructor(reference: DocumentReference, tracker: ModificationTracker) : this(reference.document, reference.start, reference.end, tracker)
     private val text: StringBuilder = StringBuilder()
     private val segments: Array<Segment> = arrayOfNulls<Segment>(tracker.toList().size) as Array<Segment>
 

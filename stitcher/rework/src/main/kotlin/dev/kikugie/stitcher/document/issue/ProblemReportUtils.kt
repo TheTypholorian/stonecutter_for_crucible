@@ -4,6 +4,9 @@ package dev.kikugie.stitcher.document.issue
 
 import dev.kikugie.stitcher.document.DocumentReference
 
+inline fun report(id: ProblemID, builder: ProblemReport.() -> Unit): Unit =
+    ProblemReport(id).apply(builder).let { it.at.document.report(it) }
+
 inline fun ProblemReporter.report(id: ProblemID, builder: ProblemReport.() -> Unit): Unit =
     ProblemReport(id).apply(builder).let(this::report)
 
