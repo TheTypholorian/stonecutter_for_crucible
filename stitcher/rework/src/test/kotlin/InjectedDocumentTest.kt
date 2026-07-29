@@ -191,7 +191,8 @@ private fun source(text: String) = SourceDocument(Path.of("injected.txt"), text)
 
 private fun inject(text: String, start: Int, end: Int, edits: ModificationTracker.() -> Unit = {}): InjectedDocument {
     val parent = source(text)
-    return InjectedDocument(parent, start, end, ModificationTracker(parent).apply(edits))
+    val tracker = ModificationTracker(parent, start, end).apply(edits)
+    return InjectedDocument(parent, start, end, tracker)
 }
 
 private fun Document.fullText(): String {

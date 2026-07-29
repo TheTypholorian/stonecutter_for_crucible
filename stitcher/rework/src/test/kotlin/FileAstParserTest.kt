@@ -32,6 +32,7 @@ import matcher.IMMEDIATE_THROW
 import matcher.RootMatcher
 import matcher.Scanner
 import matcher.ast
+import matcher.parseSnippet
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.UnbufferedTokenStream
@@ -601,27 +602,13 @@ val FileAstParserTest by testSuite {
 
 context(scope: Test.ExecutionScope)
 private inline infix fun @receiver:Language("kotlin") String.shouldBeParsedAs(matcher: RootMatcher) {
-    val root = parseSnippet(this, IMMEDIATE_THROW)
+    val root = scope.parseSnippet(this, IMMEDIATE_THROW)
     matcher.test(root)
 }
 
 context(scope: Test.ExecutionScope)
 private inline infix fun @receiver:Language("kotlin") String.shouldHaveProblems(action: List<ProblemReport>.() -> Unit) {
     val problems = mutableListOf<ProblemReport>()
-    kotlin.runCatching { parseSnippet(this, problems::plusAssign) }
+    kotlin.runCatching { scope.parseSnippet(this, problems::plusAssign) }
     action(problems)
-}
-
-
-context(scope: Test.ExecutionScope)
-private fun parseSnippet(value: String, consumer: ProblemConsumer): BlockToken.Root {
-    val document = SourceDocument(Path("${scope.testElementPath}"), value, consumer)
-    val source = Scanner.Java.create(CharStreams.fromString(value), document).apply {
-        scanner.errorListener = StitcherErrorListener(document)
-    }
-
-    return document.runThrowing {
-        val stream = FileTokenStream(document, UnbufferedTokenStream<Token>(source))
-        FileAstParser.parse(stream)
-    }
 }
