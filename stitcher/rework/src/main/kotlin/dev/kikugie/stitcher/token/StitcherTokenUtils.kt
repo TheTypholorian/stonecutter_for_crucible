@@ -8,6 +8,7 @@ import dev.kikugie.stitcher.antlr.AntlrToken
 import dev.kikugie.stitcher.antlr.StitcherLexer.Tokens
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.DocumentReference
+import dev.kikugie.stitcher.document.appendTo
 import dev.kikugie.stitcher.document.reference
 import dev.kikugie.stitcher.token.type.StitcherTokenType
 import org.antlr.v4.runtime.tree.TerminalNode
@@ -32,7 +33,10 @@ val DefinitionToken.ReplacementToggle.Entry.id: String
 
 // Adding nodes to the trie is irreversible, so they need to be disabled later
 val DefinitionToken.ReplacementLocal.Entry.id: String
-    get() = "/synthetic/ ${source.text} -> ${target.text}"
+    get() = "%synthetic% ${source.text} -> ${target.text}"
+
+val ScopeToken.Named.id: String
+    inline get() = identifier.text
 
 val ExpressionToken.Constant.text: String
     inline get() = value.text
@@ -56,3 +60,49 @@ inline fun LeafToken.withRef(builder: DocumentReference.() -> DocumentReference)
 
 fun ExpressionToken.Assignment.eval(version: Version): Boolean =
     predicates.all { it.operator(version, it.version) }
+
+fun BlockToken.appendTo(builder: Appendable): Unit =
+    accept(BlockTokenJoiner, builder)
+
+fun Iterable<BlockToken>.appendTo(builder: Appendable): Unit =
+    forEach { it.accept(BlockTokenJoiner, builder) }
+
+private object BlockTokenJoiner : BlockToken.Visitor<Unit, Appendable> {
+    override fun visitContent(content: BlockToken.Content, ctx: Appendable) =
+        content.ref.appendTo(ctx)
+
+    override fun visitComment(comment: BlockToken.Comment, ctx: Appendable) =
+        comment.ref.appendTo(ctx)
+
+    override fun visitCode(code: BlockToken.Code, ctx: Appendable) {
+        code.ref.appendTo(ctx)
+        appendScope(code.scope, ctx)
+    }
+
+    override fun visitRoot(root: BlockToken.Root, ctx: Appendable) {
+        appendScope(root.scope, ctx)
+    }
+
+    private fun appendScope(tokens: List<BlockToken>, ctx: Appendable) {
+        var document: Document? = null
+        var start = 0
+        var end = 0
+        for (it in tokens) when (it) {
+            is BlockToken.Content, is BlockToken.Comment -> it.ref.let { ref ->
+                if (ref.document === document && ref.start == end) { end = ref.end; return@let }
+
+                document?.appendTo(ctx, start, end)
+                document = ref.document
+                start = ref.start
+                end = ref.end
+            }
+
+            else -> {
+                document?.appendTo(ctx, start, end)
+                it.accept(this, ctx)
+                document = null
+            }
+        }
+        document?.appendTo(ctx, start, end)
+    }
+}

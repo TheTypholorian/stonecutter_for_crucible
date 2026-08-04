@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.replacement
 
+import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stonecutter.model.process.Replacement
 import dev.kikugie.stonecutter.model.process.StringReplacement
 
@@ -25,9 +26,12 @@ class CompositeExecutor(replacements: List<Replacement>) : ReplacementExecutor {
         stringExecutor += replacements.filterIsInstance<StringReplacement>()
     }
 
-    override fun collect(text: CharSequence, queue: EmitQueue) {
-        stringExecutor.collect(text, queue)
-        regexExecutor.collect(text, queue)
-        perlExecutor.collect(text, queue)
+    override fun isEmpty(): Boolean =
+        stringExecutor.isEmpty() && regexExecutor.isEmpty() && perlExecutor.isEmpty()
+
+    override fun collect(tracker: ModificationTracker, text: String, queue: EmitQueue) {
+        stringExecutor.collect(tracker, text, queue)
+        regexExecutor.collect(tracker, text, queue)
+        perlExecutor.collect(tracker, text, queue)
     }
 }

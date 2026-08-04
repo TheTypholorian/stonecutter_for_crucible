@@ -9,10 +9,6 @@ private annotation class ProblemDsl
 
 @ProblemDsl
 interface ProblemReporter {
-    fun mark(): Marker
+    val errors: Long
     fun report(report: ProblemReport)
-
-    fun interface Marker {
-        fun isDirty(): Boolean
-    }
 }

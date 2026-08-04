@@ -1,7 +1,6 @@
 package dev.kikugie.stitcher.document
 
 import dev.kikugie.stitcher.document.issue.ProblemReport
-import dev.kikugie.stitcher.document.issue.ProblemReporter
 import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
 import java.nio.file.Path
 
@@ -10,8 +9,10 @@ import java.nio.file.Path
  */
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation")
 class SourceDocument(override val file: Path, val text: String, private val reporter: ProblemConsumer) : Document, CharSequence by text {
+    override var errors: Long = 0L
+        private set
+
     private val lines: DocumentLineIndex = DocumentLineIndex(text)
-    private var problemCounter: Long = 0L
 
     override fun toString(): String = text
 
@@ -25,15 +26,8 @@ class SourceDocument(override val file: Path, val text: String, private val repo
         builder.append(text, startIndex, endIndex)
     }
 
-    override fun mark(): ProblemReporter.Marker =
-        ProblemMarker(problemCounter)
-
     override fun report(report: ProblemReport) {
-        if (report.severity == ProblemReport.Severity.ERROR) problemCounter++
+        if (report.severity == ProblemReport.Severity.ERROR) errors++
         reporter.accept(report)
-    }
-
-    private inner class ProblemMarker(private val countAtMarker: Long) : ProblemReporter.Marker {
-        override fun isDirty(): Boolean = problemCounter != countAtMarker
     }
 }

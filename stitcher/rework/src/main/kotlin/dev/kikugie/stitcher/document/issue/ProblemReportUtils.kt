@@ -22,17 +22,29 @@ inline fun DocumentReference.bail(id: ProblemID, builder: ProblemReport.() -> Un
     document.bail(id) inner@{ at = this@bail; builder() }
 
 inline fun <T, R> ProblemReporter.runMarked(action: ProblemReporter.() -> T, handler: (result: T, ok: Boolean) -> R): R {
-    val marker = mark()
-    return handler(action(), !marker.isDirty())
+    val marker: Long = errors
+    return handler(action(), marker == errors)
 }
 
 inline fun <T> ProblemReporter.runThrowing(action: ProblemReporter.() -> T): T {
-    val marker = mark()
-    return action().also { if (marker.isDirty()) throw BailException() }
+    val marker: Long = errors
+    return action().also { if (marker != errors) throw BailException() }
 }
 
 inline fun <T> ProblemReporter.runCatching(action: ProblemReporter.() -> T): Result<T> = try {
     Result.success(runThrowing(action))
 } catch (e: RuntimeException) {
     Result.failure(e)
+}
+
+inline fun <T> ProblemReporter.runMultiThrowing(action: ProblemReporter.(ResettableMarker) -> T): T {
+    val marker = ResettableMarker(errors)
+    return action(marker).also { marker.check() }
+}
+
+class ResettableMarker(private var marker: Long) {
+    context(reporter: ProblemReporter) fun check(): Unit = when (val errors = reporter.errors) {
+        marker -> marker = errors
+        else -> throw BailException()
+    }
 }

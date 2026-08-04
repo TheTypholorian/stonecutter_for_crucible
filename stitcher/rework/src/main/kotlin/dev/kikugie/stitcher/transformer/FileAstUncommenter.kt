@@ -1,21 +1,15 @@
 package dev.kikugie.stitcher.transformer
 
 import dev.kikugie.stitcher.StitcherParameters
-import dev.kikugie.stitcher.antlr.StitcherErrorListener
-import dev.kikugie.stitcher.antlr.errorListener
 import dev.kikugie.stitcher.document.Document
-import dev.kikugie.stitcher.document.DocumentReference
 import dev.kikugie.stitcher.document.InjectedDocument
 import dev.kikugie.stitcher.document.edit.ModificationTracker
-import dev.kikugie.stitcher.parser.FileAstParser
-import dev.kikugie.stitcher.parser.FileTokenStream
+import dev.kikugie.stitcher.document.join
 import dev.kikugie.stitcher.token.BlockToken
 import dev.kikugie.stitcher.token.BlockToken.*
 import dev.kikugie.stitcher.token.DefinitionToken
 import dev.kikugie.stitcher.token.LeafToken
-import org.antlr.v4.runtime.CharStreams
-import org.antlr.v4.runtime.CommonTokenStream
-import kotlin.io.path.absolutePathString
+import dev.kikugie.stitcher.util.parse
 
 class FileAstUncommenter(val params: StitcherParameters) : BlockToken.Visitor<BlockToken, Nothing?>, DefinitionToken.Visitor<Code, Code> {
     override fun visitContent(content: Content, ctx: Nothing?): BlockToken = content
@@ -32,9 +26,8 @@ class FileAstUncommenter(val params: StitcherParameters) : BlockToken.Visitor<Bl
     override fun visitReplacementLocal(repl: DefinitionToken.ReplacementLocal, ctx: Code): Code = reprocess(ctx)
     override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser, ctx: Code): Code = ctx
 
-    private fun isCommented(code: Code): Boolean = code.scope.isNotEmpty() && code.scope.all {
-        it is Comment || it is Content && it.leaf.text.isBlank()
-    }
+    private fun isCommented(code: Code): Boolean =
+        code.scope.isNotEmpty() && code.scope.all { it is Comment || it is Content && it.leaf.text.isBlank() }
 
     private fun reprocess(code: Code, scope: List<BlockToken> = code.scope): Code =
         code.copy(scope = scope.map { it.accept(this, null) })
@@ -42,13 +35,11 @@ class FileAstUncommenter(val params: StitcherParameters) : BlockToken.Visitor<Bl
     private fun uncomment(code: Code): Code {
         if (!isCommented(code)) return reprocess(code)
 
-        val reference = DocumentReference(code.ref.document, code.scope.first().ref.start, code.scope.last().ref.end)
-        val tracker = ModificationTracker(reference).apply {
-            val tokens = toSequence(document, code.scope)
-            params.uncommenter.uncomment(this, tokens)
+        val document = ModificationTracker(code.scope.run { first().ref join last().ref }).run {
+            params.uncommenter.uncomment(this, toSequence(document, code.scope))
+            InjectedDocument(this)
         }
-        val document = InjectedDocument(reference, tracker)
-        return reprocess(code, parseInjected(document))
+        return reprocess(code, parse(document, params.scanner).scope)
     }
 
     private fun toSequence(document: Document, tokens: List<BlockToken>): Sequence<LeafToken> = tokens.asSequence().flatMap {
@@ -58,14 +49,5 @@ class FileAstUncommenter(val params: StitcherParameters) : BlockToken.Visitor<Bl
             is Comment -> listOfNotNull(it.opener, it.body, it.closer)
             else -> emptyList()
         }
-    }
-
-    private fun parseInjected(document: InjectedDocument): List<BlockToken> {
-        val input = CharStreams.fromString(document.toString(), document.file.absolutePathString())
-        val scanner = params.scanner.create(input, document).apply {
-            scanner.errorListener = StitcherErrorListener(document)
-        }
-        val stream = FileTokenStream(document, CommonTokenStream(scanner))
-        return FileAstParser.parse(stream).scope
     }
 }

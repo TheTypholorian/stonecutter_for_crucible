@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.replacement
 
+import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stonecutter.model.process.RegexReplacement
 import dev.kikugie.stonecutter.model.process.Replacement
 import org.pcre4j.regex.appendMatch
@@ -12,12 +13,16 @@ class RegexExecutor(replacements: List<Replacement>, override val identifiers: S
         .map { Pattern.compile(it.pattern, it.flags) to it }
         .toList()
 
-    override fun collect(text: CharSequence, queue: EmitQueue) {
+    override fun isEmpty(): Boolean =
+        replacements.isEmpty()
+
+    override fun collect(tracker: ModificationTracker, text: String, queue: EmitQueue) {
+        if (replacements.isEmpty()) return
         for ((regex, repl) in replacements) if (repl.isActive)
             process(regex, repl.target, text, queue)
     }
 
-    private fun process(regex: Pattern, target: String, text: CharSequence, queue: EmitQueue) {
+    private fun process(regex: Pattern, target: String, text: String, queue: EmitQueue) {
         val matcher = regex.matcher(text)
         var index = 0
         while (index >= 0 && matcher.find(index)) {
@@ -30,8 +35,8 @@ class RegexExecutor(replacements: List<Replacement>, override val identifiers: S
         override val start: Int get() = match.start()
         override val end: Int get() = match.end()
 
-        override fun appendTo(builder: Appendable) {
-            builder.appendMatch(match, value)
+        override fun applyTo(tracker: ModificationTracker) {
+            tracker.replace(tracker.start + start, tracker.start + end, value)
         }
     }
 }

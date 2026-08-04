@@ -2,6 +2,7 @@ package matcher
 
 import de.infix.testBalloon.framework.core.Test
 import dev.kikugie.semver.data.Version
+import dev.kikugie.stitcher.Stitcher
 import dev.kikugie.stitcher.StitcherParameters
 import dev.kikugie.stitcher.antlr.HashStyleScanner
 import dev.kikugie.stitcher.antlr.HashStyleScanner.Tokens.HASH_COMMENT_END
@@ -24,22 +25,12 @@ import dev.kikugie.stitcher.parser.FileAstParser
 import dev.kikugie.stitcher.parser.FileTokenStream
 import dev.kikugie.stitcher.parser.ScannerAdapter
 import dev.kikugie.stitcher.token.BlockToken
+import dev.kikugie.stitcher.token.appendTo
 import dev.kikugie.stitcher.token.type.BuiltinTokenType
-import dev.kikugie.stitcher.transformer.edit.SlashStarUncommentingStrategy
-import dev.kikugie.stitcher.transformer.edit.UncommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.*
 import dev.kikugie.stonecutter.model.Identifier
-import dev.kikugie.stonecutter.model.process.ConfigurationFlag
-import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
-import dev.kikugie.stonecutter.model.process.PerlReplacement
-import dev.kikugie.stonecutter.model.process.ProcessParameters
-import dev.kikugie.stonecutter.model.process.RegexReplacement
-import dev.kikugie.stonecutter.model.process.Replacement
-import dev.kikugie.stonecutter.model.process.StringReplacement
-import org.antlr.v4.runtime.CharStream
-import org.antlr.v4.runtime.CharStreams
-import org.antlr.v4.runtime.Lexer
-import org.antlr.v4.runtime.Token
-import org.antlr.v4.runtime.UnbufferedTokenStream
+import dev.kikugie.stonecutter.model.process.*
+import org.antlr.v4.runtime.*
 import org.intellij.lang.annotations.Language
 import kotlin.io.path.Path
 
@@ -58,6 +49,12 @@ fun Test.ExecutionScope.parseSnippet(value: String, consumer: ProblemConsumer = 
         val stream = FileTokenStream(document, UnbufferedTokenStream<Token>(source))
         FileAstParser.parse(stream)
     }
+}
+
+fun Test.ExecutionScope.assemble(
+    value: String, params: StitcherParameters = params(), consumer: ProblemConsumer = IMMEDIATE_THROW
+): String = buildString {
+    Stitcher.process(SourceDocument(Path("$testElementPath"), value, consumer), params).appendTo(this)
 }
 
 inline fun params(action: StitcherParametersBuilder.() -> Unit = {}): StitcherParameters =
@@ -104,6 +101,15 @@ object Uncommenter {
     }
 }
 
+object Commenter {
+    val Java: CommentingStrategy = StarCommentingStrategy.Java
+    val Kotlin: CommentingStrategy = StarCommentingStrategy.Kotlin
+}
+
+object Swapper {
+    val Standard: SwappingStrategy = StandardSwappingStrategy
+}
+
 @DslMarker
 @Retention(AnnotationRetention.SOURCE)
 private annotation class VarsBuilderDsl
@@ -113,11 +119,13 @@ class StitcherParametersBuilder : ProcessParametersBuilder() {
     val registry: MutableMap<ConfigurationFlag<*>, Any> = HashMap()
 
     var scanner: ScannerAdapter.Factory = Scanner.Java
+    var commenter: CommentingStrategy = Commenter.Java
     var uncommenter: UncommentingStrategy = Uncommenter.Java
+    var swapper: SwappingStrategy = Swapper.Standard
 
     fun buildParams(): StitcherParameters = StitcherParameters(
         buildVars(), ConfigurationRegistry(registry),
-        scanner, uncommenter
+        scanner, commenter, uncommenter, swapper
     )
 }
 

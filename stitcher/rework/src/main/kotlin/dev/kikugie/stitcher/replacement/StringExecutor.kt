@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.replacement
 
+import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stonecutter.model.process.Replacement
 import dev.kikugie.stonecutter.model.process.StringReplacement
 
@@ -20,10 +21,13 @@ class StringExecutor(replacements: List<Replacement>, override val identifiers: 
         clear()
     }
 
-    override fun collect(text: CharSequence, queue: EmitQueue) {
+    override fun isEmpty(): Boolean =
+        replacements.isEmpty()
+
+    override fun collect(tracker: ModificationTracker, text: String, queue: EmitQueue) {
+        if (replacements.isEmpty()) return
         for (match in searcher.search(text)) {
-            val value: String = findReplacement(match) ?: continue
-            queue += StringEmit(match, value)
+            queue += StringEmit(match, findReplacement(match) ?: continue)
         }
     }
 
@@ -35,22 +39,16 @@ class StringExecutor(replacements: List<Replacement>, override val identifiers: 
         override val start: Int get() = match.start
         override val end: Int get() = match.end
 
-        override fun appendTo(builder: Appendable) {
-            builder.append(value)
+        override fun applyTo(tracker: ModificationTracker) {
+            tracker.replace(tracker.start + start, tracker.start + end, value)
         }
     }
 }
 
-private fun Sequence<StringReplacement>.collectTo(map: MutableMap<String, MutableList<StringReplacement>>) {
-    for (repl in this) {
-        map.getOrPut(repl.pattern, ::mutableListOf) += repl
-        map.getOrPut(repl.target, ::mutableListOf) += repl
-    }
+private fun Sequence<StringReplacement>.collectTo(map: MutableMap<String, MutableList<StringReplacement>>): Unit = forEach {
+    map.getOrPut(it.pattern, ::mutableListOf) += it
+    map.getOrPut(it.target, ::mutableListOf) += it
 }
 
-private fun Sequence<StringReplacement>.toPayloads(): Sequence<String> = sequence {
-    for ((pattern, target) in this@toPayloads) {
-        yield(pattern)
-        yield(target)
-    }
-}
+private fun Sequence<StringReplacement>.toPayloads(): Sequence<String> =
+    flatMap { (pattern, target) -> listOf(pattern, target) }

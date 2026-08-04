@@ -18,6 +18,7 @@ sealed interface BlockToken : StitcherToken {
     }
 
     data class Content(val leaf: LeafToken) : BlockToken {
+        constructor(ref: DocumentReference) : this(LeafToken(BuiltinTokenType.CONTENT, ref))
         override val type: BuiltinTokenType get() = BuiltinTokenType.CONTENT
         override val ref: DocumentReference get() = leaf.ref
 

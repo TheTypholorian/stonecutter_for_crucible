@@ -1,22 +1,27 @@
 package dev.kikugie.stitcher.replacement
 
+import dev.kikugie.stitcher.document.edit.ModificationTracker
+import dev.kikugie.stitcher.document.text
+
 interface ReplacementExecutor {
     val identifiers: Set<String>
 
-    fun collect(text: CharSequence, queue: EmitQueue)
+    fun isEmpty(): Boolean
 
-    fun replace(text: CharSequence): StringBuilder = StringBuilder(text.length).apply {
+    fun collect(tracker: ModificationTracker, text: String, queue: EmitQueue)
+
+    fun replace(tracker: ModificationTracker): Boolean {
+        if (isEmpty())
+            return false
+
         val queue = EmitQueue()
-        collect(text, queue)
+        collect(tracker, tracker.text(), queue)
 
-        var lastEmitEnd = 0
-        for (emit in queue.entries) {
-            if (emit.start > lastEmitEnd) append(text, lastEmitEnd, emit.start)
-            emit.appendTo(this)
-            lastEmitEnd = emit.end
-        }
+        if (queue.entries.isEmpty())
+            return false
 
-        if (lastEmitEnd < text.length)
-            append(text, lastEmitEnd, text.length)
+        for (emit in queue.entries)
+            emit.applyTo(tracker)
+        return true
     }
 }

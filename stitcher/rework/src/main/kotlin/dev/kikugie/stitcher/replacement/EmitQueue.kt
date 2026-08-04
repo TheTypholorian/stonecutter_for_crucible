@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.replacement
 
+import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stitcher.util.OpenIntRange
 import dev.kikugie.stitcher.util.length
 import java.util.LinkedList
@@ -57,6 +58,6 @@ value class EmitQueue(val entries: LinkedList<Entry> = LinkedList()) {
     }
 
     interface Entry : OpenIntRange {
-        fun appendTo(builder: Appendable)
+        fun applyTo(tracker: ModificationTracker)
     }
 }

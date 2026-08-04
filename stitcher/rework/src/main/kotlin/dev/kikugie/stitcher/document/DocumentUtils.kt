@@ -4,7 +4,13 @@ package dev.kikugie.stitcher.document
 
 import dev.kikugie.antlr.util.endIndex
 import dev.kikugie.stitcher.antlr.AntlrToken
+import dev.kikugie.stitcher.document.edit.ModificationTracker
 import kotlin.io.path.absolutePathString
+import kotlin.math.max
+import kotlin.math.min
+
+val Document.ancestor: Document
+    get() = findAncestor(this)
 
 /**
  * Calculates the smallest acceptable character index for [this] document.
@@ -39,6 +45,9 @@ fun Document.toUriString(location: DocumentLocation): String = buildString {
         append(':', location.line, ':', location.column)
 }
 
+inline fun Document.reference(): DocumentReference =
+    DocumentReference(this, 0, length)
+
 inline fun Document.reference(start: Int, end: Int = start): DocumentReference =
     DocumentReference(this, start, end)
 
@@ -50,6 +59,22 @@ inline fun Document.reference(token: AntlrToken): DocumentReference =
 
 inline fun Document.appendTo(builder: Appendable, range: OpenEndRange<Int>): Unit =
     appendTo(builder, range.start, range.endExclusive)
+
+inline fun DocumentReference.appendTo(builder: Appendable): Unit =
+    document.appendTo(builder, this)
+
+infix fun DocumentReference.join(other: DocumentReference): DocumentReference {
+    assert(document === other.document) { "Mismatched documents" }
+    return copy(start = min(start, other.start), end = max(end, other.end))
+}
+
+fun ModificationTracker.text(): String =
+    document.substring(start, end)
+
+private tailrec fun findAncestor(doc: Document): Document = when (doc) {
+    is InjectedDocument -> findAncestor(doc.parent)
+    else -> doc
+}
 
 private tailrec fun calculateMinOffset(doc: InjectedDocument, offset: Int): Int = when (val parent = doc.parent) {
     is InjectedDocument -> calculateMinOffset(parent, offset - doc.start)
