@@ -59,16 +59,8 @@ conditionExpression
     ;
 
 versionPredicate
-    : (stringComparator | semanticComparator)? semanticVersion # semanticPredicate
-    | stringComparator stringVersion                           # stringPredicate
-    ;
-
-semanticVersion
-    : versionCore (DASH preRelease)? (PLUS buildMetadata)?
-    ;
-
-stringVersion
-    : IDENTIFIER
+    : (stringComparator | semanticComparator)? VERSION # semanticPredicate
+    | stringComparator IDENTIFIER                      # stringPredicate
     ;
 
 semanticComparator
@@ -85,17 +77,12 @@ stringComparator
     | COMP_GR_LESS
     ;
 
-versionCore: NUMERIC (DOT NUMERIC)*;
-preRelease: metadata (DASH metadata)*;
-buildMetadata: metadata (DOT metadata)*;
-
-metadata: NUMERIC | IDENTIFIER;
 literal: IDENTIFIER | QUOTED;
 
 /* LEXER */
-fragment NUMBER: '0'|[1-9][0-9]*;
-fragment IDENTIFIER_START: [_a-zA-Z];
-fragment IDENTIFIER_PART: [_\-a-zA-Z0-9];
+fragment ID: [a-zA-Z_][a-zA-Z0-9_-]*;
+fragment NUM: '0'|[1-9][0-9]*;
+fragment META: [0-9a-zA-Z_-]+;
 
 fragment ESC_SLASH: '\\\\';
 fragment ESC_STAR: '\\*';
@@ -105,8 +92,6 @@ COND_MARK: '?';
 SWAP_MARK: '$';
 REPL_MARK: '~';
 
-DOT: '.';
-DASH: '-';
 PLUS: '+';
 COMMA: ',';
 
@@ -136,8 +121,8 @@ OP_AND: '&&';
 OP_OR: '||';
 OP_DIR: '->';
 
-NUMERIC: NUMBER;
-IDENTIFIER: IDENTIFIER_START IDENTIFIER_PART*;
+IDENTIFIER: ID;
+VERSION: NUM ('.' NUM)* ('-' META ('.' META)*)? ('+' META ('.' META)*)?;
 QUOTED: '\'' (ESC_SLASH | ESC_TICK | ~[\\'])* '\'';
 COMMENT: '*' (ESC_SLASH | ESC_STAR | ~[\\*])* '*' -> channel(HIDDEN);
 WHITESPACE: [ \t\n\r]+ -> channel(HIDDEN);

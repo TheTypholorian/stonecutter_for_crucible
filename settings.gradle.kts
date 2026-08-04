@@ -26,6 +26,6 @@ rootProject.name = "Stonecutter"
 includeBuild("build-logic")
 include(
     "stonecutter",
-    "stitcher", "stitcher:antlr", "stitcher:rework",
+    "stitcher", "stitcher:antlr",
     "model"
 )

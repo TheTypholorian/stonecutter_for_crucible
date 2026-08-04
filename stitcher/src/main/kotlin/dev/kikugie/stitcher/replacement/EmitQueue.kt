@@ -1,11 +1,14 @@
 package dev.kikugie.stitcher.replacement
 
+import dev.kikugie.stitcher.document.edit.ModificationTracker
+import dev.kikugie.stitcher.util.OpenIntRange
+import dev.kikugie.stitcher.util.length
 import java.util.LinkedList
-import kotlin.collections.iterator
 
 @JvmInline
-internal value class EmitQueue(val entries: LinkedList<Entry> = LinkedList()) {
-    operator fun plusAssign(entry: Entry) {
+value class EmitQueue(val entries: LinkedList<Entry> = LinkedList()) {
+    @Suppress("NOTHING_TO_INLINE")
+    inline operator fun plusAssign(entry: Entry) {
         add(entry)
     }
 
@@ -54,15 +57,7 @@ internal value class EmitQueue(val entries: LinkedList<Entry> = LinkedList()) {
         return entries.offer(emit)
     }
 
-    companion object {
-        val Entry.length: Int
-            inline get() = end - start
-    }
-
-    interface Entry {
-        val start: Int
-        val end: Int
-
-        fun apply(builder: StringBuilder, offset: Int): Int
+    interface Entry : OpenIntRange {
+        fun applyTo(tracker: ModificationTracker)
     }
 }

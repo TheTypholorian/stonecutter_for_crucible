@@ -4,6 +4,7 @@ plugins {
     antlr
     kotlin("jvm")
     kotlin("plugin.serialization")
+    alias(common.plugins.kotlin.testballoon)
     alias(common.plugins.kotlin.dokka)
     alias(common.plugins.kotlin.dokka.javadoc)
     id("shared-setup")
@@ -14,7 +15,7 @@ val baseVersion: String = property("version").toString()
 
 dependencies {
     antlr(libs.antlr)
-    antlr(project("antlr"))
+    antlr(project(":stitcher:antlr"))
 
     api(libs.pcre4j)
     api(project(":model"))
@@ -23,13 +24,9 @@ dependencies {
     implementation(libs.pcre4j.bundle)
     implementation(common.misc.semver)
     implementation(common.misc.commons)
-    implementation(common.kotlin.stdlib)
-    implementation(common.kotlin.reflect)
-    implementation(common.kotlin.serialization)
 
-    testImplementation(common.kotest.runner)
-    testImplementation(common.kotest.assertions)
-    testImplementation(common.kotlin.serialization.json)
+    testImplementation(common.kotlin.testballoon)
+    testImplementation(common.kotlin.testballoon.assertions)
 
     dokkaHtmlPlugin(common.kotlin.dokka.versioning)
 }
