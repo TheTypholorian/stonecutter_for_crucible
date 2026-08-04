@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.transformer
 
+import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.stitcher.document.issue.ProblemReport.Severity
 import dev.kikugie.stitcher.document.issue.SYNTAX_GROUP
 import dev.kikugie.stitcher.document.issue.report
@@ -33,11 +34,26 @@ object ExpressionChecker : BlockToken.Visitor<Unit, Context>, DefinitionToken.Vi
 
     override fun visitCode(code: BlockToken.Code, ctx: Context) {
         code.definition.accept(ExpressionChecker, ctx)
-        for (it in code.scope) it.accept(this, ctx)
+        visitScope(code.scope, ctx)
     }
 
     override fun visitRoot(root: BlockToken.Root, ctx: Context) {
-        for (it in root.scope) it.accept(this, ctx)
+        visitScope(root.scope, ctx)
+    }
+
+    private fun visitScope(scope: List<BlockToken>, ctx: Context) {
+        var terminated = false
+        for (token in scope) when (
+            val def = token.also { it.accept(this, ctx) }.takeAsOrNull<BlockToken.Code>()?.definition
+        ) {
+            is DefinitionToken.ConditionOpener,
+            is DefinitionToken.ConditionCloser -> terminated = false
+            is DefinitionToken.ConditionExtension -> {
+                if (terminated) reportConditionAfterElse(def)
+                if (def.expression == null) terminated = true
+            }
+            else -> {}
+        }
     }
 
     override fun visitSwapLocal(swap: DefinitionToken.SwapLocal, ctx: Context) {
@@ -130,6 +146,16 @@ object ExpressionChecker : BlockToken.Visitor<Unit, Context>, DefinitionToken.Vi
             if (ctx.activeReplacementIds.remove(id)) Unit
             else reportDuplicateDisabledReplacement(entry)
     }
+}
+
+private fun reportConditionAfterElse(cond: DefinitionToken.ConditionExtension): Unit = report(
+    SYNTAX_GROUP + "condition-after-else"
+) {
+    at = cond.sugar.first().ref
+    severity = Severity.WARN
+
+    label = "Unreachable condition after 'else'"
+    info = "The 'else' branch already catches every remaining case, so this branch can never be selected."
 }
 
 private fun reportUnresolvedSwapId(swap: SwapOpener, ids: Collection<Identifier>): Unit = report(

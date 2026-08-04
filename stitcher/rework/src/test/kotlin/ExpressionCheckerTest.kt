@@ -20,7 +20,7 @@ import util.shouldNotHave
 val ExpressionCheckerTest by testSuite {
     testSuite("swaps") {
         test("unresolved swap id") {
-            "//$ swap_id".shouldHaveProblems(vars()) {
+            "//$ swap_id".shouldHaveProblems {
                 shouldHave(SYNTAX_GROUP + "unresolved-swap-id") {
                     label shouldContain "swap_id"
                     hint shouldNotContain "Did you mean"
@@ -57,7 +57,7 @@ val ExpressionCheckerTest by testSuite {
 
         test("insufficient swap insertions") {
             val params = vars {
-                swaps["my_swap"] = "\$1 \$2"
+                swaps["my_swap"] = $$"$1 $2"
             }
             "//$ my_swap 'a'".shouldHaveProblems(params) {
                 shouldHave(SYNTAX_GROUP + "insufficient-swap-insertions") {
@@ -70,7 +70,7 @@ val ExpressionCheckerTest by testSuite {
 
         test("sufficient swap insertions") {
             val params = vars {
-                swaps["my_swap"] = "\$1 \$2"
+                swaps["my_swap"] = $$"$1 $2"
             }
             "//$ my_swap 'a' 'b'".shouldHaveProblems(params) {
                 shouldNotHave(SYNTAX_GROUP + "insufficient-swap-insertions")
@@ -79,7 +79,7 @@ val ExpressionCheckerTest by testSuite {
 
         test("swap insertions ignored without arguments") {
             val params = vars {
-                swaps["my_swap"] = "\$1 \$2"
+                swaps["my_swap"] = $$"$1 $2"
             }
             "//$ my_swap".shouldHaveProblems(params) {
                 shouldNotHave(SYNTAX_GROUP + "unresolved-swap-id")
@@ -113,7 +113,7 @@ val ExpressionCheckerTest by testSuite {
         }
 
         test("resolved constant") {
-            "//? if true".shouldHaveProblems(vars()) {
+            "//? if true".shouldHaveProblems {
                 shouldNotHave(SYNTAX_GROUP + "unresolved-constant-id")
             }
         }
@@ -121,7 +121,7 @@ val ExpressionCheckerTest by testSuite {
 
     testSuite("predicate targets") {
         test("unresolved explicit target") {
-            "//? if forge: >1.0.0".shouldHaveProblems(vars()) {
+            "//? if forge: >1.0.0".shouldHaveProblems {
                 shouldHave(SYNTAX_GROUP + "invalid-target-id") {
                     label shouldContain "forge"
                     hint shouldNotContain "Did you mean"
@@ -144,7 +144,7 @@ val ExpressionCheckerTest by testSuite {
         }
 
         test("unresolved implicit target") {
-            "//? if >1.0.0".shouldHaveProblems(vars()) {
+            "//? if >1.0.0".shouldHaveProblems {
                 shouldHave(SYNTAX_GROUP + "invalid-target-id") {
                     label shouldContain "default"
                     hint shouldContain "What have you done"
@@ -164,7 +164,7 @@ val ExpressionCheckerTest by testSuite {
 
     testSuite("toggle replacements") {
         test("unresolved replacement id") {
-            "//~ unknown".shouldHaveProblems(vars()) {
+            "//~ unknown".shouldHaveProblems {
                 shouldHave(SYNTAX_GROUP + "unresolved-replacement-id") {
                     label shouldContain "unknown"
                     hint shouldNotContain "Did you mean"
@@ -244,27 +244,99 @@ val ExpressionCheckerTest by testSuite {
 
     testSuite("local replacements") {
         test("empty replacement source") {
-            "//~ if true '' -> 'value'".shouldHaveProblems(vars()) {
+            "//~ if true '' -> 'value'".shouldHaveProblems {
                 shouldHave(SYNTAX_GROUP + "empty-replacement-value")
             }
         }
 
         test("empty replacement target") {
-            "//~ if true 'value' -> ''".shouldHaveProblems(vars()) {
+            "//~ if true 'value' -> ''".shouldHaveProblems {
                 shouldHave(SYNTAX_GROUP + "empty-replacement-value")
             }
         }
 
         test("non-empty replacement values") {
-            "//~ if true 'a' -> 'b'".shouldHaveProblems(vars()) {
+            "//~ if true 'a' -> 'b'".shouldHaveProblems {
                 shouldNotHave(SYNTAX_GROUP + "empty-replacement-value")
+            }
+        }
+    }
+
+    testSuite("condition chains") {
+        test("else followed by another else") {
+            """
+                //? if true
+                a
+                //? else
+                b
+                //? else
+                c
+            """.trimIndent().shouldHaveProblems {
+                shouldHave(SYNTAX_GROUP + "condition-after-else") {
+                    severity shouldBe Severity.WARN
+                }
+            }
+        }
+
+        test("else followed by elif") {
+            """
+                //? if true
+                a
+                //? else
+                b
+                //? else if false
+                c
+            """.trimIndent().shouldHaveProblems {
+                shouldHave(SYNTAX_GROUP + "condition-after-else") {
+                    severity shouldBe Severity.WARN
+                }
+            }
+        }
+
+        test("closed else branch is fine") {
+            """
+                //? if true {
+                a
+                //?} else {
+                //b
+                //?}
+            """.trimIndent().shouldHaveProblems {
+                shouldNotHave(SYNTAX_GROUP + "condition-after-else")
+            }
+        }
+
+        test("if / elif / else chain is fine") {
+            """
+                //? if true
+                a
+                //? else if false
+                b
+                //? else
+                c
+            """.trimIndent().shouldHaveProblems {
+                shouldNotHave(SYNTAX_GROUP + "condition-after-else")
+            }
+        }
+
+        test("separate chains do not leak state") {
+            """
+                //? if true
+                a
+                //? else
+                b
+                //? if false
+                c
+                //? else
+                d
+            """.trimIndent().shouldHaveProblems {
+                shouldNotHave(SYNTAX_GROUP + "condition-after-else")
             }
         }
     }
 }
 
 context(scope: Test.ExecutionScope)
-private inline fun @receiver:Language("kotlin") String.shouldHaveProblems(parameters: ProcessParameters, action: List<ProblemReport>.() -> Unit) {
+private inline fun @receiver:Language("kotlin") String.shouldHaveProblems(parameters: ProcessParameters = vars(), action: List<ProblemReport>.() -> Unit) {
     val problems = mutableListOf<ProblemReport>()
     val scope = kotlin.runCatching { scope.parseSnippet(this, problems::plusAssign) }
         .getOrElse { return action(problems) }
