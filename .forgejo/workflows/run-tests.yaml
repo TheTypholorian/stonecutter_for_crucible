@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Install deps
         run: |
-          apk add --no-cache nodejs curl jq
+          apk add --no-cache git nodejs curl jq
       - name: Resolve versions
         id: resolve
         run: |
@@ -48,7 +48,7 @@ jobs:
     steps:
       - name: Install deps
         run: |
-          apk add --no-cache nodejs tar
+          apk add --no-cache git nodejs tar
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
