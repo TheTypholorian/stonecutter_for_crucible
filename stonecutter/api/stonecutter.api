@@ -38,6 +38,24 @@ public abstract interface class dev/kikugie/stonecutter/build/StonecutterBuildEx
 	public fun tasks (Lorg/gradle/api/Action;)V
 }
 
+public final class dev/kikugie/stonecutter/build/StonecutterBuildExtension$DefaultImpls {
+	public static fun constants (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lorg/gradle/api/Action;)V
+	public static fun dependencies (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lorg/gradle/api/Action;)V
+	public static fun flags (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lorg/gradle/api/Action;)V
+	public static fun getActive (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;)Ldev/kikugie/stonecutter/data/StonecutterProject;
+	public static fun getBranch (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;)Ldev/kikugie/stonecutter/data/tree/ProjectBranch;
+	public static fun getCurrent (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;)Ldev/kikugie/stonecutter/data/StonecutterProject;
+	public static fun getSemantics (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;)Ldev/kikugie/stonecutter/data/version/VersionOperations;
+	public static fun getTree (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;)Ldev/kikugie/stonecutter/data/tree/ProjectTree;
+	public static fun getVersions (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;)Ljava/util/Collection;
+	public static fun properties (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Ljava/io/File;)V
+	public static fun properties (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public static fun properties (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lorg/gradle/api/Action;)V
+	public static fun replacements (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lorg/gradle/api/Action;)V
+	public static fun swaps (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lorg/gradle/api/Action;)V
+	public static fun tasks (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lorg/gradle/api/Action;)V
+}
+
 public abstract class dev/kikugie/stonecutter/build/config/ConstantContainer : dev/kikugie/stonecutter/data/whatever/ExtendedMapProperty, org/gradle/api/provider/MapProperty {
 	public fun <init> (Lorg/gradle/api/provider/MapProperty;)V
 	public fun convention (Ljava/util/Map;)Lorg/gradle/api/provider/MapProperty;
@@ -51,6 +69,8 @@ public abstract class dev/kikugie/stonecutter/build/config/ConstantContainer : d
 	public fun flatMap (Lorg/gradle/api/Transformer;)Lorg/gradle/api/provider/Provider;
 	public synthetic fun get ()Ljava/lang/Object;
 	public fun get ()Ljava/util/Map;
+	public synthetic fun get (Ljava/lang/Object;)Ljava/lang/Object;
+	public fun get (Ljava/lang/String;)Ljava/lang/Boolean;
 	public synthetic fun getOrElse (Ljava/lang/Object;)Ljava/lang/Object;
 	public fun getOrElse (Ljava/util/Map;)Ljava/util/Map;
 	public synthetic fun getOrNull ()Ljava/lang/Object;
@@ -71,6 +91,10 @@ public abstract class dev/kikugie/stonecutter/build/config/ConstantContainer : d
 	public fun put (Ljava/lang/String;Z)V
 	public fun putAll (Ljava/util/Map;)V
 	public fun putAll (Lorg/gradle/api/provider/Provider;)V
+	public synthetic fun set (Ljava/lang/Object;Ljava/lang/Object;)V
+	public synthetic fun set (Ljava/lang/Object;Lorg/gradle/api/provider/Provider;)V
+	public fun set (Ljava/lang/String;Lorg/gradle/api/provider/Provider;)V
+	public fun set (Ljava/lang/String;Z)V
 	public fun set (Ljava/util/Map;)V
 	public fun set (Lorg/gradle/api/provider/Provider;)V
 	public fun unset ()Lorg/gradle/api/provider/MapProperty;
@@ -95,6 +119,8 @@ public abstract class dev/kikugie/stonecutter/build/config/DependencyContainer :
 	public fun flatMap (Lorg/gradle/api/Transformer;)Lorg/gradle/api/provider/Provider;
 	public synthetic fun get ()Ljava/lang/Object;
 	public fun get ()Ljava/util/Map;
+	public synthetic fun get (Ljava/lang/Object;)Ljava/lang/Object;
+	public fun get (Ljava/lang/String;)Ljava/lang/String;
 	public synthetic fun getOrElse (Ljava/lang/Object;)Ljava/lang/Object;
 	public fun getOrElse (Ljava/util/Map;)Ljava/util/Map;
 	public synthetic fun getOrNull ()Ljava/lang/Object;
@@ -113,6 +139,10 @@ public abstract class dev/kikugie/stonecutter/build/config/DependencyContainer :
 	public fun put (Ljava/lang/String;Lorg/gradle/api/provider/Provider;)V
 	public fun putAll (Ljava/util/Map;)V
 	public fun putAll (Lorg/gradle/api/provider/Provider;)V
+	public synthetic fun set (Ljava/lang/Object;Ljava/lang/Object;)V
+	public synthetic fun set (Ljava/lang/Object;Lorg/gradle/api/provider/Provider;)V
+	public fun set (Ljava/lang/String;Ljava/lang/String;)V
+	public fun set (Ljava/lang/String;Lorg/gradle/api/provider/Provider;)V
 	public fun set (Ljava/util/Map;)V
 	public fun set (Lorg/gradle/api/provider/Provider;)V
 	public fun unset ()Lorg/gradle/api/provider/MapProperty;
@@ -138,6 +168,19 @@ public abstract interface class dev/kikugie/stonecutter/build/config/Replacement
 	public abstract fun string (Lorg/gradle/api/Action;)V
 	public fun string (ZLjava/lang/String;Lorg/gradle/api/Action;)V
 	public fun string (ZLorg/gradle/api/Action;)V
+}
+
+public final class dev/kikugie/stonecutter/build/config/ReplacementContainer$DefaultImpls {
+	public static fun perl (Ldev/kikugie/stonecutter/build/config/ReplacementContainer;ZLjava/lang/String;Lorg/gradle/api/Action;)V
+	public static fun perl (Ldev/kikugie/stonecutter/build/config/ReplacementContainer;ZLorg/gradle/api/Action;)V
+	public static fun regex (Ldev/kikugie/stonecutter/build/config/ReplacementContainer;Ljava/lang/String;Ljava/lang/Boolean;Lorg/gradle/api/Action;)V
+	public static fun regex (Ldev/kikugie/stonecutter/build/config/ReplacementContainer;Ljava/lang/String;Lorg/gradle/api/Action;)V
+	public static fun regex (Ldev/kikugie/stonecutter/build/config/ReplacementContainer;ZLjava/lang/String;Lorg/gradle/api/Action;)V
+	public static fun regex (Ldev/kikugie/stonecutter/build/config/ReplacementContainer;ZLorg/gradle/api/Action;)V
+	public static fun string (Ldev/kikugie/stonecutter/build/config/ReplacementContainer;Ljava/lang/String;Ljava/lang/Boolean;Lorg/gradle/api/Action;)V
+	public static fun string (Ldev/kikugie/stonecutter/build/config/ReplacementContainer;Ljava/lang/String;Lorg/gradle/api/Action;)V
+	public static fun string (Ldev/kikugie/stonecutter/build/config/ReplacementContainer;ZLjava/lang/String;Lorg/gradle/api/Action;)V
+	public static fun string (Ldev/kikugie/stonecutter/build/config/ReplacementContainer;ZLorg/gradle/api/Action;)V
 }
 
 public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$PerlReplacementSpec {
@@ -188,6 +231,8 @@ public abstract class dev/kikugie/stonecutter/build/config/SwapContainer : dev/k
 	public fun flatMap (Lorg/gradle/api/Transformer;)Lorg/gradle/api/provider/Provider;
 	public synthetic fun get ()Ljava/lang/Object;
 	public fun get ()Ljava/util/Map;
+	public synthetic fun get (Ljava/lang/Object;)Ljava/lang/Object;
+	public fun get (Ljava/lang/String;)Ljava/lang/String;
 	public synthetic fun getOrElse (Ljava/lang/Object;)Ljava/lang/Object;
 	public fun getOrElse (Ljava/util/Map;)Ljava/util/Map;
 	public synthetic fun getOrNull ()Ljava/lang/Object;
@@ -206,6 +251,10 @@ public abstract class dev/kikugie/stonecutter/build/config/SwapContainer : dev/k
 	public fun put (Ljava/lang/String;Lorg/gradle/api/provider/Provider;)V
 	public fun putAll (Ljava/util/Map;)V
 	public fun putAll (Lorg/gradle/api/provider/Provider;)V
+	public synthetic fun set (Ljava/lang/Object;Ljava/lang/Object;)V
+	public synthetic fun set (Ljava/lang/Object;Lorg/gradle/api/provider/Provider;)V
+	public fun set (Ljava/lang/String;Ljava/lang/String;)V
+	public fun set (Ljava/lang/String;Lorg/gradle/api/provider/Provider;)V
 	public fun set (Ljava/util/Map;)V
 	public fun set (Lorg/gradle/api/provider/Provider;)V
 	public fun unset ()Lorg/gradle/api/provider/MapProperty;
@@ -219,9 +268,9 @@ public abstract class dev/kikugie/stonecutter/build/config/SwapContainer : dev/k
 
 public abstract interface class dev/kikugie/stonecutter/build/task/StonecutterBuildTasks {
 	public abstract fun configureSource (Lorg/gradle/api/tasks/SourceSet;)V
+	public abstract fun getGenerate ()Ldev/kikugie/stonecutter/data/whatever/TaskProviderMap;
 	public abstract fun getGeneratedSourcesDir ()Lorg/gradle/api/file/DirectoryProperty;
 	public abstract fun getMerge ()Ldev/kikugie/stonecutter/data/whatever/TaskProviderMap;
-	public abstract fun getProcessedCacheDir ()Lorg/gradle/api/file/DirectoryProperty;
 }
 
 public abstract interface class dev/kikugie/stonecutter/controller/StonecutterControllerExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider {
@@ -240,6 +289,19 @@ public abstract interface class dev/kikugie/stonecutter/controller/StonecutterCo
 	public fun tasks (Lorg/gradle/api/Action;)V
 }
 
+public final class dev/kikugie/stonecutter/controller/StonecutterControllerExtension$DefaultImpls {
+	public static fun flags (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;Lorg/gradle/api/Action;)V
+	public static fun getCurrent (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;)Ldev/kikugie/stonecutter/data/StonecutterProject;
+	public static fun getSemantics (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;)Ldev/kikugie/stonecutter/data/version/VersionOperations;
+	public static fun getVcsVersion (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;)Ldev/kikugie/stonecutter/data/StonecutterProject;
+	public static fun getVersions (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;)Ljava/util/Set;
+	public static fun handlers (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;Lorg/gradle/api/Action;)V
+	public static fun properties (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;Ljava/io/File;)V
+	public static fun properties (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public static fun properties (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;Lorg/gradle/api/Action;)V
+	public static fun tasks (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;Lorg/gradle/api/Action;)V
+}
+
 public abstract class dev/kikugie/stonecutter/controller/file/FileHandlerContainer : dev/kikugie/stonecutter/data/container/GradleContainerService {
 	public fun <init> ()V
 	public final fun configure ([Ljava/lang/String;Lorg/gradle/api/Action;)V
@@ -254,7 +316,7 @@ public abstract class dev/kikugie/stonecutter/controller/file/HandlerBuilder : o
 	public abstract fun getScanner ()Lorg/gradle/api/provider/Property;
 	public abstract fun getSwapper ()Lorg/gradle/api/provider/Property;
 	public abstract fun getUncommenter ()Lorg/gradle/api/provider/Property;
-	public final fun line (Ljava/lang/String;)Ldev/kikugie/stitcher/transformer/strategy/CommentingStrategy;
+	public final fun line (Ljava/lang/String;)Ldev/kikugie/stitcher/transformer/edit/CommentingStrategy;
 	public final fun scanner (Lorg/gradle/api/Action;)V
 }
 
@@ -307,10 +369,22 @@ public abstract interface class dev/kikugie/stonecutter/controller/flag/Stonecut
 	public fun set (Ljava/lang/String;Ljava/lang/Object;)V
 }
 
+public final class dev/kikugie/stonecutter/controller/flag/StonecutterFlags$DefaultImpls {
+	public static fun get (Ldev/kikugie/stonecutter/controller/flag/StonecutterFlags;Ljava/lang/String;)Ljava/lang/Object;
+	public static fun invoke (Ldev/kikugie/stonecutter/controller/flag/StonecutterFlags;Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;)Ljava/lang/Object;
+	public static fun invoke (Ldev/kikugie/stonecutter/controller/flag/StonecutterFlags;Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;Ljava/lang/Object;)V
+	public static fun set (Ldev/kikugie/stonecutter/controller/flag/StonecutterFlags;Ljava/lang/String;Ljava/lang/Object;)V
+}
+
 public abstract interface class dev/kikugie/stonecutter/controller/flag/StonecutterFlagsView {
 	public abstract fun get (Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;)Ljava/lang/Object;
 	public fun get (Ljava/lang/String;)Ljava/lang/Object;
 	public fun invoke (Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;)Ljava/lang/Object;
+}
+
+public final class dev/kikugie/stonecutter/controller/flag/StonecutterFlagsView$DefaultImpls {
+	public static fun get (Ldev/kikugie/stonecutter/controller/flag/StonecutterFlagsView;Ljava/lang/String;)Ljava/lang/Object;
+	public static fun invoke (Ldev/kikugie/stonecutter/controller/flag/StonecutterFlagsView;Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;)Ljava/lang/Object;
 }
 
 public abstract class dev/kikugie/stonecutter/controller/task/StonecutterControllerTasks {
@@ -346,11 +420,6 @@ public abstract class dev/kikugie/stonecutter/controller/task/StonecutterSwitchT
 	public abstract fun getVersion ()Lorg/gradle/api/provider/Property;
 }
 
-public abstract interface class dev/kikugie/stonecutter/controller/task/StonecutterTaskMutexService : org/gradle/api/services/BuildService {
-	public static final field Companion Ldev/kikugie/stonecutter/controller/task/StonecutterTaskMutexService$Companion;
-	public static fun create (Lorg/gradle/api/invocation/Gradle;Ljava/lang/String;)Lorg/gradle/api/provider/Provider;
-}
-
 public final class dev/kikugie/stonecutter/controller/task/StonecutterTaskMutexService$Companion {
 	public final fun create (Lorg/gradle/api/invocation/Gradle;Ljava/lang/String;)Lorg/gradle/api/provider/Provider;
 }
@@ -377,6 +446,7 @@ public final synthetic class dev/kikugie/stonecutter/controller/tree/BranchInfo$
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
 	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/controller/tree/BranchInfo;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
 public final class dev/kikugie/stonecutter/controller/tree/BranchInfo$Companion {
@@ -407,6 +477,7 @@ public final synthetic class dev/kikugie/stonecutter/controller/tree/BranchModel
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
 	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/controller/tree/BranchModel;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
 public final class dev/kikugie/stonecutter/controller/tree/BranchModel$Companion {
@@ -440,6 +511,7 @@ public final synthetic class dev/kikugie/stonecutter/controller/tree/NodeInfo$$s
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
 	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/controller/tree/NodeInfo;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
 public final class dev/kikugie/stonecutter/controller/tree/NodeInfo$Companion {
@@ -477,6 +549,7 @@ public final synthetic class dev/kikugie/stonecutter/controller/tree/NodeModel$$
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
 	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/controller/tree/NodeModel;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
 public final class dev/kikugie/stonecutter/controller/tree/NodeModel$Companion {
@@ -511,6 +584,7 @@ public final synthetic class dev/kikugie/stonecutter/controller/tree/ParametersM
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
 	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/controller/tree/ParametersModel;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
 public final class dev/kikugie/stonecutter/controller/tree/ParametersModel$Companion {
@@ -557,6 +631,7 @@ public final synthetic class dev/kikugie/stonecutter/controller/tree/TreeModel$$
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
 	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/controller/tree/TreeModel;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
 public final class dev/kikugie/stonecutter/controller/tree/TreeModel$Companion {
@@ -662,6 +737,7 @@ public final synthetic class dev/kikugie/stonecutter/data/ProjectHierarchy$$seri
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
 	public final fun serialize-DLHHLFY (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/String;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
 public final class dev/kikugie/stonecutter/data/ProjectHierarchy$Companion {
@@ -709,6 +785,7 @@ public final synthetic class dev/kikugie/stonecutter/data/StonecutterProject$$se
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
 	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/data/StonecutterProject;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
 public final class dev/kikugie/stonecutter/data/StonecutterProject$Companion {
@@ -951,6 +1028,13 @@ public abstract interface class dev/kikugie/stonecutter/data/tree/ProjectNode : 
 	public fun sibling (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/tree/ProjectNode;
 }
 
+public final class dev/kikugie/stonecutter/data/tree/ProjectNode$DefaultImpls {
+	public static fun find (Ldev/kikugie/stonecutter/data/tree/ProjectNode;Ljava/lang/String;Ljava/lang/String;)Ldev/kikugie/stonecutter/data/tree/ProjectNode;
+	public static fun getTree (Ldev/kikugie/stonecutter/data/tree/ProjectNode;)Ldev/kikugie/stonecutter/data/tree/ProjectTree;
+	public static fun peer (Ldev/kikugie/stonecutter/data/tree/ProjectNode;Ljava/lang/String;)Ldev/kikugie/stonecutter/data/tree/ProjectNode;
+	public static fun sibling (Ldev/kikugie/stonecutter/data/tree/ProjectNode;Ljava/lang/String;)Ldev/kikugie/stonecutter/data/tree/ProjectNode;
+}
+
 public abstract interface class dev/kikugie/stonecutter/data/tree/ProjectTree : dev/kikugie/stonecutter/data/tree/GradleMember, java/util/Map, kotlin/jvm/internal/markers/KMappedMarker, org/gradle/api/Named {
 	public abstract fun get-qHRS2DI (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/tree/ProjectBranch;
 	public abstract fun getBranches ()Ljava/util/Collection;
@@ -976,6 +1060,12 @@ public abstract interface class dev/kikugie/stonecutter/data/whatever/ExtendedMa
 	public fun get (Ljava/lang/Object;)Ljava/lang/Object;
 	public fun set (Ljava/lang/Object;Ljava/lang/Object;)V
 	public fun set (Ljava/lang/Object;Lorg/gradle/api/provider/Provider;)V
+}
+
+public final class dev/kikugie/stonecutter/data/whatever/ExtendedMapProperty$DefaultImpls {
+	public static fun get (Ldev/kikugie/stonecutter/data/whatever/ExtendedMapProperty;Ljava/lang/Object;)Ljava/lang/Object;
+	public static fun set (Ldev/kikugie/stonecutter/data/whatever/ExtendedMapProperty;Ljava/lang/Object;Ljava/lang/Object;)V
+	public static fun set (Ldev/kikugie/stonecutter/data/whatever/ExtendedMapProperty;Ljava/lang/Object;Lorg/gradle/api/provider/Provider;)V
 }
 
 public final class dev/kikugie/stonecutter/data/whatever/TaskProviderMap : java/util/Map, kotlin/jvm/internal/markers/KMappedMarker {
@@ -1058,6 +1148,9 @@ public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtens
 	public abstract fun getKotlinController ()Lorg/gradle/api/provider/Property;
 	public final fun getSemantics ()Ldev/kikugie/stonecutter/data/version/VersionOperations;
 	public final fun getShared ()Lorg/gradle/api/Action;
+	public fun properties (Ljava/io/File;)V
+	public fun properties (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public fun properties (Lorg/gradle/api/Action;)V
 	public final fun shared (Lorg/gradle/api/Action;)V
 }
 
@@ -1078,6 +1171,12 @@ public abstract class dev/kikugie/stonecutter/settings/properties/StructuredProp
 	public final fun raw ([Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
 	public abstract fun rawOrNull ([Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
 	public abstract fun tags ([Ljava/lang/String;)V
+}
+
+public final class dev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider$DefaultImpls {
+	public static fun properties (Ldev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider;Ljava/io/File;)V
+	public static fun properties (Ldev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public static fun properties (Ldev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider;Lorg/gradle/api/Action;)V
 }
 
 public abstract class dev/kikugie/stonecutter/settings/task/StonecutterIdeaConfigTask : org/gradle/api/DefaultTask {

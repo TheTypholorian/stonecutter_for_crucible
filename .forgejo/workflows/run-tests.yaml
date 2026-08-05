@@ -7,11 +7,44 @@ on:
       - .forgejo/workflows/run-tests.yaml
 
 jobs:
-  test:
-    name: Run tests
+  resolve-versions:
+    name: Resolve Gradle versions
     runs-on: kiku-server
     container:
       image: eclipse-temurin:25-jdk-alpine
+    outputs:
+      versions: ${{ steps.resolve.outputs.versions }}
+      release: ${{ steps.resolve.outputs.release }}
+    steps:
+      - name: Install deps
+        run: |
+          apk add --no-cache nodejs curl jq
+      - name: Resolve versions
+        id: resolve
+        run: |
+          latest=$(curl -sSf https://services.gradle.org/versions/current | jq -r '.version // empty')
+          rc=$(curl -sSf https://services.gradle.org/versions/release-candidate | jq -r '.version // empty')
+          nightly=$(curl -sSf https://services.gradle.org/versions/nightly | jq -r '.version // empty')
+          versions=$(jq -cn --arg latest "$latest" --arg rc "$rc" --arg nightly "$nightly" \
+            '[$latest, $rc, $nightly] | map(select(. != "")) | unique')
+          echo "Resolved Gradle versions: $versions"
+          echo "Release (latest) version: $latest"
+          echo "versions=$versions" >> "$GITHUB_OUTPUT"
+          echo "release=$latest" >> "$GITHUB_OUTPUT"
+
+  test:
+    name: Run tests
+    needs: resolve-versions
+    runs-on: kiku-server
+    container:
+      image: eclipse-temurin:25-jdk-alpine
+    continue-on-error: ${{ matrix.gradle-version != needs.resolve-versions.outputs.release }}
+    strategy:
+      fail-fast: false
+      matrix:
+        gradle-version: ${{ fromJSON(needs.resolve-versions.outputs.versions) }}
+    env:
+      GRADLE_VERSION: ${{ matrix.gradle-version }}
     steps:
       - name: Install deps
         run: |
@@ -24,6 +57,7 @@ jobs:
       - name: Setup Gradle
         run: |
           chmod +x ./gradlew
+          ./gradlew wrapper --gradle-version "$GRADLE_VERSION"
       - name: Run tests
         run: |
           ./gradlew check --build-cache --configuration-cache
