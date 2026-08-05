@@ -13,7 +13,7 @@ class LineCommentingStrategy(val symbol: String) : CommentingStrategy {
     override fun comment(tracker: ModificationTracker, tokens: Sequence<LeafToken>): Unit = with(tracker) {
         // Checks if this scope is following a line comment, or block one
         val isFirstLineInline: Boolean = start > document.minIndex() && document[start - 1] !in LINE_BREAKS
-        val contentSequence: CharSequence = tracker.charSequenceContent().withoutTrailingBlankLine()
+        val contentSequence: CharSequence = charSequenceContent().withoutTrailingBlankLine()
         val commonIndent: String = contentSequence.commonIndent(isFirstLineInline)
 
         var offset = start

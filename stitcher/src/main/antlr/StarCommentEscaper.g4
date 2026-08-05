@@ -10,6 +10,8 @@ SINGLE_QUOTE: '\'' -> pushMode(IN_CHAR), skip;
 DOUBLE_QUOTE: '"' -> pushMode(IN_STRING), skip;
 BLOCK_QUOTE: '"""' -> pushMode(IN_BLOCK), skip;
 
+THE_REST: . -> skip;
+
 mode IN_TILDA;
 TILDA_COMMENT_NEST: '/^'(SUPERSCRIPT*) -> pushMode(IN_TILDA), type(TILDA_COMMENT_START);
 TILDA_COMMENT_END: (SUPERSCRIPT*)'^/' -> popMode;
@@ -17,6 +19,8 @@ TILDA_COMMENT_END: (SUPERSCRIPT*)'^/' -> popMode;
 SINGLE_QUOTE_NEST: '\'' -> pushMode(IN_CHAR), skip;
 DOUBLE_QUOTE_NEST: '"' -> pushMode(IN_STRING), skip;
 BLOCK_QUOTE_NEST: '"""' -> pushMode(IN_BLOCK), skip;
+
+TILDA_THE_REST: . -> skip;
 
 mode IN_SLASH;
 SLASH_COMMENT_END: '\n' -> popMode, skip;

@@ -6,3 +6,4 @@ PLACEHOLDER
     : '$' NUMBER
     | '${' NUMBER '}'
     ;
+THE_REST: . -> skip;
