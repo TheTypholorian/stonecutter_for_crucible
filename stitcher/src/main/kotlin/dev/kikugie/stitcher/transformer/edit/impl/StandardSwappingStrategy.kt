@@ -1,22 +1,15 @@
-package dev.kikugie.stitcher.transformer.edit
+package dev.kikugie.stitcher.transformer.edit.impl
 
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stitcher.document.minIndex
+import dev.kikugie.stitcher.transformer.edit.SwappingStrategy
 import dev.kikugie.stitcher.util.LINE_BREAKS
 import dev.kikugie.stitcher.util.WORD_BREAKS
+import kotlin.text.iterator
 
-/**
- * Default swap substitution strategy.
- *
- * The substituted [text] is re-indented to match the line the substitution begins on, resolved from
- * the surrounding document context (not from the replaced body). Leading and trailing blank lines of
- * the original scope are preserved. When the substitution point sits mid-line — e.g. right after a
- * `/*$ id $*/` opener — the first inserted line is left un-indented while continuation lines take the
- * opener line's indentation.
- */
 object StandardSwappingStrategy : SwappingStrategy {
-    override fun substitute(tracker: ModificationTracker, text: String) {
+    override fun substitute(tracker: ModificationTracker, text: String): Unit = with(tracker) {
         val document = tracker.document
         val scope = document.subSequence(tracker.start, tracker.end).toString()
 
@@ -29,6 +22,8 @@ object StandardSwappingStrategy : SwappingStrategy {
         val midLine = document.hasLineContentBefore(coreStart)
         tracker.replace(coreStart, coreEnd, text.reindent(indent, dropFirstIndent = midLine))
     }
+
+    private fun readResolve(): Any = this
 }
 
 /** Counts the character offset of leading blank lines, mirroring the legacy swap strategy. */
@@ -44,8 +39,13 @@ private fun CharSequence.countOffset(): Int {
 }
 
 private fun String.reindent(indent: String, dropFirstIndent: Boolean): String {
-    val reindented = replaceIndent(indent)
-    return if (dropFirstIndent && reindented.startsWith(indent)) reindented.removePrefix(indent) else reindented
+    if (!dropFirstIndent) return replaceIndent(indent)
+    // Mid-line substitution: the first line is inline and keeps no indentation, so it must be
+    // excluded from the common-indent computation — otherwise its zero indent would anchor the
+    // continuation lines to their own relative indent instead of the scope's.
+    val newline = indexOf('\n')
+    if (newline < 0) return this
+    return substring(0, newline) + '\n' + substring(newline + 1).replaceIndent(indent)
 }
 
 /** The character index of the start of the line containing [index], reading into context if needed. */

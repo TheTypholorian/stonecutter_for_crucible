@@ -28,6 +28,9 @@ import dev.kikugie.stitcher.token.BlockToken
 import dev.kikugie.stitcher.token.appendTo
 import dev.kikugie.stitcher.token.type.BuiltinTokenType
 import dev.kikugie.stitcher.transformer.edit.*
+import dev.kikugie.stitcher.transformer.edit.impl.SlashStarUncommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.impl.StandardSwappingStrategy
+import dev.kikugie.stitcher.transformer.edit.impl.StarCommentingStrategy
 import dev.kikugie.stonecutter.model.Identifier
 import dev.kikugie.stonecutter.model.process.*
 import org.antlr.v4.runtime.*

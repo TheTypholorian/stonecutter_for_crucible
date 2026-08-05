@@ -1,4 +1,4 @@
-package dev.kikugie.stitcher.transformer.edit
+package dev.kikugie.stitcher.transformer.edit.impl
 
 import dev.kikugie.antlr.util.advance
 import dev.kikugie.antlr.util.endIndex
@@ -9,6 +9,7 @@ import dev.kikugie.stitcher.antlr.StarCommentEscaper.Tokens
 import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stitcher.token.LeafToken
 import dev.kikugie.stitcher.token.type.BuiltinTokenType
+import dev.kikugie.stitcher.transformer.edit.UncommentingStrategy
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import kotlin.io.path.absolutePathString
@@ -56,4 +57,6 @@ object SlashStarUncommentingStrategy : UncommentingStrategy {
             depth - 1
         }
     }
+
+    private fun readResolve(): Any = this
 }

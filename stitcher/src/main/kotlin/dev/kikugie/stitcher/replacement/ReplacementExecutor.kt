@@ -1,7 +1,7 @@
 package dev.kikugie.stitcher.replacement
 
 import dev.kikugie.stitcher.document.edit.ModificationTracker
-import dev.kikugie.stitcher.document.text
+import dev.kikugie.stitcher.document.stringContent
 
 interface ReplacementExecutor {
     val identifiers: Set<String>
@@ -15,7 +15,7 @@ interface ReplacementExecutor {
             return false
 
         val queue = EmitQueue()
-        collect(tracker, tracker.text(), queue)
+        collect(tracker, tracker.stringContent(), queue)
 
         if (queue.entries.isEmpty())
             return false

@@ -68,8 +68,11 @@ infix fun DocumentReference.join(other: DocumentReference): DocumentReference {
     return copy(start = min(start, other.start), end = max(end, other.end))
 }
 
-fun ModificationTracker.text(): String =
+fun ModificationTracker.stringContent(): String =
     document.substring(start, end)
+
+fun ModificationTracker.charSequenceContent(): CharSequence =
+    document.subSequence(start, end)
 
 private tailrec fun findAncestor(doc: Document): Document = when (doc) {
     is InjectedDocument -> findAncestor(doc.parent)

@@ -67,6 +67,25 @@ internal infix fun String.distanceTo(target: String): Int {
     return distances[sourceLength][targetLength]
 }
 
+internal fun CharSequence.withoutTrailingBlankLine(): CharSequence {
+    var count = 0
+    var seenNewLine = false
+    for (i in lastIndex downTo 0) when (val ch = get(i)) {
+        in WORD_BREAKS -> if (seenNewLine) break else count++
+        in LINE_BREAKS -> { count++; seenNewLine = true }
+        else -> break
+    }
+    if (!seenNewLine) count = 0
+    return if (count == 0) this else dropLast(count)
+}
+
+internal fun CharSequence.commonIndent(ignoreFirstLine: Boolean): String {
+    var lines: Sequence<String> = splitToSequence('\n')
+    if (ignoreFirstLine) lines = lines.drop(1)
+
+    return lines.filter(String::isNotBlank).minOfOrNull { it.takeWhile(Char::isWhitespace) } ?: ""
+}
+
 internal fun String.findInsertionPlaces(): Sequence<InsertionPlace> =
     SwapTemplateLexer(CharStreams.fromString(this)).toSequence().map(::InsertionPlace)
 

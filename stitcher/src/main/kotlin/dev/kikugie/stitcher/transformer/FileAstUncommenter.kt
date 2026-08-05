@@ -5,15 +5,21 @@ import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.InjectedDocument
 import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stitcher.document.join
+import dev.kikugie.stitcher.document.reference
 import dev.kikugie.stitcher.token.BlockToken
 import dev.kikugie.stitcher.token.BlockToken.*
 import dev.kikugie.stitcher.token.DefinitionToken
 import dev.kikugie.stitcher.token.LeafToken
+import dev.kikugie.stitcher.token.toLeaf
+import dev.kikugie.stitcher.util.LINE_BREAKS
 import dev.kikugie.stitcher.util.parse
+import dev.kikugie.stitcher.util.tokenize
+import dev.kikugie.antlr.util.toSequence
+import dev.kikugie.stitcher.util.length
 
 class FileAstUncommenter(val params: StitcherParameters) : BlockToken.Visitor<BlockToken, Nothing?>, DefinitionToken.Visitor<Code, Code> {
     override fun visitContent(content: Content, ctx: Nothing?): BlockToken = content
-    override fun visitComment(comment: Comment, ctx: Nothing?): BlockToken = comment
+    override fun visitComment(comment: Comment, ctx: Nothing?): BlockToken = reopenDanglingComment(comment)
     override fun visitCode(code: Code, ctx: Nothing?): BlockToken = code.definition.accept(this, code)
     override fun visitRoot(root: Root, ctx: Nothing?): BlockToken = root.copy(scope = root.scope.map { it.accept(this, ctx) })
     override fun visitSwapLocal(swap: DefinitionToken.SwapLocal, ctx: Code): Code = ctx
@@ -25,6 +31,28 @@ class FileAstUncommenter(val params: StitcherParameters) : BlockToken.Visitor<Bl
     override fun visitReplacementToggle(repl: DefinitionToken.ReplacementToggle, ctx: Code): Code = ctx
     override fun visitReplacementLocal(repl: DefinitionToken.ReplacementLocal, ctx: Code): Code = reprocess(ctx)
     override fun visitReplacementCloser(repl: DefinitionToken.ReplacementCloser, ctx: Code): Code = ctx
+
+    private fun reopenDanglingComment(comment: Comment): BlockToken {
+        if (comment.opener != null || comment.closer == null) return comment
+
+        val spliced = InjectedDocument(ModificationTracker(comment.ref))
+        val bodyLength = comment.body.length
+        var lead = 0
+        while (lead < bodyLength && spliced[lead] in LINE_BREAKS) lead++
+
+        val body = ModificationTracker(spliced, lead, bodyLength).run {
+            params.commenter.comment(this, tokenize(spliced, params.scanner).toSequence()
+                .map { it.toLeaf(spliced) }
+                .filter { it.start >= lead && it.end <= bodyLength })
+            InjectedDocument(this).toString()
+        }
+
+        val reopened = ModificationTracker(spliced, 0, spliced.length).run {
+            replace(lead, spliced.length, body)
+            InjectedDocument(this)
+        }
+        return Content(reopened.reference())
+    }
 
     private fun isCommented(code: Code): Boolean =
         code.scope.isNotEmpty() && code.scope.all { it is Comment || it is Content && it.leaf.text.isBlank() }
