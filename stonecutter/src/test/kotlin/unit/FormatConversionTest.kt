@@ -3,8 +3,6 @@
 
 package unit
 
-import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.disable
 import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.data.deserialization.JsonConverter
@@ -70,7 +68,7 @@ val FormatConversionTest by testSuite {
             }
         }
 
-        test("integer hex", TestConfig.disable()) {
+        test("integer hex") {
             val element: SCMap = """
                 {
                   it: 0xdecaf
@@ -83,7 +81,7 @@ val FormatConversionTest by testSuite {
             }
         }
 
-        test("integer hex negative", TestConfig.disable()) {
+        test("integer hex negative") {
             val element: SCMap = """
                 {
                   it: -0xC0FFEE

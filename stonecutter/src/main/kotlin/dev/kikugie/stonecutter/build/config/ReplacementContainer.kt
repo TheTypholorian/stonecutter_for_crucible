@@ -393,8 +393,8 @@ internal abstract class StringSpecImpl @Inject constructor(val replacements: Lis
         else require(id.isValidIdentifier()) { "Invalid replacement identifier '$id'" }
 
         val it =
-            if (direction.get()) StringReplacement(to, from, id, enabled)
-            else StringReplacement(from, to, id, enabled)
+            if (direction.get()) StringReplacement(from, to, id, enabled)
+            else StringReplacement(to, from, id, enabled)
         replacements.add(it)
     }
 

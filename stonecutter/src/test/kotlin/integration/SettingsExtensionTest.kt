@@ -2,8 +2,6 @@
 
 package integration
 
-import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.disable
 import de.infix.testBalloon.framework.core.testSuite
 import integrationTest
 import io.kotest.matchers.paths.shouldContainFile
@@ -68,11 +66,11 @@ val SettingsExtensionTest by testSuite {
                 it.resolve("versions") should { path -> path.exists() }
             }
 
-            integrationTest("not allow inherit call in root", TestConfig.disable()) {
+            integrationTest("not allow inherit call in root") {
                 shouldFailBuild { runGradle(it) }
             }
 
-            integrationTest("not allow inherit call in default branch", TestConfig.disable()) {
+            integrationTest("not allow inherit call in default branch") {
                 shouldFailBuild { runGradle(it) }
             }
 

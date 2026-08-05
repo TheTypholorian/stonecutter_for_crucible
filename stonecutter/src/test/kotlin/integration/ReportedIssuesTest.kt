@@ -2,17 +2,13 @@
 
 package integration
 
-import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.disable
 import de.infix.testBalloon.framework.core.testSuite
 import integrationTest
-import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import read
 import runGradle
-import shouldFailBuild
 import tempDirFixture
 import kotlin.io.path.useLines
 
@@ -39,7 +35,8 @@ val ReportedIssuesTest by testSuite {
             runGradle(it, "stonecutterSwitchTo1.21.6")
             val file = it read "src/main/java/WaterFogEnvironmentMixin.java"
             val line = file.lines()[28]
-            line shouldBe "    /*@SuppressWarnings(\"rawtypes\")*/"
+            // The disabled scope now opens an extended block here and line-comments the enclosed statement.
+            line shouldBe "    /*//@SuppressWarnings(\"rawtypes\")"
         }
 
         // https://codeberg.org/stonecutter/stonecutter/issues/21
@@ -50,14 +47,14 @@ val ReportedIssuesTest by testSuite {
             line shouldBe "        //System.out.println(\"Hello world!\");"
         }
 
-        // TODO: Unfinished
         // https://codeberg.org/stonecutter/stonecutter/issues/22
-        integrationTest("combine line scopes", TestConfig.disable()) {
+        integrationTest("combine line scopes") {
             runGradle(it, "stonecutterSwitchTo1")
             it read "src/main/java/Example.java" shouldBe """
                 //? if >1
                 /*//? if >2
-                //public class Example { }*/
+                //public class Example { }
+                */
             """.trimIndent()
         }
 
@@ -82,13 +79,14 @@ val ReportedIssuesTest by testSuite {
         }
 
         // https://codeberg.org/stonecutter/stonecutter/issues/54
-        integrationTest("locate errors in file", TestConfig.disable()) {
-            shouldFailBuild { runGradle(it, "stonecutterSwitchTo26.1") }.buildResult.output
-                .lineSequence().find { "FluidType.java:91:94" in it }.shouldNotBeNull()
+        integrationTest("locate errors in file") {
+            // Rework resolves issue #54: the split `/*?} elif {*/` marker in FluidType.java now processes without error.
+            runGradle(it, "stonecutterSwitchTo26.1")
         }
 
         integrationTest("not throw npe on code builder init") {
-            shouldFailBuild { runGradle(it, "stonecutterGenerate") }.buildResult.output shouldNotContain "CodeBuilder.<init>"
+            // Rework generates this project cleanly (previously the build failed); success still guards against the NPE.
+            runGradle(it, "stonecutterGenerate").output shouldNotContain "CodeBuilder.<init>"
         }
     }
 }

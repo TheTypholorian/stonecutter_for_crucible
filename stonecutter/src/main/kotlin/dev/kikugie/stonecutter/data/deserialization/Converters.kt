@@ -76,10 +76,20 @@ public object JsonConverter : SCConverter, SCElement.Visitor<Nothing?, JsonEleme
             "-Infinity" -> SCPrimitive(Double.NEGATIVE_INFINITY)
             "NaN" -> SCPrimitive(Double.NaN)
             else if (content.none(Char::isDigit)) -> SCPrimitive(content)
-            else -> content.toLongOrNull()?.let(::SCPrimitive)
+            else -> content.toHexLongOrNull()?.let(::SCPrimitive)
+                ?: content.toLongOrNull()?.let(::SCPrimitive)
                 ?: content.toDoubleOrNull()?.let(::SCPrimitive)
                 ?: SCPrimitive(content)
         }
+}
+
+private fun String.toHexLongOrNull(): Long? {
+    var start = 0
+    val negative = startsWith('-').also { if (it) start++ }
+
+    if (startsWith("0x", start, true)) start += 2 else return null
+    val value = substring(start).toLongOrNull(16) ?: return null
+    return if (negative) -value else value
 }
 
 public object TomlConverter : SCConverter, SCElement.Visitor<Nothing?, TomlElement> {

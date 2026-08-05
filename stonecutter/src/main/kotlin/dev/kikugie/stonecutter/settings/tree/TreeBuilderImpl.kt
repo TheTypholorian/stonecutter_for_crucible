@@ -47,6 +47,7 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
     }
 
     override fun inherit(branches: Iterable<Identifier>) {
+        require(branches.any()) { "Root branch has no parent to inherit from" }
         getOrCreateBranch(ROOT).inherit(branches)
     }
 
