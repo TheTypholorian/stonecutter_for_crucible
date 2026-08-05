@@ -3,6 +3,7 @@ package dev.kikugie.stonecutter.data.tree
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
+import org.gradle.api.Named
 import org.gradle.api.Project
 import java.nio.file.Path
 
@@ -33,7 +34,7 @@ public interface GradleMember {
  * Represents a node in a project structure associated with a [StonecutterProject] and a [branch].
  * Provides methods to navigate between related nodes within the structure.
  */
-public interface ProjectNode : GradleMember {
+public interface ProjectNode : GradleMember, Named {
     /**
      * Contains the project name, assigned version, and the active status, represented by a [StonecutterProject].
      */
@@ -63,14 +64,14 @@ public interface ProjectNode : GradleMember {
     /**
      * Retrieves a [ProjectNode] within the specified [branch] of the project hierarchy identified by the [node].
      */
-    public fun find(branch: Identifier, node: Identifier): ProjectNode? = this.branch.tree.get(branch)?.get(node)
+    public fun find(branch: Identifier, node: Identifier): ProjectNode? = this.branch.tree[branch]?.get(node)
 }
 
 /**
  * Represents a branch in the [ProjectTree].
  * Implements [GradleMember] and maps [ProjectNode.metadata.project][StonecutterProject.project] keys to [ProjectNode] values.
  */
-public interface ProjectBranch : GradleMember, Map<Identifier, ProjectNode> {
+public interface ProjectBranch : GradleMember, Named, Map<Identifier, ProjectNode> {
     /**
      * The name of this branch.
      * The root branch has a reserved name of an empty string.
@@ -102,7 +103,7 @@ public interface ProjectBranch : GradleMember, Map<Identifier, ProjectNode> {
  * Represents a hierarchical structure of projects, offering access to branches, nodes, and version control information.
  * Implements [GradleMember] and maps [ProjectBranch.id] keys to [ProjectBranch] values.
  */
-public interface ProjectTree : GradleMember, Map<Identifier, ProjectBranch> {
+public interface ProjectTree : GradleMember, Named, Map<Identifier, ProjectBranch> {
     /**
      * The version control reset point for this tree.
      */

@@ -68,7 +68,9 @@ public abstract class DependencyContainer @Inject constructor(private val delega
     override fun putAll(provider: Provider<out Map<out Identifier, AnyVersion>>): Unit =
         delegate.putAll(provider.map { it.forEach(::check); it })
 
-    private fun check(entry: Map.Entry<String, AnyVersion>) = check(entry.key, entry.value)
+    private fun check(entry: Map.Entry<String, AnyVersion>): Unit =
+        check(entry.key, entry.value)
+
     private fun check(key: String, value: AnyVersion? = null) {
         require(key.isNotBlank()) { "Dependency key '$key' cannot be blank" }
         require(key.isValidIdentifier()) { "Dependency key '$key' must match the pattern `$IDENTIFIER_PATTERN`"}

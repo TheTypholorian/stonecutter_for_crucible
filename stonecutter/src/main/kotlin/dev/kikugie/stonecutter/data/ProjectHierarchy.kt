@@ -29,8 +29,7 @@ public value class ProjectHierarchy private constructor(@PublishedApi internal v
     public fun orBlank(): String = orEmpty()
 
     public fun startsWith(other: ProjectHierarchy): Boolean =
-        if (other.isEmpty()) true
-        else path.startsWith(other.path) && path.sepAt(other.path.length)
+        other.isEmpty() || path.startsWith(other.path) && path.sepAt(other.path.length)
 
     public fun relativeTo(base: ProjectHierarchy): PathString? = when {
         base.isEmpty() -> path.drop(1)
@@ -265,7 +264,7 @@ private fun PathString.locate(index: Int, char: Char = SEP_CH): Int {
 }
 
 private fun PathString.sepAt(index: Int, char: Char = SEP_CH): Boolean =
-    if (index in indices) get(index) == char else true
+    index !in indices || get(index) == char
 
 private fun normalize(string: String): String? =
     string.trim(SEP_CH).takeIf(String::isNotEmpty)

@@ -106,14 +106,14 @@ internal open class BasicOperations<T : Version>(
     val vops: Version.Operations,
     val pops: VersionPredicate.Operations, // NOT "father"
 ) : VersionOperations<T> {
-    protected val CACHE: MutableMap<String, Version> = ConcurrentHashMap()
+    protected val cache: MutableMap<String, Version> = ConcurrentHashMap()
     override fun parse(version: AnyVersion): T = tryParse(version).getOrElse {
         it as VersionParsingException
         throw it.asIllegalArg(version)
     }
 
     override fun tryParse(version: AnyVersion): Result<T> =
-        CACHE.getOrParse(version, vops).takeAs()
+        cache.getOrParse(version, vops).takeAs()
 
     override fun eval(version: Version, vararg predicates: String): Boolean = tryEval(version, *predicates).getOrElse {
         it as VersionParsingException
@@ -156,7 +156,7 @@ internal inline fun VersionParsingException.asIllegalArg(str: String, message: S
 private fun MutableMap<AnyVersion, Version>.getOrParse(version: AnyVersion, ops: Version.Operations): Result<Version> =
     kotlin.runCatching { computeIfAbsent(version, ops::parse) }
 
-private fun Array<out String>.unpack(ops: VersionPredicate.Operations) = buildList {
+private fun Array<out String>.unpack(ops: VersionPredicate.Operations): List<VersionPredicate> = buildList {
     var length = 0
     for (str in this@unpack) {
         var cursor = 0

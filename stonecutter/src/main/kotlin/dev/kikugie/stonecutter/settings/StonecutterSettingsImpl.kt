@@ -1,23 +1,19 @@
-@file:OptIn(StonecutterInternalAPI::class)
-
 package dev.kikugie.stonecutter.settings
 
 import dev.kikugie.commons.takeAs
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
-import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.StonecutterPlugin
-import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.configureDefaults
-import dev.kikugie.stonecutter.controller.tree.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
-import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.createContainer
-import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
+import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.createContainer
+import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
+import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
+import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertyConfigImpl
@@ -25,7 +21,6 @@ import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesLoader
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.TreeBuilder
-import dev.kikugie.stonecutter.settings.tree.TreeBuilderContainer
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.isIdeaSync
 import dev.kikugie.stonecutter.util.projectDirectory
@@ -49,7 +44,9 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     objects: ObjectFactory,
 ) : StonecutterSettingsExtension(settings, objects), VersionOperations<Version> by LenientOperations {
     override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(settings, objects)
-    override val isHardMode: Boolean by lazy {
+
+    internal val treeBuilderContainer: TreeBuilderContainer = settings.gradle.createContainer<TreeBuilderContainer>().get()
+    internal val isHardMode: Boolean by lazy {
         settings.providers.gradleProperty("dev.kikugie.stonecutter.hard_mode").getOrElse("false").toBoolean()
     }
 
@@ -62,8 +59,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
         // This is the ugliest configuration block I have
         with(settings.gradle) {
             createContainer<ProjectNodeContainer>()
-            createContainer<BuildConfigurationContainer>()
-            val handlers = createContainer<FileHandlerContainer>()
+            val handlers = createContainer<FileHandlerContainer>().get()
             handlers.configureDefaults()
             configureSyncTask()
             configureServices(handlers, registry)
@@ -81,7 +77,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     }
 
     private companion object {
-        val LOGGER = Logging.getLogger("StonecutterSettings")
+        val LOGGER: Logger = Logging.getLogger("StonecutterSettings")
     }
 }
 
@@ -101,20 +97,17 @@ private fun Gradle.configureSyncTask() {
     }
 }
 
-private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: BuildEventsListenerRegistry) = projectsEvaluated {
+private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: BuildEventsListenerRegistry): Unit = projectsEvaluated {
     sharedServices.registerIfAbsent(FileHandlerService.NAME, FileHandlerService::class) {
         parameters.handlers.value(handlers.build()).finalizeValue()
     }
     sharedServices.registerIfAbsent(StonecutterErrorsService.NAME, StonecutterErrorsService::class) {
-        val trees = gradle.getContainer<ProjectNodeContainer>().values.asSequence().map { it.tree }.toSet()
-        for (tree in trees) {
-            val active = tree.current ?: tree.versions.first()
-            for (node in tree.nodes) parameters.active.put(node.hierarchy.toString(), node.metadata == active)
-        }
+        for (node in gradle.getContainer<ProjectNodeContainer>().projects)
+            parameters.active.put(node.hierarchy.path, node.metadata.isActive)
     }.let(registry::onTaskCompletion)
 }
 
-@OptIn(StonecutterExperimentalAPI::class) @Suppress("UnstableApiUsage")
+@Suppress("UnstableApiUsage")
 private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): StructuredPropertiesProvider.Config {
     val loader: StructuredPropertiesLoader = settings.gradle.extensions.create("StructuredProperties")
     return StructuredPropertyConfigImpl(settings.rootProject.hierarchy, settings.extra, loader, objects)

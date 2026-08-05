@@ -1,3 +1,5 @@
+@file:Suppress("OVERRIDE_DEPRECATION")
+
 package dev.kikugie.stonecutter.data.tree
 
 import dev.kikugie.stonecutter.Identifier
@@ -15,10 +17,13 @@ internal class ProjectNodeImpl(
 ) : ProjectNode {
     constructor(gradle: Gradle, hierarchy: ProjectHierarchy, metadata: StonecutterProject) :
         this(hierarchy, gradle[hierarchy].projectDir.toPath(), metadata)
+    private val name: String = "ProjectNode@$hierarchy"
 
     internal val gradle: Gradle get() = (branch as ProjectBranchImpl).gradle
     override val project: Project get() = gradle[hierarchy]
     override lateinit var branch: ProjectBranch
+
+    override fun getName(): String = name
 }
 
 internal class ProjectBranchImpl(
@@ -29,6 +34,7 @@ internal class ProjectBranchImpl(
 ) : ProjectBranch, Map<Identifier, ProjectNode> by delegate {
     constructor(gradle: Gradle, hierarchy: ProjectHierarchy, id: Identifier, nodes: Collection<ProjectNode>) :
         this(hierarchy, gradle[hierarchy].projectDir.toPath(), id, nodes.associateBy { it.metadata.project })
+    private val name: String = "ProjectBranch@$hierarchy"
 
     internal val gradle: Gradle get() = (tree as ProjectTreeImpl).gradle
     override val project: Project get() = gradle[hierarchy]
@@ -38,6 +44,8 @@ internal class ProjectBranchImpl(
 
     override fun get(node: ProjectHierarchy): ProjectNode? =
         get(hierarchy.relativize(node))
+
+    override fun getName(): String = name
 }
 
 internal class ProjectTreeImpl(
@@ -50,6 +58,7 @@ internal class ProjectTreeImpl(
         this(hierarchy, gradle[hierarchy].projectDir.toPath(), vcs, branches.associateBy(ProjectBranch::id)) {
         this.gradle = gradle
     }
+    private val name: String = "ProjectTree@$hierarchy"
 
     @Transient
     internal lateinit var gradle: Gradle
@@ -74,4 +83,6 @@ internal class ProjectTreeImpl(
         val (branch, node) = hierarchy.relativize(node)!!.split(':', limit = 2)
         return get(branch)?.get(node)
     }
+
+    override fun getName(): String = name
 }

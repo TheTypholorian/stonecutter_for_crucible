@@ -1,10 +1,7 @@
-@file:OptIn(StonecutterExperimentalAPI::class)
-
 package dev.kikugie.stonecutter.settings.tree
 
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.ProjectReference
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
@@ -15,6 +12,7 @@ import dev.kikugie.stonecutter.settings.StonecutterSettingsImpl
 import dev.kikugie.stonecutter.util.isValidIdentifier
 import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Action
+import org.gradle.api.Named
 import org.gradle.api.initialization.ProjectDescriptor
 import org.gradle.api.initialization.Settings
 import org.gradle.api.model.ObjectFactory
@@ -30,7 +28,9 @@ import kotlin.io.path.notExists
 
 private const val ROOT: String = ""
 
-internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory) : TreeBuilder() {
+internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory, hierarchy: String)
+    : TreeBuilder(), Named {
+    private val name: String = "TreeBuilderImpl@$hierarchy"
     internal var localBuildScriptProvider: ((Identifier, StonecutterProject) -> String)? = null
         private set
     internal val branchBuilders: MutableMap<Identifier, BranchBuilderImpl> = mutableMapOf()
@@ -71,11 +71,18 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
     override fun loadImpl(data: String, converter: SCConverter) =
         deserializeTreeTo(this, data, converter)
 
+    override fun getName(): String = name
+
+    internal fun getVcsProject(): StonecutterProject = knownVersions[resolveVcs()]!!
+
+    internal fun getRootNodes(): List<NodeBuilderImpl> =
+        checkNotNull(branchBuilders[""]?.nodeBuilders) { "Root branch is not initialised yet" }
+
     internal fun build(ext: StonecutterSettingsImpl, ref: ProjectReference) {
         val project = ext.settings.rootProject.resolve(ref, ext.settings)
         prepare(ext, project)
         create(ext, project)
-        ext.treeBuilderContainer[project.hierarchy] = this
+        ext.treeBuilderContainer += this
     }
 
     internal fun prepare(ext: StonecutterSettingsExtension, project: ProjectDescriptor) {

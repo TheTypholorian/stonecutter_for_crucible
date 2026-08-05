@@ -16,8 +16,8 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 
 internal abstract class StonecutterErrorsService : BuildService<StonecutterErrorsService.Parameters>, OperationCompletionListener {
-    private val printed = ConcurrentHashMap.newKeySet<ProblemReport>()
-    private val buckets = ConcurrentHashMap<String, TaskBucket>()
+    private val printed: ConcurrentHashMap.KeySetView<ProblemReport, Boolean> = ConcurrentHashMap.newKeySet()
+    private val buckets: ConcurrentHashMap<String, TaskBucket> = ConcurrentHashMap<String, TaskBucket>()
 
     override fun onFinish(event: FinishEvent) {
         // no-op: this is only to make the service persist until the end of all tasks

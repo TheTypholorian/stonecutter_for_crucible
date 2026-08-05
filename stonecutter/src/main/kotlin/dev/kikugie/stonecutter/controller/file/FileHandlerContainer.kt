@@ -1,10 +1,9 @@
 package dev.kikugie.stonecutter.controller.file
 
+import dev.kikugie.stonecutter.data.container.GradleContainerService
 import org.gradle.api.Action
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.NamedDomainObjectProvider
-import org.gradle.api.model.ObjectFactory
-import javax.inject.Inject
 
 /**
  * Extension class providing a registry for file format handlers.
@@ -14,7 +13,7 @@ import javax.inject.Inject
  *
  * @see <a href="https://stonecutter.kikugie.dev/wiki/config/handlers">Wiki</a>
  */
-public abstract class FileHandlerContainer @Inject constructor(objects: ObjectFactory) {
+public abstract class FileHandlerContainer : GradleContainerService {
     internal abstract val handlers: NamedDomainObjectContainer<HandlerBuilder>
 
     /**Gets a file handler for the given extension or throws if it's not registered.*/
@@ -32,11 +31,13 @@ public abstract class FileHandlerContainer @Inject constructor(objects: ObjectFa
         for (it in extensions) handlers.make(it, configuration)
     }
 
+    internal fun formats(): Set<String> = handlers.names.toSet()
+
     internal fun build(): Map<String, HandlerModel> = handlers.asMap.mapValues { (_, it) ->
         HandlerModel(it)
     }
-}
 
-private fun <T : Any> NamedDomainObjectContainer<T>.make(name: String, config: Action<T>) {
-    if (name in names) named(name, config) else create(name, config)
+    private fun <T : Any> NamedDomainObjectContainer<T>.make(name: String, config: Action<T>) {
+        if (name in names) named(name, config) else create(name, config)
+    }
 }

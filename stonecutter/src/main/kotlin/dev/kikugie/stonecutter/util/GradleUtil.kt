@@ -2,7 +2,6 @@ package dev.kikugie.stonecutter.util
 
 import org.gradle.api.Action
 import org.gradle.api.Project
-import org.gradle.api.file.Directory
 import org.gradle.api.file.RegularFile
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.invocation.Gradle
@@ -12,7 +11,6 @@ import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.internal.DefaultTaskExecutionRequest
-import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.the
 import org.gradle.work.InputChanges
@@ -23,13 +21,13 @@ import java.io.File
 internal val Project.sourceSets: SourceSetContainer
     get() = project.the<SourceSetContainer>()
 
-internal inline fun <reified T : Any> ObjectFactory.newInstance(vararg parameters: Any, build: T.() -> Unit) =
+internal inline fun <reified T : Any> ObjectFactory.newInstance(vararg parameters: Any, build: T.() -> Unit): T =
     newInstance<T>(*parameters).apply(build)
 
-internal inline fun <reified T : Any> ObjectFactory.newInstance(build: Action<T>, vararg parameters: Any) =
+internal inline fun <reified T : Any> ObjectFactory.newInstance(build: Action<T>, vararg parameters: Any): T =
     newInstance<T>(*parameters).apply(build::execute)
 
-internal fun SourceSet.allSources() = sequence {
+internal fun SourceSet.allSources(): Sequence<SourceDirectorySet> = sequence {
     yield(java)
     yield(resources)
     extensions.extensionsSchema.asSequence()
@@ -47,18 +45,18 @@ internal fun InputChanges.clearIfNotIncremental(vararg files: File) {
 }
 
 internal val isIdeaSync: Boolean get() = System.getProperty("idea.sync.active", "false").toBoolean()
-internal fun Gradle.requestTasks(tasks: Iterable<String>, path: String, dir: File) = startParameter.run {
+internal fun Gradle.requestTasks(tasks: Iterable<String>, path: String, dir: File): Unit = startParameter.run {
     setTaskRequests(taskRequests + DefaultTaskExecutionRequest(tasks, path, dir))
 }
 
-internal val Project.projectDirectory get() = layout.projectDirectory.asFile
-internal val Project.buildDirectory get() = layout.buildDirectory.asFile.get()
+internal val Project.projectDirectory: File get() = layout.projectDirectory.asFile
+internal val Project.buildDirectory: File get() = layout.buildDirectory.asFile.get()
 
 internal fun <T : Any> Property<T>.set(factory: ProviderFactory, provider: () -> T) {
     set(factory.provider(provider))
 }
 
-internal inline fun WorkerExecutor.execute(action: (queue: WorkQueue) -> Unit) =
+internal inline fun WorkerExecutor.execute(action: (queue: WorkQueue) -> Unit): Unit =
     noIsolation().apply(action).await()
 
 /**

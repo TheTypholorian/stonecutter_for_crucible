@@ -60,9 +60,9 @@ private fun readResource(path: String): Result<String> = runCatching {
         ?: error("Resource $path not found")
 }
 
-private fun configurationFile(hierarchy: ProjectHierarchy, project: Identifier) =
+private fun configurationFile(hierarchy: ProjectHierarchy, project: Identifier): String =
     "Stonecutter${hierarchy.orEmpty().formatPath()}_switchTo${project.formatPath()}.xml"
 
 private fun String.formatPath(): String = replace(PATTERN, "_")
-private fun String.replaceChecked(from: String, to: String) =
+private fun String.replaceChecked(from: String, to: String): String =
     replace(from, to.replace("\"", "&quot;"))

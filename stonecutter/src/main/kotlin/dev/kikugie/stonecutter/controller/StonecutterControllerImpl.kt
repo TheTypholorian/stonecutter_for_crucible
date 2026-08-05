@@ -1,13 +1,8 @@
-@file:OptIn(StonecutterInternalAPI::class)
-
 package dev.kikugie.stonecutter.controller
 
 import dev.kikugie.semver.data.Version
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
-import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
-import dev.kikugie.stonecutter.build.data.BuildConfigurationContainer
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager.Companion.getController
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
@@ -15,12 +10,13 @@ import dev.kikugie.stonecutter.controller.flag.StonecutterFlagStorage
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
 import dev.kikugie.stonecutter.controller.task.StonecutterControllerTasksImpl
-import dev.kikugie.stonecutter.controller.tree.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.ParsedVersion
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
-import dev.kikugie.stonecutter.data.container.GradleContainerExtension.Companion.getContainer
+import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
+import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
+import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
 import dev.kikugie.stonecutter.data.tree.ProjectBranchImpl
 import dev.kikugie.stonecutter.data.tree.ProjectNodeImpl
 import dev.kikugie.stonecutter.data.tree.ProjectTreeImpl
@@ -30,7 +26,6 @@ import dev.kikugie.stonecutter.settings.properties.StructuredPropertyConfigImpl
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.BranchBuilderImpl
-import dev.kikugie.stonecutter.settings.tree.TreeBuilderContainer
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.isIdeaSync
 import dev.kikugie.stonecutter.util.propertyKey
@@ -48,7 +43,7 @@ import java.io.File
 import java.nio.file.Path
 import javax.inject.Inject
 
-internal abstract class StonecutterControllerImpl @Inject constructor(val root: Project, private val objects: ObjectFactory) :
+internal abstract class StonecutterControllerImpl @Inject constructor(val root: Project, objects: ObjectFactory) :
     StonecutterControllerExtension, VersionOperations<Version> by LenientOperations {
     override val tree: ProjectTreeImpl = constructTree(root)
     override val tasks: StonecutterControllerTasksImpl = root.objects.newInstance(this)
@@ -58,7 +53,6 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(root, objects)
 
     private val nodeContainer: ProjectNodeContainer = root.gradle.getContainer<ProjectNodeContainer>().also { it += tree }
-    private val configContainer: BuildConfigurationContainer = root.gradle.getContainer()
     private var hasInitialized: Boolean = false
 
     init {
@@ -79,8 +73,8 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
         check(!hasInitialized) { "Stonecutter has already been initialized!" }
         tree.assignActive(root, tasks, provider.resolveActive())
 
-        if (flags[StonecutterFlag.APPLY_PLUGIN_TO_NODES]) for (it in tree.nodes)
-            it.project.plugins.apply(StonecutterPlugin::class)
+        if (flags[StonecutterFlag.APPLY_PLUGIN_TO_NODES])
+            for (it in tree.nodes) it.project.plugins.apply(StonecutterPlugin::class)
 
         if (tree.current != null) tree.createSwitchTasks(root, tasks)
         tree.createModelTasks(tasks)
@@ -90,11 +84,10 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     }
 
     override fun parameters(action: Action<StonecutterBuildExtension>) {
-        configContainer[tree] = action
+        nodeContainer.configure(tree, action)
     }
 }
 
-@OptIn(StonecutterExperimentalAPI::class)
 private fun setupDefaultProperties(project: Project, objects: ObjectFactory): StructuredPropertiesProvider.Config {
     return StructuredPropertyConfigImpl(project, objects).apply { loadDefaults(project.layout.projectDirectory) }
 }
@@ -125,18 +118,18 @@ private fun ProjectTreeImpl.findByName(name: String): StonecutterProject = check
     "Version '$name' is not registered. This might've been caused by removing a version that is set to be active."
 }
 
-private fun ProjectTreeImpl.assignActive(root: Project, tasks: StonecutterControllerTasksImpl, provider: Any?) = when (provider) {
+private fun ProjectTreeImpl.assignActive(root: Project, tasks: StonecutterControllerTasksImpl, provider: Any?): Unit = when (provider) {
     is String -> {
         current = findByName(provider)
         val manager = checkNotNull(root.getController()) { "Tree $hierarchy has no Stonecutter controller" }
-        for (it in versions) tasks.registerScriptSwitchTask(it.project, manager)
+        for ((project) in versions) tasks.registerScriptSwitchTask(project, manager)
     }
 
     is File -> {
         val contents = provider.toRegularFile(root.objects).let(root.providers::fileContents).asText.orNull
             ?: throw NoSuchFileException(provider)
         current = findByName(contents.trim())
-        for (it in versions) tasks.registerExternalSwitchTask(it.project, provider)
+        for ((project) in versions) tasks.registerExternalSwitchTask(project, provider)
     }
 
     else -> {
@@ -157,10 +150,10 @@ private fun ProjectTreeImpl.createSwitchTasks(root: Project, impls: StonecutterC
     }
 
     val sorting: Comparator<StonecutterProject> = Comparator.comparing<StonecutterProject, ParsedVersion> { it.parsed }.thenComparing { it.project }
-    for (it in versions.sortedWith(sorting)) tasks.register("Set active project to ${it.project}") {
+    for ((project) in versions.sortedWith(sorting)) tasks.register("Set active project to $project") {
         group = "stonecutter"
-        description = "Sets the active project to ${it.project}, processing all versioned comments."
-        dependsOn(impls.switch.getOrThrow(it.project))
+        description = "Sets the active project to $project, processing all versioned comments."
+        dependsOn(impls.switch.getOrThrow(project))
     }
 }
 
@@ -177,7 +170,7 @@ private fun ProjectTreeImpl.createModelTasks(impls: StonecutterControllerTasksIm
     }
 }
 
-private fun ProjectTreeImpl.configureSyncTask(root: Project, flags: StonecutterFlags) = root.afterEvaluate {
+private fun ProjectTreeImpl.configureSyncTask(root: Project, flags: StonecutterFlags): Unit = root.afterEvaluate {
     if (flags[StonecutterFlag.GENERATE_SWITCH_ACTIONS]) rootProject.tasks.named<StonecutterIdeaConfigTask>("stonecutterIdea") {
         projects.put(hierarchy.path, versions.map(StonecutterProject::project))
     }

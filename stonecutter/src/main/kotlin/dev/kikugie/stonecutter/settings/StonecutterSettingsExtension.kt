@@ -3,7 +3,7 @@ package dev.kikugie.stonecutter.settings
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
+import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
@@ -13,8 +13,11 @@ import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.doFirst
 import org.gradle.api.Action
 import org.gradle.api.initialization.Settings
+import org.gradle.api.initialization.ProjectDescriptor
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
+import org.gradle.api.provider.ProviderFactory
 import org.gradle.kotlin.dsl.newInstance
 import java.io.File
 
@@ -30,7 +33,7 @@ private annotation class SettingsDsl
  * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params">Wiki #1</a>
  * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings">Wiki #2</a>
  */
-@SettingsDsl @OptIn(StonecutterExperimentalAPI::class)
+@SettingsDsl
 public abstract class StonecutterSettingsExtension(
     internal val settings: Settings,
     internal val objects: ObjectFactory,
@@ -212,9 +215,19 @@ public abstract class StonecutterSettingsExtension(
      * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
      */
     @JvmOverloads
-    public fun create(projects: Iterable<ProjectReference>, action: Action<TreeBuilder> = shared): Unit =
-        projects.forEach { create(it, objects.newInstance<TreeBuilderImpl>(settings.providers).also(action::execute)) }
+    public fun create(projects: Iterable<ProjectReference>, action: Action<TreeBuilder> = shared): Unit = projects.forEach {
+        val builder = objects.newInstance<TreeBuilderImpl>(settings.providers, it.toProjectHierarchy())
+        action.execute(builder)
+        create(it, builder)
+    }
 
     /* Base configuration */
     protected abstract fun create(ref: ProjectReference, builder: TreeBuilder)
+}
+
+private tailrec fun ProjectReference.toProjectHierarchy(): String = when (this) {
+    is CharSequence -> ":${trim(':')}"
+    is ProjectDescriptor -> path
+    is Provider<*> -> get().toProjectHierarchy()
+    else -> throw IllegalArgumentException("Unsupported project type ${this::class.qualifiedName}")
 }

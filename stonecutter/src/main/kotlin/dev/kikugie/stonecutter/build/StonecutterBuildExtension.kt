@@ -16,6 +16,7 @@ import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import org.gradle.api.Action
+import org.gradle.api.Project
 import org.gradle.api.tasks.util.PatternFilterable
 import java.io.File
 
@@ -33,6 +34,10 @@ private annotation class BuildDsl
  */
 @BuildDsl
 public interface StonecutterBuildExtension : VersionOperations<Version>, StructuredPropertiesProvider {
+    /**
+     * Gradle project this extension is applied to.
+     */
+    public val project: Project
     /**
      * Node associated with the applied Gradle [Project][org.gradle.api.Project].
      *

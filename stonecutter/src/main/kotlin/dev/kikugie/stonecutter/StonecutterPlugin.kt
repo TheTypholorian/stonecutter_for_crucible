@@ -34,7 +34,6 @@ public abstract class StonecutterPlugin @Inject constructor(
      * Applies the plugin either to [Settings] or [Project].
      * Applying the plugin to an incorrect target will throw an exception.
      */
-    @OptIn(StonecutterInternalAPI::class)
     override fun apply(target: ExtensionAware): Unit = when (target) {
         is Settings -> {
             check(SemanticVersion.parse(target.gradle.gradleVersion) >= GRADLE_COMPAT) {

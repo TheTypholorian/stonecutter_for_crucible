@@ -1,6 +1,5 @@
 package dev.kikugie.stonecutter.util
 
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Property
@@ -10,7 +9,6 @@ import java.nio.file.StandardOpenOption
 import kotlin.io.path.createParentDirectories
 import kotlin.io.path.writeText
 
-@OptIn(ExperimentalSerializationApi::class)
 internal val SCJSON: Json = Json {
     ignoreUnknownKeys = true
     coerceInputValues = true

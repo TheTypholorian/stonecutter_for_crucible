@@ -3,7 +3,6 @@ package dev.kikugie.stonecutter.controller.tree
 
 import dev.kikugie.stonecutter.AnyVersion
 import dev.kikugie.stonecutter.Identifier
-import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData.RegexReplacementSpec
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData.StringReplacementSpec
@@ -84,7 +83,6 @@ public data class NodeModel(
     val root: Path,
     val parameters: ParametersModel,
 ) {
-    @OptIn(StonecutterInternalAPI::class)
     internal constructor(node: ProjectNode, data: StonecutterBuildData) : this(
         node.metadata.project,
         node.metadata.version,
