@@ -59,7 +59,8 @@ private fun Project.findNode(): ProjectNode = checkNotNull(gradle.getContainer<P
     "$hierarchy is not a registered Stonecutter node"
 }
 
-private fun Project.refreshConfiguration(flags: StonecutterFlagsView, impls: StonecutterBuildTasksImpl) = afterEvaluate {
+@OptIn(StonecutterInternalAPI::class)
+private fun Project.refreshConfiguration(flags: StonecutterFlagsView, impls: StonecutterBuildTasksImpl): Unit = afterEvaluate {
     if (flags[StonecutterFlag.APPEND_SOURCES_AFTER_EVAL])
         sourceSets.forEach(impls::configureSource)
 
@@ -80,23 +81,19 @@ private fun SourceSet.createProcessingTasks(
     val localSource = node.location.resolve(sourceDir).toFile()
     val sharedSource = node.branch.location.resolve(sourceDir).toFile()
 
-    val prepareTask = impls.registerPrepareTask(this) {
+    val generateTask = impls.registerGenerateTask(this) {
         params.set(data)
         root.set(sharedSource)
-        source.setFrom(node.branch.project.fileTree(sourceDir).matching(filters))
-        destination.set(impls.processedCacheDir.dir(name))
-    }
-
-    impls.registerGenerateTask(this) {
-        duplicatesStrategy = DuplicatesStrategy.INCLUDE
-        from(sharedSource, prepareTask.map { it.destination })
-        exclude { !it.isDirectory && it.relativePath.getFile(localSource).exists() }
-        into(impls.generatedSourcesDir.dir(name))
+        source.setFrom(node.branch.project.fileTree(sharedSource))
+        processable.setFrom(node.branch.project.fileTree(sharedSource).matching(filters))
+        local.setFrom(node.project.fileTree(localSource))
+        localRoot.set(localSource)
+        destination.set(impls.generatedSourcesDir.dir(name))
     }
 
     impls.registerMergeTask(this) {
         duplicatesStrategy = DuplicatesStrategy.INCLUDE
-        from(prepareTask.map { it.destination })
+        from(generateTask.map { it.destination })
         into(sharedSource)
     }
 }
@@ -110,7 +107,7 @@ private fun Project.configureManifest(flags: StonecutterFlagsView, node: Project
     }
 }
 
-private fun buildStonecutterManifest(node: ProjectNode, gradle: Gradle) = buildMap {
+private fun buildStonecutterManifest(node: ProjectNode, gradle: Gradle): Map<String, String> = buildMap {
     this["Stonecutter-Plugin-Version"] = StonecutterPlugin.VERSION
     this["Stonecutter-Gradle-Version"] = gradle.gradleVersion
     this["Stonecutter-Node-Project"] = node.metadata.project

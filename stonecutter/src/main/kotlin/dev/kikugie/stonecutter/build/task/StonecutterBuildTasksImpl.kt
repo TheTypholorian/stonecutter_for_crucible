@@ -14,17 +14,13 @@ import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSet
-import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.TaskProvider
 import java.io.File
 import javax.inject.Inject
 
 @OptIn(StonecutterInternalAPI::class)
 internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build: StonecutterBuildImpl) : StonecutterBuildTasks {
-    override val prepare: TaskProviderMap<StonecutterPrepareTask> = TaskProviderMap(build.project) {
-        "stonecutterPrepare${it.sourceSetSuffix}"
-    }
-    override val generate: TaskProviderMap<Sync> = TaskProviderMap(build.project) {
+    override val generate: TaskProviderMap<StonecutterGenerateTask> = TaskProviderMap(build.project) {
         "stonecutterGenerate${it.sourceSetSuffix}"
     }
     override val merge: TaskProviderMap<Copy> = TaskProviderMap(build.project) {
@@ -36,7 +32,6 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
 
     init {
         val buildDir = build.project.layout.buildDirectory
-        processedCacheDir.value(buildDir.dir("stonecutter-cache/sources")).finalizeValue()
         generatedSourcesDir.value(buildDir.dir("generated/stonecutter")).finalizeValue()
     }
 
@@ -56,10 +51,7 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
         }
     }
 
-    inline fun registerPrepareTask(src: SourceSet, crossinline config: StonecutterPrepareTask.() -> Unit): TaskProvider<StonecutterPrepareTask> =
-        build.project.registerDefault(prepare.taskName(src.name), { prepare.identifiers += src.name }, config)
-
-    inline fun registerGenerateTask(src: SourceSet, crossinline config: Sync.() -> Unit): TaskProvider<Sync> =
+    inline fun registerGenerateTask(src: SourceSet, crossinline config: StonecutterGenerateTask.() -> Unit): TaskProvider<StonecutterGenerateTask> =
         build.project.registerDefault(generate.taskName(src.name), { generate.identifiers += src.name }, config)
 
     inline fun registerMergeTask(src: SourceSet, crossinline config: Copy.() -> Unit): TaskProvider<Copy> =

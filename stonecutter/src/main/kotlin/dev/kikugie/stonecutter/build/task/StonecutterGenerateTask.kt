@@ -7,9 +7,8 @@ import dev.kikugie.stitcher.document.io.LineNormalizingReader
 import dev.kikugie.stitcher.document.io.LineNormalizingWriter
 import dev.kikugie.stitcher.document.issue.BailException
 import dev.kikugie.stitcher.document.issue.ProblemID
-import dev.kikugie.stitcher.document.issue.ProblemReport
-import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
 import dev.kikugie.stitcher.document.issue.report
+import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
 import dev.kikugie.stitcher.document.reference
 import dev.kikugie.stitcher.token.appendTo
 import dev.kikugie.stonecutter.StonecutterInternalAPI
@@ -18,7 +17,6 @@ import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.controller.tree.ParametersModel
 import dev.kikugie.stonecutter.util.clearIfNotIncremental
-import dev.kikugie.stonecutter.util.overwriteText
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
@@ -36,21 +34,27 @@ import org.gradle.workers.WorkParameters
 import org.gradle.workers.WorkQueue
 import org.gradle.workers.WorkerExecutor
 import java.io.File
-import java.io.StringWriter
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 import javax.inject.Inject
 import kotlin.io.path.*
 
-private val PREPARE_TASK: ProblemID = ProblemID("file-processing")
+private val GENERATE_TASK: ProblemID = ProblemID("file-processing")
 
 /**
- * Task responsible for preprocessing files for a given [SourceSet].
+ * Task responsible for generating processed sources for a given [SourceSet].
+ *
+ * Files matching the configured [processable] filters are run through [Stitcher];
+ * every other shared file is copied verbatim. Files with a matching [local]
+ * version override are skipped, since those are served directly from the version
+ * source directory.
  *
  * This task should be considered an internal implementation
  * and only be configured directly in rare edge cases.
  */
 @CacheableTask @StonecutterInternalAPI
-public abstract class StonecutterPrepareTask : DefaultTask() {
+public abstract class StonecutterGenerateTask : DefaultTask() {
     @get:Nested
     internal abstract val params: Property<StonecutterBuildData>
 
@@ -58,12 +62,24 @@ public abstract class StonecutterPrepareTask : DefaultTask() {
     @get:Input
     public abstract val root: Property<File>
 
-    /**The filtered source set files.*/
+    /**All shared source set files, processed or copied depending on [processable].*/
     @get:InputFiles @get:Incremental
     @get:IgnoreEmptyDirectories @get:PathSensitive(PathSensitivity.RELATIVE)
     public abstract val source: ConfigurableFileCollection
 
-    /**The output directory at `build/stonecutter-cache/`.*/
+    /**The subset of [source] files that should be run through the preprocessor.*/
+    @get:InputFiles @get:IgnoreEmptyDirectories @get:PathSensitive(PathSensitivity.RELATIVE)
+    public abstract val processable: ConfigurableFileCollection
+
+    /**The version-specific files overriding shared sources, excluded from the output.*/
+    @get:InputFiles @get:IgnoreEmptyDirectories @get:PathSensitive(PathSensitivity.RELATIVE)
+    public abstract val local: ConfigurableFileCollection
+
+    /**The base directory of the [local] overrides used for resolving relative paths.*/
+    @get:Internal
+    public abstract val localRoot: Property<File>
+
+    /**The output directory at `build/generated/stonecutter/`.*/
     @get:OutputDirectory
     public abstract val destination: DirectoryProperty
 
@@ -80,35 +96,44 @@ public abstract class StonecutterPrepareTask : DefaultTask() {
     internal fun run(inputs: InputChanges) {
         inputs.clearIfNotIncremental(destination.asFile.get())
         val model = ParametersModel(params.get())
+        val processable: Set<File> = processable.files
 
         with(executor.noIsolation()) {
             for (change in inputs.getFileChanges(source))
                 if (change.fileType != FileType.DIRECTORY)
-                    processFile(change, model)
+                    processFile(change, model, change.file in processable)
             await()
         }
         errors.get().complete(path)
     }
 
-    private val File.cacheFile: File
+    private val File.generatedFile: File
         get() = destination.asFile.get().resolve(relativeTo(root.get()))
 
-    private fun WorkQueue.processFile(change: FileChange, params: ParametersModel): Unit = submit(PrepareAction::class) {
-        source.set(change.file)
-        output.set(change.file.cacheFile)
-        model.set(params)
+    private val File.overrideFile: File
+        get() = localRoot.get().resolve(relativeTo(root.get()))
 
-        handlers.set(this@StonecutterPrepareTask.handlers)
-        reporter.set(this@StonecutterPrepareTask.errors)
-        task.set(this@StonecutterPrepareTask.path)
-    }
+    private fun WorkQueue.processFile(change: FileChange, params: ParametersModel, process: Boolean): Unit =
+        submit(GenerateAction::class) {
+            source.set(change.file)
+            output.set(change.file.generatedFile)
+            override.set(change.file.overrideFile)
+            model.set(params)
+            transform.set(process)
+
+            handlers.set(this@StonecutterGenerateTask.handlers)
+            reporter.set(this@StonecutterGenerateTask.errors)
+            task.set(this@StonecutterGenerateTask.path)
+        }
 }
 
-private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
+private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
     interface Parameters : WorkParameters {
         val source: RegularFileProperty
         val output: RegularFileProperty
+        val override: RegularFileProperty
         val model: Property<ParametersModel>
+        val transform: Property<Boolean>
 
         val handlers: Property<FileHandlerService>
         val reporter: Property<StonecutterErrorsService>
@@ -117,35 +142,37 @@ private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
 
     private val source: Path get() = parameters.source.asFile.get().toPath()
     private val output: Path get() = parameters.output.asFile.get().toPath()
+    private val override: Path get() = parameters.override.asFile.get().toPath()
 
     override fun execute() {
         if (source.notExists()) return handleNoFile()
+        if (override.exists()) return output.deleteIfExists().let { }
 
-        val parameters = createTransformParameters() ?: return handleNoParams()
+        val parameters = if (parameters.transform.get()) createTransformParameters() else null
+        if (parameters == null) return copyDirectly()
+
         val document = createSourceDocument()
+        val processed = try {
+            Stitcher.process(document, parameters)
+        } catch (_: BailException) {
+            // Processing failed and was reported; fall back to the raw file so the tree stays complete.
+            return copyDirectly()
+        }
 
-        val modified = try {
-            buildString { Stitcher.process(document, parameters).appendTo(this) }
-        } catch (_: BailException) { return }
-        if (!isModified(document, modified)) return output.deleteIfExists().let { }
+        output.createParentDirectories()
+        output.bufferedWriter(Charsets.UTF_8).use { raw ->
+            LineNormalizingWriter(raw).use { processed.appendTo(it) }
+        }
+    }
 
-        val writer = StringWriter()
-        LineNormalizingWriter(writer).write(modified)
-
-        output.overwriteText(writer.toString(), true)
+    private fun copyDirectly() {
+        output.createParentDirectories()
+        source.copyTo(output, overwrite = true)
     }
 
     private fun handleNoFile() {
-        createDummyDocument().reference().report(PREPARE_TASK + "no-source") {
+        createDummyDocument().reference().report(GENERATE_TASK + "no-source") {
             label = "No such file"
-        }
-        output.deleteIfExists()
-    }
-
-    private fun handleNoParams() {
-        createDummyDocument().reference().report(PREPARE_TASK + "invalid-extension") {
-            label = "No file handler registered for ${source.extension}"
-            severity = ProblemReport.Severity.WARN
         }
         output.deleteIfExists()
     }
@@ -169,7 +196,4 @@ private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
 
     private fun createDummyDocument(): SourceDocument =
         SourceDocument(source, "", createProblemConsumer())
-
-    private fun isModified(document: SourceDocument, new: String): Boolean =
-        document.text != new
 }
