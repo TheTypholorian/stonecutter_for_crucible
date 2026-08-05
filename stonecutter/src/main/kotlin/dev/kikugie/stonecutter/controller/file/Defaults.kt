@@ -2,8 +2,8 @@ package dev.kikugie.stonecutter.controller.file
 
 import dev.kikugie.stitcher.antlr.HashStyleScanner
 import dev.kikugie.stitcher.antlr.SlashStyleScanner
-import dev.kikugie.stitcher.transformer.impl.SlashStarCommentStrategy
-import dev.kikugie.stitcher.transformer.impl.StarRemoveCommentStrategy
+import dev.kikugie.stitcher.transformer.edit.impl.SlashStarUncommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.impl.StarCommentingStrategy
 
 internal fun FileHandlerContainer.configureDefaults() {
     configureJava()
@@ -15,22 +15,22 @@ internal fun FileHandlerContainer.configureDefaults() {
 private fun FileHandlerContainer.configureJava() = configure("java", "scala", "sc", "groovy", "gradle", "json5") {
     useSlashScanner(nested = false)
 
-    commenter.set(SlashStarCommentStrategy(true))
-    uncommenter.set(StarRemoveCommentStrategy)
+    commenter.set(StarCommentingStrategy.Java)
+    uncommenter.set(SlashStarUncommentingStrategy)
 }
 
 private fun FileHandlerContainer.configureKotlin() = configure("kt", "kts") {
     useSlashScanner(nested = true)
 
-    commenter.set(SlashStarCommentStrategy(false))
-    uncommenter.set(StarRemoveCommentStrategy)
+    commenter.set(StarCommentingStrategy.Kotlin)
+    uncommenter.set(SlashStarUncommentingStrategy)
 }
 
 private fun FileHandlerContainer.configureShader() = configure("fsh", "vsh") {
     useSlashScanner(nested = false)
 
     commenter.set(line("//"))
-    uncommenter.set(StarRemoveCommentStrategy)
+    uncommenter.set(SlashStarUncommentingStrategy)
 }
 
 private fun HandlerBuilder.useSlashScanner(nested: Boolean) = scanner {

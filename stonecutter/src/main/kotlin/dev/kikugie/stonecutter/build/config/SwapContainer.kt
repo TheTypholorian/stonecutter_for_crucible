@@ -1,10 +1,10 @@
 package dev.kikugie.stonecutter.build.config
 
 import dev.kikugie.commons.then
-import dev.kikugie.stitcher.util.IDENTIFIER_PATTERN
-import dev.kikugie.stitcher.util.isValidIdentifier
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.data.whatever.ExtendedMapProperty
+import dev.kikugie.stonecutter.util.IDENTIFIER_PATTERN
+import dev.kikugie.stonecutter.util.isValidIdentifier
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Provider
 import javax.inject.Inject

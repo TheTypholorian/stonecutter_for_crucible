@@ -2,15 +2,15 @@
 
 package dev.kikugie.stonecutter.build.config
 
-import dev.kikugie.stitcher.replacement.PerlReplacement
-import dev.kikugie.stitcher.replacement.RegexReplacement
-import dev.kikugie.stitcher.replacement.Replacement
-import dev.kikugie.stitcher.replacement.StringReplacement
-import dev.kikugie.stitcher.util.isValidIdentifier
-import dev.kikugie.stitcher.util.toLong
+import dev.kikugie.stitcher.replacement.toInt
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.build.config.ReplacementContainer.*
+import dev.kikugie.stonecutter.model.process.PerlReplacement
+import dev.kikugie.stonecutter.model.process.RegexReplacement
+import dev.kikugie.stonecutter.model.process.Replacement
+import dev.kikugie.stonecutter.model.process.StringReplacement
+import dev.kikugie.stonecutter.util.isValidIdentifier
 import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
@@ -446,7 +446,6 @@ internal abstract class PerlSpecImpl @Inject constructor(val replacements: ListP
 
         val set = EnumSet.noneOf(Pcre2CompileOption::class.java)
             .apply { addAll(options.toList()) }
-            .toLong()
             .toInt()
 
         val it =

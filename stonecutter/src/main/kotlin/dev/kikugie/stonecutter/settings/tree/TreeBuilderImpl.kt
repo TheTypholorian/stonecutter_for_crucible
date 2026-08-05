@@ -2,7 +2,6 @@
 
 package dev.kikugie.stonecutter.settings.tree
 
-import dev.kikugie.stitcher.util.isValidIdentifier
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.ProjectReference
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
@@ -13,6 +12,7 @@ import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.settings.StonecutterSettingsExtension
 import dev.kikugie.stonecutter.settings.StonecutterSettingsImpl
+import dev.kikugie.stonecutter.util.isValidIdentifier
 import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Action
 import org.gradle.api.initialization.ProjectDescriptor

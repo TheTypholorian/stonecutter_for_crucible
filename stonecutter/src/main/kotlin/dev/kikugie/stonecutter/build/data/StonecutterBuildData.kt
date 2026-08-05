@@ -1,15 +1,11 @@
-@file:OptIn(StonecutterInternalAPI::class)
-
 package dev.kikugie.stonecutter.build.data
 
-import dev.kikugie.stitcher.issue.ProblemReport
-import dev.kikugie.stitcher.replacement.RegexReplacement
-import dev.kikugie.stitcher.replacement.Replacement
-import dev.kikugie.stitcher.replacement.StringReplacement
-import dev.kikugie.stitcher.util.Regex
+import dev.kikugie.stitcher.document.issue.ProblemReport
 import dev.kikugie.stonecutter.AnyVersion
 import dev.kikugie.stonecutter.Identifier
-import dev.kikugie.stonecutter.StonecutterInternalAPI
+import dev.kikugie.stonecutter.model.process.RegexReplacement
+import dev.kikugie.stonecutter.model.process.Replacement
+import dev.kikugie.stonecutter.model.process.StringReplacement
 import dev.kikugie.stonecutter.controller.StonecutterControllerExtension
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import org.gradle.api.GradleException

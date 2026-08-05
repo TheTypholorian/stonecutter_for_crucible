@@ -1,10 +1,11 @@
 package dev.kikugie.stonecutter.controller.file
 
-import dev.kikugie.stitcher.transformer.impl.LineCommentStrategy
-import dev.kikugie.stitcher.transformer.impl.StandardSwapStrategy
-import dev.kikugie.stitcher.transformer.strategy.CommentingStrategy
-import dev.kikugie.stitcher.transformer.strategy.SwappingStrategy
-import dev.kikugie.stitcher.transformer.strategy.UncommentingStrategy
+import dev.kikugie.stitcher.token.type.BuiltinTokenType
+import dev.kikugie.stitcher.transformer.edit.CommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.impl.LineCommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.impl.StandardSwappingStrategy
+import dev.kikugie.stitcher.transformer.edit.SwappingStrategy
+import dev.kikugie.stitcher.transformer.edit.UncommentingStrategy
 import org.gradle.api.Action
 import org.gradle.api.Named
 import org.gradle.api.model.ObjectFactory
@@ -49,7 +50,7 @@ public abstract class HandlerBuilder @Inject constructor(objects: ObjectFactory)
     public abstract val swapper: Property<SwappingStrategy>
 
     init {
-        swapper.convention(StandardSwapStrategy)
+        swapper.convention(StandardSwappingStrategy)
         uncommenter.convention(BASIC_UNCOMMENTER)
         scanner.value(objects.newInstance<ScannerBuilder>()).disallowChanges()
     }
@@ -69,11 +70,13 @@ public abstract class HandlerBuilder @Inject constructor(objects: ObjectFactory)
 
     /**Creates a [commenter] that prepends the given [prefix] on each line.*/
     public fun line(prefix: String): CommentingStrategy =
-        LineCommentStrategy(prefix)
+        LineCommentingStrategy(prefix)
 
     private companion object {
-        val BASIC_UNCOMMENTER: UncommentingStrategy = UncommentingStrategy { it, _, cl ->
-            if ('\r' in cl || '\n' in cl) it + cl else it
+        /**Default uncommenter for line-comment formats: strips the comment opener token.*/
+        val BASIC_UNCOMMENTER: UncommentingStrategy = UncommentingStrategy { tracker, tokens ->
+            for (token in tokens) if (token.type == BuiltinTokenType.COMMENT_OPEN)
+                tracker.delete(token)
         }
     }
 }

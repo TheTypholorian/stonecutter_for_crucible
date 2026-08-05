@@ -1,12 +1,17 @@
 package dev.kikugie.stonecutter.build.task
 
-import dev.kikugie.antlr.util.length
-import dev.kikugie.stitcher.document.Document
+import dev.kikugie.stitcher.Stitcher
+import dev.kikugie.stitcher.StitcherParameters
+import dev.kikugie.stitcher.document.SourceDocument
 import dev.kikugie.stitcher.document.io.LineNormalizingReader
 import dev.kikugie.stitcher.document.io.LineNormalizingWriter
-import dev.kikugie.stitcher.issue.*
-import dev.kikugie.stitcher.process
-import dev.kikugie.stitcher.transformer.TransformParameters
+import dev.kikugie.stitcher.document.issue.BailException
+import dev.kikugie.stitcher.document.issue.ProblemID
+import dev.kikugie.stitcher.document.issue.ProblemReport
+import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
+import dev.kikugie.stitcher.document.issue.report
+import dev.kikugie.stitcher.document.reference
+import dev.kikugie.stitcher.token.appendTo
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
@@ -14,8 +19,6 @@ import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.controller.tree.ParametersModel
 import dev.kikugie.stonecutter.util.clearIfNotIncremental
 import dev.kikugie.stonecutter.util.overwriteText
-import org.antlr.v4.runtime.CharStreams
-import org.antlr.v4.runtime.misc.Interval
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
@@ -121,7 +124,9 @@ private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
         val parameters = createTransformParameters() ?: return handleNoParams()
         val document = createSourceDocument()
 
-        val modified = try { process(document, parameters) } catch (_: BailException) { return }
+        val modified = try {
+            buildString { Stitcher.process(document, parameters).appendTo(this) }
+        } catch (_: BailException) { return }
         if (!isModified(document, modified)) return output.deleteIfExists().let { }
 
         val writer = StringWriter()
@@ -130,14 +135,18 @@ private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
         output.overwriteText(writer.toString(), true)
     }
 
-    private fun handleNoFile(): Unit = createDummyDocument().report(PREPARE_TASK + "no-source") {
-        label = "No such file"
+    private fun handleNoFile() {
+        createDummyDocument().reference().report(PREPARE_TASK + "no-source") {
+            label = "No such file"
+        }
         output.deleteIfExists()
     }
 
-    private fun handleNoParams(): Unit = createDummyDocument().report(PREPARE_TASK + "invalid-extension") {
-        label = "No file handler registered for ${source.extension}"
-        sev = ProblemSeverity.WARN
+    private fun handleNoParams() {
+        createDummyDocument().reference().report(PREPARE_TASK + "invalid-extension") {
+            label = "No file handler registered for ${source.extension}"
+            severity = ProblemReport.Severity.WARN
+        }
         output.deleteIfExists()
     }
 
@@ -147,25 +156,20 @@ private interface PrepareAction : WorkAction<PrepareAction.Parameters> {
         return ProblemConsumer { reporter.report(task, it) }
     }
 
-    private fun createTransformParameters(): TransformParameters? {
+    private fun createTransformParameters(): StitcherParameters? {
         val handlers: Map<String, HandlerModel> = parameters.handlers.get().parameters.handlers.get()
         return parameters.model.get().forFile(source, handlers)
     }
 
-    private fun createSourceDocument(): Document {
+    private fun createSourceDocument(): SourceDocument {
         val source = source
-        val stream = CharStreams.fromReader(LineNormalizingReader(source.bufferedReader()), source.absolutePathString())
-        return Document(source, stream, createProblemConsumer())
+        val text = LineNormalizingReader(source.bufferedReader()).use { it.readText() }
+        return SourceDocument(source, text, createProblemConsumer())
     }
 
-    private fun createDummyDocument(): Document =
-        Document(source, CharStreams.fromString(""), createProblemConsumer())
+    private fun createDummyDocument(): SourceDocument =
+        SourceDocument(source, "", createProblemConsumer())
 
-    private fun isModified(document: Document, new: String): Boolean {
-        val size = document.source.length
-        if (size != new.length) return true
-
-        val original = document.source.getText(Interval.of(0, size - 1))
-        return original != new
-    }
+    private fun isModified(document: SourceDocument, new: String): Boolean =
+        document.text != new
 }

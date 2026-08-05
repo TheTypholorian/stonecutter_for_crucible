@@ -3,6 +3,10 @@ package dev.kikugie.stonecutter.util
 import dev.kikugie.commons.then
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 
+internal const val IDENTIFIER_PATTERN: String = "[_a-zA-Z][_\\-a-zA-Z0-9]*"
+
+private val IDENTIFIER_REGEX: Regex = Regex(IDENTIFIER_PATTERN)
+
 private val ASCII_ESCAPES: List<String> = buildList(128) {
     for (i in 0x00..0x0f) {
         add(i, "\\u000$i")
@@ -102,3 +106,8 @@ internal fun stonecutterProperty(key: String): String =
 
 internal val StonecutterFlag<*>.propertyKey: String
     inline get() = stonecutterProperty(key)
+
+internal fun String.isValidIdentifier(): Boolean = when (this) {
+    "if", "else", "elif" -> false
+    else -> matches(IDENTIFIER_REGEX)
+}

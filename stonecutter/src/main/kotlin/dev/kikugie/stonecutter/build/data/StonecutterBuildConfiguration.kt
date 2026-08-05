@@ -3,14 +3,15 @@
 package dev.kikugie.stonecutter.build.data
 
 import dev.kikugie.semver.data.Version
-import dev.kikugie.stitcher.document.Document
+import dev.kikugie.stitcher.Stitcher
+import dev.kikugie.stitcher.StitcherParameters
+import dev.kikugie.stitcher.document.SourceDocument
 import dev.kikugie.stitcher.document.io.LineNormalizingReader
 import dev.kikugie.stitcher.document.io.LineNormalizingWriter
-import dev.kikugie.stitcher.issue.BailException
-import dev.kikugie.stitcher.issue.ProblemConsumer
-import dev.kikugie.stitcher.issue.ProblemReport
-import dev.kikugie.stitcher.issue.ProblemSeverity
-import dev.kikugie.stitcher.transformer.TransformParameters
+import dev.kikugie.stitcher.document.issue.BailException
+import dev.kikugie.stitcher.document.issue.ProblemReport
+import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
+import dev.kikugie.stitcher.token.appendTo
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
@@ -34,7 +35,6 @@ import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertyConfigImpl
 import dev.kikugie.stonecutter.util.overwriteText
 import dev.kikugie.stonecutter.util.toRegularFile
-import org.antlr.v4.runtime.CharStreams
 import org.gradle.api.Named
 import org.gradle.api.Project
 import org.gradle.api.model.ObjectFactory
@@ -71,19 +71,19 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
 
     override fun process(file: File, destination: String): File {
         val project = node.project
-        val parameters: TransformParameters = collectTransformParams(file, project, data)
+        val parameters: StitcherParameters = collectTransformParams(file, project, data)
         val problems: MutableCollection<ProblemReport> = mutableListOf()
         val reporter = ProblemConsumer {
-            if (it.sev == ProblemSeverity.ERROR) problems += it
+            if (it.severity == ProblemReport.Severity.ERROR) problems += it
             project.logger.log(it)
         }
 
         val modified: String = try {
-            val text: String = project.providers.fileContents(file.toRegularFile(project.objects)).asText.orNull
+            val raw: String = project.providers.fileContents(file.toRegularFile(project.objects)).asText.orNull
                 ?: throw NoSuchFileException(file.absolutePath)
-            val stream = CharStreams.fromReader(LineNormalizingReader(text.reader()), file.absolutePath)
-            val document = Document(file.toPath(), stream, reporter)
-            dev.kikugie.stitcher.process(document, parameters)
+            val text: String = LineNormalizingReader(raw.reader()).use { it.readText() }
+            val document = SourceDocument(file.toPath(), text, reporter)
+            buildString { Stitcher.process(document, parameters).appendTo(this) }
         } catch (_: BailException) {
             problems.collect()
         }
@@ -105,7 +105,7 @@ private fun setupDefaultProperties(node: ProjectNode, objects: ObjectFactory): S
     return impl
 }
 
-private fun collectTransformParams(file: File, project: Project, data: StonecutterBuildData): TransformParameters {
+private fun collectTransformParams(file: File, project: Project, data: StonecutterBuildData): StitcherParameters {
     val handlers = project.gradle.getContainer<FileHandlerContainer>()
         .handlers[file.extension.lowercase()].let { mapOf(it.name to HandlerModel(it)) }
     return ParametersModel(data).forFile(file.toPath(), handlers)!!

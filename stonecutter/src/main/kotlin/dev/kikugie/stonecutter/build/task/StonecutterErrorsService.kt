@@ -1,9 +1,8 @@
 package dev.kikugie.stonecutter.build.task
 
-import dev.kikugie.stitcher.issue.FullProblemFormatter
-import dev.kikugie.stitcher.issue.ProblemReport
-import dev.kikugie.stitcher.issue.ProblemSeverity
-import dev.kikugie.stitcher.issue.ShortProblemFormatter
+import dev.kikugie.stitcher.document.issue.ProblemReport
+import dev.kikugie.stitcher.document.issue.output.FullProblemFormatter
+import dev.kikugie.stitcher.document.issue.output.ShortProblemFormatter
 import org.gradle.api.GradleException
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
@@ -26,7 +25,7 @@ internal abstract class StonecutterErrorsService : BuildService<StonecutterError
 
     fun report(task: String, report: ProblemReport) = with(bucket(task)) {
         reports.add(report)
-        if (report.sev == ProblemSeverity.ERROR)
+        if (report.severity == ProblemReport.Severity.ERROR)
             errors.add(report)
         if (immediate && printed.add(report))
             Logging.getLogger(task.substringAfterLast(':')).log(report)
@@ -60,10 +59,10 @@ internal abstract class StonecutterErrorsService : BuildService<StonecutterError
     companion object {
         const val NAME: String = "StonecutterTaskErrors"
 
-        val ProblemReport.level get() = when(sev) {
-            ProblemSeverity.INFO -> LogLevel.LIFECYCLE
-            ProblemSeverity.WARN -> LogLevel.WARN
-            ProblemSeverity.ERROR -> LogLevel.ERROR
+        val ProblemReport.level get() = when(severity) {
+            ProblemReport.Severity.INFO -> LogLevel.LIFECYCLE
+            ProblemReport.Severity.WARN -> LogLevel.WARN
+            ProblemReport.Severity.ERROR -> LogLevel.ERROR
         }
 
         fun Logger.log(report: ProblemReport) =

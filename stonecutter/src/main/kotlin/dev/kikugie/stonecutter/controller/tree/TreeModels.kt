@@ -13,10 +13,12 @@ import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.semver.data.Version
-import dev.kikugie.stitcher.replacement.Replacement
-import dev.kikugie.stitcher.transformer.TransformParameters
+import dev.kikugie.stitcher.StitcherParameters
 import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.controller.file.HandlerModel
+import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
+import dev.kikugie.stonecutter.model.process.ProcessParameters
+import dev.kikugie.stonecutter.model.process.Replacement
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
@@ -160,9 +162,13 @@ public data class ParametersModel(
         data.replacements.get().toList()
     )
 
-    internal fun forFile(file: Path, handlers: Map<String, HandlerModel>): TransformParameters? {
+    internal fun forFile(file: Path, handlers: Map<String, HandlerModel>): StitcherParameters? {
         val handler = handlers[file.extension.lowercase()] ?: return null
-        return TransformParameters(handler.scanner, handler.commenter, handler.uncommenter, handler.swapper, swaps, constants, dependencies, replacements)
+        val vars = ProcessParameters(constants, dependencies, swaps, replacements)
+        return StitcherParameters(
+            vars, ConfigurationRegistry(),
+            handler.scanner, handler.commenter, handler.uncommenter, handler.swapper
+        )
     }
 }
 
