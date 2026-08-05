@@ -3,7 +3,6 @@ package dev.kikugie.stitcher.replacement
 import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stonecutter.model.process.RegexReplacement
 import dev.kikugie.stonecutter.model.process.Replacement
-import org.pcre4j.regex.appendMatch
 import java.util.regex.MatchResult
 import java.util.regex.Pattern
 

@@ -1,5 +1,4 @@
 @file:Suppress("UnstableApiUsage")
-@file:OptIn(ExperimentalPathApi::class)
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.gradle.plugin.compatibility.compatibility

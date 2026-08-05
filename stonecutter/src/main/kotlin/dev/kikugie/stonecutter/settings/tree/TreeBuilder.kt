@@ -6,10 +6,7 @@ import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.deserialization.JsonConverter
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.deserialization.determineConverter
-import dev.kikugie.stonecutter.settings.StonecutterSettingsExtension
-import dev.kikugie.stonecutter.settings.StonecutterSettingsImpl
 import org.gradle.api.Action
-import org.gradle.api.initialization.ProjectDescriptor
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import java.io.File

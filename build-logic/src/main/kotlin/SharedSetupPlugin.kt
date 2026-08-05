@@ -12,9 +12,8 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 private const val JAVA_VERSION: Int = 25
 private const val KOTLIN_VERSION: String = "2.4"
 
-@Suppress("unused")
 open class SharedSetupPlugin : Plugin<Project> {
-    override fun apply(target: Project) = with(target) {
+    override fun apply(target: Project): Unit = with(target) {
         repositories {
             mavenCentral()
             maven("https://maven.kikugie.dev/releases")

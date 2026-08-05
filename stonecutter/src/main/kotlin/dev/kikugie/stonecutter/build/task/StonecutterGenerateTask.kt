@@ -7,8 +7,8 @@ import dev.kikugie.stitcher.document.io.LineNormalizingReader
 import dev.kikugie.stitcher.document.io.LineNormalizingWriter
 import dev.kikugie.stitcher.document.issue.BailException
 import dev.kikugie.stitcher.document.issue.ProblemID
-import dev.kikugie.stitcher.document.issue.report
 import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
+import dev.kikugie.stitcher.document.issue.report
 import dev.kikugie.stitcher.document.reference
 import dev.kikugie.stitcher.token.appendTo
 import dev.kikugie.stonecutter.StonecutterInternalAPI
@@ -34,9 +34,7 @@ import org.gradle.workers.WorkParameters
 import org.gradle.workers.WorkQueue
 import org.gradle.workers.WorkerExecutor
 import java.io.File
-import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardOpenOption
 import javax.inject.Inject
 import kotlin.io.path.*
 

@@ -3,7 +3,6 @@ package dev.kikugie.stonecutter.settings
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
-import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
@@ -12,12 +11,11 @@ import dev.kikugie.stonecutter.settings.tree.TreeBuilder
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.doFirst
 import org.gradle.api.Action
-import org.gradle.api.initialization.Settings
 import org.gradle.api.initialization.ProjectDescriptor
+import org.gradle.api.initialization.Settings
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
-import org.gradle.api.provider.ProviderFactory
 import org.gradle.kotlin.dsl.newInstance
 import java.io.File
 
@@ -70,8 +68,6 @@ public abstract class StonecutterSettingsExtension(
      * [TreeBuilder.kotlinController]
      */
     public abstract val kotlinController: Property<Boolean>
-
-    internal abstract val isHardMode: Boolean
 
     /**
      * Accessor for strictly SemVer version evaluation.

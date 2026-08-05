@@ -73,11 +73,6 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
 
     override fun getName(): String = name
 
-    internal fun getVcsProject(): StonecutterProject = knownVersions[resolveVcs()]!!
-
-    internal fun getRootNodes(): List<NodeBuilderImpl> =
-        checkNotNull(branchBuilders[""]?.nodeBuilders) { "Root branch is not initialised yet" }
-
     internal fun build(ext: StonecutterSettingsImpl, ref: ProjectReference) {
         val project = ext.settings.rootProject.resolve(ref, ext.settings)
         prepare(ext, project)
@@ -85,14 +80,14 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
         ext.treeBuilderContainer += this
     }
 
-    internal fun prepare(ext: StonecutterSettingsExtension, project: ProjectDescriptor) {
+    internal fun prepare(ext: StonecutterSettingsImpl, project: ProjectDescriptor) {
         for (builder in branchBuilders.values) builder.prepare(ext, project)
         checkVersionIntegrity()
         resolvedVcsVersion = resolveVcs(project.hierarchy)
         resolvedController = resolveController(ext, project)
     }
 
-    internal fun create(ext: StonecutterSettingsExtension, project: ProjectDescriptor) {
+    internal fun create(ext: StonecutterSettingsImpl, project: ProjectDescriptor) {
         with(project.projectDir.resolve(resolvedController.filename).toPath()) {
             project.buildFileName = fileName.toString()
             if (notExists()) resolvedController.create(this, resolvedVcsVersion.project)
@@ -117,7 +112,7 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
         }
     }
 
-    private fun resolveController(ext: StonecutterSettingsExtension, project: ProjectDescriptor): StonecutterControllerManager {
+    private fun resolveController(ext: StonecutterSettingsImpl, project: ProjectDescriptor): StonecutterControllerManager {
         val isKotlin = kotlinController.orNull
             ?: ext.kotlinController.orNull
             ?: getDefaultBuildscript(ext, project.projectDir.toPath(), "stonecutter").endsWith("kts")
@@ -162,7 +157,7 @@ internal abstract class BranchBuilderImpl @Inject constructor(
         return objects.newInstance<NodeBuilderImpl>(entries, this).also(nodeBuilders::add)
     }
 
-    internal fun prepare(ext: StonecutterSettingsExtension, project: ProjectDescriptor) {
+    internal fun prepare(ext: StonecutterSettingsImpl, project: ProjectDescriptor) {
         builtNodes = prepareNodes(ext, project)
         if (name.isNotEmpty()) {
             val filename = resolveBuild(ext, project)
@@ -171,14 +166,14 @@ internal abstract class BranchBuilderImpl @Inject constructor(
         }
     }
 
-    internal fun create(ext: StonecutterSettingsExtension, project: ProjectDescriptor) {
+    internal fun create(ext: StonecutterSettingsImpl, project: ProjectDescriptor) {
         val project = project.resolve(name, ext.settings)
             .apply { projectDir.toPath().createDirectories() }
         if (::buildFile.isInitialized) project.buildFileName = buildFile
         for (node in builtNodes.values) node.create(ext, project)
     }
 
-    private fun prepareNodes(ext: StonecutterSettingsExtension, project: ProjectDescriptor): Map<String, BuiltNodeInfo> = buildMap {
+    private fun prepareNodes(ext: StonecutterSettingsImpl, project: ProjectDescriptor): Map<String, BuiltNodeInfo> = buildMap {
         val branches = if (inheritAll) tree.branchBuilders.values
         else inheritedBranches.map { checkNotNull(tree.branchBuilders[it]) { "Can't inherit from non-existent branch '$it'" } }
 
@@ -186,11 +181,11 @@ internal abstract class BranchBuilderImpl @Inject constructor(
         prepareNodes(this, nodeBuilders, ext, project)
     }
 
-    private fun prepareNodes(to: MutableMap<String, BuiltNodeInfo>, nodes: List<NodeBuilderImpl>, ext: StonecutterSettingsExtension, project: ProjectDescriptor) {
+    private fun prepareNodes(to: MutableMap<String, BuiltNodeInfo>, nodes: List<NodeBuilderImpl>, ext: StonecutterSettingsImpl, project: ProjectDescriptor) {
         for (node in nodes) node.prepare(to, ext, project)
     }
 
-    private fun resolveBuild(ext: StonecutterSettingsExtension, project: ProjectDescriptor): String = branchScript.orNull
+    private fun resolveBuild(ext: StonecutterSettingsImpl, project: ProjectDescriptor): String = branchScript.orNull
         ?: getDefaultBuildscript(ext, project.projectDir.toPath(), "branch")
 }
 
@@ -200,7 +195,7 @@ internal abstract class NodeBuilderImpl @Inject constructor(
 ) : NodeBuilder() {
     val tree: TreeBuilderImpl inline get() = branch.tree
 
-    internal fun prepare(to: MutableMap<String, BuiltNodeInfo>, ext: StonecutterSettingsExtension, project: ProjectDescriptor) {
+    internal fun prepare(to: MutableMap<String, BuiltNodeInfo>, ext: StonecutterSettingsImpl, project: ProjectDescriptor) {
         for (data in versions) {
             val file = data.resolveBuild(ext, project)
             val hierarchy = project.hierarchy.resolve(data.project)
@@ -209,7 +204,7 @@ internal abstract class NodeBuilderImpl @Inject constructor(
         }
     }
 
-    private fun StonecutterProject.resolveBuild(ext: StonecutterSettingsExtension, project: ProjectDescriptor): String = buildscript.orNull
+    private fun StonecutterProject.resolveBuild(ext: StonecutterSettingsImpl, project: ProjectDescriptor): String = buildscript.orNull
         ?: tree.localBuildScriptProvider?.invoke(branch.name, this)
         ?: tree.centralScript.orNull
         ?: ext.centralScript.orNull
@@ -220,7 +215,7 @@ internal class BuiltNodeInfo(val data: StonecutterProject, val hierarchy: Projec
     val project: String inline get() = data.project
     val version: String inline get() = data.version
 
-    internal fun create(ext: StonecutterSettingsExtension, parent: ProjectDescriptor) {
+    internal fun create(ext: StonecutterSettingsImpl, parent: ProjectDescriptor) {
         val project = parent.resolve(data.project, ext.settings)
         project.projectDir = parent.projectDir.resolve("versions/${data.project}")
             .apply { toPath().createDirectories() }
@@ -233,9 +228,9 @@ private fun checkBuildscript(project: ProjectHierarchy, build: String) {
     check(!build.startsWith("stonecutter.gradle")) { "Buildscript name can't be `stonecutter.gradle(.kts)` for '$project'" }
 }
 
-private fun getDefaultBuildscript(ext: StonecutterSettingsExtension, dir: Path, type: String): String = when {
+private fun getDefaultBuildscript(ext: StonecutterSettingsImpl, dir: Path, type: String): String = when {
     dir.resolve("$type.gradle.kts").exists() -> "$type.gradle.kts"
-    ext.isHardMode || dir.resolve("$type.gradle").exists() -> "$type.gradle"
+    dir.resolve("$type.gradle").exists() || ext.isHardMode -> "$type.gradle"
     else -> "$type.gradle.kts"
 }
 

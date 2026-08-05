@@ -1,6 +1,5 @@
 package dev.kikugie.stitcher.replacement
 
-import dev.kikugie.stitcher.document.ancestor
 import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stitcher.document.issue.REPLACEMENT_GROUP
 import dev.kikugie.stitcher.document.issue.report
@@ -12,7 +11,7 @@ import org.pcre4j.Pcre2MatchData
 import org.pcre4j.option.Pcre2SubstituteOption
 import org.pcre4j.option.Pcre2SubstituteOption.EXTENDED
 import org.pcre4j.option.Pcre2SubstituteOption.REPLACEMENT_ONLY
-import java.util.EnumSet
+import java.util.*
 
 private val FLAGS: EnumSet<Pcre2SubstituteOption> = EnumSet.of(EXTENDED, REPLACEMENT_ONLY)
 

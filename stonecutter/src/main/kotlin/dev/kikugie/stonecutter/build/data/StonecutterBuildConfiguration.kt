@@ -1,5 +1,3 @@
-@file:OptIn(StonecutterInternalAPI::class)
-
 package dev.kikugie.stonecutter.build.data
 
 import dev.kikugie.semver.data.Version
@@ -12,7 +10,6 @@ import dev.kikugie.stitcher.document.issue.BailException
 import dev.kikugie.stitcher.document.issue.ProblemReport
 import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
 import dev.kikugie.stitcher.token.appendTo
-import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.build.config.ConstantContainer

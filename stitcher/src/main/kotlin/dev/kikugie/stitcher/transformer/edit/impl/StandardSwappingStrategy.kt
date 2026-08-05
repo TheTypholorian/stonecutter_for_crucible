@@ -10,17 +10,17 @@ import kotlin.text.iterator
 
 object StandardSwappingStrategy : SwappingStrategy {
     override fun substitute(tracker: ModificationTracker, text: String): Unit = with(tracker) {
-        val document = tracker.document
-        val scope = document.subSequence(tracker.start, tracker.end).toString()
+        val document = document
+        val scope = document.subSequence(start, end).toString()
 
         val lead = scope.countOffset()
         val trail = scope.reversed().countOffset()
-        val coreStart = tracker.start + lead
-        val coreEnd = tracker.end - trail
+        val coreStart = start + lead
+        val coreEnd = end - trail
 
         val indent = document.lineIndent(coreStart)
         val midLine = document.hasLineContentBefore(coreStart)
-        tracker.replace(coreStart, coreEnd, text.reindent(indent, dropFirstIndent = midLine))
+        replace(coreStart, coreEnd, text.reindent(indent, dropFirstIndent = midLine))
     }
 
     private fun readResolve(): Any = this

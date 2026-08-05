@@ -1,6 +1,5 @@
 package dev.kikugie.stonecutter.settings
 
-import dev.kikugie.commons.takeAs
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
 import dev.kikugie.stonecutter.StonecutterPlugin
@@ -16,9 +15,9 @@ import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.StructuredPropertyConfigImpl
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesLoader
 import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
+import dev.kikugie.stonecutter.settings.properties.StructuredPropertyConfigImpl
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.TreeBuilder
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
@@ -49,8 +48,6 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     internal val isHardMode: Boolean by lazy {
         settings.providers.gradleProperty("dev.kikugie.stonecutter.hard_mode").getOrElse("false").toBoolean()
     }
-
-    internal val treeBuilderContainer: TreeBuilderContainer = settings.gradle.createContainer()
     private var usesGroovy: Boolean = false
 
 

@@ -1,7 +1,6 @@
 package dev.kikugie.stitcher.replacement
 
 import dev.kikugie.stitcher.document.edit.ModificationTracker
-import dev.kikugie.stitcher.document.issue.ProblemReport.Severity
 import dev.kikugie.stitcher.document.issue.REPLACEMENT_GROUP
 import dev.kikugie.stitcher.document.issue.report
 import dev.kikugie.stitcher.document.reference

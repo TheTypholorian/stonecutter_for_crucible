@@ -1,20 +1,18 @@
 @file:UseSerializers(PathSerializer::class)
 package dev.kikugie.stonecutter.controller.tree
 
+import dev.kikugie.semver.data.Version
+import dev.kikugie.stitcher.StitcherParameters
 import dev.kikugie.stonecutter.AnyVersion
 import dev.kikugie.stonecutter.Identifier
+import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData
-import dev.kikugie.stonecutter.build.data.StonecutterBuildData.RegexReplacementSpec
-import dev.kikugie.stonecutter.build.data.StonecutterBuildData.StringReplacementSpec
+import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagStorage
 import dev.kikugie.stonecutter.data.tree.ProjectBranch
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.version.LenientOperations
-import dev.kikugie.semver.data.Version
-import dev.kikugie.stitcher.StitcherParameters
-import dev.kikugie.stonecutter.StonecutterPlugin
-import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 import dev.kikugie.stonecutter.model.process.ProcessParameters
 import dev.kikugie.stonecutter.model.process.Replacement

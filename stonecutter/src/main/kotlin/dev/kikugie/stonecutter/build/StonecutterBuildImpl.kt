@@ -76,14 +76,13 @@ private fun SourceSet.createProcessingTasks(
     val localSource = layout.projectDirectory.dir(sourceDir)
     val sharedSource = layout.projectDirectory.dir("../../$sourceDir")
 
-    val sharedSourceFile = sharedSource.asFile
     val generateTask = impls.registerGenerateTask(this) {
         params.set(data)
-        root.set(sharedSource)
-        source.setFrom(node.branch.project.fileTree(sharedSource))
-        processable.setFrom(node.branch.project.fileTree(sharedSource).matching(filters))
-        local.setFrom(node.project.fileTree(localSource))
-        localRoot.set(localSource)
+        root.set(sharedSource.asFile)
+        source.setFrom(project.fileTree(sharedSource))
+        processable.setFrom(project.fileTree(sharedSource).matching(filters))
+        local.setFrom(project.fileTree(localSource))
+        localRoot.set(localSource.asFile)
         destination.set(impls.generatedSourcesDir.dir(name))
     }
 

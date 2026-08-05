@@ -92,7 +92,6 @@ public class ConfigurationRegistry(private val registry: MutableMap<Configuratio
         }
     }
 
-    @OptIn(ExperimentalSerializationApi::class)
     public object RegistrySerializer : KSerializer<ConfigurationRegistry> {
         private val delegate: KSerializer<Map<Identifier, ConfigurationModel>> =
             MapSerializer(Identifier.serializer(), ConfigurationModel.serializer())

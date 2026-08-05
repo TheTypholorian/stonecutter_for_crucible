@@ -6,11 +6,8 @@ import dev.kikugie.stitcher.document.minIndex
 import dev.kikugie.stitcher.token.LeafToken
 import dev.kikugie.stitcher.transformer.edit.CommentingStrategy
 import dev.kikugie.stitcher.util.LINE_BREAKS
-import dev.kikugie.stitcher.util.WORD_BREAKS
 import dev.kikugie.stitcher.util.commonIndent
 import dev.kikugie.stitcher.util.withoutTrailingBlankLine
-import kotlin.math.min
-import kotlin.text.iterator
 
 class LineCommentingStrategy(val symbol: String) : CommentingStrategy {
     override fun comment(tracker: ModificationTracker, tokens: Sequence<LeafToken>): Unit = with(tracker) {
