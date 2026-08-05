@@ -1,0 +1,385 @@
+public final class dev/kikugie/stonecutter/model/process/ConfigurationFlag {
+	public static final field Companion Ldev/kikugie/stonecutter/model/process/ConfigurationFlag$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/Object;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDefault ()Ljava/lang/Object;
+	public final fun getKey ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static final fun of (Ljava/lang/String;D)Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;
+	public static final fun of (Ljava/lang/String;F)Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;
+	public static final fun of (Ljava/lang/String;I)Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;
+	public static final fun of (Ljava/lang/String;J)Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;
+	public static final fun of (Ljava/lang/String;Ljava/lang/CharSequence;)Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;
+	public static final fun of (Ljava/lang/String;Ljava/lang/String;)Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;
+	public static final fun of (Ljava/lang/String;Z)Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;
+}
+
+public final class dev/kikugie/stonecutter/model/process/ConfigurationFlag$Companion {
+	public final fun of (Ljava/lang/String;D)Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;
+	public final fun of (Ljava/lang/String;F)Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;
+	public final fun of (Ljava/lang/String;I)Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;
+	public final fun of (Ljava/lang/String;J)Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;
+	public final fun of (Ljava/lang/String;Ljava/lang/CharSequence;)Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;
+	public final fun of (Ljava/lang/String;Ljava/lang/String;)Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;
+	public final fun of (Ljava/lang/String;Z)Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;
+}
+
+public final class dev/kikugie/stonecutter/model/process/ConfigurationRegistry {
+	public static final field Companion Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry$Companion;
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun get (Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;)Ljava/lang/Object;
+	public final fun remove (Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;)V
+	public final fun set (Ldev/kikugie/stonecutter/model/process/ConfigurationFlag;Ljava/lang/Object;)V
+}
+
+public final class dev/kikugie/stonecutter/model/process/ConfigurationRegistry$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/process/ConfigurationRegistry$RegistrySerializer : kotlinx/serialization/KSerializer {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry$RegistrySerializer;
+	public fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+}
+
+public final class dev/kikugie/stonecutter/model/process/PerlReplacement : java/lang/Record, dev/kikugie/stonecutter/model/process/Replacement, java/io/Serializable {
+	public static final field Companion Ldev/kikugie/stonecutter/model/process/PerlReplacement$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Z)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()I
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Z)Ldev/kikugie/stonecutter/model/process/PerlReplacement;
+	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/process/PerlReplacement;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;ZILjava/lang/Object;)Ldev/kikugie/stonecutter/model/process/PerlReplacement;
+	public fun defaultEnabled ()Z
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun flags ()I
+	public synthetic fun getDefaultEnabled ()Z
+	public synthetic fun getIdentifier ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun identifier ()Ljava/lang/String;
+	public final fun pattern ()Ljava/lang/String;
+	public final fun target ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/kikugie/stonecutter/model/process/PerlReplacement$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/model/process/PerlReplacement$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/kikugie/stonecutter/model/process/PerlReplacement;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/model/process/PerlReplacement;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/process/PerlReplacement$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/process/ProcessParameters : java/lang/Record, java/io/Serializable {
+	public static final field Companion Ldev/kikugie/stonecutter/model/process/ProcessParameters$Companion;
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/Map;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()Ljava/util/Map;
+	public final fun component4 ()Ljava/util/List;
+	public final fun constants ()Ljava/util/Map;
+	public final fun copy (Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;Ljava/util/List;)Ldev/kikugie/stonecutter/model/process/ProcessParameters;
+	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/process/ProcessParameters;Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;Ljava/util/List;ILjava/lang/Object;)Ldev/kikugie/stonecutter/model/process/ProcessParameters;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun replacements ()Ljava/util/List;
+	public final fun swaps ()Ljava/util/Map;
+	public final fun targets ()Ljava/util/Map;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/kikugie/stonecutter/model/process/ProcessParameters$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/model/process/ProcessParameters$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/kikugie/stonecutter/model/process/ProcessParameters;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/model/process/ProcessParameters;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/process/ProcessParameters$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/process/RegexReplacement : java/lang/Record, dev/kikugie/stonecutter/model/process/Replacement, java/io/Serializable {
+	public static final field Companion Ldev/kikugie/stonecutter/model/process/RegexReplacement$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Z)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()I
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Z)Ldev/kikugie/stonecutter/model/process/RegexReplacement;
+	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/process/RegexReplacement;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;ZILjava/lang/Object;)Ldev/kikugie/stonecutter/model/process/RegexReplacement;
+	public fun defaultEnabled ()Z
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun flags ()I
+	public synthetic fun getDefaultEnabled ()Z
+	public synthetic fun getIdentifier ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun identifier ()Ljava/lang/String;
+	public final fun pattern ()Ljava/lang/String;
+	public final fun target ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/kikugie/stonecutter/model/process/RegexReplacement$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/model/process/RegexReplacement$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/kikugie/stonecutter/model/process/RegexReplacement;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/model/process/RegexReplacement;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/process/RegexReplacement$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public abstract interface class dev/kikugie/stonecutter/model/process/Replacement {
+	public static final field Companion Ldev/kikugie/stonecutter/model/process/Replacement$Companion;
+	public abstract fun getDefaultEnabled ()Z
+	public abstract fun getIdentifier ()Ljava/lang/String;
+}
+
+public final class dev/kikugie/stonecutter/model/process/Replacement$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/process/StringReplacement : java/lang/Record, dev/kikugie/stonecutter/model/process/Replacement, java/io/Serializable {
+	public static final field Companion Ldev/kikugie/stonecutter/model/process/StringReplacement$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)Ldev/kikugie/stonecutter/model/process/StringReplacement;
+	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/process/StringReplacement;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Ldev/kikugie/stonecutter/model/process/StringReplacement;
+	public fun defaultEnabled ()Z
+	public fun equals (Ljava/lang/Object;)Z
+	public synthetic fun getDefaultEnabled ()Z
+	public synthetic fun getIdentifier ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun identifier ()Ljava/lang/String;
+	public final fun pattern ()Ljava/lang/String;
+	public final fun target ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/kikugie/stonecutter/model/process/StringReplacement$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/model/process/StringReplacement$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/kikugie/stonecutter/model/process/StringReplacement;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/model/process/StringReplacement;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/process/StringReplacement$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/tree/BranchInfo : java/lang/Record {
+	public static final field Companion Ldev/kikugie/stonecutter/model/tree/BranchInfo$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/nio/file/Path;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/nio/file/Path;
+	public final fun copy (Ljava/lang/String;Ljava/nio/file/Path;)Ldev/kikugie/stonecutter/model/tree/BranchInfo;
+	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/tree/BranchInfo;Ljava/lang/String;Ljava/nio/file/Path;ILjava/lang/Object;)Ldev/kikugie/stonecutter/model/tree/BranchInfo;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun id ()Ljava/lang/String;
+	public final fun path ()Ljava/nio/file/Path;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/kikugie/stonecutter/model/tree/BranchInfo$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/model/tree/BranchInfo$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/kikugie/stonecutter/model/tree/BranchInfo;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/model/tree/BranchInfo;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/tree/BranchInfo$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/tree/BranchModel : java/lang/Record {
+	public static final field Companion Ldev/kikugie/stonecutter/model/tree/BranchModel$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/nio/file/Path;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/nio/file/Path;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/nio/file/Path;Ljava/util/List;)Ldev/kikugie/stonecutter/model/tree/BranchModel;
+	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/tree/BranchModel;Ljava/lang/String;Ljava/nio/file/Path;Ljava/util/List;ILjava/lang/Object;)Ldev/kikugie/stonecutter/model/tree/BranchModel;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun id ()Ljava/lang/String;
+	public final fun nodes ()Ljava/util/List;
+	public final fun root ()Ljava/nio/file/Path;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final synthetic class dev/kikugie/stonecutter/model/tree/BranchModel$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/model/tree/BranchModel$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/kikugie/stonecutter/model/tree/BranchModel;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/model/tree/BranchModel;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/tree/BranchModel$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/tree/NodeInfo : java/lang/Record {
+	public static final field Companion Ldev/kikugie/stonecutter/model/tree/NodeInfo$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ZLjava/nio/file/Path;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZLjava/nio/file/Path;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun active ()Z
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Z
+	public final fun component4 ()Ljava/nio/file/Path;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;ZLjava/nio/file/Path;)Ldev/kikugie/stonecutter/model/tree/NodeInfo;
+	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/tree/NodeInfo;Ljava/lang/String;Ljava/lang/String;ZLjava/nio/file/Path;ILjava/lang/Object;)Ldev/kikugie/stonecutter/model/tree/NodeInfo;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun path ()Ljava/nio/file/Path;
+	public final fun project ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+	public final fun version ()Ljava/lang/String;
+}
+
+public final synthetic class dev/kikugie/stonecutter/model/tree/NodeInfo$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/model/tree/NodeInfo$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/kikugie/stonecutter/model/tree/NodeInfo;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/model/tree/NodeInfo;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/tree/NodeInfo$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/tree/NodeModel : java/lang/Record {
+	public static final field Companion Ldev/kikugie/stonecutter/model/tree/NodeModel$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ZLdev/kikugie/stonecutter/model/tree/BranchInfo;Ljava/nio/file/Path;Ldev/kikugie/stonecutter/model/process/ProcessParameters;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZLdev/kikugie/stonecutter/model/tree/BranchInfo;Ljava/nio/file/Path;Ldev/kikugie/stonecutter/model/process/ProcessParameters;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun active ()Z
+	public final fun branch ()Ldev/kikugie/stonecutter/model/tree/BranchInfo;
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Z
+	public final fun component4 ()Ldev/kikugie/stonecutter/model/tree/BranchInfo;
+	public final fun component5 ()Ljava/nio/file/Path;
+	public final fun component6 ()Ldev/kikugie/stonecutter/model/process/ProcessParameters;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;ZLdev/kikugie/stonecutter/model/tree/BranchInfo;Ljava/nio/file/Path;Ldev/kikugie/stonecutter/model/process/ProcessParameters;)Ldev/kikugie/stonecutter/model/tree/NodeModel;
+	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/tree/NodeModel;Ljava/lang/String;Ljava/lang/String;ZLdev/kikugie/stonecutter/model/tree/BranchInfo;Ljava/nio/file/Path;Ldev/kikugie/stonecutter/model/process/ProcessParameters;ILjava/lang/Object;)Ldev/kikugie/stonecutter/model/tree/NodeModel;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public final fun parameters ()Ldev/kikugie/stonecutter/model/process/ProcessParameters;
+	public final fun project ()Ljava/lang/String;
+	public final fun root ()Ljava/nio/file/Path;
+	public fun toString ()Ljava/lang/String;
+	public final fun version ()Ljava/lang/String;
+}
+
+public final synthetic class dev/kikugie/stonecutter/model/tree/NodeModel$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/model/tree/NodeModel$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/kikugie/stonecutter/model/tree/NodeModel;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/model/tree/NodeModel;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/tree/NodeModel$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/tree/PathSerializer : kotlinx/serialization/KSerializer {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/model/tree/PathSerializer;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/nio/file/Path;
+	public fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/nio/file/Path;)V
+}
+
+public final class dev/kikugie/stonecutter/model/tree/TreeModel : java/lang/Record {
+	public static final field Companion Ldev/kikugie/stonecutter/model/tree/TreeModel$Companion;
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun branches ()Ljava/util/List;
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;)Ldev/kikugie/stonecutter/model/tree/TreeModel;
+	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/tree/TreeModel;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;ILjava/lang/Object;)Ldev/kikugie/stonecutter/model/tree/TreeModel;
+	public final fun current ()Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun flags ()Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;
+	public fun hashCode ()I
+	public final fun nodes ()Ljava/util/List;
+	public final fun stonecutter ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+	public final fun vcs ()Ljava/lang/String;
+}
+
+public final synthetic class dev/kikugie/stonecutter/model/tree/TreeModel$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/model/tree/TreeModel$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/kikugie/stonecutter/model/tree/TreeModel;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/model/tree/TreeModel;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class dev/kikugie/stonecutter/model/tree/TreeModel$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+

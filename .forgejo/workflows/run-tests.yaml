@@ -57,7 +57,6 @@ jobs:
       - name: Setup Gradle
         run: |
           chmod +x ./gradlew
-          ./gradlew wrapper --gradle-version "$GRADLE_VERSION"
       - name: Run tests
         run: |
           ./gradlew check --build-cache --configuration-cache
