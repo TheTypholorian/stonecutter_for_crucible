@@ -1,77 +1,78 @@
+@file:Suppress("PublicApiImplicitType")
+
 package integration
 
-import io.kotest.core.spec.style.ShouldSpec
+import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.disable
+import de.infix.testBalloon.framework.core.testSuite
+import integrationTest
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
-import util.GradleSetup
-import util.config
-import util.read
+import read
+import runGradle
+import shouldFailBuild
+import tempDirFixture
 import kotlin.io.path.useLines
 
-class ReportedIssuesTest : ShouldSpec({
-    should("not insert eof").config<GradleSetup> {
-        build("stonecutterSwitchTo2")
-        build("stonecutterSwitchTo1")
-        build(":1:run") {
-            output shouldContain "Hello world!"
-            dir read "src/main/java/Example.java" shouldNotContain "<EOF>"
+val ReportedIssuesTest by testSuite {
+    tempDirFixture() asParameterForEach {
+        integrationTest("not insert eof") {
+            runGradle(it, "stonecutterSwitchTo2")
+            runGradle(it, "stonecutterSwitchTo1")
+            runGradle(it, ":1:run").output shouldContain "Hello world!"
+            it read "src/main/java/Example.java" shouldNotContain "<EOF>"
         }
-    }
 
-    // https://codeberg.org/stonecutter/stonecutter/issues/18
-    should("count nested comments").config<GradleSetup> {
-        build("stonecutterSwitchTo1.14.4") {
-            val line = dir.resolve("src/main/java/PopupScreen.kt")
+        // https://codeberg.org/stonecutter/stonecutter/issues/18
+        integrationTest("count nested comments") {
+            runGradle(it, "stonecutterSwitchTo1.14.4")
+            val line = it.resolve("src/main/java/PopupScreen.kt")
                 .useLines { lines -> lines.find { "renderBlurredBackground" in it } }
             line shouldBe "      /*renderBlurredBackground(/*? if <=1.21.1 {*/partialTick/*?}*/)"
         }
-    }
 
-    // https://codeberg.org/stonecutter/stonecutter/issues/19
-    should("count insertion offsets").config<GradleSetup> {
-        build("stonecutterSwitchTo1.20.1")
-        build("stonecutterSwitchTo1.21.6") {
-            val file = dir read "src/main/java/WaterFogEnvironmentMixin.java"
+        // https://codeberg.org/stonecutter/stonecutter/issues/19
+        integrationTest("count insertion offsets") {
+            runGradle(it, "stonecutterSwitchTo1.20.1")
+            runGradle(it, "stonecutterSwitchTo1.21.6")
+            val file = it read "src/main/java/WaterFogEnvironmentMixin.java"
             val line = file.lines()[28]
             line shouldBe "    /*@SuppressWarnings(\"rawtypes\")*/"
         }
-    }
 
-    // https://codeberg.org/stonecutter/stonecutter/issues/21
-    should("preserve line break").config<GradleSetup> {
-        build("stonecutterSwitchTo1") {
-            val file = dir read "src/main/java/Example.java"
+        // https://codeberg.org/stonecutter/stonecutter/issues/21
+        integrationTest("preserve line break") {
+            runGradle(it, "stonecutterSwitchTo1")
+            val file = it read "src/main/java/Example.java"
             val line = file.lines()[3]
             line shouldBe "        //System.out.println(\"Hello world!\");"
         }
-    }
 
-    // TODO: Unfinished
-    // https://codeberg.org/stonecutter/stonecutter/issues/22
-    xshould("combine line scopes").config<GradleSetup> {
-        build("stonecutterSwitchTo1") {
-            dir read "src/main/java/Example.java" shouldBe """
+        // TODO: Unfinished
+        // https://codeberg.org/stonecutter/stonecutter/issues/22
+        integrationTest("combine line scopes", TestConfig.disable()) {
+            runGradle(it, "stonecutterSwitchTo1")
+            it read "src/main/java/Example.java" shouldBe """
                 //? if >1
                 /*//? if >2
                 //public class Example { }*/
             """.trimIndent()
         }
-    }
 
-    should("propagate replacement tags").config<GradleSetup> {
-        build("stonecutterSwitchTo1") {
-            dir read "src/main/java/Example.java" shouldBe """
+        integrationTest("propagate replacement tags") {
+            runGradle(it, "stonecutterSwitchTo1")
+            it read "src/main/java/Example.java" shouldBe """
                 public class Example {
                     String value1 = "abc";
                     //~ !my_id
                     String value1 = "abc";
                 }
             """.trimIndent()
-        }
-        build("stonecutterSwitchTo2") {
-            dir read "src/main/java/Example.java" shouldBe """
+
+            runGradle(it, "stonecutterSwitchTo2")
+            it read "src/main/java/Example.java" shouldBe """
                 public class Example {
                     String value1 = "cde";
                     //~ !my_id
@@ -79,16 +80,15 @@ class ReportedIssuesTest : ShouldSpec({
                 }
             """.trimIndent()
         }
-    }
 
-    // https://codeberg.org/stonecutter/stonecutter/issues/54
-    xshould("locate errors in file").config<GradleSetup> {
-        fail("stonecutterSwitchTo26.1") {
-            output.lineSequence().find { "FluidType.java:91:94" in it }.shouldNotBeNull()
+        // https://codeberg.org/stonecutter/stonecutter/issues/54
+        integrationTest("locate errors in file", TestConfig.disable()) {
+            shouldFailBuild { runGradle(it, "stonecutterSwitchTo26.1") }.buildResult.output
+                .lineSequence().find { "FluidType.java:91:94" in it }.shouldNotBeNull()
+        }
+
+        integrationTest("not throw npe on code builder init") {
+            shouldFailBuild { runGradle(it, "stonecutterGenerate") }.buildResult.output shouldNotContain "CodeBuilder.<init>"
         }
     }
-
-    should("not throw npe on code builder init").config<GradleSetup> {
-        fail("stonecutterGenerate") { output shouldNotContain "CodeBuilder.<init>" }
-    }
-})
+}

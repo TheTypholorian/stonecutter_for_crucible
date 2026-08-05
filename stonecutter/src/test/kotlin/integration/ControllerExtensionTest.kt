@@ -1,57 +1,59 @@
+@file:Suppress("PublicApiImplicitType")
+
 package integration
 
+import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.util.propertyKey
-import io.kotest.core.spec.style.ShouldSpec
+import integrationTest
 import io.kotest.matchers.comparables.shouldBeLessThan
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.paths.shouldExist
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldContainOnlyOnce
 import io.kotest.matchers.string.shouldNotContain
-import util.GradleRun
-import util.GradleSetup
-import util.config
-import util.read
+import read
+import runGradle
+import shouldFailBuild
+import tempDirFixture
 import java.nio.file.Path
 import java.util.zip.ZipFile
 
-class ControllerExtensionTest : ShouldSpec({
-    should("create extension alias").config<GradleSetup> { build() }
-    should("fail with disabled alias").config<GradleSetup> { fail() }
-    should("switch active with alias").config<GradleSetup> {
-        build("stonecutterSwitchTo2") {
-            dir read "stonecutter.gradle.kts" shouldContain "sc active \"2\""
+val ControllerExtensionTest by testSuite {
+    tempDirFixture() asParameterForEach {
+        integrationTest("create extension alias") { runGradle(it) }
+        integrationTest("fail with disabled alias") { shouldFailBuild { runGradle(it) } }
+        integrationTest("switch active with alias") {
+            runGradle(it, "stonecutterSwitchTo2")
+            it read "stonecutter.gradle.kts" shouldContain "sc active \"2\""
         }
-    }
 
-    context("plugin initialization") {
-        should("fail without active call").config<GradleSetup> { fail() }
-        should("warn with base plugin").config<GradleSetup> {
-            build { output shouldContain "Stonecutter branch root" }
+        testSuite("plugin initialization") {
+            integrationTest("fail without active call") { shouldFailBuild { runGradle(it) } }
+            integrationTest("warn with base plugin") {
+                runGradle(it).output shouldContain "Stonecutter branch root"
+            }
+            integrationTest("validate active parameter") { shouldFailBuild { runGradle(it) } }
+            integrationTest("accept file active") { runGradle(it) }
         }
-        should("validate active parameter").config<GradleSetup> { fail() }
-        should("accept file active").config<GradleSetup> { build() }
-    }
 
-    context("stonecutter flags") {
-        should("not apply to build").config<GradleSetup> { fail() }
-        should("apply before init").config<GradleSetup> { build() }
-        should("override default receiver").config<GradleSetup> { build("stonecutterGenerate") }
-        should("generate manifest").config<GradleSetup> {
-            fun GradleRun.getJar() = dir.resolve("versions/example/build/libs/example.jar")
-                .apply(Path::shouldExist).toFile().let(::ZipFile)
+        testSuite("stonecutter flags") {
+            integrationTest("not apply to build") { shouldFailBuild { runGradle(it) } }
+            integrationTest("apply before init") { runGradle(it) }
+            integrationTest("override default receiver") { runGradle(it, "stonecutterGenerate") }
+            integrationTest("generate manifest") {
+                fun getJar() = it.resolve("versions/example/build/libs/example.jar")
+                    .apply(Path::shouldExist).toFile().let(::ZipFile)
 
-            build("jar") {
+                runGradle(it, "jar")
                 getJar().use { jar ->
                     val meta = jar.getEntry("META-INF/MANIFEST.MF").shouldNotBeNull()
                     val contents = jar.getInputStream(meta).reader().readText()
 
                     contents shouldContain "Stonecutter-Plugin-Version"
                 }
-            }
 
-            build("jar", "--rerun-tasks", "-P${StonecutterFlag.GENERATE_MANIFEST.propertyKey}=false") {
+                runGradle(it, "jar", "--rerun-tasks", "-P${StonecutterFlag.GENERATE_MANIFEST.propertyKey}=false")
                 getJar().use { jar ->
                     val meta = jar.getEntry("META-INF/MANIFEST.MF") ?: return@use
                     val contents = jar.getInputStream(meta).reader().readText()
@@ -60,33 +62,29 @@ class ControllerExtensionTest : ShouldSpec({
                 }
             }
         }
-    }
 
-    context("task operations") {
-        should("depend on uninitialized tasks").config<GradleSetup> {
-            build("sayHelloAndGoodbye") {
-                with(output) {
+        testSuite("task operations") {
+            integrationTest("depend on uninitialized tasks") {
+                with(runGradle(it, "sayHelloAndGoodbye").output) {
                     shouldContain("Hello!")
                     shouldContainOnlyOnce("Goodbye!")
                     lastIndexOf("Hello") shouldBeLessThan indexOf("Goodbye!")
                 }
             }
         }
-    }
 
-    context("file handlers") {
-        should("inherit custom handler").config<GradleSetup> {
-            build("stonecutterSwitchTo2") {
-                dir read "src/main/example.custom" shouldContain "#comment"
+        testSuite("file handlers") {
+            integrationTest("inherit custom handler") {
+                runGradle(it, "stonecutterSwitchTo2")
+                it read "src/main/example.custom" shouldContain "#comment"
             }
-        }
 
-        should("override existing handler").config<GradleSetup> {
-            build("stonecutterSwitchTo2") {
-                dir read "src/main/java/Example.java" shouldContain "//int one = 1;"
+            integrationTest("override existing handler") {
+                runGradle(it, "stonecutterSwitchTo2")
+                it read "src/main/java/Example.java" shouldContain "//int one = 1;"
             }
-        }
 
-        should("throw on invalid handler").config<GradleSetup> { fail() }
+            integrationTest("throw on invalid handler") { shouldFailBuild { runGradle(it) } }
+        }
     }
-})
+}

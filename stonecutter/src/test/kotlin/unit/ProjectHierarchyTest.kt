@@ -1,13 +1,15 @@
+@file:Suppress("PublicApiImplicitType")
+
 package unit
 
+import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainInOrder
 import io.kotest.matchers.shouldBe
 
-class ProjectHierarchyTest : FunSpec({
-    context("size") {
+val ProjectHierarchyTest by testSuite {
+    testSuite("size") {
         test("root") {
             ProjectHierarchy(":").size shouldBe 0
         }
@@ -17,7 +19,7 @@ class ProjectHierarchyTest : FunSpec({
         }
     }
 
-    context("starts with") {
+    testSuite("starts with") {
         test("from root") {
             val a = ProjectHierarchy(":")
             val b = ProjectHierarchy(":core")
@@ -55,7 +57,7 @@ class ProjectHierarchyTest : FunSpec({
         }
     }
 
-    context("relativize") {
+    testSuite("relativize") {
         test("from root") {
             val a = ProjectHierarchy(":")
             val b = ProjectHierarchy(":core")
@@ -87,7 +89,7 @@ class ProjectHierarchyTest : FunSpec({
         }
     }
 
-    context("contains") {
+    testSuite("contains") {
         test("segment") {
             ("core" in ProjectHierarchy(":core:sub")) shouldBe true
         }
@@ -105,7 +107,7 @@ class ProjectHierarchyTest : FunSpec({
         }
     }
 
-    context("get") {
+    testSuite("get") {
         test("regular") {
             ProjectHierarchy(":core:sub")[1] shouldBe "sub"
         }
@@ -123,7 +125,7 @@ class ProjectHierarchyTest : FunSpec({
         }
     }
 
-    context("index of") {
+    testSuite("index of") {
         test("segment") {
             ProjectHierarchy(":core:sub").indexOf("sub") shouldBe 1
         }
@@ -142,7 +144,7 @@ class ProjectHierarchyTest : FunSpec({
         }
     }
 
-    context("last index of") {
+    testSuite("last index of") {
         test("segment") {
             ProjectHierarchy(":core:sub:sub").lastIndexOf("sub") shouldBe 2
         }
@@ -156,9 +158,9 @@ class ProjectHierarchyTest : FunSpec({
         }
     }
 
-    context("iterator") {
+    testSuite("iterator") {
         test("to list") {
             ProjectHierarchy(":core:sub:two") shouldContainInOrder listOf("core", "sub", "two")
         }
     }
-})
+}

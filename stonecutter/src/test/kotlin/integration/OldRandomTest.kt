@@ -1,111 +1,115 @@
+@file:Suppress("PublicApiImplicitType")
+
 package integration
 
-import io.kotest.core.spec.style.ShouldSpec
-import io.kotest.core.test.config.TestConfig
+import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.disable
+import de.infix.testBalloon.framework.core.testSuite
+import integrationTest
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import io.kotest.matchers.string.shouldStartWith
-import util.GradleSetup
-import util.config
-import util.read
+import read
+import runGradle
+import shouldFailBuild
+import tempDirFixture
 import kotlin.io.path.useLines
 
 @Deprecated("Should be migrated to dedicated tests")
-class OldRandomTest : ShouldSpec({
-    should("simple version").config<GradleSetup> {
-        build(":1:run") { output shouldContain "Hello world!" }
-        build(":2:run") { output shouldNotContain "Hello world!" }
-    }
+val OldRandomTest by testSuite {
+    tempDirFixture() asParameterForEach {
+        integrationTest("simple version") {
+            runGradle(it, ":1:run").output shouldContain "Hello world!"
+            runGradle(it, ":2:run").output shouldNotContain "Hello world!"
+        }
 
-    should("unclosed scope").config<GradleSetup> {
-        fail("run") { output shouldContain "Example.java:3:19" }
-    }
+        integrationTest("unclosed scope") {
+            shouldFailBuild { runGradle(it, "run") }.buildResult.output shouldContain "Example.java:3:19"
+        }
 
-    should("simple swap").config<GradleSetup> {
-        build(":1:run") { output shouldContain "Hello Tim!" }
-        build(":2:run") { output shouldContain "Hello Lace!" }
-    }
+        integrationTest("simple swap") {
+            runGradle(it, ":1:run").output shouldContain "Hello Tim!"
+            runGradle(it, ":2:run").output shouldContain "Hello Lace!"
+        }
 
-    should("swap arguments").config<GradleSetup> {
-        build(":1:run") { output shouldContain "Hello Lace!" }
-        build(":2:run") { output shouldContain "Bye Lace!" }
-    }
+        integrationTest("swap arguments") {
+            runGradle(it, ":1:run").output shouldContain "Hello Lace!"
+            runGradle(it, ":2:run").output shouldContain "Bye Lace!"
+        }
 
-    should("swap indents").config<GradleSetup> {
-        build("stonecutterSwitchTo2") {
-            dir.resolve("src/main/java/Example.java")
+        integrationTest("swap indents") {
+            runGradle(it, "stonecutterSwitchTo2")
+            it.resolve("src/main/java/Example.java")
                 .useLines { lines -> lines.first { "Hello Lace!" in it } }
                 .shouldStartWith(" ".repeat(8))
         }
-    }
 
-    should("simple constant").config<GradleSetup> {
-        build(":1:run") { output shouldContain "Hello world!" }
-        build(":2:run") { output shouldNotContain "Hello world!" }
-    }
-
-    should("simple dependency").config<GradleSetup> {
-        build(":1:run") { output shouldContain "Hello world!" }
-        build(":2:run") { output shouldNotContain "Hello world!" }
-    }
-
-    should("if-else chain").config<GradleSetup> {
-        for (i in 1..4) build(":$i:run") { output shouldContain "$i!" }
-    }
-
-    // TODO: Not critical
-    should("duplicate else").config<GradleSetup>(TestConfig(enabled = false)) {
-        fail("run") { output shouldContain "Example.java:7:16" }
-    }
-
-    should("included comments").config<GradleSetup> {
-        build("stonecutterSwitchTo2") {
-            dir read "src/main/java/Example.java" shouldContain "/^¹nested¹^/"
+        integrationTest("simple constant") {
+            runGradle(it, ":1:run").output shouldContain "Hello world!"
+            runGradle(it, ":2:run").output shouldNotContain "Hello world!"
         }
 
-        build("stonecutterSwitchTo1") {
-            dir read "src/main/java/Example.java" shouldContain "/^nested^/"
+        integrationTest("simple dependency") {
+            runGradle(it, ":1:run").output shouldContain "Hello world!"
+            runGradle(it, ":2:run").output shouldNotContain "Hello world!"
+        }
+
+        integrationTest("if-else chain") {
+            for (i in 1..4) runGradle(it, ":$i:run").output shouldContain "$i!"
+        }
+
+        // TODO: Not critical
+        integrationTest("duplicate else", TestConfig.disable()) {
+            shouldFailBuild { runGradle(it, "run") }.buildResult.output shouldContain "Example.java:7:16"
+        }
+
+        integrationTest("included comments") {
+            runGradle(it, "stonecutterSwitchTo2")
+            it read "src/main/java/Example.java" shouldContain "/^¹nested¹^/"
+
+            runGradle(it, "stonecutterSwitchTo1")
+            it read "src/main/java/Example.java" shouldContain "/^nested^/"
+        }
+
+        integrationTest("nested conditions") {
+            runGradle(it, "stonecutterSwitchTo1.20.1")
+            runGradle(it, ":1.20.1:run").output shouldContain "CASE B"
+        }
+
+        /**
+         * Default `$ swap >>` scopes should first skip the empty region,
+         * and then capture everything until the first whitespace.
+         * @see <a href="https://codeberg.org/stonecutter/stonecutter/issues/17">#17</a>
+         */
+        integrationTest("word scope default") {
+            runGradle(it, ":2:run").output shouldContain "Bye Lace!"
+        }
+
+        /**
+         * Custom matchers `$ swap >> 'str'` should match the string,
+         * without including it in the scope.
+         * @see <a href="https://codeberg.org/stonecutter/stonecutter/issues/17">#17</a>
+         */
+        integrationTest("word scope custom") {
+            runGradle(it, ":2:run").output shouldContain "Bye Tim!"
+        }
+
+        /**
+         * Custom matchers `$ swap >>+ 'str'` should match the string,
+         * **including** it in the scope.
+         * @see <a href="https://codeberg.org/stonecutter/stonecutter/issues/17">#17</a>
+         */
+        integrationTest("word scope capturing") {
+            runGradle(it, ":2:run").output shouldContain "Bye Tim!"
+        }
+
+        /**
+         * Custom matchers that couldn't be satisfied until
+         * the scope was closed should report an error.
+         * @see <a href="https://codeberg.org/stonecutter/stonecutter/issues/17">#17</a>
+         */
+        integrationTest("word scope unmatched") {
+            shouldFailBuild { runGradle(it, ":2:run") }.buildResult.output shouldContain "Lookup string not found"
         }
     }
-
-    should("nested conditions").config<GradleSetup> {
-        build("stonecutterSwitchTo1.20.1")
-        build(":1.20.1:run") { output shouldContain "CASE B" }
-    }
-
-    /**
-     * Default `$ swap >>` scopes should first skip the empty region,
-     * and then capture everything until the first whitespace.
-     * @see <a href="https://codeberg.org/stonecutter/stonecutter/issues/17">#17</a>
-     */
-    should("word scope default").config<GradleSetup> {
-        build(":2:run") { output shouldContain "Bye Lace!" }
-    }
-
-    /**
-     * Custom matchers `$ swap >> 'str'` should match the string,
-     * without including it in the scope.
-     * @see <a href="https://codeberg.org/stonecutter/stonecutter/issues/17">#17</a>
-     */
-    should("word scope custom").config<GradleSetup> {
-        build(":2:run") { output shouldContain "Bye Tim!" }
-    }
-
-    /**
-     * Custom matchers `$ swap >>+ 'str'` should match the string,
-     * **including** it in the scope.
-     * @see <a href="https://codeberg.org/stonecutter/stonecutter/issues/17">#17</a>
-     */
-    should("word scope capturing").config<GradleSetup> {
-        build(":2:run") { output shouldContain "Bye Tim!" }
-    }
-
-    /**
-     * Custom matchers that couldn't be satisfied until
-     * the scope was closed should report an error.
-     * @see <a href="https://codeberg.org/stonecutter/stonecutter/issues/17">#17</a>
-     */
-    should("word scope unmatched").config<GradleSetup> {
-        fail(":2:run") { this.output shouldContain "Lookup string not found" }
-    }
-})
+}

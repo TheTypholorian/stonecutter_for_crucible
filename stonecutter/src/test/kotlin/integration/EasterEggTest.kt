@@ -1,16 +1,20 @@
+@file:Suppress("PublicApiImplicitType")
+
 package integration
 
-import io.kotest.core.spec.style.ShouldSpec
+import de.infix.testBalloon.framework.core.testSuite
+import integrationTest
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
-import util.GradleSetup
-import util.config
+import runGradle
+import shouldFailBuild
+import tempDirFixture
 
-class EasterEggTest : ShouldSpec({
-    // Test for "Roses are red; Violets are blue; <error> on line <10n + 2>"
-    should("appreciate poetry").config<GradleSetup> {
-        fail("stonecutterSwitchTo2") {
-            with(output) {
+val EasterEggTest by testSuite {
+    tempDirFixture() asParameterForEach {
+        // Test for "Roses are red; Violets are blue; <error> on line <10n + 2>"
+        integrationTest("appreciate poetry") {
+            with(shouldFailBuild { runGradle(it, "stonecutterSwitchTo2") }.buildResult.output) {
                 shouldNotContain("on line 2\n")
                 shouldNotContain("on line 12\n")
                 shouldContain("on line 22\n")
@@ -19,4 +23,4 @@ class EasterEggTest : ShouldSpec({
             }
         }
     }
-})
+}

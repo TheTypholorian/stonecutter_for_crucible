@@ -1,32 +1,33 @@
+@file:Suppress("PublicApiImplicitType")
+
 package integration
 
-import io.kotest.core.spec.style.ShouldSpec
+import de.infix.testBalloon.framework.core.testSuite
+import integrationTest
 import io.kotest.matchers.string.shouldContain
-import util.GradleSetup
-import util.config
+import runGradle
+import tempDirFixture
 
-class GroovyCompatibilityTest : ShouldSpec({
-    context("settings") {
-        should("accept combined setup").config<GradleSetup> { build("stonecutterGenerate") }
-        should("use implicit shared").config<GradleSetup> { build("stonecutterGenerate") }
-        should("use explicit shared").config<GradleSetup> { build("stonecutterGenerate") }
-        should("declare branch versions").config<GradleSetup> { build(":subproject:3:stonecutterGenerate") }
-    }
+val GroovyCompatibilityTest by testSuite {
+    tempDirFixture() asParameterForEach {
+        testSuite("settings") {
+            integrationTest("accept combined setup") { runGradle(it, "stonecutterGenerate") }
+            integrationTest("use implicit shared") { runGradle(it, "stonecutterGenerate") }
+            integrationTest("use explicit shared") { runGradle(it, "stonecutterGenerate") }
+            integrationTest("declare branch versions") { runGradle(it, ":subproject:3:stonecutterGenerate") }
+        }
 
-    context("controller") {
-        should("use parameters function").config<GradleSetup> {
-            build {
-                with(output) {
+        testSuite("controller") {
+            integrationTest("use parameters function") {
+                with(runGradle(it).output) {
                     shouldContain("Parameters for :1")
                     shouldContain("Parameters for :2")
                 }
             }
         }
-    }
 
-    context("build") {
-        should("access parsed wrapper").config<GradleSetup> {
-            build()
+        testSuite("build") {
+            integrationTest("access parsed wrapper") { runGradle(it) }
         }
     }
-})
+}

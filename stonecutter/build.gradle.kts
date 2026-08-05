@@ -8,7 +8,6 @@ import kotlin.io.path.ExperimentalPathApi
 plugins {
     java
     signing
-    `kotlin-dsl`
     `maven-publish`
     kotlin("jvm")
     kotlin("plugin.serialization")
@@ -17,6 +16,8 @@ plugins {
     alias(common.plugins.gradle.publish)
     alias(common.plugins.kotlin.dokka)
     alias(common.plugins.kotlin.dokka.javadoc)
+    alias(common.plugins.kotlin.samreceiver)
+    alias(common.plugins.kotlin.testballoon)
     id("shared-setup")
 }
 
@@ -34,15 +35,15 @@ dependencies {
     api(project(":model"))
     api(project(":stitcher"))
 
+    compileOnly(gradleKotlinDsl())
     implementation(common.kotlin.serialization)
     implementation(common.kotlin.serialization.json)
     implementation(common.kotlin.serialization.toml)
     implementation(common.kotlin.serialization.yaml)
 
     testImplementation(gradleTestKit())
-    testImplementation(common.kotest.runner)
-    testImplementation(common.kotest.assertions)
-    testImplementation(common.misc.mordant)
+    testImplementation(common.kotlin.testballoon)
+    testImplementation(common.kotlin.testballoon.assertions)
 
     dokkaHtmlPlugin(common.kotlin.dokka.versioning)
 }
@@ -61,6 +62,10 @@ kotlin {
             }
         }
     }
+}
+
+samWithReceiver {
+    annotation(HasImplicitReceiver::class.qualifiedName!!)
 }
 
 dokka {

@@ -1,23 +1,30 @@
+@file:Suppress("PublicApiImplicitType")
+
 package integration
 
-import io.kotest.core.spec.style.ShouldSpec
-import util.GradleSetup
-import util.config
+import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.disable
+import de.infix.testBalloon.framework.core.testSuite
+import integrationTest
+import runGradle
+import tempDirFixture
 
-class ExtPropsTest : ShouldSpec({
-    should("read default in settings").config<GradleSetup> { build() }
-    should("read default in controller").config<GradleSetup> { build() }
-    should("read default in parameters").config<GradleSetup> { build() }
-    should("read default in build").config<GradleSetup> { build() }
-    should("append new properties").config<GradleSetup> { build() }
-    should("use diff props").config<GradleSetup> { build() }
-    should("use property tags").config<GradleSetup> { build() }
-    // https://codeberg.org/stonecutter/stonecutter/issues/44
-    should("use nested property tags").config<GradleSetup> { build() }
-    should("accept json files").config<GradleSetup> { build() }
-    should("accept yaml files").config<GradleSetup> { build() }
-    should("use typed properties").config<GradleSetup> { build() }
-    // For some reason this only fails in test env
-    xshould("parse property types").config<GradleSetup> { build() }
-    should("retain all tags").config<GradleSetup> { build() }
-})
+val ExtPropsTest by testSuite {
+    tempDirFixture() asParameterForEach {
+        integrationTest("read default in settings") { runGradle(it) }
+        integrationTest("read default in controller") { runGradle(it) }
+        integrationTest("read default in parameters") { runGradle(it) }
+        integrationTest("read default in build") { runGradle(it) }
+        integrationTest("append new properties") { runGradle(it) }
+        integrationTest("use diff props") { runGradle(it) }
+        integrationTest("use property tags") { runGradle(it) }
+        // https://codeberg.org/stonecutter/stonecutter/issues/44
+        integrationTest("use nested property tags") { runGradle(it) }
+        integrationTest("accept json files") { runGradle(it) }
+        integrationTest("accept yaml files") { runGradle(it) }
+        integrationTest("use typed properties") { runGradle(it) }
+        // For some reason this only fails in test env
+        integrationTest("parse property types", TestConfig.disable()) { runGradle(it) }
+        integrationTest("retain all tags") { runGradle(it) }
+    }
+}

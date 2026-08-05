@@ -1,20 +1,23 @@
 @file:OptIn(StonecutterInternalAPI::class)
+@file:Suppress("PublicApiImplicitType")
 
 package unit
 
+import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.disable
+import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.data.deserialization.JsonConverter
 import dev.kikugie.stonecutter.data.deserialization.SCElement
+import dev.kikugie.stonecutter.data.deserialization.SCMap
 import dev.kikugie.stonecutter.data.deserialization.SCPrimitive
 import dev.kikugie.stonecutter.data.deserialization.SCPrimitive.Kind
-import dev.kikugie.stonecutter.data.deserialization.SCMap
-import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.intellij.lang.annotations.Language
 
-class FormatConversionTest : FunSpec({
-    context("from json") {
+val FormatConversionTest by testSuite {
+    testSuite("from json") {
         test("integer") {
             val element: SCMap = """
                 {
@@ -67,7 +70,7 @@ class FormatConversionTest : FunSpec({
             }
         }
 
-        xtest("integer hex") {
+        test("integer hex", TestConfig.disable()) {
             val element: SCMap = """
                 {
                   it: 0xdecaf
@@ -80,7 +83,7 @@ class FormatConversionTest : FunSpec({
             }
         }
 
-        xtest("integer hex negative") {
+        test("integer hex negative", TestConfig.disable()) {
             val element: SCMap = """
                 {
                   it: -0xC0FFEE
@@ -132,7 +135,7 @@ class FormatConversionTest : FunSpec({
             }
         }
     }
-})
+}
 
 private inline fun <reified T : SCElement> @receiver:Language("json5") String.json(): T {
     val element = JsonConverter.convert(this.trimIndent())

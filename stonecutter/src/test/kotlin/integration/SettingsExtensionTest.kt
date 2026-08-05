@@ -1,112 +1,107 @@
+@file:Suppress("PublicApiImplicitType")
+
 package integration
 
-import io.kotest.core.spec.style.ShouldSpec
+import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.disable
+import de.infix.testBalloon.framework.core.testSuite
+import integrationTest
 import io.kotest.matchers.paths.shouldContainFile
 import io.kotest.matchers.paths.shouldNotContainFile
 import io.kotest.matchers.should
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
-import util.GradleSetup
-import util.config
-import util.read
+import read
+import runGradle
+import shouldFailBuild
+import tempDirFixture
 import kotlin.io.path.exists
 
-class SettingsExtensionTest : ShouldSpec({
-    should("create extension alias").config<GradleSetup> {
-        build()
-    }
+val SettingsExtensionTest by testSuite {
+    tempDirFixture() asParameterForEach {
+        integrationTest("create extension alias") { runGradle(it) }
+        integrationTest("fail with disabled alias") { shouldFailBuild { runGradle(it) } }
 
-    should("fail with disabled alias").config<GradleSetup> {
-        fail()
-    }
+        testSuite("script resolution") {
+            integrationTest("create subproject directories") {
+                runGradle(it)
+                it.resolve("versions") should { path -> path.exists() }
+            }
 
-    context("script resolution") {
-        should("create subproject directories").config<GradleSetup> {
-            build { dir.resolve("versions") should { it.exists() } }
-        }
+            integrationTest("create subproject root") {
+                runGradle(it)
+                it.resolve("example") shouldContainFile "stonecutter.gradle.kts"
+            }
 
-        should("create subproject root").config<GradleSetup> {
-            build { dir.resolve("example") shouldContainFile "stonecutter.gradle.kts" }
-        }
+            integrationTest("generate kts scripts by default") {
+                runGradle(it, ":1:hello").output shouldContain "1!"
+                it shouldContainFile "stonecutter.gradle.kts"
+            }
 
-        should("generate kts scripts by default").config<GradleSetup> {
-            build(":1:hello") {
-                output shouldContain "1!"
-                dir shouldContainFile "stonecutter.gradle.kts"
+            integrationTest("explicitly use groovy scripts") {
+                runGradle(it, ":1:hello").output shouldContain "1!"
+                it shouldContainFile "stonecutter.gradle"
+            }
+
+            integrationTest("recognize existing groovy scripts") {
+                runGradle(it)
+                it shouldNotContainFile "stonecutter.gradle.kts"
+            }
+
+            integrationTest("print groovy compatibility warning") {
+                runGradle(it).output shouldContain "Warning:"
+            }
+
+            integrationTest("mute compat warning with property") {
+                runGradle(it).output shouldNotContain "Warning:"
             }
         }
 
-        should("explicitly use groovy scripts").config<GradleSetup> {
-            build(":1:hello") {
-                output shouldContain "1!"
-                dir shouldContainFile "stonecutter.gradle"
+        testSuite("tree builder") {
+            integrationTest("use existing shared action") {
+                runGradle(it)
+                it.resolve("versions") should { path -> path.exists() }
             }
+
+            integrationTest("apply shared explicitly") {
+                runGradle(it)
+                it.resolve("versions") should { path -> path.exists() }
+            }
+
+            integrationTest("not allow inherit call in root", TestConfig.disable()) {
+                shouldFailBuild { runGradle(it) }
+            }
+
+            integrationTest("not allow inherit call in default branch", TestConfig.disable()) {
+                shouldFailBuild { runGradle(it) }
+            }
+
+            integrationTest("implicitly assign vcs version") {
+                runGradle(it)
+                it read "stonecutter.gradle.kts" shouldContain "\"3\""
+            }
+
+            integrationTest("overwrite vcs version") {
+                runGradle(it)
+                it read "stonecutter.gradle.kts" shouldContain "\"1\""
+            }
+
+            integrationTest("validate branch names") { shouldFailBuild { runGradle(it) } }
+            integrationTest("validate version consistency") { shouldFailBuild { runGradle(it) } }
+            integrationTest("have no vers function") { shouldFailBuild { runGradle(it) } }
+            integrationTest("include deep projects") { runGradle(it) }
         }
 
-        should("recognize existing groovy scripts").config<GradleSetup> {
-            build { dir shouldNotContainFile "stonecutter.gradle.kts" }
-        }
-
-        should("print groovy compatibility warning").config<GradleSetup> {
-            build { output shouldContain "Warning:" }
-        }
-
-        should("mute compat warning with property").config<GradleSetup> {
-            build { output shouldNotContain "Warning:" }
-        }
-    }
-
-    context("tree builder") {
-        should("use existing shared action").config<GradleSetup> {
-            build { dir.resolve("versions") should { it.exists() } }
-        }
-
-        should("apply shared explicitly").config<GradleSetup> {
-            build { dir.resolve("versions") should { it.exists() } }
-        }
-
-        xshould("not allow inherit call in root").config<GradleSetup> {
-            fail()
-        }
-
-        xshould("not allow inherit call in default branch").config<GradleSetup> {
-            fail()
-        }
-
-        should("implicitly assign vcs version").config<GradleSetup> {
-            build { dir read "stonecutter.gradle.kts" shouldContain ("\"3\"") }
-        }
-
-        should("overwrite vcs version").config<GradleSetup> {
-            build { dir read "stonecutter.gradle.kts" shouldContain ("\"1\"") }
-        }
-
-        should("validate branch names").config<GradleSetup> {
-            fail()
-        }
-
-        should("validate version consistency").config<GradleSetup> {
-            fail()
-        }
-
-        should("have no vers function").config<GradleSetup> {
-            fail()
-        }
-
-        should("include deep projects").config<GradleSetup> {
-            build()
+        testSuite("tree deserialization") {
+            integrationTest("accept json files") { runGradle(it) }
+            integrationTest("accept json5 files") { runGradle(it) }
+            integrationTest("accept toml files") { runGradle(it) }
+            integrationTest("accept yaml files") { runGradle(it) }
+            integrationTest("reject unknown files") { shouldFailBuild { runGradle(it) } }
+            integrationTest("define project branches") { runGradle(it) }
+            integrationTest("define inverted branches") { runGradle(it) }
+            integrationTest("define extended nodes") { runGradle(it) }
+            integrationTest("load_files_in_action") { runGradle(it) }
         }
     }
-
-    context("tree deserialization") {
-        should("accept json files").config<GradleSetup> { build() }
-        should("accept json5 files").config<GradleSetup> { build() }
-        should("accept toml files").config<GradleSetup> { build() }
-        should("accept yaml files").config<GradleSetup> { build() }
-        should("reject unknown files").config<GradleSetup> { fail() }
-        should("define project branches").config<GradleSetup> { build() }
-        should("define inverted branches").config<GradleSetup> { build() }
-        should("define extended nodes").config<GradleSetup> { build() }
-        should("load_files_in_action").config<GradleSetup> { build() }
-    }
-})
+}
