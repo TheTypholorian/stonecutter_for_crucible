@@ -16,6 +16,7 @@ import dev.kikugie.stitcher.antlr.StitcherErrorListener
 import dev.kikugie.stitcher.antlr.errorListener
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.SourceDocument
+import dev.kikugie.stitcher.document.issue.DefaultProblemReporter
 import dev.kikugie.stitcher.document.issue.ProblemReport.Severity
 import dev.kikugie.stitcher.document.issue.output.FullProblemFormatter
 import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
@@ -57,7 +58,8 @@ fun Test.ExecutionScope.parseSnippet(value: String, consumer: ProblemConsumer = 
 fun Test.ExecutionScope.assemble(
     value: String, params: StitcherParameters = params(), consumer: ProblemConsumer = IMMEDIATE_THROW
 ): String = buildString {
-    Stitcher.process(SourceDocument(Path("$testElementPath"), value, consumer), params).appendTo(this)
+    val reporter = DefaultProblemReporter(consumer)
+    Stitcher.process(SourceDocument(Path("$testElementPath"), value, reporter), params).appendTo(this)
 }
 
 inline fun params(action: StitcherParametersBuilder.() -> Unit = {}): StitcherParameters =

@@ -6,7 +6,9 @@ import dev.kikugie.stitcher.document.SourceDocument
 import dev.kikugie.stitcher.document.io.LineNormalizingReader
 import dev.kikugie.stitcher.document.io.LineNormalizingWriter
 import dev.kikugie.stitcher.document.issue.BailException
+import dev.kikugie.stitcher.document.issue.DefaultProblemReporter
 import dev.kikugie.stitcher.document.issue.ProblemID
+import dev.kikugie.stitcher.document.issue.ProblemReporter
 import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
 import dev.kikugie.stitcher.document.issue.report
 import dev.kikugie.stitcher.document.reference
@@ -175,10 +177,10 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
         output.deleteIfExists()
     }
 
-    private fun createProblemConsumer(): ProblemConsumer {
+    private fun createProblemReporter(): ProblemReporter {
         val reporter: StonecutterErrorsService = parameters.reporter.get()
         val task: String = parameters.task.get()
-        return ProblemConsumer { reporter.report(task, it) }
+        return DefaultProblemReporter({ reporter.report(task, it) })
     }
 
     private fun createTransformParameters(): StitcherParameters? {
@@ -189,9 +191,9 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
     private fun createSourceDocument(): SourceDocument {
         val source = source
         val text = LineNormalizingReader(source.bufferedReader()).use { it.readText() }
-        return SourceDocument(source, text, createProblemConsumer())
+        return SourceDocument(source, text, createProblemReporter())
     }
 
     private fun createDummyDocument(): SourceDocument =
-        SourceDocument(source, "", createProblemConsumer())
+        SourceDocument(source, "", createProblemReporter())
 }

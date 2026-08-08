@@ -7,10 +7,9 @@ import dev.kikugie.stitcher.document.SourceDocument
 import dev.kikugie.stitcher.document.io.LineNormalizingReader
 import dev.kikugie.stitcher.document.io.LineNormalizingWriter
 import dev.kikugie.stitcher.document.issue.BailException
+import dev.kikugie.stitcher.document.issue.DefaultProblemReporter
 import dev.kikugie.stitcher.document.issue.ProblemReport
-import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
 import dev.kikugie.stitcher.token.appendTo
-import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.build.config.ConstantContainer
 import dev.kikugie.stonecutter.build.config.DependencyContainer
@@ -65,10 +64,10 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override fun process(file: File, destination: String): File {
         val parameters: StitcherParameters = project.collectTransformParams(file, data)
         val problems: MutableCollection<ProblemReport> = mutableListOf()
-        val reporter = ProblemConsumer {
+        val reporter = DefaultProblemReporter({
             if (it.severity == ProblemReport.Severity.ERROR) problems += it
             project.logger.log(it)
-        }
+        })
 
         val modified: String = try {
             val raw: String = project.providers.fileContents(file.toRegularFile(project.objects)).asText.orNull
