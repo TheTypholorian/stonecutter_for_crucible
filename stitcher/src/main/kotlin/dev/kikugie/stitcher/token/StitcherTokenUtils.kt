@@ -67,6 +67,12 @@ fun BlockToken.appendTo(builder: Appendable): Unit =
 fun Iterable<BlockToken>.appendTo(builder: Appendable): Unit =
     forEach { it.accept(BlockTokenJoiner, builder) }
 
+inline infix fun StitcherToken.neqtype(other: StitcherToken): Boolean =
+    !eqtype(other)
+
+inline infix fun StitcherToken.eqtype(other: StitcherToken): Boolean =
+    type.value == other.type.value
+
 private object BlockTokenJoiner : BlockToken.Visitor<Unit, Appendable> {
     override fun visitContent(content: BlockToken.Content, ctx: Appendable) =
         content.ref.appendTo(ctx)

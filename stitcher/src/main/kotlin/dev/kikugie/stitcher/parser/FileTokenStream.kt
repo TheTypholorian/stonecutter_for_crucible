@@ -43,10 +43,6 @@ class FileTokenStream(val document: Document, val stream: TokenStream) {
         }
     }
 
-    fun advance(): BlockToken? = peek(1).also {
-        if (it != null) consume()
-    }
-
     fun insert(token: BlockToken) {
         buffer.add(cursor - base, token)
     }
