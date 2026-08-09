@@ -2,25 +2,13 @@
 
 package dev.kikugie.stitcher.parser
 
-import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.stitcher.document.DocumentReference
 import dev.kikugie.stitcher.document.issue.LAYOUT_GROUP
 import dev.kikugie.stitcher.document.issue.ProblemReport.Severity
 import dev.kikugie.stitcher.document.issue.report
-import dev.kikugie.stitcher.token.BlockToken
-import dev.kikugie.stitcher.token.DefinitionToken
+import dev.kikugie.stitcher.token.*
 import dev.kikugie.stitcher.token.DefinitionToken.Kind.*
-import dev.kikugie.stitcher.token.ScopeToken
-import dev.kikugie.stitcher.token.eqtype
-import dev.kikugie.stitcher.token.neqtype
-import dev.kikugie.stitcher.token.unquote
-import dev.kikugie.stitcher.util.findLineSplit
-import dev.kikugie.stitcher.util.length
-import dev.kikugie.stitcher.util.titlecase
-import dev.kikugie.stitcher.token.withRef
-import dev.kikugie.stitcher.util.findLookupSplit
-import dev.kikugie.stitcher.util.findWordSplit
-import kotlin.collections.plusAssign
+import dev.kikugie.stitcher.util.*
 
 object FileAstParser {
     fun parse(stream: FileTokenStream): BlockToken.Root {

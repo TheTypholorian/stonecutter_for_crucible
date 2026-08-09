@@ -20,7 +20,6 @@ import dev.kikugie.stitcher.document.issue.DefaultProblemReporter
 import dev.kikugie.stitcher.document.issue.ProblemReport.Severity
 import dev.kikugie.stitcher.document.issue.ProblemReporter
 import dev.kikugie.stitcher.document.issue.output.FullProblemFormatter
-import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
 import dev.kikugie.stitcher.document.issue.output.ShortProblemFormatter
 import dev.kikugie.stitcher.document.issue.runThrowing
 import dev.kikugie.stitcher.parser.FileAstParser
@@ -29,7 +28,9 @@ import dev.kikugie.stitcher.parser.ScannerAdapter
 import dev.kikugie.stitcher.token.BlockToken
 import dev.kikugie.stitcher.token.appendTo
 import dev.kikugie.stitcher.token.type.BuiltinTokenType
-import dev.kikugie.stitcher.transformer.edit.*
+import dev.kikugie.stitcher.transformer.edit.CommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.SwappingStrategy
+import dev.kikugie.stitcher.transformer.edit.UncommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.SlashStarUncommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.StandardSwappingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.StarCommentingStrategy

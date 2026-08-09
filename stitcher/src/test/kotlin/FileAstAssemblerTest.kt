@@ -5,7 +5,6 @@ import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.stitcher.StitcherParameters
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.string.shouldContain
 import matcher.assemble
 import matcher.params
 import org.intellij.lang.annotations.Language
