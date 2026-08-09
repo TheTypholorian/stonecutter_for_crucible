@@ -195,11 +195,23 @@ private abstract class LineCodeScopeBuilder(token: BlockToken.Code) : CodeScopeB
         if (!foundSplitMatch) super.accept(stream)
     }
 
-    override fun processContent(token: BlockToken.Content, stream: FileTokenStream): FileAstBuilder? =
-        processSplitContent(token, stream, token.findLineSplit(scopeIsNotBlank))
+    override fun processContent(token: BlockToken.Content, stream: FileTokenStream): FileAstBuilder? {
+        // Real content on a fresh line after the extended body ends the branch - it's no longer governed by
+        // the condition. This also bounds a commented body (whose line breaks live in comment closers, not
+        // in any content the split inspects) at the first genuine code line, e.g. a closing `}`.
+        return if (scopeIsNotBlank && token.leaf.text.isNotBlank()) null
+        else processSplitContent(token, stream, token.findLineSplit(scopeIsNotBlank))
+    }
 
     override fun processComment(token: BlockToken.Comment, stream: FileTokenStream): FileAstBuilder? =
         processSplitComment(token, stream, token.findLineSplit(scopeIsNotBlank))
+
+    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? {
+        // A definition following real content on the line starts a separate construct and is left for the
+        // enclosing scope (it becomes a sibling, not a nested child). On a still-blank line it nests and owns
+        // the rest of the line, as before.
+        return if (scopeIsNotBlank) null else super.processCode(token, stream)
+    }
 }
 
 private abstract class LookupCodeScopeBuilder(token: BlockToken.Code) : CodeScopeBuilder(token) {
@@ -226,10 +238,14 @@ private abstract class LookupCodeScopeBuilder(token: BlockToken.Code) : CodeScop
     }
 
     override fun processContent(token: BlockToken.Content, stream: FileTokenStream): FileAstBuilder? =
-        processSplitContent(token, stream, token.findLookupSplit(lookupString, isCapturing))
+        // Once the match is found the scope is complete; further tokens belong to the enclosing scope. Without
+        // this the remainder past the match (or a later token that happens to match again) would be re-captured.
+        if (foundSplitMatch) null
+        else processSplitContent(token, stream, token.findLookupSplit(lookupString, isCapturing))
 
     override fun processComment(token: BlockToken.Comment, stream: FileTokenStream): FileAstBuilder? =
-        processSplitComment(token, stream, token.findLookupSplit(lookupString, isCapturing))
+        if (foundSplitMatch) null
+        else processSplitComment(token, stream, token.findLookupSplit(lookupString, isCapturing))
 }
 
 private class ScopedSwapBuilder(token: BlockToken.Code) : ScopedCodeScopeBuilder(token) {
@@ -245,18 +261,21 @@ private class ScopedSwapBuilder(token: BlockToken.Code) : ScopedCodeScopeBuilder
 }
 
 private class LineSwapBuilder(token: BlockToken.Code) : LineCodeScopeBuilder(token) {
-    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder {
-        // Handles the cases where a code block is found inside the line scope:
-        // - If it's fully inline, the search will continue past it to account for the whole line.
-        // - If it spans multiple lines, it is included in the scope entirely, and the search ends.
-        //   This is the case because leaving partial code comments could cause problems.
-        if (token.host.findLineSplit(immediate = scopeIsNotBlank) !in -1..0)
-            foundSplitMatch = true
+    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? {
+        // The intended implementation currently has problematic edge cases
+        return null
 
-        // Code in swaps is not processed in any way as to not affect the substituted scope.
-        stream.consume()
-        reportSwapNesting(token)
-        return EmptyCodeBuilder(token)
+//        // Handles the cases where a code block is found inside the line scope:
+//        // - If it's fully inline, the search will continue past it to account for the whole line.
+//        // - If it spans multiple lines, it is included in the scope entirely, and the search ends.
+//        //   This is the case because leaving partial code comments could cause problems.
+//        if (token.host.findLineSplit(immediate = scopeIsNotBlank) !in -1..0)
+//            foundSplitMatch = true
+//
+//        // Code in swaps is not processed in any way as to not affect the substituted scope.
+//        stream.consume()
+//        reportSwapNesting(token)
+//        return EmptyCodeBuilder(token)
     }
 }
 
