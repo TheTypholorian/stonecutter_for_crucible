@@ -6,10 +6,8 @@ import dev.kikugie.stitcher.document.DocumentLocation
 import dev.kikugie.stitcher.document.InjectedDocument
 import dev.kikugie.stitcher.document.SourceDocument
 import dev.kikugie.stitcher.document.edit.ModificationTracker
-import dev.kikugie.stitcher.document.issue.DefaultProblemReporter
-import dev.kikugie.stitcher.document.issue.output.FullProblemFormatter
 import io.kotest.matchers.shouldBe
-import matcher.IMMEDIATE_THROW
+import matcher.immediateThrow
 import java.nio.file.Path
 
 val InjectedDocumentTest by testSuite {
@@ -188,7 +186,7 @@ val InjectedDocumentTest by testSuite {
     }
 }
 
-private fun source(text: String) = SourceDocument(Path.of("injected.txt"), text, IMMEDIATE_THROW)
+private fun source(text: String) = SourceDocument(Path.of("injected.txt"), text, immediateThrow())
 
 private fun inject(text: String, start: Int, end: Int, edits: ModificationTracker.() -> Unit = {}): InjectedDocument {
     val parent = source(text)

@@ -9,7 +9,6 @@ import dev.kikugie.stitcher.transformer.FileAstUncommenter
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldBeBlank
 import io.kotest.matchers.string.shouldContain
-import matcher.IMMEDIATE_THROW
 import matcher.RootMatcher
 import matcher.ast
 import matcher.params
@@ -143,7 +142,7 @@ context(scope: Test.ExecutionScope)
 private inline fun @receiver:Language("kotlin") String.shouldBeParsedAs(
     params: StitcherParameters = params(), builder: RootMatcher.() -> Unit
 ) {
-    val root = scope.parseSnippet(this, IMMEDIATE_THROW)
+    val root = scope.parseSnippet(this)
         .accept(FileAstUncommenter(params), null) as BlockToken.Root
     ast(builder).test(root)
 }

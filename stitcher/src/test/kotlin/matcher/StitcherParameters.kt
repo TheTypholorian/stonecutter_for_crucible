@@ -39,12 +39,12 @@ import org.antlr.v4.runtime.*
 import org.intellij.lang.annotations.Language
 import kotlin.io.path.Path
 
-val IMMEDIATE_THROW: ProblemReporter = DefaultProblemReporter({
+fun immediateThrow(): ProblemReporter = DefaultProblemReporter({
     System.err.println(it.accept(FullProblemFormatter))
     if (it.severity == Severity.ERROR) throw AssertionError(it.accept(ShortProblemFormatter))
 })
 
-fun Test.ExecutionScope.parseSnippet(value: String, reporter: ProblemReporter = IMMEDIATE_THROW): BlockToken.Root {
+fun Test.ExecutionScope.parseSnippet(value: String, reporter: ProblemReporter = immediateThrow()): BlockToken.Root {
     val document = SourceDocument(Path("$testElementPath"), value, reporter)
     val source = Scanner.Java.create(CharStreams.fromString(value), document).apply {
         scanner.errorListener = StitcherErrorListener(document)
@@ -57,7 +57,7 @@ fun Test.ExecutionScope.parseSnippet(value: String, reporter: ProblemReporter = 
 }
 
 fun Test.ExecutionScope.assemble(
-    value: String, params: StitcherParameters = params(), reporter: ProblemReporter = IMMEDIATE_THROW
+    value: String, params: StitcherParameters = params(), reporter: ProblemReporter = immediateThrow()
 ): String = buildString {
     Stitcher.process(SourceDocument(Path("$testElementPath"), value, reporter), params).appendTo(this)
 }

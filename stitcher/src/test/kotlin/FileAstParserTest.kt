@@ -12,7 +12,6 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldBeBlank
 import io.kotest.matchers.string.shouldEndWith
-import matcher.IMMEDIATE_THROW
 import matcher.RootMatcher
 import matcher.ast
 import matcher.parseSnippet
@@ -531,7 +530,7 @@ val FileAstParserTest by testSuite {
 
         test("string lookup not found") {
             """
-                //? if true >> 'A'
+                //$ id >> 'A'
                 func()
             """.trimIndent() shouldHaveProblems {
                 shouldHave(LAYOUT_GROUP + "lookup-not-found") {
@@ -542,7 +541,7 @@ val FileAstParserTest by testSuite {
 
         test("string lookup interrupted") {
             """
-                //? if true >> 'A'
+                //$ id >> 'A'
                 func()
                 //? if true
                 A()
@@ -556,7 +555,7 @@ val FileAstParserTest by testSuite {
         test("string lookup interrupted by a closer") {
             """
                 //? if true {
-                //? if true >> 'A'
+                //$ id >> 'A'
                 func()
                 //?}
                 A()
@@ -567,9 +566,18 @@ val FileAstParserTest by testSuite {
             }
         }
 
+        test("lookup not found only reported for swaps") {
+            """
+                //? if true >> 'A'
+                func()
+            """.trimIndent() shouldHaveProblems {
+                shouldNotHave(LAYOUT_GROUP + "lookup-not-found")
+            }
+        }
+
         test("word lookup ignored") {
             """
-                //? if true >>
+                //$ id >>
                 func()//? if true
                 A()
             """.trimIndent() shouldHaveProblems {
@@ -581,7 +589,7 @@ val FileAstParserTest by testSuite {
 
 context(scope: Test.ExecutionScope)
 private inline infix fun @receiver:Language("kotlin") String.shouldBeParsedAs(matcher: RootMatcher) {
-    val root = scope.parseSnippet(this, IMMEDIATE_THROW)
+    val root = scope.parseSnippet(this)
     matcher.test(root)
 }
 

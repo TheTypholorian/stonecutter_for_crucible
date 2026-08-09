@@ -9,6 +9,7 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import read
 import runGradle
+import shouldFailBuild
 import tempDirFixture
 import kotlin.io.path.useLines
 
@@ -87,6 +88,35 @@ val ReportedIssuesTest by testSuite {
         integrationTest("not throw npe on code builder init") {
             // Rework generates this project cleanly (previously the build failed); success still guards against the NPE.
             runGradle(it, "stonecutterGenerate").output shouldNotContain "CodeBuilder.<init>"
+        }
+
+        integrationTest("stack condition scopes") {
+            runGradle(it, "stonecutterSwitchTo26.3")
+            it read "src/main/java/Example.java" shouldBe """
+                void main() {
+                    //? if >26.2
+                    //? if >26.1
+                    println(1);
+                    //? else
+                    //println(2);
+                }
+            """.trimIndent()
+
+            runGradle(it, "stonecutterSwitchTo26.2")
+            it read "src/main/java/Example.java" shouldBe """
+                void main() {
+                    //? if >26.2
+                    /*//? if >26.1
+                    println(1);
+                    //? else
+                    //println(2);
+                */}
+            """.trimIndent()
+        }
+
+        integrationTest("report errors in commented") {
+            // Should fail because of an invalid id
+            shouldFailBuild { runGradle(it, ":26.3:stonecutterGenerate") }
         }
     }
 }

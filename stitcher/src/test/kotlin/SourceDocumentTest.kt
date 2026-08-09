@@ -4,14 +4,14 @@ import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.stitcher.document.DocumentLocation
 import dev.kikugie.stitcher.document.SourceDocument
 import io.kotest.matchers.shouldBe
-import matcher.IMMEDIATE_THROW
+import matcher.immediateThrow
 import java.nio.file.Path
 
 private const val TEXT = "abc\ndef\nghi"
 private val FILE: Path = Path.of("source.txt")
 
 val SourceDocumentTest by testSuite {
-    testFixture { SourceDocument(FILE, TEXT, IMMEDIATE_THROW) } asParameterForEach {
+    testFixture { SourceDocument(FILE, TEXT, immediateThrow()) } asParameterForEach {
         testSuite("CharSequence delegation") {
             test("length matches the backing text") {
                 it.length shouldBe 11
