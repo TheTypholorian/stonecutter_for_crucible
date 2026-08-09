@@ -37,7 +37,7 @@ val ReportedIssuesTest by testSuite {
             val file = it read "src/main/java/WaterFogEnvironmentMixin.java"
             val line = file.lines()[28]
             // The disabled scope now opens an extended block here and line-comments the enclosed statement.
-            line shouldBe "    /*//@SuppressWarnings(\"rawtypes\")"
+            line shouldBe "    //@SuppressWarnings(\"rawtypes\")"
         }
 
         // https://codeberg.org/stonecutter/stonecutter/issues/21

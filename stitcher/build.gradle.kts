@@ -47,6 +47,11 @@ tasks {
     }
 }
 
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xwhen-expressions=indy")
+    }
+}
 
 dokka {
     moduleName = "Stitcher Processor"

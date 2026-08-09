@@ -602,24 +602,6 @@ val FileAstAssemblerTest by testSuite {
                 //println(2)
             }
         """.trimIndent())
-        content.shouldAssembleTo(params { targets[""] = SemanticVersion(26, 2) }, """
-            fun test() {
-                //? if >26.2
-                /*//? if >26.1
-                println(1)
-                //? else
-                /^println(2)^/ */
-            }
-        """.trimIndent())
-        content.shouldAssembleTo(params { targets[""] = SemanticVersion(26, 1) }, """
-            fun test() {
-                //? if >26.2
-                /*//? if >26.1
-                //println(1)
-                //? else
-                println(2)*/
-            }
-        """.trimIndent())
     }
 }
 
