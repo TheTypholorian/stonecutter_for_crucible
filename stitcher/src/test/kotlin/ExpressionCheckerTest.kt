@@ -3,6 +3,7 @@
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.semver.data.SemanticVersion
+import dev.kikugie.stitcher.document.issue.DefaultProblemReporter
 import dev.kikugie.stitcher.document.issue.ProblemReport
 import dev.kikugie.stitcher.document.issue.ProblemReport.Severity
 import dev.kikugie.stitcher.document.issue.SYNTAX_GROUP
@@ -338,7 +339,8 @@ val ExpressionCheckerTest by testSuite {
 context(scope: Test.ExecutionScope)
 private inline fun @receiver:Language("kotlin") String.shouldHaveProblems(parameters: ProcessParameters = vars(), action: List<ProblemReport>.() -> Unit) {
     val problems = mutableListOf<ProblemReport>()
-    val scope = kotlin.runCatching { scope.parseSnippet(this, problems::plusAssign) }
+    val reporter = DefaultProblemReporter(problems::plusAssign)
+    val scope = kotlin.runCatching { scope.parseSnippet(this, reporter) }
         .getOrElse { return action(problems) }
     scope.accept(ExpressionChecker, ExpressionChecker.Context(parameters))
     action(problems)

@@ -581,6 +581,46 @@ val FileAstAssemblerTest by testSuite {
 
         content.shouldAssembleTo(params, content)
     }
+
+    test("idk what is going on here but it is a bug") {
+        val content = """
+            fun test() {
+                //? if >26.2
+                ////? if >26.1
+                //println(1)
+                ////? else
+                //println(2)
+            }
+        """.trimIndent()
+
+        content.shouldAssembleTo(params { targets[""] = SemanticVersion(26, 3) }, """
+            fun test() {
+                //? if >26.2
+                //? if >26.1
+                println(1)
+                //? else
+                //println(2)
+            }
+        """.trimIndent())
+        content.shouldAssembleTo(params { targets[""] = SemanticVersion(26, 2) }, """
+            fun test() {
+                //? if >26.2
+                /*//? if >26.1
+                println(1)
+                //? else
+                /^println(2)^/ */
+            }
+        """.trimIndent())
+        content.shouldAssembleTo(params { targets[""] = SemanticVersion(26, 1) }, """
+            fun test() {
+                //? if >26.2
+                /*//? if >26.1
+                //println(1)
+                //? else
+                println(2)*/
+            }
+        """.trimIndent())
+    }
 }
 
 context(scope: Test.ExecutionScope)

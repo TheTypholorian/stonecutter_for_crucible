@@ -18,6 +18,7 @@ import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.SourceDocument
 import dev.kikugie.stitcher.document.issue.DefaultProblemReporter
 import dev.kikugie.stitcher.document.issue.ProblemReport.Severity
+import dev.kikugie.stitcher.document.issue.ProblemReporter
 import dev.kikugie.stitcher.document.issue.output.FullProblemFormatter
 import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
 import dev.kikugie.stitcher.document.issue.output.ShortProblemFormatter
@@ -38,13 +39,13 @@ import org.antlr.v4.runtime.*
 import org.intellij.lang.annotations.Language
 import kotlin.io.path.Path
 
-val IMMEDIATE_THROW: ProblemConsumer = ProblemConsumer {
+val IMMEDIATE_THROW: ProblemReporter = DefaultProblemReporter({
     System.err.println(it.accept(FullProblemFormatter))
     if (it.severity == Severity.ERROR) throw AssertionError(it.accept(ShortProblemFormatter))
-}
+})
 
-fun Test.ExecutionScope.parseSnippet(value: String, consumer: ProblemConsumer = IMMEDIATE_THROW): BlockToken.Root {
-    val document = SourceDocument(Path("$testElementPath"), value, consumer)
+fun Test.ExecutionScope.parseSnippet(value: String, reporter: ProblemReporter = IMMEDIATE_THROW): BlockToken.Root {
+    val document = SourceDocument(Path("$testElementPath"), value, reporter)
     val source = Scanner.Java.create(CharStreams.fromString(value), document).apply {
         scanner.errorListener = StitcherErrorListener(document)
     }
@@ -56,9 +57,8 @@ fun Test.ExecutionScope.parseSnippet(value: String, consumer: ProblemConsumer = 
 }
 
 fun Test.ExecutionScope.assemble(
-    value: String, params: StitcherParameters = params(), consumer: ProblemConsumer = IMMEDIATE_THROW
+    value: String, params: StitcherParameters = params(), reporter: ProblemReporter = IMMEDIATE_THROW
 ): String = buildString {
-    val reporter = DefaultProblemReporter(consumer)
     Stitcher.process(SourceDocument(Path("$testElementPath"), value, reporter), params).appendTo(this)
 }
 

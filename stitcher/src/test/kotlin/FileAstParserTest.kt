@@ -2,6 +2,7 @@
 
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.testSuite
+import dev.kikugie.stitcher.document.issue.DefaultProblemReporter
 import dev.kikugie.stitcher.document.issue.LAYOUT_GROUP
 import dev.kikugie.stitcher.document.issue.ProblemReport
 import dev.kikugie.stitcher.token.DefinitionToken.*
@@ -587,6 +588,7 @@ private inline infix fun @receiver:Language("kotlin") String.shouldBeParsedAs(ma
 context(scope: Test.ExecutionScope)
 private inline infix fun @receiver:Language("kotlin") String.shouldHaveProblems(action: List<ProblemReport>.() -> Unit) {
     val problems = mutableListOf<ProblemReport>()
-    kotlin.runCatching { scope.parseSnippet(this, problems::plusAssign) }
+    val reporter = DefaultProblemReporter(problems::plusAssign)
+    kotlin.runCatching { scope.parseSnippet(this, reporter) }
     action(problems)
 }
