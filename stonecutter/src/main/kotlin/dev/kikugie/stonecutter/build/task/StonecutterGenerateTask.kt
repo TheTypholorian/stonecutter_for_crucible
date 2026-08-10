@@ -2,6 +2,7 @@ package dev.kikugie.stonecutter.build.task
 
 import dev.kikugie.stitcher.Stitcher
 import dev.kikugie.stitcher.StitcherParameters
+import dev.kikugie.stitcher.document.DocumentReference
 import dev.kikugie.stitcher.document.SourceDocument
 import dev.kikugie.stitcher.document.io.LineNormalizingReader
 import dev.kikugie.stitcher.document.io.LineNormalizingWriter
@@ -12,6 +13,7 @@ import dev.kikugie.stitcher.document.issue.ProblemReporter
 import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
 import dev.kikugie.stitcher.document.issue.report
 import dev.kikugie.stitcher.document.reference
+import dev.kikugie.stitcher.token.BlockToken
 import dev.kikugie.stitcher.token.appendTo
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData
@@ -149,15 +151,8 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
         if (override.exists()) return output.deleteIfExists().let { }
 
         val parameters = if (parameters.transform.get()) createTransformParameters() else null
-        if (parameters == null) return copyDirectly()
-
-        val document = createSourceDocument()
-        val processed = try {
-            Stitcher.process(document, parameters)
-        } catch (_: BailException) {
-            // Processing failed and was reported; fall back to the raw file so the tree stays complete.
-            return copyDirectly()
-        }
+        val processed = parameters?.let { tryProcessFile(createSourceDocument(), it) }
+            ?: return copyDirectly()
 
         output.createParentDirectories()
         output.bufferedWriter(Charsets.UTF_8).use { raw ->
@@ -196,4 +191,21 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
 
     private fun createDummyDocument(): SourceDocument =
         SourceDocument(source, "", createProblemReporter())
+
+    private fun tryProcessFile(document: SourceDocument, parameters: StitcherParameters): BlockToken.Root? = try {
+        Stitcher.process(document, parameters)
+    } catch (_: BailException) {
+        null
+    } catch (e: Exception) {
+        document.reference(-1).report(GENERATE_TASK + "uncaught-failure") {
+            label = "Uncaught exception"
+            info = "File processing failed because of an unexpected error (╭ರ_•́)."
+            hint = """
+                Please report this to https://codeberg.org/stonecutter/stonecutter/issues
+                with the problematic file and stacktrace attached.
+            """.trimIndent()
+            error = e
+        }
+        null
+    }
 }
