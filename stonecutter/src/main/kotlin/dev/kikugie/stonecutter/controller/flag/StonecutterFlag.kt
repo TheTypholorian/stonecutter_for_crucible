@@ -127,5 +127,14 @@ public data class StonecutterFlag<T : Any> private constructor(public val key: S
          */
         @JvmField
         public val GENERATE_MANIFEST: StonecutterFlag<Boolean> = StonecutterFlag("generate_manifest", true)
+
+        /**
+         * Configures the line separator used when writing processed files.
+         *
+         * **Default**: [System.lineSeparator]
+         */
+        @JvmField
+        public val LINE_SEPARATOR: StonecutterFlag<String> =
+            StonecutterFlag("line_separator", System.lineSeparator())
     }
 }

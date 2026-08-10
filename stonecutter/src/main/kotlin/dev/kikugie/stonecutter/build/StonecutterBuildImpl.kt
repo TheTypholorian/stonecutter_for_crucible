@@ -35,7 +35,7 @@ internal abstract class StonecutterBuildImpl private constructor(val config: Sto
         project.plugins.apply("java")
         project.sourceSets.all {
             tasks.configureSource(this)
-            createProcessingTasks(project, config.data, filters, tasks)
+            createProcessingTasks(project, config.data, config.flags, filters, tasks)
         }
         project.refreshConfiguration(flags, tasks)
         project.configureManifest(flags, node)
@@ -66,6 +66,7 @@ private fun Project.refreshConfiguration(flags: StonecutterFlagsView, impls: Sto
 private fun SourceSet.createProcessingTasks(
     project: Project,
     data: StonecutterBuildData,
+    flags: StonecutterFlagsView,
     filters: PatternFilterable,
     impls: StonecutterBuildTasksImpl
 ) {
@@ -84,6 +85,7 @@ private fun SourceSet.createProcessingTasks(
         local.setFrom(project.fileTree(localSource))
         localRoot.set(localSource.asFile)
         destination.set(impls.generatedSourcesDir.dir(name))
+        lineEnding.set(flags[StonecutterFlag.LINE_SEPARATOR])
     }
 
     impls.registerMergeTask(this) {

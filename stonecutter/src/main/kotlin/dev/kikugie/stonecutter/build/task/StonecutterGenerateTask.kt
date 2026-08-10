@@ -85,6 +85,10 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
     @get:OutputDirectory
     public abstract val destination: DirectoryProperty
 
+    /**The line separator written between lines of processed files.*/
+    @get:Input
+    internal abstract val lineEnding: Property<String>
+
     @get:Inject
     internal abstract val executor: WorkerExecutor
 
@@ -93,6 +97,10 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
 
     @get:ServiceReference(StonecutterErrorsService.NAME)
     internal abstract val errors: Property<StonecutterErrorsService>
+
+    init {
+        lineEnding.convention(System.lineSeparator())
+    }
 
     @TaskAction
     internal fun run(inputs: InputChanges) {
@@ -122,6 +130,7 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
             override.set(change.file.overrideFile)
             model.set(params)
             transform.set(process)
+            lineEnding.set(this@StonecutterGenerateTask.lineEnding)
 
             handlers.set(this@StonecutterGenerateTask.handlers)
             reporter.set(this@StonecutterGenerateTask.errors)
@@ -136,6 +145,7 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
         val override: RegularFileProperty
         val model: Property<ParametersModel>
         val transform: Property<Boolean>
+        val lineEnding: Property<String>
 
         val handlers: Property<FileHandlerService>
         val reporter: Property<StonecutterErrorsService>
@@ -154,9 +164,10 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
         val processed = parameters?.let { tryProcessFile(createSourceDocument(), it) }
             ?: return copyDirectly()
 
+        val separator = this.parameters.lineEnding.get()
         output.createParentDirectories()
         output.bufferedWriter(Charsets.UTF_8).use { raw ->
-            LineNormalizingWriter(raw).use { processed.appendTo(it) }
+            LineNormalizingWriter(raw, separator).use { processed.appendTo(it) }
         }
     }
 
