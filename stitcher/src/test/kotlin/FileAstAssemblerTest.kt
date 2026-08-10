@@ -493,6 +493,42 @@ val FileAstAssemblerTest by testSuite {
             """.trimIndent())
         }
 
+        test("named local replacement applies to the rest of the file") {
+            """
+                val pre = a.b
+                //~ if true 'a.b' -> 'x.y' as ren
+                val post1 = a.b
+                val post2 = a.b
+                val post3 = a.b
+            """.trimIndent() shouldAssembleTo """
+                val pre = a.b
+                //~ if true 'a.b' -> 'x.y' as ren
+                val post1 = x.y
+                val post2 = x.y
+                val post3 = x.y
+            """.trimIndent()
+        }
+
+        test("replacement toggle enables and disables ids in one marker") {
+            val params = params {
+                string("olda", "newa", id = "a")
+                string("oldb", "newb", id = "b", enabled = true)
+            }
+            """
+                val a1 = "olda"
+                val b1 = "oldb"
+                //~ a !b
+                val a2 = "olda"
+                val b2 = "oldb"
+            """.trimIndent().shouldAssembleTo(params, """
+                val a1 = "olda"
+                val b1 = "newb"
+                //~ a !b
+                val a2 = "newa"
+                val b2 = "oldb"
+            """.trimIndent())
+        }
+
         // Tests for overlapping, loopback and ambiguity between replacements live in a separate test file.
     }
 

@@ -291,6 +291,52 @@ val FileAstParserTest by testSuite {
             }
         }
 
+        test("line -> line chain across multiple blank lines") {
+            """
+                //? if true
+                println("ON")
+
+
+                //? else
+                //println("OFF")
+            """.trimIndent() shouldBeParsedAs ast {
+                code<ConditionOpener> {
+                    check { definition.kind shouldBe Kind.LINE_OPENER }
+
+                    content()
+                    content { leaf.text.shouldBeBlank() }
+                }
+                code<ConditionExtension> {
+                    check { definition.kind shouldBe Kind.LINE_EXTENSION }
+
+                    comment()
+                }
+            }
+        }
+
+        test("line -> line chain across a blank comment gap") {
+            """
+                //? if true
+                println("ON")
+                //
+                //? else
+                //println("OFF")
+            """.trimIndent() shouldBeParsedAs ast {
+                code<ConditionOpener> {
+                    check { definition.kind shouldBe Kind.LINE_OPENER }
+
+                    content()
+                    content { leaf.text.shouldBeBlank() }
+                    comment()
+                }
+                code<ConditionExtension> {
+                    check { definition.kind shouldBe Kind.LINE_EXTENSION }
+
+                    comment()
+                }
+            }
+        }
+
         test("nested line -> line chain") {
             """
                 //? if true
@@ -397,6 +443,24 @@ val FileAstParserTest by testSuite {
                     content()
                 }
                 content()
+            }
+        }
+
+        test("lookup scope rejects nested statements") {
+            """
+                //$ id >> 'zzz'
+                abc
+                //? if false {
+                //val one = 1
+                //?}
+            """.trimIndent() shouldBeParsedAs ast {
+                code<SwapOpener> {
+                    content()
+                }
+                code<ConditionOpener> {
+                    comment()
+                }
+                code<ConditionCloser>()
             }
         }
 
@@ -559,6 +623,15 @@ val FileAstParserTest by testSuite {
             """
                 //? if true {
                 //~}
+            """.trimIndent() shouldHaveProblems {
+                shouldHave(LAYOUT_GROUP + "mismatched-closer-type")
+            }
+        }
+
+        test("invalid closer type for replacement scope") {
+            """
+                //~ if true 'a' -> 'b' {
+                //?}
             """.trimIndent() shouldHaveProblems {
                 shouldHave(LAYOUT_GROUP + "mismatched-closer-type")
             }

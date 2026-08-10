@@ -136,6 +136,39 @@ val FileAstUncommenterTest by testSuite {
             code<ConditionCloser>()
         }
     }
+
+    test("uncomment nested condition inside local replacement scope") {
+        """
+            //~ if true 'a' -> 'b' {
+            //? if true {
+            //val one = 1
+            //?}
+            //~}
+        """.trimIndent().shouldBeParsedAs {
+            code<ReplacementLocal> {
+                code<ConditionOpener> {
+                    content { leaf.text shouldContain "val one = 1" }
+                }
+                code<ConditionCloser>()
+            }
+            code<ReplacementCloser>()
+        }
+    }
+
+    test("keep partially-commented scope commented") {
+        """
+            //? if true {
+            //val one = 1
+            val two = 2
+            //?}
+        """.trimIndent().shouldBeParsedAs {
+            code<ConditionOpener> {
+                comment { body.text shouldContain "val one = 1" }
+                content { leaf.text shouldContain "val two = 2" }
+            }
+            code<ConditionCloser>()
+        }
+    }
 }
 
 context(scope: Test.ExecutionScope)
