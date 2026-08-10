@@ -11,7 +11,6 @@ import dev.kikugie.stitcher.document.reference
 import dev.kikugie.stitcher.token.BlockToken
 import dev.kikugie.stitcher.token.DefinitionToken
 import dev.kikugie.stitcher.token.LeafToken
-import dev.kikugie.stitcher.token.eval.StitcherTokenBuilder
 import dev.kikugie.stitcher.token.toLeaf
 import dev.kikugie.stitcher.token.type.BuiltinTokenType.COMMENT_OPEN
 import dev.kikugie.stitcher.token.type.BuiltinTokenType.CONTENT

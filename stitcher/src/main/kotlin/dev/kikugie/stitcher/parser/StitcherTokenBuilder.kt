@@ -1,4 +1,4 @@
-package dev.kikugie.stitcher.token.eval
+package dev.kikugie.stitcher.parser
 
 import dev.kikugie.antlr.tree.CParserRuleContext
 import dev.kikugie.stitcher.antlr.StitcherBaseContextualVisitor
@@ -75,7 +75,7 @@ object StitcherTokenBuilder : StitcherBaseContextualVisitor<StitcherToken, Docum
         val sugar: LeafToken = rule.sugarIf.toLeaf(ctx)
         val expression: ExpressionToken = rule.conditionExpression.build(ctx)
         val entries: List<DefinitionToken.ReplacementLocal.Entry> = rule.replacementEntry.map { it.build(ctx) }
-        val opener: ScopeToken? = rule.scopeOpener?.build(ctx)
+        val opener: ScopeToken? = rule.scopeOpener?.build(ctx) ?: rule.scopeNamed?.build(ctx)
         return DefinitionToken.ReplacementLocal(sugar, expression, entries, opener)
     }
 
