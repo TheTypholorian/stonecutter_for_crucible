@@ -22,7 +22,6 @@ internal abstract class StonecutterErrorsService : BuildService<StonecutterError
     private val printed: ConcurrentHashMap.KeySetView<ProblemReport, Boolean> = ConcurrentHashMap.newKeySet()
     private val buckets: ConcurrentHashMap<String, TaskBucket> = ConcurrentHashMap<String, TaskBucket>()
 
-
     @get:Inject
     protected abstract val problems: Problems
 
@@ -33,7 +32,7 @@ internal abstract class StonecutterErrorsService : BuildService<StonecutterError
     }
 
     fun report(task: String, report: ProblemReport) = with(bucket(task)) {
-        if (problems) gradleReporter.submit(report)
+        gradleReporter.submit(report)
         reports.add(report)
         if (report.severity == ProblemReport.Severity.ERROR)
             errors.add(report)
@@ -53,18 +52,15 @@ internal abstract class StonecutterErrorsService : BuildService<StonecutterError
     private fun bucket(task: String): TaskBucket = buckets.computeIfAbsent(task) {
         val path = task.substringBeforeLast(':')
         val immediate = parameters.active.getting(path).getOrElse(false)
-        val problems = parameters.problems.getting(path).getOrElse(true)
-        TaskBucket(immediate, problems)
+        TaskBucket(immediate)
     }
 
     interface Parameters : BuildServiceParameters {
         val active: MapProperty<String, Boolean>
-        val problems: MapProperty<String, Boolean>
     }
 
     private data class TaskBucket(
         val immediate: Boolean,
-        val problems: Boolean,
         val reports: MutableCollection<ProblemReport> = ConcurrentLinkedQueue(),
         val errors: MutableCollection<ProblemReport> = ConcurrentLinkedQueue(),
     )
