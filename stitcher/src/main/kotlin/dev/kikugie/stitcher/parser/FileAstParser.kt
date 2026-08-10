@@ -121,25 +121,12 @@ private abstract class CodeScopeBuilder(val token: BlockToken.Code, val parent: 
         }
     }
 
-    protected open fun processSplitComment(token: BlockToken.Comment, stream: FileTokenStream, split: Int): FileAstBuilder? = when (split) {
-        // Match found exactly at the start of the block, so it's excluded
+    protected open fun processScopedComment(token: BlockToken.Comment, stream: FileTokenStream, split: Int): FileAstBuilder? = when (split) {
         0 -> null
-
-        // Match not foun, so try searching next
         -1 -> super.processComment(token, stream)
-
-        // Match found, capturing the entire token
-        token.body.length -> {
+        else -> {
             foundSplitMatch = true
             super.processComment(token, stream)
-        }
-
-        // Match found in the middle, so return the consumed part and insert the remainder
-        else -> with(token) {
-            foundSplitMatch = true
-            val first = copy(body = body.withRef { copy(end = start + split) }, closer = null)
-            val second = copy(body = body.withRef { copy(start = start + split) }, opener = null)
-            super.processComment(first, stream).also { stream.insert(second) }
         }
     }
 
@@ -207,7 +194,7 @@ private abstract class LineCodeScopeBuilder(token: BlockToken.Code, parent: Scop
 
     override fun processComment(token: BlockToken.Comment, stream: FileTokenStream): FileAstBuilder? {
         midLineContinuation = false
-        return processSplitComment(token, stream, token.findLineSplit(scopeIsNotBlank))
+        return processScopedComment(token, stream, token.findLineSplit(scopeIsNotBlank))
     }
 
     override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? {
@@ -243,12 +230,10 @@ private abstract class LookupCodeScopeBuilder(token: BlockToken.Code, parent: Sc
     override fun processContent(token: BlockToken.Content, stream: FileTokenStream): FileAstBuilder? =
         // Once the match is found the scope is complete; further tokens belong to the enclosing scope. Without
         // this the remainder past the match (or a later token that happens to match again) would be re-captured.
-        if (foundSplitMatch) null
-        else processSplitContent(token, stream, token.findLookupSplit(lookupString, isCapturing))
+        if (foundSplitMatch) null else processSplitContent(token, stream, token.findLookupSplit(lookupString, isCapturing))
 
     override fun processComment(token: BlockToken.Comment, stream: FileTokenStream): FileAstBuilder? =
-        if (foundSplitMatch) null
-        else processSplitComment(token, stream, token.findLookupSplit(lookupString, isCapturing))
+        if (foundSplitMatch) null else processScopedComment(token, stream, token.findLookupSplit(lookupString, isCapturing))
 }
 
 private class ScopedSwapBuilder(token: BlockToken.Code, parent: ScopeBuilder) : ScopedCodeScopeBuilder(token, parent) {

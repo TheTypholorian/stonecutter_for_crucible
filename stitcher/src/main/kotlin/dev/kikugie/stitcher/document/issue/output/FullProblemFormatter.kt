@@ -4,7 +4,7 @@ import dev.kikugie.stitcher.document.issue.ProblemReport
 
 object FullProblemFormatter : ProblemFormatter {
     override fun format(report: ProblemReport): String = buildString {
-        append(report.prefix, ": ", report.at.toUriString(), ' ', report.decorateLabel(), '\n')
+        appendLine("${report.prefix}: ${report.at.toUriString()} ${report.decorateLabel()}")
         report.info?.let { appendLines(it, "> ") }
         report.hint?.let { appendLines(it.replaceFirstChar(Char::lowercaseChar), "- Hint: ") }
         report.docs?.let { appendLines(it.replaceFirstChar(Char::lowercaseChar), "- Docs: ") }

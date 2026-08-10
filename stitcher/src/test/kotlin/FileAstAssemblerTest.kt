@@ -133,7 +133,8 @@ val FileAstAssemblerTest by testSuite {
             """.trimIndent()
         }
 
-        test("enable line splitting comment") {
+        // Changed to capture the whole comment
+        test("enable line captures whole comment") {
             """
                 //? if true
                 /*val one = 1
@@ -141,7 +142,7 @@ val FileAstAssemblerTest by testSuite {
             """.trimIndent() shouldAssembleTo """
                 //? if true
                 val one = 1
-                /*val two = 2*/
+                val two = 2
             """.trimIndent()
         }
 
@@ -169,7 +170,8 @@ val FileAstAssemblerTest by testSuite {
             """.trimIndent()
         }
 
-        test("enable lookup splitting comment") {
+        // Changed to capture the whole comment
+        test("enable lookup captures whole comment") {
             """
                 //? if true >> 'val two'
                 /*val one = 1
@@ -177,17 +179,18 @@ val FileAstAssemblerTest by testSuite {
             """.trimIndent() shouldAssembleTo """
                 //? if true >> 'val two'
                 val one = 1
-                /*val two = 2*/
+                val two = 2
             """.trimIndent()
         }
 
-        test("enable lookup splitting line comment") {
+        // Changed to capture the whole comment
+        test("enable lookup captures whole line comment") {
             """
                 //? if true >> 'val two'
                 //val one = 1; val two = 2
             """.trimIndent() shouldAssembleTo """
                 //? if true >> 'val two'
-                val one = 1; //val two = 2
+                val one = 1; val two = 2
             """.trimIndent()
         }
 
@@ -581,18 +584,34 @@ val FileAstAssemblerTest by testSuite {
         content.shouldAssembleTo(params, content)
     }
 
-    test("idk what is going on here but it is a bug") {
+    // A line condition whose disabled body is a multi-line `/* ... */` block (produced by disabling a nested
+    // condition) must capture the whole block, both with and without replacements configured. Splitting the
+    // block orphaned its remainder as a sibling on a different document, which crashed the replacement pass.
+    test("nested condition in block comment scope") {
         val content = """
             fun test() {
                 //? if >26.2
-                ////? if >26.1
-                //println(1)
-                ////? else
+                /*//? if >26.1
+                println(1)
+                //? else
                 //println(2)
-            }
+            */}
         """.trimIndent()
 
         content.shouldAssembleTo(params { targets[""] = SemanticVersion(26, 3) }, """
+            fun test() {
+                //? if >26.2
+                //? if >26.1
+                println(1)
+                //? else
+                //println(2)
+            }
+        """.trimIndent())
+
+        content.shouldAssembleTo(params {
+            targets[""] = SemanticVersion(26, 3)
+            string("nonexistent", "whatever", enabled = true)
+        }, """
             fun test() {
                 //? if >26.2
                 //? if >26.1
