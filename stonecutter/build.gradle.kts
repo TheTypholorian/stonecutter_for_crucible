@@ -139,12 +139,11 @@ tasks {
         archiveClassifier = ""
         dependencies {
             exclude(dependency("com.squareup.okio:.*"))
-            exclude(dependency("net.thauvin.erik:.*"))
             exclude(dependency("com.ibm.icu:.*"))
             exclude(dependency("org.jetbrains.kotlin:kotlin-stdlib:.*"))
         }
 
-        exclude("idea_config.xml")
+        exclude("idea_config.xml", "org/abego/**", "antlr/runtime/**", "**/*.pro")
     }
 
     register<GenerateVersionTask>("generateVersion") {
