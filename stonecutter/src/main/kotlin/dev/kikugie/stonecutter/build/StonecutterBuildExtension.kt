@@ -6,6 +6,7 @@ import dev.kikugie.stonecutter.build.config.ConstantContainer
 import dev.kikugie.stonecutter.build.config.DependencyContainer
 import dev.kikugie.stonecutter.build.config.ReplacementContainer
 import dev.kikugie.stonecutter.build.config.SwapContainer
+import dev.kikugie.stonecutter.build.config.TargetContainer
 import dev.kikugie.stonecutter.build.task.StonecutterBuildTasks
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsView
 import dev.kikugie.stonecutter.data.StonecutterProject
@@ -127,11 +128,20 @@ public interface StonecutterBuildExtension : VersionOperations<Version>, Structu
     public val constants: ConstantContainer
 
     /**
-     * Dependency configuration extension.
+     * Target configuration extension.
      *
-     * Dependencies define named versions, which can be checked against predicates in preprocessed conditions.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies">Dependencies Documentation</a>
+     * Targets define named versions, which can be checked against predicates in preprocessed conditions.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies">Targets Documentation</a>
      */
+    public val targets: TargetContainer
+
+    /**
+     * Target configuration extension.
+     *
+     * Targets define named versions, which can be checked against predicates in preprocessed conditions.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies">Targets Documentation</a>
+     */
+    @Deprecated("Stonecutter dependencies were renamed to targets", ReplaceWith("targets"))
     public val dependencies: DependencyContainer
 
     /**
@@ -180,11 +190,21 @@ public interface StonecutterBuildExtension : VersionOperations<Version>, Structu
     public infix fun constants(action: Action<ConstantContainer>): Unit = action.execute(constants)
 
     /**
-     * Configures the dependencies extension.
+     * Configures the targets extension.
      *
-     * Dependencies define named versions, which can be checked against predicates in preprocessed conditions.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies">Dependencies Documentation</a>
+     * Targets define named versions, which can be checked against predicates in preprocessed conditions.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies">Targets Documentation</a>
      */
+    public infix fun targets(action: Action<TargetContainer>): Unit = action.execute(targets)
+
+    /**
+     * Configures the targets extension.
+     *
+     * Targets define named versions, which can be checked against predicates in preprocessed conditions.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies">Targets Documentation</a>
+     */
+    @Deprecated("Stonecutter dependencies were renamed to targets", ReplaceWith("targets(action)"))
+    @Suppress("DEPRECATION")
     public infix fun dependencies(action: Action<DependencyContainer>): Unit = action.execute(dependencies)
 
     /**

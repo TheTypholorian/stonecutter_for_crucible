@@ -15,6 +15,7 @@ import dev.kikugie.stonecutter.build.config.ConstantContainer
 import dev.kikugie.stonecutter.build.config.DependencyContainer
 import dev.kikugie.stonecutter.build.config.ReplacementContainerImpl
 import dev.kikugie.stonecutter.build.config.SwapContainer
+import dev.kikugie.stonecutter.build.config.TargetContainer
 import dev.kikugie.stonecutter.build.task.StonecutterBuildTasks
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService.Companion.collect
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService.Companion.log
@@ -52,7 +53,11 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
 
     override val swaps: SwapContainer = objects.newInstance(data.swaps)
     override val constants: ConstantContainer = objects.newInstance(data.constants)
-    override val dependencies: DependencyContainer = objects.newInstance(data.dependencies)
+    override val targets: TargetContainer = objects.newInstance(data.dependencies)
+
+    @Suppress("DEPRECATION")
+    @Deprecated("Stonecutter dependencies were renamed to targets", ReplaceWith("targets"))
+    override val dependencies: DependencyContainer = objects.newInstance(targets)
     override val replacements: ReplacementContainerImpl = objects.newInstance(data.replacements)
     override val filters: PatternFilterable = PatternSet()
     override val properties: StructuredPropertiesProvider.Config = project.setupDefaultProperties(node, objects)
