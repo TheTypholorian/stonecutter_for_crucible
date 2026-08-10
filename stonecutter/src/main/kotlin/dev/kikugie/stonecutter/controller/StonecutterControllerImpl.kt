@@ -6,7 +6,6 @@ import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager.Companion.getController
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
-import dev.kikugie.stonecutter.controller.flag.StonecutterFlagStorage
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
 import dev.kikugie.stonecutter.controller.task.StonecutterControllerTasksImpl
@@ -47,8 +46,8 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     StonecutterControllerExtension, VersionOperations<Version> by LenientOperations {
     override val tree: ProjectTreeImpl = constructTree(root)
     override val tasks: StonecutterControllerTasksImpl = root.objects.newInstance(this)
-    override val flags: StonecutterFlagsImpl = StonecutterFlagStorage { root.findProperty(it.propertyKey)?.toString() }
-        .let(::StonecutterFlagsImpl)
+    override val flags: StonecutterFlagsImpl =
+        StonecutterFlagsImpl(provider = { root.findProperty(it.propertyKey)?.toString() })
     override val handlers: FileHandlerContainer = root.gradle.getContainer()
     override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(root, objects)
 

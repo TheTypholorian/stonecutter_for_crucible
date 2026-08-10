@@ -89,7 +89,7 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
     fun registerTreeModelTask() =
         controller.root.registerDefault<StonecutterModelTask>("stonecutterSaveTreeModel") {
             val tree = controller.tree
-            val flags = controller.flags.takeAs<StonecutterFlagsImpl>().storage
+            val flags = controller.flags.takeAs<StonecutterFlagsImpl>()
 
             output.set(controller.root.layout.buildDirectory.file("stonecutter-cache/tree.json"))
             model.set(controller.root.providers) {

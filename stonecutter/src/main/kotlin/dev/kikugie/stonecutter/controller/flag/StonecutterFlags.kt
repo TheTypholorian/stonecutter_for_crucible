@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.controller.flag
 
+import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 import kotlin.annotation.AnnotationRetention.BINARY
 
 @DslMarker @Retention(BINARY)
@@ -24,7 +25,21 @@ public sealed interface StonecutterFlags : StonecutterFlagsView {
     public operator fun <T : Any> StonecutterFlag<T>.invoke(value: T): Unit = set(this, value)
 }
 
-internal class StonecutterFlagsImpl(val storage: StonecutterFlagStorage) : StonecutterFlags {
-    override fun <T : Any> get(key: StonecutterFlag<T>): T = storage[key]
-    override fun <T : Any> set(key: StonecutterFlag<T>, value: T) = storage.set(key, value)
+internal class StonecutterFlagsImpl(
+    val registry: ConfigurationRegistry = ConfigurationRegistry(),
+    private val provider: (StonecutterFlag<*>) -> String? = { null },
+) : StonecutterFlags {
+    private val assigned: MutableSet<StonecutterFlag<*>> = mutableSetOf()
+
+    val serializable: Map<String, String>
+        get() = assigned.associate { it.key to registry[it.configuration].toString() }
+
+    override fun <T : Any> get(key: StonecutterFlag<T>): T =
+        if (key in assigned) registry[key.configuration]
+        else provider(key)?.let(key::fromString) ?: key.default
+
+    override fun <T : Any> set(key: StonecutterFlag<T>, value: T) {
+        assigned += key
+        registry[key.configuration] = value
+    }
 }

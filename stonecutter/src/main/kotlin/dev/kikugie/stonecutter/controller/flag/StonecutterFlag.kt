@@ -1,5 +1,7 @@
 package dev.kikugie.stonecutter.controller.flag
 
+import dev.kikugie.stonecutter.model.process.ConfigurationFlag
+
 /**
  * A primitive configuration option for Stonecutter.
  *
@@ -17,6 +19,18 @@ public data class StonecutterFlag<T : Any> private constructor(public val key: S
         require(default.isPrimitive()) { "Flag value must be a primitive type, got ${default::class.simpleName} instead" }
         check(REGISTRY.putIfAbsent(key, this) == null) { "Flag '$key' is already registered" }
     }
+
+    /**The [ConfigurationFlag] used as the key when this flag is stored in a [ConfigurationRegistry][dev.kikugie.stonecutter.model.process.ConfigurationRegistry].*/
+    @Suppress("UNCHECKED_CAST")
+    internal val configuration: ConfigurationFlag<T> = when (val value = default) {
+        is Boolean -> ConfigurationFlag(key, value)
+        is Int -> ConfigurationFlag(key, value)
+        is Long -> ConfigurationFlag(key, value)
+        is Float -> ConfigurationFlag(key, value)
+        is Double -> ConfigurationFlag(key, value)
+        is String -> ConfigurationFlag(key, value)
+        else -> error("Flag value must be a primitive type, got ${value::class.simpleName} instead")
+    } as ConfigurationFlag<T>
 
     /**Converts the provided [value] to the flag's type.*/
     @Suppress("UNCHECKED_CAST")

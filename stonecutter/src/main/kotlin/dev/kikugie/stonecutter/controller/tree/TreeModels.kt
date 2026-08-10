@@ -8,7 +8,7 @@ import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData
 import dev.kikugie.stonecutter.controller.file.HandlerModel
-import dev.kikugie.stonecutter.controller.flag.StonecutterFlagStorage
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
 import dev.kikugie.stonecutter.data.tree.ProjectBranch
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
@@ -126,7 +126,7 @@ public data class TreeModel(
     val nodes: List<NodeInfo>,
     val flags: Map<String, String>,
 ){
-    internal constructor(tree: ProjectTree, flags: StonecutterFlagStorage) : this(
+    internal constructor(tree: ProjectTree, flags: StonecutterFlagsImpl) : this(
         StonecutterPlugin.VERSION,
         tree.vcs.project,
         tree.current?.project,
