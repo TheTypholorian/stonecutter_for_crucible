@@ -136,11 +136,18 @@ private abstract class CodeScopeBuilder(val token: BlockToken.Code, val parent: 
     }
 
     // Line and lookup branches finish before their extension, which sits past a blank gap. This absorbs
-    // that gap and claims the extension as the [child], continuing the condition chain.
+    // that gap and claims the extension as the [child], continuing the condition chain. The gap may hold
+    // any mix of blank content and blank comment blocks (their openers/closers aside).
     protected fun claimTrailingExtension(stream: FileTokenStream) {
         val distance: Int = findTrailingExtension(stream) ?: return
-        repeat(distance - 1) { this += ContentBuilder(stream.peek(1) as BlockToken.Content).also { stream.consume() } }
+        repeat(distance - 1) { this += blankGapBuilder(stream.peek(1)!!).also { stream.consume() } }
         claimCodeBuilder(newCodeScopeBuilder(stream.peek(1) as BlockToken.Code), stream)
+    }
+
+    private fun blankGapBuilder(block: BlockToken): FileAstBuilder = when (block) {
+        is BlockToken.Content -> ContentBuilder(block)
+        is BlockToken.Comment -> CommentBuilder(block)
+        else -> error("Unexpected token in trailing extension gap: $block")
     }
 
     private fun findTrailingExtension(stream: FileTokenStream): Int? {
@@ -148,6 +155,7 @@ private abstract class CodeScopeBuilder(val token: BlockToken.Code, val parent: 
         while (true) when (val next: BlockToken = stream.peek(offset) ?: return null) {
             is BlockToken.Code -> return if (next.definition is DefinitionToken.ConditionExtension) offset else null
             is BlockToken.Content if next.leaf.text.isBlank() -> offset++
+            is BlockToken.Comment if next.body.text.isBlank() -> offset++
             else -> return null
         }
     }
