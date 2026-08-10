@@ -29,12 +29,14 @@ public abstract interface class dev/kikugie/stonecutter/build/StonecutterBuildEx
 	public abstract fun getReplacements ()Ldev/kikugie/stonecutter/build/config/ReplacementContainer;
 	public fun getSemantics ()Ldev/kikugie/stonecutter/data/version/VersionOperations;
 	public abstract fun getSwaps ()Ldev/kikugie/stonecutter/build/config/SwapContainer;
+	public abstract fun getTargets ()Ldev/kikugie/stonecutter/build/config/TargetContainer;
 	public abstract fun getTasks ()Ldev/kikugie/stonecutter/build/task/StonecutterBuildTasks;
 	public fun getTree ()Ldev/kikugie/stonecutter/data/tree/ProjectTree;
 	public fun getVersions ()Ljava/util/Collection;
 	public abstract fun process (Ljava/io/File;Ljava/lang/String;)Ljava/io/File;
 	public fun replacements (Lorg/gradle/api/Action;)V
 	public fun swaps (Lorg/gradle/api/Action;)V
+	public fun targets (Lorg/gradle/api/Action;)V
 	public fun tasks (Lorg/gradle/api/Action;)V
 }
 
@@ -53,6 +55,7 @@ public final class dev/kikugie/stonecutter/build/StonecutterBuildExtension$Defau
 	public static fun properties (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lorg/gradle/api/Action;)V
 	public static fun replacements (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lorg/gradle/api/Action;)V
 	public static fun swaps (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lorg/gradle/api/Action;)V
+	public static fun targets (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lorg/gradle/api/Action;)V
 	public static fun tasks (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lorg/gradle/api/Action;)V
 }
 
@@ -107,7 +110,7 @@ public abstract class dev/kikugie/stonecutter/build/config/ConstantContainer : d
 }
 
 public abstract class dev/kikugie/stonecutter/build/config/DependencyContainer : dev/kikugie/stonecutter/data/whatever/ExtendedMapProperty, org/gradle/api/provider/MapProperty {
-	public fun <init> (Lorg/gradle/api/provider/MapProperty;)V
+	public fun <init> (Ldev/kikugie/stonecutter/build/config/TargetContainer;)V
 	public fun convention (Ljava/util/Map;)Lorg/gradle/api/provider/MapProperty;
 	public fun convention (Lorg/gradle/api/provider/Provider;)Lorg/gradle/api/provider/MapProperty;
 	public fun disallowChanges ()V
@@ -266,6 +269,54 @@ public abstract class dev/kikugie/stonecutter/build/config/SwapContainer : dev/k
 	public fun zip (Lorg/gradle/api/provider/Provider;Ljava/util/function/BiFunction;)Lorg/gradle/api/provider/Provider;
 }
 
+public abstract class dev/kikugie/stonecutter/build/config/TargetContainer : dev/kikugie/stonecutter/data/whatever/ExtendedMapProperty, org/gradle/api/provider/MapProperty {
+	public fun <init> (Lorg/gradle/api/provider/MapProperty;)V
+	public fun convention (Ljava/util/Map;)Lorg/gradle/api/provider/MapProperty;
+	public fun convention (Lorg/gradle/api/provider/Provider;)Lorg/gradle/api/provider/MapProperty;
+	public fun disallowChanges ()V
+	public fun disallowUnsafeRead ()V
+	public fun empty ()Lorg/gradle/api/provider/MapProperty;
+	public fun filter (Lorg/gradle/api/specs/Spec;)Lorg/gradle/api/provider/Provider;
+	public fun finalizeValue ()V
+	public fun finalizeValueOnRead ()V
+	public fun flatMap (Lorg/gradle/api/Transformer;)Lorg/gradle/api/provider/Provider;
+	public synthetic fun get ()Ljava/lang/Object;
+	public fun get ()Ljava/util/Map;
+	public synthetic fun get (Ljava/lang/Object;)Ljava/lang/Object;
+	public fun get (Ljava/lang/String;)Ljava/lang/String;
+	public synthetic fun getOrElse (Ljava/lang/Object;)Ljava/lang/Object;
+	public fun getOrElse (Ljava/util/Map;)Ljava/util/Map;
+	public synthetic fun getOrNull ()Ljava/lang/Object;
+	public fun getOrNull ()Ljava/util/Map;
+	public synthetic fun getting (Ljava/lang/Object;)Lorg/gradle/api/provider/Provider;
+	public fun getting (Ljava/lang/String;)Lorg/gradle/api/provider/Provider;
+	public fun isPresent ()Z
+	public fun keySet ()Lorg/gradle/api/provider/Provider;
+	public fun map (Lorg/gradle/api/Transformer;)Lorg/gradle/api/provider/Provider;
+	public synthetic fun orElse (Ljava/lang/Object;)Lorg/gradle/api/provider/Provider;
+	public fun orElse (Ljava/util/Map;)Lorg/gradle/api/provider/Provider;
+	public fun orElse (Lorg/gradle/api/provider/Provider;)Lorg/gradle/api/provider/Provider;
+	public synthetic fun put (Ljava/lang/Object;Ljava/lang/Object;)V
+	public synthetic fun put (Ljava/lang/Object;Lorg/gradle/api/provider/Provider;)V
+	public fun put (Ljava/lang/String;Ljava/lang/String;)V
+	public fun put (Ljava/lang/String;Lorg/gradle/api/provider/Provider;)V
+	public fun putAll (Ljava/util/Map;)V
+	public fun putAll (Lorg/gradle/api/provider/Provider;)V
+	public synthetic fun set (Ljava/lang/Object;Ljava/lang/Object;)V
+	public synthetic fun set (Ljava/lang/Object;Lorg/gradle/api/provider/Provider;)V
+	public fun set (Ljava/lang/String;Ljava/lang/String;)V
+	public fun set (Ljava/lang/String;Lorg/gradle/api/provider/Provider;)V
+	public fun set (Ljava/util/Map;)V
+	public fun set (Lorg/gradle/api/provider/Provider;)V
+	public fun unset ()Lorg/gradle/api/provider/MapProperty;
+	public synthetic fun unset ()Lorg/gradle/api/provider/SupportsConvention;
+	public fun unsetConvention ()Lorg/gradle/api/provider/MapProperty;
+	public synthetic fun unsetConvention ()Lorg/gradle/api/provider/SupportsConvention;
+	public fun value (Ljava/util/Map;)Lorg/gradle/api/provider/MapProperty;
+	public fun value (Lorg/gradle/api/provider/Provider;)Lorg/gradle/api/provider/MapProperty;
+	public fun zip (Lorg/gradle/api/provider/Provider;Ljava/util/function/BiFunction;)Lorg/gradle/api/provider/Provider;
+}
+
 public abstract interface class dev/kikugie/stonecutter/build/task/StonecutterBuildTasks {
 	public abstract fun configureSource (Lorg/gradle/api/tasks/SourceSet;)V
 	public abstract fun getGenerate ()Ldev/kikugie/stonecutter/data/whatever/TaskProviderMap;
@@ -347,6 +398,7 @@ public final class dev/kikugie/stonecutter/controller/flag/StonecutterFlag {
 	public static final field GENERATE_SOURCES_ON_SYNC Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field GENERATE_SWITCH_ACTIONS Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field IMPLICIT_RECEIVER Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
+	public static final field LINE_SEPARATOR Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field SERIALIZE_TREE_MODEL Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/lang/Object;
