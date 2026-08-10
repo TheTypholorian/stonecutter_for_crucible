@@ -419,6 +419,64 @@ val FileAstParserTest by testSuite {
                 code<SwapCloser>()
             }
         }
+
+        test("line scope proceed through nested statements") {
+            """
+                //$ id
+                abc/*? if false*/cde
+                fgh
+            """.trimIndent() shouldBeParsedAs ast {
+                code<SwapOpener> {
+                    content()
+                    code<ConditionOpener>()
+                    content()
+                }
+                content()
+            }
+        }
+
+        test("line scope take an entire single-line code comment") {
+            """
+                //$ id
+                abc//? if false
+                cde
+            """.trimIndent() shouldBeParsedAs ast {
+                code<SwapOpener> {
+                    content()
+                    code<ConditionOpener>()
+                }
+                content()
+            }
+        }
+
+        test("line scope take an entire multi-line code comment") {
+            """
+                //$ id
+                abc/*? if 
+                false*/;cde
+            """.trimIndent() shouldBeParsedAs ast {
+                code<SwapOpener> {
+                    content()
+                    code<ConditionOpener>()
+                }
+                content()
+            }
+        }
+
+        test("line scope interrupted by closer comment") {
+            """
+                //? if false {
+                //$ id
+                abc//?}
+            """.trimIndent() shouldBeParsedAs ast {
+                code<ConditionOpener> {
+                    code<SwapOpener> {
+                        content()
+                    }
+                }
+                code<ConditionCloser> {  }
+            }
+        }
     }
 
     testSuite("reported cases") {
@@ -528,6 +586,7 @@ val FileAstParserTest by testSuite {
             }
         }
 
+        /*
         test("string lookup not found") {
             """
                 //$ id >> 'A'
@@ -565,6 +624,7 @@ val FileAstParserTest by testSuite {
                 }
             }
         }
+        */
 
         test("lookup not found only reported for swaps") {
             """

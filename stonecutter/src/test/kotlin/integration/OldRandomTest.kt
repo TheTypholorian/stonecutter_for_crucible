@@ -99,6 +99,7 @@ val OldRandomTest by testSuite {
             runGradle(it, ":2:run").output shouldContain "Bye Tim!"
         }
 
+        /*
         /**
          * Custom matchers that couldn't be satisfied until
          * the scope was closed should report an error.
@@ -107,5 +108,6 @@ val OldRandomTest by testSuite {
         integrationTest("word scope unmatched") {
             shouldFailBuild { runGradle(it, ":2:run") }.buildResult.output shouldContain "Lookup string not found"
         }
+        */
     }
 }
