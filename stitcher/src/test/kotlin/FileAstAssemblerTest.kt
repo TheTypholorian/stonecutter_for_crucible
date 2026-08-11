@@ -509,6 +509,22 @@ val FileAstAssemblerTest by testSuite {
             """.trimIndent()
         }
 
+        test("unnamed local replacement") {
+            """
+                val pre = a.b
+                //~ if true 'a.b' -> 'x.y' as _
+                val post1 = a.b
+                val post2 = a.b
+                val post3 = a.b
+            """.trimIndent() shouldAssembleTo """
+                val pre = a.b
+                //~ if true 'a.b' -> 'x.y' as _
+                val post1 = x.y
+                val post2 = x.y
+                val post3 = x.y
+            """.trimIndent()
+        }
+
         test("replacement toggle enables and disables ids in one marker") {
             val params = params {
                 string("olda", "newa", id = "a")
@@ -528,8 +544,6 @@ val FileAstAssemblerTest by testSuite {
                 val b2 = "oldb"
             """.trimIndent())
         }
-
-        // Tests for overlapping, loopback and ambiguity between replacements live in a separate test file.
     }
 
     testSuite("swaps") {

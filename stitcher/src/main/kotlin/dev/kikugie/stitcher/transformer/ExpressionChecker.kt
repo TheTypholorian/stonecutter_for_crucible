@@ -1,6 +1,7 @@
 package dev.kikugie.stitcher.transformer
 
 import dev.kikugie.commons.takeAsOrNull
+import dev.kikugie.stitcher.antlr.StitcherLexer
 import dev.kikugie.stitcher.document.issue.ProblemReport.Severity
 import dev.kikugie.stitcher.document.issue.SYNTAX_GROUP
 import dev.kikugie.stitcher.document.issue.report
@@ -94,10 +95,9 @@ object ExpressionChecker : BlockToken.Visitor<Unit, Context>, DefinitionToken.Vi
         repl.expression.accept(this, ctx)
         for (it in repl.entries)
             it.accept(::visitReplacementLocalEntry, ctx)
-        if (repl.opener is ScopeToken.Named) {
-            val id = repl.opener.identifier.text
-            ctx.knownReplacementIds += id
-            ctx.activeReplacementIds += id
+        if (repl.opener is ScopeToken.Named) repl.opener.id?.let {
+            ctx.knownReplacementIds += it
+            ctx.activeReplacementIds += it
         }
     }
 

@@ -32,7 +32,7 @@ scopeOpener
     ;
 
 scopeNamed
-    : SCOPE_AS IDENTIFIER
+    : SCOPE_AS id=(IDENTIFIER | UNDERSCORE)
     ;
 
 elseSugar: SUGAR_ELSE SUGAR_IF | SUGAR_ELIF | SUGAR_ELSE;
@@ -94,6 +94,7 @@ REPL_MARK: '~';
 
 PLUS: '+';
 COMMA: ',';
+UNDERSCORE: '_';
 
 LEFT_BRACE: '(';
 RIGHT_BRACE: ')';

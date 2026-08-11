@@ -35,8 +35,8 @@ val DefinitionToken.ReplacementToggle.Entry.id: String
 val DefinitionToken.ReplacementLocal.Entry.id: String
     get() = "%synthetic% ${source.text} -> ${target.text}"
 
-val ScopeToken.Named.id: String
-    inline get() = identifier.text
+val ScopeToken.Named.id: String?
+    inline get() = identifier.takeIf { it.typeValue != Tokens.UNDERSCORE }?.text
 
 val ExpressionToken.Constant.text: String
     inline get() = value.text

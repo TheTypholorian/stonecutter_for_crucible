@@ -175,7 +175,7 @@ object StitcherTokenBuilder : StitcherBaseContextualVisitor<StitcherToken, Docum
 
     override fun visitScopeNamed(rule: StitcherParser.ScopeNamedContext, ctx: Document): StitcherToken {
         val marker: LeafToken = rule.scopeAs.toLeaf(ctx)
-        val identifier: LeafToken = rule.identifier.toLeaf(ctx)
+        val identifier: LeafToken = rule.id.toLeaf(ctx)
         return ScopeToken.Named(marker, identifier)
     }
 
