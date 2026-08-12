@@ -1,8 +1,8 @@
 # Stonecutter
-<a href="https://stonecutter.kikugie.dev/"><img alt="website" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/documentation/website_vector.svg"></a>
-<a href="https://stonecutter.kikugie.dev/"><img alt="website" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/documentation/website_vector.svg"></a>
+<a href="https://stonecutter.kikugie.dev/"><img alt="ghpages" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/documentation/ghpages_vector.svg"></a>
+<a href="https://stonecutter.kikugie.dev/"><img alt="gradle-plugin-portal" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/gradle-plugin-portal_vector.svg"></a>
 <a href="https://discord.kikugie.dev"><img alt="discord-singular" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy-minimal/social/discord-singular_vector.svg"></a>
-<a href="https://ko-fi.com/kikugie"><img alt="discord-singular" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy-minimal/social/discord-singular_vector.svg"></a>
+<a href="https://ko-fi.com/kikugie"><img alt="kofi-singular" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy-minimal/donate/kofi-singular_vector.svg"></a>
 
 Stonecutter is a Gradle plugin that allows working on a project that targets multiple compatible release versions of a dependency.  
 It's mostly meant for mods Minecraft mods, but on itself the plugin is platform-independent.
