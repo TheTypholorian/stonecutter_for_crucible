@@ -9,11 +9,11 @@ sc.properties.tags(mc, loader)
 val nativeForgeStr = property("deps.forge_loader")
 assert(nativeForgeStr == "37.1.1") { "Native forge is not 37.1.1" }
 
-val typedForgeStr: String = sc.properties["deps.forge_loader"]
+val typedForgeStr: String = sc.properties.getAs("deps.forge_loader")
 assert(typedForgeStr == "37.1.1") { "Typed forge is not 37.1.1" }
 
-val typedForgeSemver: SemanticVersion = sc.properties["deps.forge_loader"]
+val typedForgeSemver: SemanticVersion = sc.properties.getAs("deps.forge_loader")
 assert(typedForgeSemver == SemanticVersion(37, 1, 1)) { "SemVer forge is not 37.1.1" }
 
-val forgeJsonElement = sc.properties.raw("deps", "forge_loader")
+val forgeJsonElement = sc.properties.raw("deps.forge_loader")
 assert(forgeJsonElement.toString() == "\"37.1.1\"")

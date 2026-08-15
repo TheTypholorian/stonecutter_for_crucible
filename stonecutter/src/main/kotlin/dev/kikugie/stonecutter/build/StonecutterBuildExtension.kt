@@ -10,12 +10,12 @@ import dev.kikugie.stonecutter.build.config.TargetContainer
 import dev.kikugie.stonecutter.build.task.StonecutterBuildTasks
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsView
 import dev.kikugie.stonecutter.data.StonecutterProject
+import dev.kikugie.stonecutter.data.property.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.data.tree.ProjectBranch
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.tasks.util.PatternFilterable

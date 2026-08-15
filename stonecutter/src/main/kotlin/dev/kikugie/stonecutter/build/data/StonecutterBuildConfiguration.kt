@@ -25,11 +25,12 @@ import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsView
 import dev.kikugie.stonecutter.controller.tree.ParametersModel
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
+import dev.kikugie.stonecutter.data.property.StructuredPropertiesExtension
+import dev.kikugie.stonecutter.data.property.StructuredPropertiesImpl
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
-import dev.kikugie.stonecutter.settings.properties.StructuredPropertyConfigImpl
+import dev.kikugie.stonecutter.util.newInstance
 import dev.kikugie.stonecutter.util.overwriteText
 import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Named
@@ -37,6 +38,7 @@ import org.gradle.api.Project
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.tasks.util.PatternFilterable
 import org.gradle.api.tasks.util.PatternSet
+import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.the
@@ -44,6 +46,8 @@ import java.io.File
 import java.io.StringWriter
 import java.nio.file.NoSuchFileException
 import javax.inject.Inject
+import kotlin.io.path.invariantSeparatorsPathString
+import kotlin.io.path.relativeTo
 
 internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override val node: ProjectNode, override val project: Project, objects: ObjectFactory
@@ -60,7 +64,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override val dependencies: DependencyContainer = objects.newInstance(targets)
     override val replacements: ReplacementContainerImpl = objects.newInstance(data.replacements)
     override val filters: PatternFilterable = PatternSet()
-    override val properties: StructuredPropertiesProvider.Config = project.setupDefaultProperties(node, objects)
+    override val properties: StructuredPropertiesExtension = project.setupDefaultProperties(node, objects)
 
     override val flags: StonecutterFlagsView = controller.flags
     override val tasks: StonecutterBuildTasks
@@ -93,11 +97,15 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     }
 }
 
-private fun Project.setupDefaultProperties(node: ProjectNode, objects: ObjectFactory): StructuredPropertiesProvider.Config {
-    val impl = StructuredPropertyConfigImpl(this, objects)
-    impl.tags(node.branch.id, node.metadata.project)
-    impl.loadDefaults(layout.projectDirectory)
-    return impl
+private fun Project.setupDefaultProperties(node: ProjectNode, objects: ObjectFactory): StructuredPropertiesImpl = objects.newInstance(providers) {
+    tags(node.branch.id, node.metadata.project)
+    loadDefaults(layout.settingsDirectory)
+    val branchRelative: String = node.branch.location.relativeTo(node.location).invariantSeparatorsPathString
+    loadDefaults(layout.projectDirectory.dir(branchRelative))
+    val treeRelative: String = node.tree.location.relativeTo(node.location).invariantSeparatorsPathString
+    loadDefaults(layout.projectDirectory.dir(treeRelative))
+    holder.extraProperties = extra
+    holder.reload()
 }
 
 private fun Project.collectTransformParams(file: File, data: StonecutterBuildData): StitcherParameters {

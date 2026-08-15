@@ -10,7 +10,7 @@ import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.Version
-import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
+import dev.kikugie.stonecutter.data.property.StructuredPropertiesProvider
 import org.gradle.api.Action
 
 @DslMarker @Retention(AnnotationRetention.BINARY)

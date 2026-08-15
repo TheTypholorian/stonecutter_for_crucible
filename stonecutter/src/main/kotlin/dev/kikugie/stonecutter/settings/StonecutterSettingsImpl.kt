@@ -8,20 +8,19 @@ import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.configureDefaults
-import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.createContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
 import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
+import dev.kikugie.stonecutter.data.property.StructuredPropertiesExtension
+import dev.kikugie.stonecutter.data.property.StructuredPropertiesImpl
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesLoader
-import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
-import dev.kikugie.stonecutter.settings.properties.StructuredPropertyConfigImpl
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.TreeBuilder
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.isIdeaSync
+import dev.kikugie.stonecutter.util.newInstance
 import dev.kikugie.stonecutter.util.projectDirectory
 import dev.kikugie.stonecutter.util.requestTasks
 import org.gradle.api.initialization.Settings
@@ -30,7 +29,6 @@ import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.model.ObjectFactory
 import org.gradle.build.event.BuildEventsListenerRegistry
-import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.registerIfAbsent
@@ -42,7 +40,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     registry: BuildEventsListenerRegistry,
     objects: ObjectFactory,
 ) : StonecutterSettingsExtension(settings, objects), VersionOperations<Version> by LenientOperations {
-    override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(settings, objects)
+    override val properties: StructuredPropertiesExtension = setupDefaultProperties(settings, objects)
 
     internal val treeBuilderContainer: TreeBuilderContainer = settings.gradle.createContainer<TreeBuilderContainer>().get()
     internal val isHardMode: Boolean by lazy {
@@ -105,10 +103,10 @@ private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: B
 }
 
 @Suppress("UnstableApiUsage")
-private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): StructuredPropertiesProvider.Config {
-    val loader: StructuredPropertiesLoader = settings.gradle.extensions.create("StructuredProperties")
-    return StructuredPropertyConfigImpl(settings.rootProject.hierarchy, settings.extra, loader, objects)
-        .apply { loadDefaults(settings.layout.settingsDirectory) }
+private fun setupDefaultProperties(settings: Settings, objects: ObjectFactory): StructuredPropertiesImpl = objects.newInstance(settings.providers) {
+    loadDefaults(settings.layout.settingsDirectory)
+    holder.extraProperties = settings.extra
+    holder.reload()
 }
 
 private fun checkGroovyUsage(tree: TreeBuilderImpl): Boolean {

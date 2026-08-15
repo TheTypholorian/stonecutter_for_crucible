@@ -101,7 +101,7 @@ private object properties {
         // # stonecutter.properties.toml
         // key.items = [1, 2, 3]
 
-        val element: SCElement = sc.properties.raw("key", "items")
+        val element: SCElement = sc.properties.getAs("key.items")
         val items: List<Int> = element.asList().map { it.asPrimitive().toInt() }
     }
 }

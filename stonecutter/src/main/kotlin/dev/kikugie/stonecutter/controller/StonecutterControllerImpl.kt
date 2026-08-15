@@ -16,17 +16,18 @@ import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
 import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
+import dev.kikugie.stonecutter.data.property.StructuredPropertiesExtension
+import dev.kikugie.stonecutter.data.property.StructuredPropertiesImpl
 import dev.kikugie.stonecutter.data.tree.ProjectBranchImpl
 import dev.kikugie.stonecutter.data.tree.ProjectNodeImpl
 import dev.kikugie.stonecutter.data.tree.ProjectTreeImpl
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.StructuredPropertyConfigImpl
-import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.BranchBuilderImpl
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.isIdeaSync
+import dev.kikugie.stonecutter.util.newInstance
 import dev.kikugie.stonecutter.util.propertyKey
 import dev.kikugie.stonecutter.util.requestTasks
 import dev.kikugie.stonecutter.util.toRegularFile
@@ -36,6 +37,7 @@ import org.gradle.api.file.RegularFile
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.apply
+import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.newInstance
 import java.io.File
@@ -49,7 +51,7 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     override val flags: StonecutterFlagsImpl =
         StonecutterFlagsImpl(provider = { root.findProperty(it.propertyKey)?.toString() })
     override val handlers: FileHandlerContainer = root.gradle.getContainer()
-    override val properties: StructuredPropertiesProvider.Config = setupDefaultProperties(root, objects)
+    override val properties: StructuredPropertiesExtension = setupDefaultProperties(root, objects)
 
     private val nodeContainer: ProjectNodeContainer = root.gradle.getContainer<ProjectNodeContainer>().also { it += tree }
     private var hasInitialized: Boolean = false
@@ -87,8 +89,11 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     }
 }
 
-private fun setupDefaultProperties(project: Project, objects: ObjectFactory): StructuredPropertiesProvider.Config {
-    return StructuredPropertyConfigImpl(project, objects).apply { loadDefaults(project.layout.projectDirectory) }
+private fun setupDefaultProperties(project: Project, objects: ObjectFactory): StructuredPropertiesImpl = objects.newInstance(project.providers) {
+    loadDefaults(project.layout.settingsDirectory)
+    loadDefaults(project.layout.projectDirectory)
+    holder.extraProperties = project.extra
+    holder.reload()
 }
 
 private fun constructTree(root: Project): ProjectTreeImpl {

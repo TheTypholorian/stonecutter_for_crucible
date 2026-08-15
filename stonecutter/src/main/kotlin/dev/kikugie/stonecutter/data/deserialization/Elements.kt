@@ -205,7 +205,7 @@ public object SCNull : SCElement() {
  * @param kind Descriptor of the [content]'s type
  */
 @SCStruct
-public class SCPrimitive private constructor(override val content: Any, public val kind: Kind) : SCElement() {
+public class SCPrimitive internal constructor(override val content: Any, public val kind: Kind) : SCElement() {
     public constructor(value: Boolean) : this(value, Kind.Boolean)
     public constructor(value: Int) : this(value.toLong(), Kind.Integer)
     public constructor(value: Long) : this(value, Kind.Integer)

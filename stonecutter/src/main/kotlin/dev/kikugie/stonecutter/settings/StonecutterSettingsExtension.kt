@@ -4,9 +4,9 @@ import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
+import dev.kikugie.stonecutter.data.property.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.properties.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.settings.tree.TreeBuilder
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.doFirst
