@@ -56,8 +56,15 @@ internal abstract class StructuredPropertiesImpl @Inject constructor(
         holder.tags(filtered)
     }
 
-    override fun <T : Any> getAs(name: String, cls: Class<T>): T =
-        types.get(get(name), cls)
+    override fun <T : Any> getAs(name: String, cls: Class<T>): T = try {
+        types.get(getOrNull(name)!!, cls)
+    } catch (_: NullPointerException) {
+        throw IllegalArgumentException("No such property '$name'")
+    } catch (e: RuntimeException) {
+        throw IllegalArgumentException("Failed to convert '$name' to ${cls.simpleName}: ${e.message}").apply {
+            initCause(e)
+        }
+    }
 
     override fun getLazy(name: String): Provider<String> =
         providers.provider { getOrNull(name) }
@@ -68,8 +75,8 @@ internal abstract class StructuredPropertiesImpl @Inject constructor(
         else -> providers.gradleProperty(name).orNull
     }
 
-    override fun rawOrNull(name: String): SCElement? =
-        holder.get(name.replace(':', '.'), single = true).singleOrNull()
+    override fun rawOrNull(path: String): SCElement? =
+        holder.get(path.replace(':', '.'), single = true).singleOrNull()
 
     internal fun loadDefaults(directory: Directory) {
         val file = DEFAULT_FILES
