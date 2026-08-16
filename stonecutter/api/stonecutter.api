@@ -13,7 +13,7 @@ public abstract class dev/kikugie/stonecutter/StonecutterPlugin : org/gradle/api
 public final class dev/kikugie/stonecutter/StonecutterPlugin$Companion {
 }
 
-public abstract interface class dev/kikugie/stonecutter/build/StonecutterBuildExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider {
+public abstract interface class dev/kikugie/stonecutter/build/StonecutterBuildExtension : dev/kikugie/stonecutter/data/property/StructuredPropertiesProvider, dev/kikugie/stonecutter/data/version/VersionOperations {
 	public fun constants (Lorg/gradle/api/Action;)V
 	public fun dependencies (Lorg/gradle/api/Action;)V
 	public fun flags (Lorg/gradle/api/Action;)V
@@ -324,7 +324,7 @@ public abstract interface class dev/kikugie/stonecutter/build/task/StonecutterBu
 	public abstract fun getMerge ()Ldev/kikugie/stonecutter/data/whatever/TaskProviderMap;
 }
 
-public abstract interface class dev/kikugie/stonecutter/controller/StonecutterControllerExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider {
+public abstract interface class dev/kikugie/stonecutter/controller/StonecutterControllerExtension : dev/kikugie/stonecutter/data/property/StructuredPropertiesProvider, dev/kikugie/stonecutter/data/version/VersionOperations {
 	public abstract fun active (Ljava/lang/Object;)V
 	public fun flags (Lorg/gradle/api/Action;)V
 	public fun getCurrent ()Ldev/kikugie/stonecutter/data/StonecutterProject;
@@ -1057,6 +1057,58 @@ public final class dev/kikugie/stonecutter/data/deserialization/YamlConverter : 
 	public synthetic fun visitPrimitive (Ldev/kikugie/stonecutter/data/deserialization/SCPrimitive;Ljava/lang/Object;)Ljava/lang/Object;
 }
 
+public abstract class dev/kikugie/stonecutter/data/property/StructuredPropertiesExtension {
+	public fun <init> ()V
+	public final fun contains (Ljava/lang/String;)Z
+	public abstract fun contains (Ljava/lang/String;Z)Z
+	public final fun get (Ljava/lang/String;)Ljava/lang/String;
+	public abstract fun getAs (Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;
+	public abstract fun getLazy (Ljava/lang/String;)Lorg/gradle/api/provider/Provider;
+	public abstract fun getOrNull (Ljava/lang/String;)Ljava/lang/String;
+	public final fun load (Ljava/io/File;)V
+	public abstract fun load (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public final fun load (Lorg/gradle/api/file/RegularFile;)V
+	public abstract fun load (Lorg/gradle/api/file/RegularFile;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public final fun raw (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public final fun raw ([Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public abstract fun rawOrNull (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public final fun rawOrNull ([Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public abstract fun tags (Ljava/lang/Iterable;)V
+	public final fun tags ([Ljava/lang/String;)V
+}
+
+public final class dev/kikugie/stonecutter/data/property/StructuredPropertiesHolder {
+	public fun <init> ()V
+	public final fun all ()Ldev/kikugie/stonecutter/data/deserialization/SCMap;
+	public final fun get (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public final fun load (Ljava/io/File;ZLkotlin/jvm/functions/Function0;)Z
+	public static synthetic fun load$default (Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder;Ljava/io/File;ZLkotlin/jvm/functions/Function0;ILjava/lang/Object;)Z
+	public final fun overwrite (Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy;)V
+	public final fun tags (Ljava/lang/Iterable;)Z
+}
+
+public final class dev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy : java/lang/Enum {
+	public static final field KEEP Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy;
+	public static final field MERGE Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy;
+	public static final field WRITE Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy;
+	public static fun values ()[Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy;
+}
+
+public abstract interface class dev/kikugie/stonecutter/data/property/StructuredPropertiesProvider {
+	public abstract fun getProperties ()Ldev/kikugie/stonecutter/data/property/StructuredPropertiesExtension;
+	public fun properties (Ljava/io/File;)V
+	public fun properties (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public fun properties (Lorg/gradle/api/Action;)V
+}
+
+public final class dev/kikugie/stonecutter/data/property/StructuredPropertiesProvider$DefaultImpls {
+	public static fun properties (Ldev/kikugie/stonecutter/data/property/StructuredPropertiesProvider;Ljava/io/File;)V
+	public static fun properties (Ldev/kikugie/stonecutter/data/property/StructuredPropertiesProvider;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public static fun properties (Ldev/kikugie/stonecutter/data/property/StructuredPropertiesProvider;Lorg/gradle/api/Action;)V
+}
+
 public abstract interface class dev/kikugie/stonecutter/data/tree/GradleMember {
 	public abstract fun getHierarchy-L6On-oY ()Ljava/lang/String;
 	public abstract fun getLocation ()Ljava/nio/file/Path;
@@ -1166,7 +1218,7 @@ public final class dev/kikugie/stonecutter/data/whatever/TaskProviderMap : java/
 	public final fun values ()Ljava/util/Collection;
 }
 
-public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtension : dev/kikugie/stonecutter/data/version/VersionOperations, dev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider {
+public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtension : dev/kikugie/stonecutter/data/property/StructuredPropertiesProvider, dev/kikugie/stonecutter/data/version/VersionOperations {
 	public fun <init> (Lorg/gradle/api/initialization/Settings;Lorg/gradle/api/model/ObjectFactory;)V
 	public final fun create (Ljava/lang/Iterable;)V
 	public final fun create (Ljava/lang/Iterable;Ljava/io/File;)V
@@ -1204,31 +1256,6 @@ public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtens
 	public fun properties (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
 	public fun properties (Lorg/gradle/api/Action;)V
 	public final fun shared (Lorg/gradle/api/Action;)V
-}
-
-public abstract interface class dev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider {
-	public abstract fun getProperties ()Ldev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider$Config;
-	public fun properties (Ljava/io/File;)V
-	public fun properties (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
-	public fun properties (Lorg/gradle/api/Action;)V
-}
-
-public abstract class dev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider$Config {
-	protected fun <init> (Lorg/gradle/api/model/ObjectFactory;)V
-	protected final fun getObjects ()Lorg/gradle/api/model/ObjectFactory;
-	public abstract synthetic fun getTypedImpl (Ljava/lang/String;Lkotlin/reflect/KClass;)Ljava/lang/Object;
-	public final fun load (Ljava/io/File;)V
-	public final fun load (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
-	public static synthetic fun load$default (Ldev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider$Config;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;ILjava/lang/Object;)V
-	public final fun raw ([Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
-	public abstract fun rawOrNull ([Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
-	public abstract fun tags ([Ljava/lang/String;)V
-}
-
-public final class dev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider$DefaultImpls {
-	public static fun properties (Ldev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider;Ljava/io/File;)V
-	public static fun properties (Ldev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
-	public static fun properties (Ldev/kikugie/stonecutter/settings/properties/StructuredPropertiesProvider;Lorg/gradle/api/Action;)V
 }
 
 public abstract class dev/kikugie/stonecutter/settings/task/StonecutterIdeaConfigTask : org/gradle/api/DefaultTask {
