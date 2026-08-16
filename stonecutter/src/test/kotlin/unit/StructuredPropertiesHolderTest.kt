@@ -3,7 +3,6 @@
 package unit
 
 import de.infix.testBalloon.framework.core.testSuite
-import dev.kikugie.stonecutter.data.deserialization.SCElement
 import dev.kikugie.stonecutter.data.deserialization.SCMap
 import dev.kikugie.stonecutter.data.deserialization.SCPrimitive
 import dev.kikugie.stonecutter.data.deserialization.TomlConverter
@@ -90,59 +89,65 @@ val StructuredPropertiesHolderTest by testSuite {
 
     testSuite("tagging") {
         test("tag removes a matching segment") {
-            holder("common.deps.value = 1", tags = listOf("common")).all() shouldBe scmap("deps.value = 1")
+            holder("common.deps.value = 1", tags = listOf("common"))
+                .get("deps.value") shouldBe SCPrimitive(1)
         }
 
         test("each tag applies at most once") {
-            holder("tagged.tagged.key = 1", tags = listOf("tagged")).all() shouldBe scmap("tagged.key = 1")
+            with(holder("tagged.tagged.key = 1", tags = listOf("tagged"))) {
+                get("tagged.key") shouldBe SCPrimitive(1)
+                get("key") shouldBe null
+            }
         }
 
         test("ordered tag matches only a contiguous sequence") {
-            holder("ord.tag.key1 = 1\ntag.ord.key2 = 2", tags = listOf("ord:tag")).all() shouldBe scmap(
-                """
-                key1 = 1
-                tag.ord.key2 = 2
-                """
-            )
+            with(holder("ord.tag.key1 = 1\ntag.ord.key2 = 2", tags = listOf("ord:tag"))) {
+                get("key1") shouldBe SCPrimitive(1)
+                get("tag.ord.key2") shouldBe SCPrimitive(2)
+                get("key2") shouldBe null
+            }
         }
 
         test("tag matches whole segments only") {
-            holder("partial-kinda.key1 = 1\nkey2.part = 2", tags = listOf("partial")).all() shouldBe scmap(
-                """
-                partial-kinda.key1 = 1
-                key2.part = 2
-                """
-            )
+            with(holder("partial-kinda.key1 = 1\nkey2.part = 2", tags = listOf("partial"))) {
+                get("partial-kinda.key1") shouldBe SCPrimitive(1)
+                get("key1") shouldBe null
+            }
         }
 
         test("the longest overlapping tag wins") {
-            holder("double.nested.key1 = 1\ndouble.key2 = 2", tags = listOf("double:nested", "double")).all() shouldBe scmap(
-                """
-                key1 = 1
-                key2 = 2
-                """
-            )
+            with(holder("double.nested.key1 = 1\ndouble.key2 = 2", tags = listOf("double:nested", "double"))) {
+                get("key1") shouldBe SCPrimitive(1)
+                get("key2") shouldBe SCPrimitive(2)
+            }
         }
 
         test("tags never reduce a path to nothing") {
-            holder("very.tagged = 1", tags = listOf("very", "tagged")).all() shouldBe scmap("tagged = 1")
+            holder("very.tagged = 1", tags = listOf("very", "tagged"))
+                .get("tagged") shouldBe SCPrimitive(1)
         }
 
         test("tags apply at any position") {
-            holder("common.extras.dependency.option = 1", tags = listOf("extras", "option")).all() shouldBe scmap(
-                "common.dependency = 1"
-            )
+            holder("common.extras.dependency.option = 1", tags = listOf("extras", "option"))
+                .get("common.dependency") shouldBe SCPrimitive(1)
         }
 
-        test("tag collisions follow the merge policy") {
-            holder("common.value = 1\nvalue = 2", tags = listOf("common")).all() shouldBe scmap("value = 2")
-            holder("common.value = 1\nvalue = 2", policy = KEEP, tags = listOf("common")).all() shouldBe scmap("value = 1")
+        test("the deepest tagged match wins over a shallower default") {
+            holder("common.value = 1\nvalue = 2", tags = listOf("common"))
+                .get("value") shouldBe SCPrimitive(1)
         }
     }
 
-    test("get returns every match for an ambiguous dotted path") {
-        val holder = holder("a.b.c = \"nested\"", "\"a.b\".c = \"joined\"")
-        holder.get("a.b.c").primitives() shouldBe listOf("nested", "joined")
+    test("a dotted key name stays distinct from nested keys") {
+        holder("a.b.c = \"nested\"", "\"a.b\".c = \"joined\"")
+            .get("a.b.c") shouldBe SCPrimitive("nested")
+    }
+
+    test("a key name containing dots is matched as a whole segment") {
+        with(holder("\"1.20.1\".loader = \"fabric\"")) {
+            get("1.20.1.loader") shouldBe SCPrimitive("fabric")
+            get("1.20.loader") shouldBe null
+        }
     }
 
     test("get caches its result") {
@@ -151,7 +156,7 @@ val StructuredPropertiesHolderTest by testSuite {
     }
 
     test("get returns nothing for a missing path") {
-        holder("x = 1").get("y").primitives() shouldBe emptyList()
+        holder("x = 1").get("y") shouldBe null
     }
 }
 
@@ -167,5 +172,3 @@ private fun holder(
     for (struct in structs) load(null) { scmap(struct) }
     if (tags.isNotEmpty()) tags(tags)
 }
-
-private fun List<SCElement>.primitives(): List<Any> = map { (it as SCPrimitive).content }

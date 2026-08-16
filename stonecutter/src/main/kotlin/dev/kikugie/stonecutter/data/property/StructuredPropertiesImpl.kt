@@ -69,14 +69,14 @@ internal abstract class StructuredPropertiesImpl @Inject constructor(
     override fun getLazy(name: String): Provider<String> =
         providers.provider { getOrNull(name) }
 
-    override fun getOrNull(name: String): String? = when (val it = holder.get(name, single = true).singleOrNull()) {
+    override fun getOrNull(name: String): String? = when (val it = holder.get(name)) {
         is SCNull -> null
         is SCPrimitive -> it.toString()
         else -> providers.gradleProperty(name).orNull
     }
 
     override fun rawOrNull(path: String): SCElement? =
-        holder.get(path.replace(':', '.'), single = true).singleOrNull()
+        holder.get(path.replace(':', '.'))
 
     internal fun loadDefaults(directory: Directory) {
         val file = DEFAULT_FILES

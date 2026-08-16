@@ -1,28 +1,63 @@
 package dev.kikugie.stonecutter.data.property
 
+import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.stonecutter.data.deserialization.*
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesHolder.OverwritePolicy.*
+import org.gradle.api.logging.LogLevel
+import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.ExtraPropertiesExtension
 import java.io.File
+import java.util.ArrayDeque
+import java.util.Queue
+
+private val LOGGER: Logger = Logging.getLogger("StonecutterProperties")
 
 public class StructuredPropertiesHolder {
     private val appliedTags: HashSet<String> = HashSet()
     private val loadedFiles: HashSet<File> = HashSet()
     private val loadedStructs: ArrayList<SCMap> = ArrayList()
-    private val lookupCache: HashMap<String, List<SCElement>> = HashMap()
+    private val lookupCache: HashMap<String, SCElement> = HashMap()
 
     private var overwritePolicy: OverwritePolicy = MERGE
-    private var parsedMap: SCMap = SCMap(emptyMap())
+    private var flattenedMap: SCMap = SCMap(emptyMap())
+    private var parsedTags: Array<Array<String>> = emptyArray()
     internal var extraProperties: ExtraPropertiesExtension? = null
 
-    public fun all(): SCMap = parsedMap
+    public fun all(): SCMap = flattenedMap[""]?.takeAsOrNull<SCMap>()
+        ?: SCMap(emptyMap())
 
-    public fun get(path: String, single: Boolean = false): List<SCElement> =
-        lookupCache.getOrPut(path) { ArrayList<SCElement>().apply { collect(parsedMap, path, single) } }
+    public fun get(path: String): SCElement? {
+        lookupCache[path]?.let { return it }
 
-    public fun tags(tags: Iterable<String>, reload: Boolean = true): Boolean = appliedTags
-        .addAll(tags)
-        .also { if (it && reload) reload() }
+        var best: SCElement? = null
+        var bestDepth = -1
+        for ((key, value) in flattenedMap) {
+            val source = segmentsOf(key)
+            if (source.size >= bestDepth && reduces(source, path, parsedTags)) {
+                best = value
+                bestDepth = source.size
+            }
+        }
+        return best?.also { lookupCache[path] = it }
+    }
+
+    public fun tags(tags: Iterable<String>): Boolean {
+        val remainder: Set<String> = (tags.toSet() - appliedTags).ifEmpty { return false }
+        appliedTags += remainder
+
+        val offset = parsedTags.size
+        val array = arrayOfNulls<Array<String>>(offset + remainder.size)
+        parsedTags.copyInto(array)
+        for ((index, tag) in remainder.withIndex()) {
+            val segments: Array<String> = tag.split(':').toTypedArray()
+            array[index + offset] = segments
+        }
+        lookupCache.clear()
+        @Suppress("UNCHECKED_CAST")
+        parsedTags = array as Array<Array<String>>
+        return true
+    }
 
     public fun load(file: File?, reload: Boolean = true, data: () -> SCMap?): Boolean {
         if (file != null && file in loadedFiles) return false
@@ -45,40 +80,13 @@ public class StructuredPropertiesHolder {
         val merger = StructuredPropertiesMerger(overwritePolicy, this)
         for (struct in loadedStructs) for ((key, value) in struct)
             value.accept(merger, key)
+
+        // TODO: The `warnOnDuplicate` option will be a configuration flag.
+        val flattener = StructuredPropertiesFlattener(LinkedHashMap(), false)
+        build().accept(flattener, "")
+
         lookupCache.clear()
-        parsedMap = applyTags(build())
-        extraProperties?.let(::applyToExtra)
-    }
-
-    private fun applyToExtra(ext: ExtraPropertiesExtension, map: SCMap = parsedMap, prefix: String = "") {
-        for ((key, value) in map) {
-            val path = if (prefix.isEmpty()) key else "$prefix.$key"
-            when (value) {
-                is SCMap -> applyToExtra(ext, value, path)
-                is SCPrimitive -> ext[path] = value.toString()
-                else -> Unit // lists and nulls are not exposed as flat entries
-            }
-        }
-    }
-
-    private fun applyTags(root: SCMap): SCMap = when {
-        appliedTags.isEmpty() -> root
-        else -> with(SCMapBuilder()) {
-            val segments = appliedTags.mapTo(HashSet()) { it.split(':') }
-            val merger = StructuredPropertiesTagger(segments, overwritePolicy, this)
-            root.accept(merger, emptyList())
-            build()
-        }
-    }
-
-    private fun MutableList<SCElement>.collect(map: SCMap, path: String, single: Boolean) {
-        for ((key, value) in map) when {
-            key == path ->
-                add(value).also { if (single) break }
-
-            value is SCMap && path.startsWith("$key.") ->
-                collect(value, path.substring(key.length + 1), single)
-        }
+        flattenedMap = SCMap(flattener.builder)
     }
 
     public enum class OverwritePolicy {
@@ -86,10 +94,8 @@ public class StructuredPropertiesHolder {
     }
 }
 
-private class StructuredPropertiesMerger(
-    val policy: StructuredPropertiesHolder.OverwritePolicy,
-    val builder: SCMapBuilder
-) : SCElement.Visitor<String, Unit> {
+private class StructuredPropertiesMerger(val policy: StructuredPropertiesHolder.OverwritePolicy, val builder: SCMapBuilder)
+    : SCElement.Visitor<String, Unit> {
     override fun visitNull(ctx: String) {
         builder[ctx, policy != KEEP] = Null
     }
@@ -133,28 +139,25 @@ private class StructuredPropertiesMerger(
     }
 }
 
-private class StructuredPropertiesTagger(
-    val tags: Set<List<String>>,
-    policy: StructuredPropertiesHolder.OverwritePolicy,
-    builder: SCMapBuilder,
-) : SCElement.Visitor<List<String>, Unit> {
-    private val merger: StructuredPropertiesMerger = StructuredPropertiesMerger(policy, builder)
-
-    override fun visitNull(ctx: List<String>) = place(ctx, SCNull)
-
-    override fun visitPrimitive(prim: SCPrimitive, ctx: List<String>) = place(ctx, prim)
-
-    override fun visitList(list: SCList, ctx: List<String>) = place(ctx, list)
-
-    override fun visitMap(map: SCMap, ctx: List<String>) {
-        if (map.isEmpty()) place(ctx, map)
-        else for ((key, value) in map) value.accept(this, ctx + key)
+private class StructuredPropertiesFlattener(val builder: MutableMap<String, SCElement>, val warnOnDuplicate: Boolean)
+    : SCElement.Visitor<String, Unit> {
+    override fun visitNull(ctx: String): Unit = append(ctx, SCNull)
+    override fun visitPrimitive(prim: SCPrimitive, ctx: String): Unit = append(ctx, prim)
+    override fun visitList(list: SCList, ctx: String) {
+        append(ctx, list)
+        for ((index, item) in list.withIndex())
+            item.accept(this, if (ctx.isEmpty()) index.toString() else "$ctx:$index")
     }
 
-    private fun place(path: List<String>, value: SCElement) {
-        if (path.isEmpty()) return
-        for ((key, element) in nest(cut(path, tags), value))
-            element.accept(merger, key)
+    override fun visitMap(map: SCMap, ctx: String) {
+        append(ctx, map)
+        for ((key, value) in map)
+            value.accept(this, if (ctx.isEmpty()) key else "$ctx:$key")
+    }
+
+    private fun append(key: String, value: SCElement) {
+        val previous = builder.put(key, value) ?: return
+        LOGGER.log(if (warnOnDuplicate) LogLevel.WARN else LogLevel.DEBUG, "Duplicate property replaced '$key': $previous")
     }
 }
 
@@ -162,29 +165,47 @@ private operator fun <K, V> MutableMap<K, V>.set(key: K, overwrite: Boolean, val
     if (overwrite) put(key, value) else putIfAbsent(key, value)
 }
 
-private fun cut(path: List<String>, tags: Set<List<String>>): List<String> {
-    if (tags.isEmpty()) return path
-    val result = ArrayList(path)
-    val used = HashSet<List<String>>()
-    var index = 0
-    while (index < result.size) {
-        val match = tags.asSequence()
-            .filter { it !in used && it.size < result.size && matchesAt(result, index, it) }
-            .maxByOrNull { it.size }
-        if (match == null) index++
-        else {
-            repeat(match.size) { result.removeAt(index) }
-            used += match
-        }
-    }
-    return result
+private fun segmentsOf(key: String): List<String> =
+    if (key.isEmpty()) emptyList() else key.split(':')
+
+private fun matchSegment(target: String, offset: Int, s: String): Int = when {
+    offset == 0 -> if (target.startsWith(s)) s.length else -1
+    offset < target.length && target[offset] == '.' && target.startsWith(s, offset + 1) -> offset + 1 + s.length
+    else -> -1
 }
 
-private fun matchesAt(segments: List<String>, index: Int, tag: List<String>): Boolean =
+private fun matchesAt(segments: List<String>, index: Int, tag: Array<String>): Boolean =
     index + tag.size <= segments.size && tag.indices.all { segments[index + it] == tag[it] }
 
-private fun nest(path: List<String>, value: SCElement): SCMap {
-    var current: SCElement = value
-    for (key in path.asReversed()) current = SCMap(mapOf(key to current))
-    return current as SCMap
+// Magic wikipedia algorithm pt.2
+private fun reduces(segments: List<String>, target: String, tags: Array<Array<String>>): Boolean {
+    if (target.isEmpty()) return segments.isEmpty()
+
+    val length = segments.size
+    val visited = HashSet<Triple<Int, Int, Int>>()
+    val queue = ArrayDeque<Triple<Int, Int, Int>>()
+
+    queue.push(visited, 0, 0, 0)
+    while (queue.isNotEmpty()) queue.removeFirst().let { (index, offset, mask) ->
+        if (index == length) {
+            if (offset == target.length) return true
+            continue
+        }
+
+        val next = matchSegment(target, offset, segments[index])
+        if (next >= 0) queue.push(visited, index + 1, next, mask)
+
+        for ((i, tag) in tags.withIndex()) {
+            val bit = 1 shl i
+            if (mask and bit == 0 && matchesAt(segments, index, tag))
+                queue.push(visited, index + tag.size, offset, mask or bit)
+        }
+    }
+
+    return false
+}
+
+private fun Queue<Triple<Int, Int, Int>>.push(set: MutableSet<Triple<Int, Int, Int>>, a: Int, b: Int, c: Int) {
+    val state = Triple(a, b, c)
+    if (set.add(state)) add(state)
 }
