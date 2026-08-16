@@ -8,19 +8,19 @@ import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.ExtraPropertiesExtension
 import java.io.File
-import java.util.ArrayDeque
-import java.util.Queue
 
 private val LOGGER: Logger = Logging.getLogger("StonecutterProperties")
 
+// If you can, don't look here
 public class StructuredPropertiesHolder {
     private val appliedTags: HashSet<String> = HashSet()
     private val loadedFiles: HashSet<File> = HashSet()
     private val loadedStructs: ArrayList<SCMap> = ArrayList()
-    private val lookupCache: HashMap<String, SCElement> = HashMap()
+    private val lookupCache: HashMap<String, SCElement?> = HashMap()
 
     private var overwritePolicy: OverwritePolicy = MERGE
     private var flattenedMap: SCMap = SCMap(emptyMap())
+    private var lookupIndex: Map<String, List<FlatEntry>> = emptyMap()
     private var parsedTags: Array<Array<String>> = emptyArray()
     internal var extraProperties: ExtraPropertiesExtension? = null
 
@@ -28,18 +28,42 @@ public class StructuredPropertiesHolder {
         ?: SCMap(emptyMap())
 
     public fun get(path: String): SCElement? {
-        lookupCache[path]?.let { return it }
+        if (path in lookupCache) return lookupCache[path]
+        return resolve(path).also { lookupCache[path] = it }
+    }
 
-        var best: SCElement? = null
-        var bestDepth = -1
-        for ((key, value) in flattenedMap) {
-            val source = segmentsOf(key)
-            if (source.size >= bestDepth && reduces(source, path, parsedTags)) {
-                best = value
-                bestDepth = source.size
-            }
+    private fun resolve(path: String): SCElement? {
+        if (path.isEmpty()) return flattenedMap[""]
+
+        var best: FlatEntry? = null
+        for (bucket in candidateKeys(path)) for (entry in lookupIndex[bucket].orEmpty()) {
+            val current = best
+            if (current != null && !entry.isDeeperThan(current)) continue
+            if (reduces(entry.segments, path, parsedTags)) best = entry
         }
-        return best?.also { lookupCache[path] = it }
+        return best?.value
+    }
+
+    private fun candidateKeys(path: String): Set<String> {
+        val keys = hashSetOf(path)
+        var dot = path.indexOf('.')
+        while (dot >= 0) {
+            keys += path.substring(dot + 1)
+            dot = path.indexOf('.', dot + 1)
+        }
+        for (tag in parsedTags)
+            keys += tag.last()
+        return keys
+    }
+
+    private fun buildIndex(entries: Map<String, SCElement>): Map<String, List<FlatEntry>> {
+        val index = HashMap<String, MutableList<FlatEntry>>()
+        for ((order, entry) in entries.entries.withIndex()) {
+            val segments = segmentsOf(entry.key)
+            val last = segments.lastOrNull() ?: continue
+            index.getOrPut(last) { ArrayList() }.add(FlatEntry(segments, entry.value, order))
+        }
+        return index
     }
 
     public fun tags(tags: Iterable<String>): Boolean {
@@ -87,6 +111,7 @@ public class StructuredPropertiesHolder {
 
         lookupCache.clear()
         flattenedMap = SCMap(flattener.builder)
+        lookupIndex = buildIndex(flattener.builder)
     }
 
     public enum class OverwritePolicy {
@@ -185,27 +210,34 @@ private fun reduces(segments: List<String>, target: String, tags: Array<Array<St
     val visited = HashSet<Triple<Int, Int, Int>>()
     val queue = ArrayDeque<Triple<Int, Int, Int>>()
 
-    queue.push(visited, 0, 0, 0)
-    while (queue.isNotEmpty()) queue.removeFirst().let { (index, offset, mask) ->
+    fun enqueue(index: Int, offset: Int, mask: Int) {
+        val state = Triple(index, offset, mask)
+        if (visited.add(state)) queue.add(state)
+    }
+
+    enqueue(0, 0, 0)
+    while (queue.isNotEmpty()) {
+        val (index, offset, mask) = queue.removeFirst()
         if (index == length) {
             if (offset == target.length) return true
             continue
         }
 
-        val next = matchSegment(target, offset, segments[index])
-        if (next >= 0) queue.push(visited, index + 1, next, mask)
+        // Keep segments[index], matching it against the next chunk of the target.
+        val kept = matchSegment(target, offset, segments[index])
+        if (kept >= 0) enqueue(index + 1, kept, mask)
 
+        // Skip an as-yet-unused tag that matches contiguously at index.
         for ((i, tag) in tags.withIndex()) {
             val bit = 1 shl i
             if (mask and bit == 0 && matchesAt(segments, index, tag))
-                queue.push(visited, index + tag.size, offset, mask or bit)
+                enqueue(index + tag.size, offset, mask or bit)
         }
     }
-
     return false
 }
 
-private fun Queue<Triple<Int, Int, Int>>.push(set: MutableSet<Triple<Int, Int, Int>>, a: Int, b: Int, c: Int) {
-    val state = Triple(a, b, c)
-    if (set.add(state)) add(state)
+private class FlatEntry(val segments: List<String>, val value: SCElement, val order: Int) {
+    fun isDeeperThan(other: FlatEntry): Boolean = segments.size > other.segments.size
+        || (segments.size == other.segments.size && order > other.order)
 }

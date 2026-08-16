@@ -78,6 +78,12 @@ internal abstract class StructuredPropertiesImpl @Inject constructor(
     override fun rawOrNull(path: String): SCElement? =
         holder.get(path.replace(':', '.'))
 
+    override fun contains(name: String, structOnly: Boolean): Boolean = when (val it = holder.get(name)) {
+        is SCPrimitive -> true
+        is SCNull -> false
+        else -> !structOnly && providers.gradleProperty(name).isPresent
+    }
+
     internal fun loadDefaults(directory: Directory) {
         val file = DEFAULT_FILES
             .firstNotNullOfOrNull { name -> directory.file(name).takeIf { it.asFile.exists() } }
