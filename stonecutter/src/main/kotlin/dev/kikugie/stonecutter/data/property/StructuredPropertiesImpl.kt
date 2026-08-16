@@ -76,7 +76,7 @@ internal abstract class StructuredPropertiesImpl @Inject constructor(
     }
 
     override fun rawOrNull(path: String): SCElement? =
-        holder.get(path.replace(':', '.'))
+        holder.raw(path.replace(':', '.'))
 
     override fun contains(name: String, structOnly: Boolean): Boolean = when (val it = holder.get(name)) {
         is SCPrimitive -> true

@@ -150,6 +150,39 @@ val StructuredPropertiesHolderTest by testSuite {
         }
     }
 
+    test("get ignores composite structs") {
+        holder("common.deps.a = 1", tags = listOf("common")).get("deps") shouldBe null
+    }
+
+    test("raw merges matching maps across tags") {
+        holder("common.deps.a = 1", "fabric.deps.b = 2", tags = listOf("common", "fabric"))
+            .raw("deps") shouldBe scmap(
+                """
+                a = 1
+                b = 2
+                """
+            )
+    }
+
+    test("raw concatenates matching lists across tags") {
+        holder("common.items = [1, 2]", "fabric.items = [3]", tags = listOf("common", "fabric"))
+            .raw("items") shouldBe scmap("items = [1, 2, 3]")["items"]
+    }
+
+    test("raw merges nested maps and lists recursively across tags") {
+        holder(
+            "common.deps.a.x = 1\ncommon.deps.list = [1]",
+            "fabric.deps.a.y = 2\nfabric.deps.list = [2]",
+            tags = listOf("common", "fabric"),
+        ).raw("deps") shouldBe scmap(
+            """
+            a.x = 1
+            a.y = 2
+            list = [1, 2]
+            """
+        )
+    }
+
     test("get caches its result") {
         val holder = holder("x = 1")
         (holder.get("x") === holder.get("x")) shouldBe true

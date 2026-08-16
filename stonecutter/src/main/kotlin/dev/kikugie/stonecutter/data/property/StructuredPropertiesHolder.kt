@@ -16,7 +16,8 @@ public class StructuredPropertiesHolder {
     private val appliedTags: HashSet<String> = HashSet()
     private val loadedFiles: HashSet<File> = HashSet()
     private val loadedStructs: ArrayList<SCMap> = ArrayList()
-    private val lookupCache: HashMap<String, SCElement?> = HashMap()
+    private val primitiveCache: HashMap<String, SCElement?> = HashMap()
+    private val rawCache: HashMap<String, SCElement?> = HashMap()
 
     private var overwritePolicy: OverwritePolicy = MERGE
     private var flattenedMap: SCMap = SCMap(emptyMap())
@@ -28,8 +29,17 @@ public class StructuredPropertiesHolder {
         ?: SCMap(emptyMap())
 
     public fun get(path: String): SCElement? {
-        if (path in lookupCache) return lookupCache[path]
-        return resolve(path).also { lookupCache[path] = it }
+        if (path in primitiveCache) return primitiveCache[path]
+        val best = resolve(path)
+        val primitive = if (best is SCMap || best is SCList) null else best
+        return primitive.also { primitiveCache[path] = it }
+    }
+
+    public fun raw(path: String): SCElement? {
+        if (path in rawCache) return rawCache[path]
+        val best = resolve(path)
+        val result = if (best is SCMap || best is SCList) mergeMatches(path, best) else best
+        return result.also { rawCache[path] = it }
     }
 
     private fun resolve(path: String): SCElement? {
@@ -42,6 +52,24 @@ public class StructuredPropertiesHolder {
             if (reduces(entry.segments, path, parsedTags)) best = entry
         }
         return best?.value
+    }
+
+    private fun mergeMatches(path: String, best: SCElement): SCElement {
+        val matches = ArrayList<FlatEntry>()
+        for (bucket in candidateKeys(path)) for (entry in lookupIndex[bucket].orEmpty())
+            if (sameKind(entry.value, best) && reduces(entry.segments, path, parsedTags)) matches += entry
+        if (matches.size <= 1) return best
+
+        // Apply shallowest-first so the deepest, last match wins any conflict.
+        matches.sortWith(compareBy({ it.segments.size }, { it.order }))
+        return if (best is SCList) SCList(matches.flatMap { (it.value as SCList).content })
+        else mergeMaps(matches.map { it.value as SCMap })
+    }
+
+    private fun mergeMaps(maps: List<SCMap>): SCMap = with(SCMapBuilder()) {
+        val merger = StructuredPropertiesMerger(overwritePolicy, this)
+        for (map in maps) for ((key, value) in map) value.accept(merger, key)
+        build()
     }
 
     private fun candidateKeys(path: String): Set<String> {
@@ -77,7 +105,8 @@ public class StructuredPropertiesHolder {
             val segments: Array<String> = tag.split(':').toTypedArray()
             array[index + offset] = segments
         }
-        lookupCache.clear()
+        primitiveCache.clear()
+        rawCache.clear()
         @Suppress("UNCHECKED_CAST")
         parsedTags = array as Array<Array<String>>
         return true
@@ -109,7 +138,8 @@ public class StructuredPropertiesHolder {
         val flattener = StructuredPropertiesFlattener(LinkedHashMap(), false)
         build().accept(flattener, "")
 
-        lookupCache.clear()
+        primitiveCache.clear()
+        rawCache.clear()
         flattenedMap = SCMap(flattener.builder)
         lookupIndex = buildIndex(flattener.builder)
     }
@@ -192,6 +222,9 @@ private operator fun <K, V> MutableMap<K, V>.set(key: K, overwrite: Boolean, val
 
 private fun segmentsOf(key: String): List<String> =
     if (key.isEmpty()) emptyList() else key.split(':')
+
+private fun sameKind(a: SCElement, b: SCElement): Boolean =
+    (a is SCMap && b is SCMap) || (a is SCList && b is SCList)
 
 private fun matchSegment(target: String, offset: Int, s: String): Int = when {
     offset == 0 -> if (target.startsWith(s)) s.length else -1
