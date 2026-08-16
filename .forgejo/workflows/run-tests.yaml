@@ -5,6 +5,7 @@ on:
       - stitcher/src/**
       - stonecutter/src/**
       - .forgejo/workflows/run-tests.yaml
+  workflow_dispatch:
 
 jobs:
   resolve-versions:
