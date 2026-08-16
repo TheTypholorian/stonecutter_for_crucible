@@ -11,6 +11,7 @@ import dev.kikugie.stitcher.document.DocumentReference
 import dev.kikugie.stitcher.document.appendTo
 import dev.kikugie.stitcher.document.reference
 import dev.kikugie.stitcher.token.type.StitcherTokenType
+import dev.kikugie.stitcher.util.unescapeQuoted
 import org.antlr.v4.runtime.tree.TerminalNode
 
 val StitcherToken?.typeValue: Int
@@ -51,7 +52,7 @@ fun AntlrToken.toLeaf(doc: Document, type: StitcherTokenType = StitcherTokenType
     LeafToken(type, doc.reference(startIndex, endIndex))
 
 fun LeafToken.unquote(): String = when(type.value) {
-    Tokens.QUOTED -> text.removeSurrounding("'")
+    Tokens.QUOTED -> text.removeSurrounding("'").unescapeQuoted()
     else -> text
 }
 

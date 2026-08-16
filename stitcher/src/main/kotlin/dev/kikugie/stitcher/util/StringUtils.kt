@@ -11,9 +11,14 @@ internal val LINE_BREAKS: CharArray = charArrayOf('\r', '\n')
 internal val WORD_BREAKS: CharArray = charArrayOf(' ', '\t')
 internal val WHITESPACES: CharArray = WORD_BREAKS + LINE_BREAKS
 
+private val QUOTED_ESCAPE: Regex = Regex("""\\(['\\])""")
+
 internal fun String.titlecase(): String = replaceFirstChar {
     if (it.isLowerCase()) it.titlecase() else it.toString()
 }
+
+internal fun String.unescapeQuoted(): String =
+    QUOTED_ESCAPE.replace(this) { it.groupValues[1] }
 
 internal fun String.findWordSplit(): Int {
     var index = indexOfFirst { it !in WHITESPACES }

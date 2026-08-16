@@ -525,6 +525,18 @@ val FileAstAssemblerTest by testSuite {
             """.trimIndent()
         }
 
+        test("escaped quote in replacement pattern") {
+            """
+                val pre = "a'b"
+                //~ if true 'a\'b' -> 'x' as _
+                val post = "a'b"
+            """.trimIndent() shouldAssembleTo """
+                val pre = "a'b"
+                //~ if true 'a\'b' -> 'x' as _
+                val post = "x"
+            """.trimIndent()
+        }
+
         test("replacement toggle enables and disables ids in one marker") {
             val params = params {
                 string("olda", "newa", id = "a")
