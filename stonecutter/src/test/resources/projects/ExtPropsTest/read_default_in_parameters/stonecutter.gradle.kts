@@ -5,5 +5,5 @@ plugins {
 stonecutter active "1.20.1"
 
 stonecutter parameters {
-    check(node.project.findProperty("prop2") != null)
+    check(properties.contains("prop2"))
 }

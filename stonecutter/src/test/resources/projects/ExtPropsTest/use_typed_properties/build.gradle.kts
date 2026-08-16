@@ -6,7 +6,7 @@ assert(loader == "forge_loader") { "Loader is not forge" }
 
 sc.properties.tags(mc, loader)
 
-val nativeForgeStr = property("deps.forge_loader")
+val nativeForgeStr = sc.properties["deps.forge_loader"]
 assert(nativeForgeStr == "37.1.1") { "Native forge is not 37.1.1" }
 
 val typedForgeStr: String = sc.properties.getAs("deps.forge_loader")
