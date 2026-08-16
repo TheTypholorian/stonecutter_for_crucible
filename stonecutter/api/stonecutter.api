@@ -1084,6 +1084,7 @@ public final class dev/kikugie/stonecutter/data/property/StructuredPropertiesHol
 	public final fun load (Ljava/io/File;ZLkotlin/jvm/functions/Function0;)Z
 	public static synthetic fun load$default (Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder;Ljava/io/File;ZLkotlin/jvm/functions/Function0;ILjava/lang/Object;)Z
 	public final fun overwrite (Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy;)V
+	public final fun raw (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
 	public final fun tags (Ljava/lang/Iterable;)Z
 }
 
