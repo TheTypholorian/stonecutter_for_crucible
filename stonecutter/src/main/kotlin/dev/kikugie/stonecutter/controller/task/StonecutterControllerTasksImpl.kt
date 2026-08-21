@@ -3,7 +3,6 @@ package dev.kikugie.stonecutter.controller.task
 import dev.kikugie.commons.takeAs
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.StonecutterInternalAPI
-import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.controller.StonecutterControllerImpl
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
@@ -18,12 +17,9 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.provider.MapProperty
-import org.gradle.api.provider.Provider
-import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.mapProperty
 import org.gradle.kotlin.dsl.register
-import org.gradle.kotlin.dsl.the
 import java.io.File
 import javax.inject.Inject
 
@@ -64,7 +60,7 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
     }
 
     fun registerScriptSwitchTask(id: Identifier, manager: StonecutterControllerManager): TaskProvider<out StonecutterSwitchTask> {
-        val delegates = controller.tree.collectMergeTasks(controller.root, id)
+        val delegates = controller.tree.collectMergeTasks(id)
         return controller.root.registerDefault<StonecutterScriptSwitchTask>(switch.taskName(id), { switch.identifiers += id }) {
             version.set(id)
             writer.set(manager::update)
@@ -74,7 +70,7 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
     }
 
     fun registerExternalSwitchTask(id: Identifier, provider: File): TaskProvider<out StonecutterSwitchTask> {
-        val delegates = controller.tree.collectMergeTasks(controller.root, id)
+        val delegates = controller.tree.collectMergeTasks(id)
         return controller.root.registerDefault<StonecutterExternalSwitchTask>(switch.taskName(id), { switch.identifiers += id }) {
             version.set(id)
             file.set(provider)
@@ -82,27 +78,31 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
         }
     }
 
-    fun registerModelGroupingTask() =
-        controller.root.registerDefault<DefaultTask>("stonecutterSaveModels")
+    fun registerModelGroupingTask() = controller.root.registerDefault<DefaultTask>("stonecutterSaveModels") {
+        dependsOn(controller.tree.hierarchy.resolve("stonecutterSaveTreeModel").toString())
+        for (branch in controller.tree.branches)
+            dependsOn(branch.hierarchy.resolve("stonecutterSaveBranchModel").toString())
+        for (node in controller.tree.nodes)
+            dependsOn(node.hierarchy.resolve("stonecutterSaveNodeModel").toString())
+    }
 
-    fun registerTreeModelTask() =
-        controller.root.registerDefault<StonecutterModelTask>("stonecutterSaveTreeModel") {
-            val tree = controller.tree
-            val flags = controller.flags.takeAs<StonecutterFlagsImpl>()
+    fun registerTreeModelTask() = controller.root.registerDefault<StonecutterModelTask>("stonecutterSaveTreeModel") {
+        val tree = controller.tree
+        val flags = controller.flags.takeAs<StonecutterFlagsImpl>()
 
-            output.set(controller.root.layout.buildDirectory.file("stonecutter-cache/tree.json"))
-            model.set(controller.root.providers) {
-                tree.toModel(flags.registry).let(SCJSON::encodeToString)
-            }
+        output.set(controller.root.layout.buildDirectory.file("stonecutter-cache/tree.json"))
+        model.set(controller.root.providers) {
+            tree.toModel(flags.registry).let(SCJSON::encodeToString)
         }
+    }
 
-    fun registerBranchModelTask(branch: ProjectBranch) =
-        branch.project.registerDefault<StonecutterModelTask>("stonecutterSaveBranchModel") {
-            output.set(branch.project.layout.buildDirectory.file("stonecutter-cache/branch.json"))
-            model.set(controller.root.providers) {
-                branch.toModel().let(SCJSON::encodeToString)
-            }
+    fun registerBranchModelTask(branch: ProjectBranch) = branch.project.registerDefault<StonecutterModelTask>("stonecutterSaveBranchModel") {
+        // TODO: this should use project's layout.buildDirectory in isolated-projects-compatible way
+        output.set(branch.location.resolve("build/stonecutter-cache/branch.json").toFile())
+        model.set(controller.root.providers) {
+            branch.toModel().let(SCJSON::encodeToString)
         }
+    }
 
     private fun interface TaskSelector {
         fun get(node: ProjectNode): TaskProvider<*>
@@ -112,9 +112,9 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
 private fun ProjectNode.task(name: String): String =
     "${hierarchy.orEmpty()}:$name"
 
-private fun ProjectTree.collectMergeTasks(root: Project, project: Identifier): List<Provider<Collection<TaskProvider<Copy>>>> = nodes
+private fun ProjectTree.collectMergeTasks(project: Identifier): List<String> = nodes
     .filter { it.metadata.project == project }
-    .map { root.provider { it.project.the<StonecutterBuildExtension>().tasks.merge.values } }
+    .map { it.hierarchy.resolve("stonecutterMergeAll").toString() }
 
 internal inline fun <reified T : Task> Project.registerDefault(
     name: String,

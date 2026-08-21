@@ -1,6 +1,12 @@
 package dev.kikugie.stonecutter.data
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import org.gradle.api.Project
 import org.gradle.api.initialization.ProjectDescriptor
 import org.gradle.api.invocation.Gradle
@@ -16,9 +22,9 @@ private annotation class ProjectHierarchyDsl
 /**
  * Represents an absolute Gradle project path.
  */
-@JvmInline @Serializable @JvmExposeBoxed @ProjectHierarchyDsl @OptIn(ExperimentalStdlibApi::class)
-public value class ProjectHierarchy private constructor(@PublishedApi internal val path: PathString) :
-    List<PathString>, java.io.Serializable {
+@Serializable(with = ProjectHierarchy.Serializer::class)
+@ProjectHierarchyDsl @OptIn(ExperimentalStdlibApi::class)
+public class ProjectHierarchy private constructor(@PublishedApi internal val path: PathString) : List<PathString>, java.io.Serializable {
     override val size: Int
         get() = if (isEmpty()) 0 else path.count { it == SEP_CH }
 
@@ -198,7 +204,12 @@ public value class ProjectHierarchy private constructor(@PublishedApi internal v
         }
     }
 
-    @JvmExposeBoxed
+    public object Serializer : KSerializer<ProjectHierarchy> {
+        override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor(ProjectHierarchy::class.qualifiedName!!, PrimitiveKind.STRING)
+        override fun serialize(encoder: Encoder, value: ProjectHierarchy): Unit = encoder.encodeString(value.path)
+        override fun deserialize(decoder: Decoder): ProjectHierarchy = ProjectHierarchy(decoder.decodeString())
+    }
+
     public companion object {
         private val EMPTY_ITERATOR: ListIterator<PathString> = emptyList<PathString>().listIterator()
 

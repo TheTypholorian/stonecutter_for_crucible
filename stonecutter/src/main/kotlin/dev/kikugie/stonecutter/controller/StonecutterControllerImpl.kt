@@ -169,16 +169,10 @@ private fun ProjectTreeImpl.createSwitchTasks(root: Project, impls: StonecutterC
 }
 
 private fun ProjectTreeImpl.createModelTasks(impls: StonecutterControllerTasksImpl) {
-    val aggregate = impls.registerModelGroupingTask()
-    val delegates = buildList {
-        this += impls.registerTreeModelTask()
-        for (branch in branches)
-            this += impls.registerBranchModelTask(branch)
-    }
-
-    aggregate.configure {
-        dependsOn(delegates)
-    }
+    impls.registerTreeModelTask()
+    for (branch in branches)
+        impls.registerBranchModelTask(branch)
+    impls.registerModelGroupingTask()
 }
 
 private fun ProjectTreeImpl.configureSyncTask(root: Project, flags: StonecutterFlags): Unit = root.afterEvaluate {

@@ -31,8 +31,6 @@ public abstract class FileHandlerContainer : GradleContainerService {
         for (it in extensions) handlers.make(it, configuration)
     }
 
-    internal fun formats(): Set<String> = handlers.names.toSet()
-
     internal fun build(): Map<String, HandlerModel> = handlers.asMap.mapValues { (_, it) ->
         HandlerModel(it)
     }

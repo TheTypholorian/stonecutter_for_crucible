@@ -9,6 +9,7 @@ import dev.kikugie.stonecutter.data.whatever.TaskProviderMap
 import dev.kikugie.stonecutter.util.SCJSON
 import dev.kikugie.stonecutter.util.allSources
 import dev.kikugie.stonecutter.util.set
+import org.gradle.api.DefaultTask
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
@@ -20,12 +21,14 @@ import javax.inject.Inject
 
 @OptIn(StonecutterInternalAPI::class)
 internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build: StonecutterBuildImpl) : StonecutterBuildTasks {
-    override val generate: TaskProviderMap<StonecutterGenerateTask> = TaskProviderMap(build.project) {
-        "stonecutterGenerate${it.sourceSetSuffix}"
-    }
-    override val merge: TaskProviderMap<Copy> = TaskProviderMap(build.project) {
-        "stonecutterMerge${it.sourceSetSuffix}"
-    }
+    override val generate: TaskProviderMap<StonecutterGenerateTask> = TaskProviderMap(build.project) { "stonecutterGenerate${it.sourceSetSuffix}" }
+    override val merge: TaskProviderMap<Copy> = TaskProviderMap(build.project) { "stonecutterMerge${it.sourceSetSuffix}" }
+
+    @PublishedApi
+    internal val generateAll: TaskProvider<DefaultTask> = build.project.registerDefault<DefaultTask>("stonecutterGenerateAll")
+
+    @PublishedApi
+    internal val mergeAll: TaskProvider<DefaultTask> = build.project.registerDefault<DefaultTask>("stonecutterMergeAll")
 
     private val registeredSources: MutableSet<File> = mutableSetOf()
     private val logger: Logger = Logging.getLogger("StonecutterBuild")
@@ -52,15 +55,18 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
     }
 
     inline fun registerGenerateTask(src: SourceSet, crossinline config: StonecutterGenerateTask.() -> Unit): TaskProvider<StonecutterGenerateTask> =
-        build.project.registerDefault(generate.taskName(src.name), { generate.identifiers += src.name }, config)
+        build.project.registerDefault(generate.taskName(src.name), { task ->
+            generate.identifiers += src.name
+            generateAll.configure { dependsOn(task) }
+        }, config)
 
     inline fun registerMergeTask(src: SourceSet, crossinline config: Copy.() -> Unit): TaskProvider<Copy> =
-        build.project.registerDefault(merge.taskName(src.name), { merge.identifiers += src.name }, config)
+        build.project.registerDefault(merge.taskName(src.name), { task ->
+            merge.identifiers += src.name
+            mergeAll.configure { dependsOn(task) }
+        }, config)
 
-    fun registerNodeModelTask(): TaskProvider<StonecutterModelTask> = build.project.registerDefault(
-        "stonecutterSaveNodeModel",
-        { build.tree.project.afterEvaluate { tasks.named("stonecutterSaveModels") { dependsOn(it) } } }
-    ) {
+    fun registerNodeModelTask(): TaskProvider<StonecutterModelTask> = build.project.registerDefault("stonecutterSaveNodeModel") {
         val node = build.node
 
         output.set(build.project.layout.buildDirectory.file("stonecutter-cache/node.json"))
