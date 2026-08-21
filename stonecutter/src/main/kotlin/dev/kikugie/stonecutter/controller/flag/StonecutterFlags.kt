@@ -43,8 +43,7 @@ internal class StonecutterFlagsImpl(
 
     override fun <T : Any> set(key: StonecutterFlag<T>, value: T) {
         require(key.scope == scope) {
-            val scopeName = key.scope.name.lowercase()
-            "Flag '${key.key}' is $scopeName-scoped and cannot be assigned in a $scopeName-scoped context"
+            "Flag '${key.key}' is ${key.scope.name.lowercase()}-scoped and cannot be assigned in a ${scope.name.lowercase()}-scoped context"
         }
         registry[key.configuration] = value
     }

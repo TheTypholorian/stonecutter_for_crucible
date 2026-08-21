@@ -78,6 +78,11 @@ public data class StonecutterFlag<T : Any> private constructor(
          * ```
          * **This only has effect if configured before the `stonecutter.active(...)` call.**
          *
+         * Auto-application reaches across project boundaries,
+         * so it is **forced off when [Isolated Projects](https://docs.gradle.org/current/userguide/isolated_projects.html) is enabled**
+         * (any assigned value is overridden). The plugin must then be applied in
+         * each versioned build script explicitly, as shown above.
+         *
          * **Default**: `true`
          */
         @JvmField
