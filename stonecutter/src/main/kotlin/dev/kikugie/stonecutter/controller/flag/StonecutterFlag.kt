@@ -159,6 +159,7 @@ public data class StonecutterFlag<T : Any> private constructor(
          *
          * **Default**: `"runClient"`
          */
+        @JvmField
         public val APPLICATION_TASK: StonecutterFlag<String> =
             StonecutterFlag("application_task", "runClient", FlagScope.NODE)
 

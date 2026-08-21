@@ -401,6 +401,7 @@ public final class dev/kikugie/stonecutter/controller/flag/FlagScope : java/lang
 
 public final class dev/kikugie/stonecutter/controller/flag/StonecutterFlag {
 	public static final field APPEND_SOURCES_AFTER_EVAL Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
+	public static final field APPLICATION_TASK Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field APPLY_PLUGIN_TO_NODES Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field Companion Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag$Companion;
 	public static final field GENERATE_MANIFEST Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
@@ -424,7 +425,6 @@ public final class dev/kikugie/stonecutter/controller/flag/StonecutterFlag {
 }
 
 public final class dev/kikugie/stonecutter/controller/flag/StonecutterFlag$Companion {
-	public final fun getAPPLICATION_TASK ()Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public final fun named (Ljava/lang/String;)Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 }
 
