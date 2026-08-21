@@ -19,7 +19,9 @@ import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.HandlerModel
-import dev.kikugie.stonecutter.controller.tree.ParametersModel
+import dev.kikugie.stonecutter.controller.tree.forFile
+import dev.kikugie.stonecutter.controller.tree.toParameters
+import dev.kikugie.stonecutter.model.process.ProcessParameters
 import dev.kikugie.stonecutter.util.clearIfNotIncremental
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
@@ -105,7 +107,7 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
     @TaskAction
     internal fun run(inputs: InputChanges) {
         inputs.clearIfNotIncremental(destination.asFile.get())
-        val model = ParametersModel(params.get())
+        val model = params.get().toParameters()
         val processable: Set<File> = processable.files
 
         with(executor.noIsolation()) {
@@ -123,7 +125,7 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
     private val File.overrideFile: File
         get() = localRoot.get().resolve(relativeTo(root.get()))
 
-    private fun WorkQueue.processFile(change: FileChange, params: ParametersModel, process: Boolean): Unit =
+    private fun WorkQueue.processFile(change: FileChange, params: ProcessParameters, process: Boolean): Unit =
         submit(GenerateAction::class) {
             source.set(change.file)
             output.set(change.file.generatedFile)
@@ -143,7 +145,7 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
         val source: RegularFileProperty
         val output: RegularFileProperty
         val override: RegularFileProperty
-        val model: Property<ParametersModel>
+        val model: Property<ProcessParameters>
         val transform: Property<Boolean>
         val lineEnding: Property<String>
 

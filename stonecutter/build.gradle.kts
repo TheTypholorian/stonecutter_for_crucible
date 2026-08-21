@@ -11,6 +11,7 @@ plugins {
     `maven-publish`
     kotlin("jvm")
     kotlin("plugin.serialization")
+    kotlin("plugin.assignment") version common.versions.kotlin.jvm.get()
     alias(libs.plugins.gradle.compatibility)
     alias(common.plugins.gradle.shadow)
     alias(common.plugins.gradle.publish)
@@ -66,6 +67,10 @@ kotlin {
 
 samWithReceiver {
     annotation(HasImplicitReceiver::class.qualifiedName!!)
+}
+
+assignment {
+    annotation("org.gradle.api.SupportsKotlinAssignmentOverloading")
 }
 
 dokka {

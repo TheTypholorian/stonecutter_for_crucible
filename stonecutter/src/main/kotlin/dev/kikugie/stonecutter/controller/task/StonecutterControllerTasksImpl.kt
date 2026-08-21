@@ -7,8 +7,7 @@ import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.controller.StonecutterControllerImpl
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
-import dev.kikugie.stonecutter.controller.tree.BranchModel
-import dev.kikugie.stonecutter.controller.tree.TreeModel
+import dev.kikugie.stonecutter.controller.tree.toModel
 import dev.kikugie.stonecutter.data.tree.ProjectBranch
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
@@ -93,7 +92,7 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
 
             output.set(controller.root.layout.buildDirectory.file("stonecutter-cache/tree.json"))
             model.set(controller.root.providers) {
-                TreeModel(tree, flags).let(SCJSON::encodeToString)
+                tree.toModel(flags.registry).let(SCJSON::encodeToString)
             }
         }
 
@@ -101,7 +100,7 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
         branch.project.registerDefault<StonecutterModelTask>("stonecutterSaveBranchModel") {
             output.set(branch.project.layout.buildDirectory.file("stonecutter-cache/branch.json"))
             model.set(controller.root.providers) {
-                BranchModel(branch).let(SCJSON::encodeToString)
+                branch.toModel().let(SCJSON::encodeToString)
             }
         }
 

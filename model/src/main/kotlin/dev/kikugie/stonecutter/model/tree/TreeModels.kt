@@ -40,6 +40,7 @@ public data class NodeModel(
     val branch: BranchInfo,
     val root: Path,
     val parameters: ProcessParameters,
+    val flags: ConfigurationRegistry = ConfigurationRegistry(),
 )
 
 @Serializable @JvmRecord

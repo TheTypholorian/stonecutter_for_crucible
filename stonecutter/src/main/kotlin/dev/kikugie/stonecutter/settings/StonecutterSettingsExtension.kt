@@ -3,6 +3,7 @@ package dev.kikugie.stonecutter.settings
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.data.version.SemanticOperations
@@ -74,6 +75,22 @@ public abstract class StonecutterSettingsExtension(
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/build#arbitrary-operations">Semantic Operations Documentation</a>
      */
     public val semantics: VersionOperations<SemanticVersion> get() = SemanticOperations
+
+    /**
+     * Mutable view of settings-scoped Stonecutter configuration flags.
+     *
+     * Flags are used to configure the internal behaviour of the plugin.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#flags">Flags Documentation</a>
+     */
+    public abstract val flags: StonecutterFlags
+
+    /**
+     * Configures settings-scoped Stonecutter configuration flags.
+     *
+     * Flags are used to configure the internal behaviour of the plugin.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#flags">Flags Documentation</a>
+     */
+    public infix fun flags(action: Action<StonecutterFlags>): Unit = action.execute(flags)
 
     /* Shared configuration */
     /**

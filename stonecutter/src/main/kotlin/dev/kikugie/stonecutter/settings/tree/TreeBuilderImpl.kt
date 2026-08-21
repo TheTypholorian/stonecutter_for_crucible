@@ -3,6 +3,7 @@ package dev.kikugie.stonecutter.settings.tree
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.ProjectReference
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
@@ -231,7 +232,7 @@ private fun checkBuildscript(project: ProjectHierarchy, build: String) {
 
 private fun getDefaultBuildscript(ext: StonecutterSettingsImpl, dir: Path, type: String): String = when {
     dir.resolve("$type.gradle.kts").exists() -> "$type.gradle.kts"
-    dir.resolve("$type.gradle").exists() || ext.isHardMode -> "$type.gradle"
+    dir.resolve("$type.gradle").exists() || ext.flags[StonecutterFlag.HARD_MODE] -> "$type.gradle"
     else -> "$type.gradle.kts"
 }
 

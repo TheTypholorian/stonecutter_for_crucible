@@ -2,12 +2,20 @@ package dev.kikugie.stonecutter.data.container
 
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.build.data.StonecutterBuildConfiguration
+import dev.kikugie.stonecutter.controller.flag.FlagScope
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
+import dev.kikugie.stonecutter.data.property.StructuredPropertiesExtension
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
+import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
-import org.gradle.api.*
+import dev.kikugie.stonecutter.util.propertyKey
+import org.gradle.api.Action
+import org.gradle.api.NamedDomainObjectSet
+import org.gradle.api.Project
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
@@ -68,3 +76,42 @@ internal abstract class ProjectNodeContainer : GradleContainerService {
     }
 }
 
+internal abstract class FlagContainer : GradleContainerService {
+    private lateinit var settings: ConfigurationRegistry
+    private val controller: MutableMap<ProjectHierarchy, ConfigurationRegistry> = HashMap()
+    private val node: MutableMap<ProjectHierarchy, ConfigurationRegistry> = HashMap()
+
+    fun settings(provider: StructuredPropertiesExtension): StonecutterFlagsImpl =
+        StonecutterFlagsImpl(scope = FlagScope.SETTINGS) { settingsFallback(it, provider) }
+            .also { settings = it.registry }
+
+    fun controller(project: ProjectHierarchy, provider: StructuredPropertiesExtension): StonecutterFlagsImpl {
+        val settings = settings
+        return StonecutterFlagsImpl(scope = FlagScope.CONTROLLER) { controllerFallback(it, settings, provider) }
+            .also { controller[project] = it.registry }
+    }
+
+    fun node(project: ProjectHierarchy, parent: ProjectHierarchy, provider: StructuredPropertiesExtension): StonecutterFlagsImpl {
+        val settings = settings
+        val controller = controller[parent]!!
+        return StonecutterFlagsImpl(scope = FlagScope.NODE) { nodeFallback(it, controller, settings, provider) }
+            .also { node[project] = it.registry }
+    }
+}
+
+private fun settingsFallback(flag: StonecutterFlag<*>, provider: StructuredPropertiesExtension): String? = when (flag.scope) {
+    FlagScope.SETTINGS -> provider.getOrNull(flag.propertyKey)
+    else -> null
+}
+
+private fun controllerFallback(flag: StonecutterFlag<*>, fallback: ConfigurationRegistry, provider: StructuredPropertiesExtension): String? = when (flag.scope) {
+    FlagScope.SETTINGS -> fallback[flag.configuration].toString()
+    FlagScope.CONTROLLER -> provider.getOrNull(flag.propertyKey)
+    else -> null
+}
+
+private fun nodeFallback(flag: StonecutterFlag<*>, fallfront: ConfigurationRegistry, fallback: ConfigurationRegistry, provider: StructuredPropertiesExtension): String? = when (flag.scope) {
+    FlagScope.SETTINGS -> fallback[flag.configuration].toString()
+    FlagScope.CONTROLLER -> fallfront[flag.configuration].toString()
+    else -> provider.getOrNull(flag.propertyKey)
+}

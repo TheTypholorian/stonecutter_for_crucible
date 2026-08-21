@@ -6,40 +6,46 @@ import kotlin.annotation.AnnotationRetention.BINARY
 @DslMarker @Retention(BINARY)
 private annotation class FlagDsl
 
-/**Extension interface to provide read-only access to [StonecutterFlag]s.*/
+/**Extension interface to provide read-write access to [StonecutterFlag]s.*/
 @FlagDsl
-public sealed interface StonecutterFlagsView {
+public interface StonecutterFlags {
     public operator fun get(key: String): Any = get(StonecutterFlag.named(key))
     public operator fun <T : Any> get(key: StonecutterFlag<T>): T
     public operator fun <T : Any> StonecutterFlag<T>.invoke(): T = get(this)
-}
 
-/**Extension interface to provide read-write access to [StonecutterFlag]s.*/
-@FlagDsl
-public sealed interface StonecutterFlags : StonecutterFlagsView {
     public operator fun set(key: String, value: Any): Unit = StonecutterFlag.named(key).let {
         require(value::class == it.default::class) { "Value must be ${it.default::class.simpleName} for flag '$key'" }
         @Suppress("UNCHECKED_CAST") set(it as StonecutterFlag<Any>, value)
     }
     public operator fun <T : Any> set(key: StonecutterFlag<T>, value: T)
     public operator fun <T : Any> StonecutterFlag<T>.invoke(value: T): Unit = set(this, value)
+
+    public fun <T : Any> StonecutterFlag<T>.assign(value: T): Unit = set(this, value)
 }
 
 internal class StonecutterFlagsImpl(
     val registry: ConfigurationRegistry = ConfigurationRegistry(),
-    private val provider: (StonecutterFlag<*>) -> String? = { null },
+    private val scope: FlagScope = FlagScope.CONTROLLER,
+    private val provider: (StonecutterFlag<*>) -> String?,
 ) : StonecutterFlags {
-    private val assigned: MutableSet<StonecutterFlag<*>> = mutableSetOf()
+    init {
+        for (flag in StonecutterFlag.registered(scope)) fill(flag)
+    }
 
-    val serializable: Map<String, String>
-        get() = assigned.associate { it.key to registry[it.configuration].toString() }
+    private fun <T : Any> fill(flag: StonecutterFlag<T>) {
+        registry[flag.configuration] = provider(flag)?.let(flag::fromString) ?: flag.default
+    }
 
-    override fun <T : Any> get(key: StonecutterFlag<T>): T =
-        if (key in assigned) registry[key.configuration]
-        else provider(key)?.let(key::fromString) ?: key.default
+    override fun <T : Any> get(key: StonecutterFlag<T>): T = when (key.scope) {
+        scope -> registry[key.configuration]
+        else -> provider(key)?.let(key::fromString) ?: key.default
+    }
 
     override fun <T : Any> set(key: StonecutterFlag<T>, value: T) {
-        assigned += key
+        require(key.scope == scope) {
+            val scopeName = key.scope.name.lowercase()
+            "Flag '${key.key}' is $scopeName-scoped and cannot be assigned in a $scopeName-scoped context"
+        }
         registry[key.configuration] = value
     }
 }

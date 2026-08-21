@@ -6,8 +6,8 @@ import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.model.process.RegexReplacement
 import dev.kikugie.stonecutter.model.process.Replacement
 import dev.kikugie.stonecutter.model.process.StringReplacement
-import dev.kikugie.stonecutter.controller.StonecutterControllerExtension
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
 import org.gradle.api.GradleException
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.*
@@ -17,7 +17,7 @@ import org.gradle.api.tasks.Optional
 import javax.inject.Inject
 
 internal abstract class StonecutterBuildData @Inject constructor(
-    controller: StonecutterControllerExtension,
+    flags: StonecutterFlags,
     current: Identifier,
     providers: ProviderFactory
 ) {
@@ -34,7 +34,7 @@ internal abstract class StonecutterBuildData @Inject constructor(
         constants.set(mutableMapOf())
         swaps.set(mutableMapOf())
         replacements.set(mutableListOf())
-        dependencies.set(providers.provider { patchImplicitDependency(dummyDependencies, controller.flags[StonecutterFlag.IMPLICIT_RECEIVER], current) })
+        dependencies.set(providers.provider { patchImplicitDependency(dummyDependencies, flags[StonecutterFlag.IMPLICIT_RECEIVER], current) })
 
         dummyDependencies.set(mutableMapOf())
     }

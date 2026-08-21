@@ -7,7 +7,7 @@ import dev.kikugie.stonecutter.build.data.StonecutterBuildData
 import dev.kikugie.stonecutter.build.task.StonecutterBuildTasksImpl
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
-import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsView
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
 import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
@@ -53,7 +53,7 @@ private fun Project.findConfig(): StonecutterBuildConfiguration = checkNotNull(g
 }
 
 @OptIn(StonecutterInternalAPI::class)
-private fun Project.refreshConfiguration(flags: StonecutterFlagsView, impls: StonecutterBuildTasksImpl): Unit = afterEvaluate {
+private fun Project.refreshConfiguration(flags: StonecutterFlags, impls: StonecutterBuildTasksImpl): Unit = afterEvaluate {
     if (flags[StonecutterFlag.APPEND_SOURCES_AFTER_EVAL])
         sourceSets.forEach(impls::configureSource)
 
@@ -66,7 +66,7 @@ private fun Project.refreshConfiguration(flags: StonecutterFlagsView, impls: Sto
 private fun SourceSet.createProcessingTasks(
     project: Project,
     data: StonecutterBuildData,
-    flags: StonecutterFlagsView,
+    flags: StonecutterFlags,
     filters: PatternFilterable,
     impls: StonecutterBuildTasksImpl
 ) {
@@ -95,7 +95,7 @@ private fun SourceSet.createProcessingTasks(
     }
 }
 
-private fun Project.configureManifest(flags: StonecutterFlagsView, node: ProjectNode) {
+private fun Project.configureManifest(flags: StonecutterFlags, node: ProjectNode) {
     if (!flags[StonecutterFlag.GENERATE_MANIFEST]) return
     
     val attributes = buildStonecutterManifest(node, gradle)

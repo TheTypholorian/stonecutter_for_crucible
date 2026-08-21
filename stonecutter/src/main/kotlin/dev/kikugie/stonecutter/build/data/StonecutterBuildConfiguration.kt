@@ -11,19 +11,16 @@ import dev.kikugie.stitcher.document.issue.DefaultProblemReporter
 import dev.kikugie.stitcher.document.issue.ProblemReport
 import dev.kikugie.stitcher.token.appendTo
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
-import dev.kikugie.stonecutter.build.config.ConstantContainer
-import dev.kikugie.stonecutter.build.config.DependencyContainer
-import dev.kikugie.stonecutter.build.config.ReplacementContainerImpl
-import dev.kikugie.stonecutter.build.config.SwapContainer
-import dev.kikugie.stonecutter.build.config.TargetContainer
+import dev.kikugie.stonecutter.build.config.*
 import dev.kikugie.stonecutter.build.task.StonecutterBuildTasks
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService.Companion.collect
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService.Companion.log
-import dev.kikugie.stonecutter.controller.StonecutterControllerExtension
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.HandlerModel
-import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsView
-import dev.kikugie.stonecutter.controller.tree.ParametersModel
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
+import dev.kikugie.stonecutter.controller.tree.forFile
+import dev.kikugie.stonecutter.controller.tree.toParameters
+import dev.kikugie.stonecutter.data.container.FlagContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesExtension
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesImpl
@@ -41,7 +38,6 @@ import org.gradle.api.tasks.util.PatternSet
 import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.newInstance
-import org.gradle.kotlin.dsl.the
 import java.io.File
 import java.io.StringWriter
 import java.nio.file.NoSuchFileException
@@ -52,8 +48,10 @@ import kotlin.io.path.relativeTo
 internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override val node: ProjectNode, override val project: Project, objects: ObjectFactory
 ) : Named, StonecutterBuildExtension, VersionOperations<Version> by LenientOperations {
-    internal val controller: StonecutterControllerExtension = node.tree.project.the()
-    internal val data: StonecutterBuildData = objects.newInstance(controller, current.version, project.providers)
+    override val properties: StructuredPropertiesExtension = project.setupDefaultProperties(node, objects)
+    override val flags: StonecutterFlagsImpl = project.gradle.getContainer<FlagContainer>()
+        .node(node.hierarchy, node.tree.hierarchy, properties)
+    internal val data: StonecutterBuildData = objects.newInstance(flags, current.version, project.providers)
 
     override val swaps: SwapContainer = objects.newInstance(data.swaps)
     override val constants: ConstantContainer = objects.newInstance(data.constants)
@@ -64,9 +62,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override val dependencies: DependencyContainer = objects.newInstance(targets)
     override val replacements: ReplacementContainerImpl = objects.newInstance(data.replacements)
     override val filters: PatternFilterable = PatternSet()
-    override val properties: StructuredPropertiesExtension = project.setupDefaultProperties(node, objects)
 
-    override val flags: StonecutterFlagsView = controller.flags
     override val tasks: StonecutterBuildTasks
         get() = throw UnsupportedOperationException("Build tasks are not available in the controller")
 
@@ -111,5 +107,5 @@ private fun Project.setupDefaultProperties(node: ProjectNode, objects: ObjectFac
 private fun Project.collectTransformParams(file: File, data: StonecutterBuildData): StitcherParameters {
     val handlers = gradle.getContainer<FileHandlerContainer>()
         .handlers[file.extension.lowercase()].let { mapOf(it.name to HandlerModel(it)) }
-    return ParametersModel(data).forFile(file.toPath(), handlers)!!
+    return data.toParameters().forFile(file.toPath(), handlers)!!
 }

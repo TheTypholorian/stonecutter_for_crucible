@@ -6,8 +6,13 @@ import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
+import dev.kikugie.stonecutter.controller.flag.FlagScope
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
+import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.configureDefaults
+import dev.kikugie.stonecutter.data.container.FlagContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.createContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
 import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
@@ -22,6 +27,7 @@ import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.isIdeaSync
 import dev.kikugie.stonecutter.util.newInstance
 import dev.kikugie.stonecutter.util.projectDirectory
+import dev.kikugie.stonecutter.util.propertyKey
 import dev.kikugie.stonecutter.util.requestTasks
 import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
@@ -40,12 +46,10 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     registry: BuildEventsListenerRegistry,
     objects: ObjectFactory,
 ) : StonecutterSettingsExtension(settings, objects), VersionOperations<Version> by LenientOperations {
-    override val properties: StructuredPropertiesExtension = setupDefaultProperties(settings, objects)
-
     internal val treeBuilderContainer: TreeBuilderContainer = settings.gradle.createContainer<TreeBuilderContainer>().get()
-    internal val isHardMode: Boolean by lazy {
-        settings.providers.gradleProperty("dev.kikugie.stonecutter.hard_mode").getOrElse("false").toBoolean()
-    }
+    override val properties: StructuredPropertiesExtension = setupDefaultProperties(settings, objects)
+    override val flags: StonecutterFlagsImpl = settings.gradle.createContainer<FlagContainer>().get()
+        .settings(properties)
     private var usesGroovy: Boolean = false
 
 
@@ -59,7 +63,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
             configureSyncTask()
             configureServices(handlers, registry)
             settingsEvaluated {
-                if (usesGroovy && !isHardMode) LOGGER.reportGroovyComplaint()
+                if (usesGroovy && !flags[StonecutterFlag.HARD_MODE]) LOGGER.reportGroovyComplaint()
             }
         }
     }

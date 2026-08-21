@@ -4,7 +4,7 @@ import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.StonecutterBuildImpl
 import dev.kikugie.stonecutter.controller.task.StonecutterModelTask
 import dev.kikugie.stonecutter.controller.task.registerDefault
-import dev.kikugie.stonecutter.controller.tree.NodeModel
+import dev.kikugie.stonecutter.controller.tree.toModel
 import dev.kikugie.stonecutter.data.whatever.TaskProviderMap
 import dev.kikugie.stonecutter.util.SCJSON
 import dev.kikugie.stonecutter.util.allSources
@@ -65,7 +65,7 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
 
         output.set(build.project.layout.buildDirectory.file("stonecutter-cache/node.json"))
         model.set(build.project.providers) {
-            NodeModel(node, build.config.data).let(SCJSON::encodeToString)
+            node.toModel(build.config.data, build.config.flags.registry).let(SCJSON::encodeToString)
         }
     }
 

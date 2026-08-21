@@ -8,7 +8,7 @@ import dev.kikugie.stonecutter.build.config.ReplacementContainer
 import dev.kikugie.stonecutter.build.config.SwapContainer
 import dev.kikugie.stonecutter.build.config.TargetContainer
 import dev.kikugie.stonecutter.build.task.StonecutterBuildTasks
-import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsView
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.data.tree.ProjectBranch
@@ -162,13 +162,15 @@ public interface StonecutterBuildExtension : VersionOperations<Version>, Structu
     public val filters: PatternFilterable
 
     /**
-     * Immutable view of Stonecutter configuration flags.
+     * Per-node view of Stonecutter configuration flags.
      *
-     * Flags are defined in `stonecutter.gradle(.kts)` and used internally to modify the plugin behaviour.
-     * This property allows inspecting the flags for advanced cases.
+     * [Controller-scoped][dev.kikugie.stonecutter.controller.flag.FlagScope.CONTROLLER] flags
+     * are read-only here — they are configured in `stonecutter.gradle(.kts)`.
+     * [Node-scoped][dev.kikugie.stonecutter.controller.flag.FlagScope.NODE] flags are assignable
+     * and apply to this node only.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/controller#flags">Flags Documentation</a>
      */
-    public val flags: StonecutterFlagsView
+    public val flags: StonecutterFlags
 
     /**Stonecutter file processing task access extension.*/
     public val tasks: StonecutterBuildTasks
@@ -216,13 +218,14 @@ public interface StonecutterBuildExtension : VersionOperations<Version>, Structu
     public infix fun replacements(action: Action<ReplacementContainer>): Unit = action.execute(replacements)
 
     /**
-     * Executes the [action] in context of the immutable Stonecutter flag view.
+     * Executes the [action] in context of this node's Stonecutter flags.
      *
-     * Flags are defined in `stonecutter.gradle(.kts)` and used internally to modify the plugin behaviour.
-     * This property allows inspecting the flags for advanced cases.
+     * [Controller-scoped][dev.kikugie.stonecutter.controller.flag.FlagScope.CONTROLLER] flags
+     * are read-only; [node-scoped][dev.kikugie.stonecutter.controller.flag.FlagScope.NODE] flags
+     * can be assigned with the `=` operator and apply to this node only.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/controller#flags">Flags Documentation</a>
      */
-    public infix fun flags(action: Action<StonecutterFlagsView>): Unit = action.execute(flags)
+    public infix fun flags(action: Action<StonecutterFlags>): Unit = action.execute(flags)
 
     /**Configures the [tasks] extension.*/
     public infix fun tasks(action: Action<StonecutterBuildTasks>): Unit = action.execute(tasks)

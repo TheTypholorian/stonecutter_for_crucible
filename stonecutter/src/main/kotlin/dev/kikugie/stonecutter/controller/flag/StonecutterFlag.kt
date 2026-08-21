@@ -1,6 +1,7 @@
 package dev.kikugie.stonecutter.controller.flag
 
 import dev.kikugie.stonecutter.model.process.ConfigurationFlag
+import org.gradle.api.SupportsKotlinAssignmentOverloading
 
 /**
  * A primitive configuration option for Stonecutter.
@@ -10,9 +11,15 @@ import dev.kikugie.stonecutter.model.process.ConfigurationFlag
  *
  * @property key The flag key, used in [named] and Gradle property accessors
  * @property default The default value of the flag
+ * @property scope The [FlagScope] this flag belongs to
  */
+@SupportsKotlinAssignmentOverloading
 @ConsistentCopyVisibility
-public data class StonecutterFlag<T : Any> private constructor(public val key: String, public val default: T) {
+public data class StonecutterFlag<T : Any> private constructor(
+    public val key: String,
+    public val default: T,
+    public val scope: FlagScope = FlagScope.CONTROLLER,
+) {
     init {
         require(key.isNotBlank()) { "Flag key cannot be blank" }
         require(key.all { it in 'a'..'z' || it == '_' }) { "Flag key must be written in snake case" }
@@ -55,6 +62,10 @@ public data class StonecutterFlag<T : Any> private constructor(public val key: S
         @JvmStatic
         public fun named(name: String): StonecutterFlag<*> =
             checkNotNull(REGISTRY[name]) { "Flag '$name' is not registered" }
+
+        /**Returns all registered flags belonging to the given [scope].*/
+        internal fun registered(scope: FlagScope): List<StonecutterFlag<*>> =
+            REGISTRY.values.filter { it.scope == scope }
 
         /**
          * Configures the automatic plugin application behaviour.
@@ -136,5 +147,24 @@ public data class StonecutterFlag<T : Any> private constructor(public val key: S
         @JvmField
         public val LINE_SEPARATOR: StonecutterFlag<String> =
             StonecutterFlag("line_separator", System.lineSeparator())
+
+        /**
+         * Configures the task IntelliJ plugin should mark as the primary runnable action.
+         * (i.e. that starts the application or launches the game)
+         *
+         * **Default**: `"runClient"`
+         */
+        public val APPLICATION_TASK: StonecutterFlag<String> =
+            StonecutterFlag("application_task", "runClient", FlagScope.NODE)
+
+        /**
+         * Disables the *'Limited Groovy DSL support for Stonecutter'* message,
+         * printed when a `.gradle` build script is used in the project.
+         *
+         * **Default**: `false`
+         */
+        @JvmField
+        public val HARD_MODE: StonecutterFlag<Boolean> =
+            StonecutterFlag("hard_mode", false, FlagScope.SETTINGS)
     }
 }
