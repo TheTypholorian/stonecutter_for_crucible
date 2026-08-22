@@ -153,15 +153,15 @@ public data class StonecutterFlag<T : Any> private constructor(
         public val LINE_SEPARATOR: StonecutterFlag<String> =
             StonecutterFlag("line_separator", System.lineSeparator())
 
-        /**
-         * Configures the task IntelliJ plugin should mark as the primary runnable action.
-         * (i.e. that starts the application or launches the game)
-         *
-         * **Default**: `"runClient"`
-         */
-        @JvmField
-        public val APPLICATION_TASK: StonecutterFlag<String> =
-            StonecutterFlag("application_task", "runClient", FlagScope.NODE)
+//        /**
+//         * Configures the task IntelliJ plugin should mark as the primary runnable action.
+//         * (i.e. that starts the application or launches the game)
+//         *
+//         * **Default**: `"runClient"`
+//         */
+//        @JvmField
+//        public val APPLICATION_TASK: StonecutterFlag<String> =
+//            StonecutterFlag("application_task", "runClient", FlagScope.NODE)
 
         /**
          * Disables the *'Limited Groovy DSL support for Stonecutter'* message,

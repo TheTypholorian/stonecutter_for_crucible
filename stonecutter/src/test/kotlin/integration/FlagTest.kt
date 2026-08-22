@@ -2,6 +2,8 @@
 
 package integration
 
+import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.disable
 import de.infix.testBalloon.framework.core.testSuite
 import integrationTest
 import io.kotest.matchers.string.shouldContain
@@ -22,7 +24,7 @@ val FlagTest by testSuite {
             integrationTest("controller") {
                 runGradle(it).output shouldContain "[flag] generate_manifest=false"
             }
-            integrationTest("node") {
+            integrationTest("node", testConfig = TestConfig.disable()) {
                 runGradle(it, ":1:printFlags").output shouldContain "[flag] application_task=runServer"
             }
         }
@@ -31,7 +33,7 @@ val FlagTest by testSuite {
             integrationTest("settings flag in controller") {
                 shouldFailBuild { runGradle(it) }.message shouldContain "cannot be assigned"
             }
-            integrationTest("node flag in controller") {
+            integrationTest("node flag in controller", testConfig = TestConfig.disable()) {
                 shouldFailBuild { runGradle(it) }.message shouldContain "cannot be assigned"
             }
             integrationTest("controller flag in node") {
