@@ -6,11 +6,11 @@ import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
+import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.flag.FlagScope
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
 import dev.kikugie.stonecutter.data.ProjectHierarchy
-import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.configureDefaults
 import dev.kikugie.stonecutter.data.container.FlagContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.createContainer
@@ -96,14 +96,19 @@ private fun Gradle.configureSyncTask() {
     }
 }
 
-private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: BuildEventsListenerRegistry): Unit = projectsEvaluated {
-    sharedServices.registerIfAbsent(FileHandlerService.NAME, FileHandlerService::class) {
-        parameters.handlers.value(handlers.build()).finalizeValue()
+private fun Gradle.configureServices(handlers: FileHandlerContainer, registry: BuildEventsListenerRegistry) {
+    handlers.service = sharedServices.registerIfAbsent(FileHandlerService.NAME, FileHandlerService::class)
+    projectsEvaluated {
+        @Suppress("UNCHECKED_CAST")
+        val params = checkNotNull(sharedServices.registrations.findByName(FileHandlerService.NAME))
+            .parameters as FileHandlerService.Parameters
+        params.handlers.value(handlers.build()).finalizeValue()
+
+        sharedServices.registerIfAbsent(StonecutterErrorsService.NAME, StonecutterErrorsService::class) {
+            for (node in gradle.getContainer<ProjectNodeContainer>().projects)
+                parameters.active.put(node.hierarchy.path, node.metadata.isActive)
+        }.let(registry::onTaskCompletion)
     }
-    sharedServices.registerIfAbsent(StonecutterErrorsService.NAME, StonecutterErrorsService::class) {
-        for (node in gradle.getContainer<ProjectNodeContainer>().projects)
-            parameters.active.put(node.hierarchy.path, node.metadata.isActive)
-    }.let(registry::onTaskCompletion)
 }
 
 @Suppress("UnstableApiUsage")

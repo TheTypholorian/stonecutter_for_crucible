@@ -41,8 +41,8 @@ internal abstract class StonecutterBuildImpl private constructor(val config: Sto
         project.configureManifest(flags, node)
         tasks.registerNodeModelTask()
 
-        val handlers = project.gradle.getContainer<FileHandlerContainer>().handlers
-        filters.include { it.isDirectory || it.file.extension.lowercase() in handlers.names }
+        val extensions = project.gradle.getContainer<FileHandlerContainer>().extensions
+        filters.include { it.isDirectory || it.file.extension.lowercase() in extensions.get() }
     }
 }
 

@@ -4,6 +4,8 @@ import dev.kikugie.stonecutter.data.container.GradleContainerService
 import org.gradle.api.Action
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.NamedDomainObjectProvider
+import org.gradle.api.provider.Provider
+import org.gradle.kotlin.dsl.setProperty
 
 /**
  * Extension class providing a registry for file format handlers.
@@ -15,6 +17,15 @@ import org.gradle.api.NamedDomainObjectProvider
  */
 public abstract class FileHandlerContainer : GradleContainerService {
     internal abstract val handlers: NamedDomainObjectContainer<HandlerBuilder>
+
+    internal lateinit var service: Provider<FileHandlerService>
+
+    internal val extensions: Provider<Set<String>> by lazy {
+        objects.setProperty<String>().apply {
+            set(service.map { it.parameters.handlers.get().keys })
+            finalizeValueOnRead()
+        }
+    }
 
     /**Gets a file handler for the given extension or throws if it's not registered.*/
     public fun named(extension: String): NamedDomainObjectProvider<HandlerBuilder> =
