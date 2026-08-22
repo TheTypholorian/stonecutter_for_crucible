@@ -29,6 +29,7 @@ import dev.kikugie.stonecutter.util.newInstance
 import dev.kikugie.stonecutter.util.projectDirectory
 import dev.kikugie.stonecutter.util.propertyKey
 import dev.kikugie.stonecutter.util.requestTasks
+import org.gradle.api.configuration.BuildFeatures
 import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.logging.Logger
@@ -52,9 +53,12 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
         .settings(properties)
     private var usesGroovy: Boolean = false
 
+    @get:Inject
+    internal abstract val buildFeatures: BuildFeatures
 
     init {
         LOGGER.lifecycle("Running Stonecutter ${StonecutterPlugin.VERSION}")
+        if (buildFeatures.isolatedProjects.active.get()) LOGGER.reportIsolatedProjectsComplaint()
         // This is the ugliest configuration block I have
         with(settings.gradle) {
             createContainer<ProjectNodeContainer>()
@@ -125,6 +129,18 @@ private fun checkGroovyUsage(tree: TreeBuilderImpl): Boolean {
             if (node.buildscript.endsWith(".gradle")) return true
     return false
 }
+
+private fun Logger.reportIsolatedProjectsComplaint(): Unit = warn(
+    """
+    Warning: Stonecutter is used with Isolated Projects enabled
+    ------------------------------------------------------------------------------------
+    Isolated Projects support is experimental. 
+    Stonecutter relies on cross-project configuration in some places, 
+    so some features may not behave correctly under this mode.
+    Please report any issues to https://codeberg.org/stonecutter/stonecutter/issues
+    ------------------------------------------------------------------------------------
+    """.trimIndent()
+)
 
 private fun Logger.reportGroovyComplaint(): Unit = warn(
     """
