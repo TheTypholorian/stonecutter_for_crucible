@@ -5,5 +5,5 @@ plugins {
 stonecutter.active "1"
 
 stonecutter.parameters {
-    println("Parameters for ${node.hierarchy}")
+    println("Parameters for ${node.hierarchy.toString()}")
 }
