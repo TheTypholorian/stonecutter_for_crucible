@@ -48,7 +48,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     objects: ObjectFactory,
 ) : StonecutterSettingsExtension(settings, objects), VersionOperations<Version> by LenientOperations {
     internal val treeBuilderContainer: TreeBuilderContainer = settings.gradle.createContainer<TreeBuilderContainer>().get()
-    override val properties: StructuredPropertiesExtension = setupDefaultProperties(settings, objects)
+    override val properties: StructuredPropertiesImpl = setupDefaultProperties(settings, objects)
     override val flags: StonecutterFlagsImpl = settings.gradle.createContainer<FlagContainer>().get()
         .settings(properties)
     private var usesGroovy: Boolean = false
@@ -57,6 +57,8 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
     internal abstract val buildFeatures: BuildFeatures
 
     init {
+        properties.configureExport(flags[StonecutterFlag.EXPOSE_PROPERTIES], settings.extra)
+
         LOGGER.lifecycle("Running Stonecutter ${StonecutterPlugin.VERSION}")
         if (buildFeatures.isolatedProjects.active.get()) LOGGER.reportIsolatedProjectsComplaint()
         // This is the ugliest configuration block I have

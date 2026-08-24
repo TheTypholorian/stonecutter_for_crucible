@@ -51,5 +51,9 @@ val FlagTest by testSuite {
                 shouldContain("[flag] receiver=minceraft")
             }
         }
+
+        integrationTest("local flag does not inherit") {
+            runGradle(it, ":1:printFlags").output shouldContain "[flag] expose=false"
+        }
     }
 }

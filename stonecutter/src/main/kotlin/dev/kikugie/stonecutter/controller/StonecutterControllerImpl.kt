@@ -17,7 +17,6 @@ import dev.kikugie.stonecutter.data.container.FlagContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
 import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
-import dev.kikugie.stonecutter.data.property.StructuredPropertiesExtension
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesImpl
 import dev.kikugie.stonecutter.data.tree.ProjectBranchImpl
 import dev.kikugie.stonecutter.data.tree.ProjectNodeImpl
@@ -50,7 +49,7 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     override val tree: ProjectTreeImpl = constructTree(root)
     override val tasks: StonecutterControllerTasksImpl = root.objects.newInstance(this)
     override val handlers: FileHandlerContainer = root.gradle.getContainer()
-    override val properties: StructuredPropertiesExtension = setupDefaultProperties(root, objects)
+    override val properties: StructuredPropertiesImpl = setupDefaultProperties(root, objects)
     override val flags: StonecutterFlagsImpl = root.gradle.getContainer<FlagContainer>()
         .controller(tree.hierarchy, properties)
 
@@ -61,6 +60,8 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     private var hasInitialized: Boolean = false
 
     init {
+        properties.configureExport(flags[StonecutterFlag.EXPOSE_PROPERTIES], root.extra)
+
         root.afterEvaluate {
             if (!hasInitialized) {
                 val function =

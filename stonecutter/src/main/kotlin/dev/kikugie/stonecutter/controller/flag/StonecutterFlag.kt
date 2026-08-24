@@ -63,9 +63,12 @@ public data class StonecutterFlag<T : Any> private constructor(
         public fun named(name: String): StonecutterFlag<*> =
             checkNotNull(REGISTRY[name]) { "Flag '$name' is not registered" }
 
-        /**Returns all registered flags belonging to the given [scope].*/
+        /**
+         * Returns all registered flags belonging to the given [scope].
+         * [FlagScope.LOCAL] flags are included in every scope.
+         */
         internal fun registered(scope: FlagScope): List<StonecutterFlag<*>> =
-            REGISTRY.values.filter { it.scope == scope }
+            REGISTRY.values.filter { it.scope == scope || it.scope == FlagScope.LOCAL }
 
         /**
          * Configures the automatic plugin application behaviour.
@@ -172,5 +175,20 @@ public data class StonecutterFlag<T : Any> private constructor(
         @JvmField
         public val HARD_MODE: StonecutterFlag<Boolean> =
             StonecutterFlag("hard_mode", false, FlagScope.SETTINGS)
+
+        /**
+         * Exposes resolved structured properties as Gradle
+         * [extra][org.gradle.api.plugins.ExtraPropertiesExtension] entries.
+         *
+         * When enabled, every property retrievable from
+         * [stonecutter.properties.get][dev.kikugie.stonecutter.data.property.StructuredPropertiesExtension.get]
+         * is written to the current scope's [extra][org.gradle.api.plugins.ExtraPropertiesExtension]
+         * and will be available with [project.property][org.gradle.api.Project.property].
+         *
+         * **Default**: `true`
+         */
+        @JvmField
+        public val EXPOSE_PROPERTIES: StonecutterFlag<Boolean> =
+            StonecutterFlag("expose_properties", true, FlagScope.LOCAL)
     }
 }

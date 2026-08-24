@@ -392,6 +392,7 @@ public abstract interface class dev/kikugie/stonecutter/controller/file/ScannerB
 
 public final class dev/kikugie/stonecutter/controller/flag/FlagScope : java/lang/Enum {
 	public static final field CONTROLLER Ldev/kikugie/stonecutter/controller/flag/FlagScope;
+	public static final field LOCAL Ldev/kikugie/stonecutter/controller/flag/FlagScope;
 	public static final field NODE Ldev/kikugie/stonecutter/controller/flag/FlagScope;
 	public static final field SETTINGS Ldev/kikugie/stonecutter/controller/flag/FlagScope;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
@@ -401,9 +402,9 @@ public final class dev/kikugie/stonecutter/controller/flag/FlagScope : java/lang
 
 public final class dev/kikugie/stonecutter/controller/flag/StonecutterFlag {
 	public static final field APPEND_SOURCES_AFTER_EVAL Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
-	public static final field APPLICATION_TASK Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field APPLY_PLUGIN_TO_NODES Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field Companion Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag$Companion;
+	public static final field EXPOSE_PROPERTIES Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field GENERATE_MANIFEST Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field GENERATE_SOURCES_ON_SYNC Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field GENERATE_SWITCH_ACTIONS Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;

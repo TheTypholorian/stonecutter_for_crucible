@@ -10,6 +10,7 @@ import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.file.Directory
 import org.gradle.api.file.RegularFile
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.plugins.ExtraPropertiesExtension
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
 import java.io.File
@@ -83,6 +84,9 @@ internal abstract class StructuredPropertiesImpl @Inject constructor(
         is SCNull -> false
         else -> !structOnly && providers.gradleProperty(name).isPresent
     }
+
+    internal fun configureExport(enabled: Boolean, ext: ExtraPropertiesExtension): Unit =
+        holder.configureExport(enabled, ext)
 
     internal fun loadDefaults(directory: Directory) {
         val file = DEFAULT_FILES

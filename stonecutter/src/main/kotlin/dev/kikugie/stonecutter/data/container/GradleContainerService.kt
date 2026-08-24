@@ -100,13 +100,13 @@ internal abstract class FlagContainer : GradleContainerService {
 }
 
 private fun settingsFallback(flag: StonecutterFlag<*>, provider: StructuredPropertiesExtension): String? = when (flag.scope) {
-    FlagScope.SETTINGS -> provider.getOrNull(flag.propertyKey)
+    FlagScope.SETTINGS, FlagScope.LOCAL -> provider.getOrNull(flag.propertyKey)
     else -> null
 }
 
 private fun controllerFallback(flag: StonecutterFlag<*>, fallback: ConfigurationRegistry, provider: StructuredPropertiesExtension): String? = when (flag.scope) {
     FlagScope.SETTINGS -> fallback[flag.configuration].toString()
-    FlagScope.CONTROLLER -> provider.getOrNull(flag.propertyKey)
+    FlagScope.CONTROLLER, FlagScope.LOCAL -> provider.getOrNull(flag.propertyKey)
     else -> null
 }
 

@@ -24,6 +24,8 @@ public class StructuredPropertiesHolder {
     private var lookupIndex: Map<String, List<FlatEntry>> = emptyMap()
     private var parsedTags: Array<Array<String>> = emptyArray()
     internal var extraProperties: ExtraPropertiesExtension? = null
+    private var exposeProperties: Boolean = false
+    private val exportedKeys: HashSet<String> = HashSet()
 
     public fun all(): SCMap = flattenedMap[""]?.takeAsOrNull<SCMap>()
         ?: SCMap(emptyMap())
@@ -109,6 +111,7 @@ public class StructuredPropertiesHolder {
         rawCache.clear()
         @Suppress("UNCHECKED_CAST")
         parsedTags = array as Array<Array<String>>
+        refreshExport()
         return true
     }
 
@@ -142,6 +145,58 @@ public class StructuredPropertiesHolder {
         rawCache.clear()
         flattenedMap = SCMap(flattener.builder)
         lookupIndex = buildIndex(flattener.builder)
+        refreshExport()
+    }
+
+    internal fun configureExport(enabled: Boolean, ext: ExtraPropertiesExtension?) {
+        exposeProperties = enabled
+        extraProperties = ext
+        refreshExport()
+    }
+
+    private fun refreshExport() {
+        val ext = extraProperties ?: return
+        for (key in exportedKeys) ext[key] = null
+        exportedKeys.clear()
+        if (!exposeProperties) return
+        for ((key, value) in exportedProperties()) {
+            ext[key] = value
+            exportedKeys += key
+        }
+    }
+
+    private fun exportedProperties(): Map<String, String> {
+        val keys = HashSet<String>()
+        for ((key, value) in flattenedMap) {
+            if (value !is SCPrimitive) continue
+            keys += reduceKey(segmentsOf(key))
+        }
+        val result = LinkedHashMap<String, String>()
+        for (key in keys) {
+            val value = get(key)
+            if (value is SCPrimitive) result[key] = value.toString()
+        }
+        return result
+    }
+
+    private fun reduceKey(segments: List<String>): String {
+        if (parsedTags.isEmpty()) return segments.joinToString(".")
+        val result = ArrayList<String>(segments.size)
+        val used = BooleanArray(parsedTags.size)
+        var index = 0
+        while (index < segments.size) {
+            var skipped = false
+            for ((i, tag) in parsedTags.withIndex()) {
+                if (!used[i] && matchesAt(segments, index, tag)) {
+                    used[i] = true
+                    index += tag.size
+                    skipped = true
+                    break
+                }
+            }
+            if (!skipped) result += segments[index++]
+        }
+        return result.joinToString(".")
     }
 
     public enum class OverwritePolicy {

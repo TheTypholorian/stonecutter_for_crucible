@@ -36,13 +36,13 @@ internal class StonecutterFlagsImpl(
         registry[flag.configuration] = provider(flag)?.let(flag::fromString) ?: flag.default
     }
 
-    override fun <T : Any> get(key: StonecutterFlag<T>): T = when (key.scope) {
-        scope -> registry[key.configuration]
+    override fun <T : Any> get(key: StonecutterFlag<T>): T = when {
+        key.scope == scope || key.scope == FlagScope.LOCAL -> registry[key.configuration]
         else -> provider(key)?.let(key::fromString) ?: key.default
     }
 
     override fun <T : Any> set(key: StonecutterFlag<T>, value: T) {
-        require(key.scope == scope) {
+        require(key.scope == scope || key.scope == FlagScope.LOCAL) {
             "Flag '${key.key}' is ${key.scope.name.lowercase()}-scoped and cannot be assigned in a ${scope.name.lowercase()}-scoped context"
         }
         registry[key.configuration] = value

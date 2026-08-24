@@ -26,5 +26,7 @@ val ExtPropsTest by testSuite {
         // For some reason this only fails in test env
         integrationTest("parse property types", TestConfig.disable()) { runGradle(it) }
         integrationTest("retain all tags") { runGradle(it) }
+        integrationTest("expose to extra") { runGradle(it) }
+        integrationTest("hide when disabled") { runGradle(it) }
     }
 }

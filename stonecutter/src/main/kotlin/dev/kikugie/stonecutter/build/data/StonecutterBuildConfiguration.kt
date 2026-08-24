@@ -17,12 +17,12 @@ import dev.kikugie.stonecutter.build.task.StonecutterErrorsService.Companion.col
 import dev.kikugie.stonecutter.build.task.StonecutterErrorsService.Companion.log
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.HandlerModel
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
 import dev.kikugie.stonecutter.controller.tree.forFile
 import dev.kikugie.stonecutter.controller.tree.toParameters
 import dev.kikugie.stonecutter.data.container.FlagContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
-import dev.kikugie.stonecutter.data.property.StructuredPropertiesExtension
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesImpl
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.version.LenientOperations
@@ -48,7 +48,7 @@ import kotlin.io.path.relativeTo
 internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override val node: ProjectNode, override val project: Project, objects: ObjectFactory
 ) : Named, StonecutterBuildExtension, VersionOperations<Version> by LenientOperations {
-    override val properties: StructuredPropertiesExtension = project.setupDefaultProperties(node, objects)
+    override val properties: StructuredPropertiesImpl = project.setupDefaultProperties(node, objects)
     override val flags: StonecutterFlagsImpl = project.gradle.getContainer<FlagContainer>()
         .node(node.hierarchy, node.tree.hierarchy, properties)
     internal val data: StonecutterBuildData = objects.newInstance(flags, current.version, project.providers)
@@ -62,6 +62,10 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     override val dependencies: DependencyContainer = objects.newInstance(targets)
     override val replacements: ReplacementContainerImpl = objects.newInstance(data.replacements)
     override val filters: PatternFilterable = PatternSet()
+
+    init {
+        properties.configureExport(flags[StonecutterFlag.EXPOSE_PROPERTIES], project.extra)
+    }
 
     override val tasks: StonecutterBuildTasks
         get() = throw UnsupportedOperationException("Build tasks are not available in the controller")
