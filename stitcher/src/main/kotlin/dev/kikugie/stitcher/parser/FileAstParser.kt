@@ -153,7 +153,9 @@ private abstract class CodeScopeBuilder(val token: BlockToken.Code, val parent: 
     private fun findTrailingExtension(stream: FileTokenStream): Int? {
         var offset = 1
         while (true) when (val next: BlockToken = stream.peek(offset) ?: return null) {
-            is BlockToken.Code -> return if (next.definition is DefinitionToken.ConditionExtension) offset else null
+            // A `}`-bearing extension (`} else {`) closes an enclosing scoped block, not this open scope, so
+            // it's not claimed as a trailing branch and the search stops.
+            is BlockToken.Code -> return if (next.definition.let { it is DefinitionToken.ConditionExtension && it.closer == null }) offset else null
             is BlockToken.Content if next.leaf.text.isBlank() -> offset++
             is BlockToken.Comment if next.body.text.isBlank() -> offset++
             else -> return null
@@ -317,8 +319,10 @@ private class LineConditionBuilder(token: BlockToken.Code, parent: ScopeBuilder)
     }
 
     // An extension directly abutting the opener (empty branch) is claimed here; otherwise [claimTrailingExtension] does.
-    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? = when (token.definition) {
-        is DefinitionToken.ConditionExtension -> claimCodeBuilder(newCodeScopeBuilder(token), stream)
+    // An extension carrying a `}` closer terminates an enclosing scoped block, not this line scope, so it's
+    // left for that ancestor (ending this scope here) instead of being swallowed as our own branch.
+    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? = when (val def = token.definition) {
+        is DefinitionToken.ConditionExtension -> if (def.closer == null) claimCodeBuilder(newCodeScopeBuilder(token), stream) else null
         else -> super.processCode(token, stream)
     }
 }
@@ -329,8 +333,8 @@ private class LookupConditionBuilder(token: BlockToken.Code, parent: ScopeBuilde
         if (child == null) claimTrailingExtension(stream)
     }
 
-    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? = when (token.definition) {
-        is DefinitionToken.ConditionExtension -> claimCodeBuilder(newCodeScopeBuilder(token), stream)
+    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? = when (val def = token.definition) {
+        is DefinitionToken.ConditionExtension -> if (def.closer == null) claimCodeBuilder(newCodeScopeBuilder(token), stream) else null
         else -> super.processCode(token, stream)
     }
 }

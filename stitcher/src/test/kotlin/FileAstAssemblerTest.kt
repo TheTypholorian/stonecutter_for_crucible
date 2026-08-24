@@ -683,6 +683,55 @@ val FileAstAssemblerTest by testSuite {
             }
         """.trimIndent())
     }
+
+    test("nested version condition inside a constant branch") {
+        val content = """
+            //? if neoforge {
+            import net.neoforged.bus.api.SubscribeEvent;
+            import net.neoforged.neoforge.client.event.RenderFrameEvent;
+            //? if >=1.21.6
+            import net.neoforged.neoforge.client.event.ViewportEvent;
+            //? } else {
+            /*import net.minecraftforge.event.TickEvent;
+            import net.minecraftforge.eventbus.api.SubscribeEvent;
+            *///? }
+        """.trimIndent()
+
+        content.shouldAssembleTo(params {
+            constants["neoforge"] = true
+            targets[""] = SemanticVersion(1, 21, 6)
+        }, content)
+
+        content.shouldAssembleTo(params {
+            constants["neoforge"] = true
+            targets[""] = SemanticVersion(1, 21, 5)
+        }, """
+            //? if neoforge {
+            import net.neoforged.bus.api.SubscribeEvent;
+            import net.neoforged.neoforge.client.event.RenderFrameEvent;
+            //? if >=1.21.6
+            //import net.neoforged.neoforge.client.event.ViewportEvent;
+            //? } else {
+            /*import net.minecraftforge.event.TickEvent;
+            import net.minecraftforge.eventbus.api.SubscribeEvent;
+            *///? }
+        """.trimIndent())
+
+        content.shouldAssembleTo(params {
+            constants["neoforge"] = false
+            targets[""] = SemanticVersion(1, 21, 6)
+        }, """
+            //? if neoforge {
+            /*import net.neoforged.bus.api.SubscribeEvent;
+            import net.neoforged.neoforge.client.event.RenderFrameEvent;
+            //? if >=1.21.6
+            import net.neoforged.neoforge.client.event.ViewportEvent;
+            *///? } else {
+            import net.minecraftforge.event.TickEvent;
+            import net.minecraftforge.eventbus.api.SubscribeEvent;
+            //? }
+        """.trimIndent())
+    }
 }
 
 context(scope: Test.ExecutionScope)
