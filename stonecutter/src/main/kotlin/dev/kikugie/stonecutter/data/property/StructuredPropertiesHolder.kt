@@ -3,13 +3,12 @@ package dev.kikugie.stonecutter.data.property
 import dev.kikugie.commons.takeAsOrNull
 import dev.kikugie.stonecutter.data.deserialization.*
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesHolder.OverwritePolicy.*
-import org.gradle.api.logging.LogLevel
-import org.gradle.api.logging.Logger
-import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.ExtraPropertiesExtension
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.io.File
 
-private val LOGGER: Logger = Logging.getLogger("StonecutterProperties")
+private val LOGGER: Logger = LoggerFactory.getLogger("StonecutterProperties")
 
 // If you can, don't look here
 public class StructuredPropertiesHolder {
@@ -267,7 +266,8 @@ private class StructuredPropertiesFlattener(val builder: MutableMap<String, SCEl
 
     private fun append(key: String, value: SCElement) {
         val previous = builder.put(key, value) ?: return
-        LOGGER.log(if (warnOnDuplicate) LogLevel.WARN else LogLevel.DEBUG, "Duplicate property replaced '$key': $previous")
+        val message = "Duplicate property replaced '$key': $previous"
+        if (warnOnDuplicate) LOGGER.warn(message) else LOGGER.debug(message)
     }
 }
 
