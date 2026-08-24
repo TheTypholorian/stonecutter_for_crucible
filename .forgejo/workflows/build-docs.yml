@@ -15,17 +15,20 @@ jobs:
   build-docs:
     name: Build docs
     runs-on: kiku-server
-    container: eclipse-temurin:25-jdk-alpine
+    container: node:24-bookworm
     if: ${{ inputs.run-own }}
     steps:
-      - name: Install deps
-        run: |
-          apk add --no-cache nodejs tar xz curl
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
           fetch-depth: 1
           token: ${{ secrets.CB_TOKEN }}
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
       - name: Run Dokka
         run: |
           chmod +x ./gradlew
@@ -43,17 +46,23 @@ jobs:
   merge-docs:
     name: Build merged docs
     runs-on: kiku-server
-    container: eclipse-temurin:21-jdk-alpine
+    container: node:24-bookworm
     if: ${{ forgejo.ref_name == env.MAIN }}
     steps:
       - name: Install deps
         run: |
-          apk add --no-cache nodejs tar xz curl jq
+          apt-get update && apt-get install -y --no-install-recommends jq
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
           fetch-depth: 1
           token: ${{ secrets.CB_TOKEN }}
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
       - name: Fetch versions
         run: |
           curl -s "https://codeberg.org/api/v1/packages/${{ forgejo.repository_owner }}?q=stonecutter-kdoc" \

@@ -12,14 +12,14 @@ jobs:
     name: Resolve Gradle versions
     runs-on: kiku-server
     container:
-      image: eclipse-temurin:25-jdk-alpine
+      image: node:24-bookworm
     outputs:
       versions: ${{ steps.resolve.outputs.versions }}
       release: ${{ steps.resolve.outputs.release }}
     steps:
-      - name: Install deps
+      - name: Install dependencies
         run: |
-          apk add --no-cache git nodejs curl jq
+          apt-get update && apt-get install -y --no-install-recommends jq
       - name: Resolve versions
         id: resolve
         run: |
@@ -38,7 +38,7 @@ jobs:
     needs: resolve-versions
     runs-on: kiku-server
     container:
-      image: eclipse-temurin:25-jdk-alpine
+      image: node:24-bookworm
     continue-on-error: ${{ matrix.gradle-version != needs.resolve-versions.outputs.release }}
     strategy:
       fail-fast: false
@@ -47,19 +47,20 @@ jobs:
     env:
       GRADLE_VERSION: ${{ matrix.gradle-version }}
     steps:
-      - name: Install deps
-        run: |
-          apk add --no-cache git nodejs tar
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
           fetch-depth: 1
           token: ${{ secrets.CB_TOKEN }}
-      - name: Setup Gradle
-        run: |
-          chmod +x ./gradlew
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
       - name: Run tests
         run: |
+          chmod +x ./gradlew
           ./gradlew check --build-cache --configuration-cache
       - name: Upload test reports
         if: always()
