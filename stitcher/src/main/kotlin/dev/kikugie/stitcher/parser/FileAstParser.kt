@@ -7,7 +7,9 @@ import dev.kikugie.stitcher.document.issue.LAYOUT_GROUP
 import dev.kikugie.stitcher.document.issue.ProblemReport.Severity
 import dev.kikugie.stitcher.document.issue.report
 import dev.kikugie.stitcher.token.*
-import dev.kikugie.stitcher.token.DefinitionToken.Kind.*
+import dev.kikugie.stitcher.token.DefinitionToken.Body
+import dev.kikugie.stitcher.token.DefinitionToken.Kind
+import dev.kikugie.stitcher.token.DefinitionToken.Role
 import dev.kikugie.stitcher.util.*
 
 object FileAstParser {
@@ -38,6 +40,11 @@ private class CommentBuilder(val token: BlockToken.Comment) : FileAstBuilder {
     override fun collect(list: MutableList<BlockToken>): Unit = list.plusAssign(token)
 }
 
+private class InertCodeBuilder(val token: BlockToken.Code) : FileAstBuilder {
+    override fun accept(stream: FileTokenStream): Unit = Unit
+    override fun collect(list: MutableList<BlockToken>): Unit = list.plusAssign(token)
+}
+
 private open class ScopeBuilder : FileAstBuilder {
     val entries: MutableList<FileAstBuilder> = ArrayList()
     var scopeIsNotBlank: Boolean = false
@@ -60,11 +67,13 @@ private open class ScopeBuilder : FileAstBuilder {
         scopeIsNotBlank = scopeIsNotBlank || builder.isNotBlank()
     }
 
+    protected fun buildNested(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder =
+        newCodeScopeBuilder(token).apply { accept(stream.advance()) }
+
     // Create and process a new [FileAstBuilder] from the [token], or null if this scope can't accept any more.
     // It's the responsibility of the implementation to advance the [stream] if the result is non-null.
-    protected open fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? {
-        return newCodeScopeBuilder(token).apply { accept(stream.advance()) }
-    }
+    protected open fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? =
+        buildNested(token, stream)
 
     protected open fun processContent(token: BlockToken.Content, stream: FileTokenStream): FileAstBuilder? =
         ContentBuilder(token).also { stream.consume() }
@@ -76,14 +85,22 @@ private open class ScopeBuilder : FileAstBuilder {
 // The file's top-level scope. A closer reaching here terminates nothing, so it's reported as unmatched.
 private class RootScopeBuilder : ScopeBuilder() {
     override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? {
-        if (token.definition.kind == CLOSER) reportRootCloser(token)
+        if (token.definition.role.isTerminator) reportRootCloser(token)
         return super.processCode(token, stream)
     }
 }
 
 private abstract class CodeScopeBuilder(val token: BlockToken.Code, val parent: ScopeBuilder) : ScopeBuilder() {
-    var child: CodeScopeBuilder? = null
-    var foundSplitMatch: Boolean = false
+    var child: FileAstBuilder? = null
+
+    protected var foundSplitMatch: Boolean = false
+
+    final override fun accept(stream: FileTokenStream) {
+        super.accept(stream)
+        // A terminator (own closer, branch, or a claimed foreign closer) becomes the [child]; without one the
+        // scope ran to the stream's end. Handled here as it needs the tokens that follow.
+        if (child == null) onUnterminated(stream)
+    }
 
     override fun collect(list: MutableList<BlockToken>) {
         list += token.copy(scope = ArrayList<BlockToken>().apply {
@@ -92,14 +109,31 @@ private abstract class CodeScopeBuilder(val token: BlockToken.Code, val parent: 
         child?.collect(list)
     }
 
-    open fun isTerminatedBy(block: BlockToken.Code): Boolean = when {
-        token.marker neqtype block.marker -> false
-        token.definition.kind.isScoped -> block.definition.kind.isCloser
-        token.definition.kind.isOpen -> block.definition.kind.isExtension
-        else -> false
+    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? = when (def.determineAction(token.definition)) {
+        MatchAction.CLAIM -> claimCodeBuilder(newCodeScopeBuilder(token), stream)
+        MatchAction.YIELD -> null
+        MatchAction.NEST -> nestCode(token, stream)
     }
 
-    protected open fun processSplitContent(token: BlockToken.Content, stream: FileTokenStream, split: Int): FileAstBuilder? = when (split) {
+    protected abstract fun nestCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder?
+
+    protected open fun onUnterminated(stream: FileTokenStream): Unit = Unit
+
+    protected fun claimCodeBuilder(builder: FileAstBuilder, stream: FileTokenStream): Nothing? {
+        child = builder.apply { accept(stream.advance()) }
+        return null
+    }
+
+    // Line and lookup branches finish before their extension, which sits past a blank gap. This absorbs that
+    // gap and claims the extension as the [child], continuing the condition chain. The gap may hold any mix
+    // of blank content and blank comment blocks (their openers/closers aside).
+    protected fun claimTrailingExtension(stream: FileTokenStream) {
+        val distance: Int = findTrailingExtension(stream) ?: return
+        repeat(distance - 1) { this += blankGapBuilder(stream.peek(1)!!).also { stream.consume() } }
+        claimCodeBuilder(newCodeScopeBuilder(stream.peek(1) as BlockToken.Code), stream)
+    }
+
+    protected fun processSplitContent(token: BlockToken.Content, stream: FileTokenStream, split: Int): FileAstBuilder? = when (split) {
         // Match found exactly at the start of the block, so it's excluded
         0 -> null
 
@@ -121,7 +155,7 @@ private abstract class CodeScopeBuilder(val token: BlockToken.Code, val parent: 
         }
     }
 
-    protected open fun processScopedComment(token: BlockToken.Comment, stream: FileTokenStream, split: Int): FileAstBuilder? = when (split) {
+    protected fun processScopedComment(token: BlockToken.Comment, stream: FileTokenStream, split: Int): FileAstBuilder? = when (split) {
         0 -> null
         -1 -> super.processComment(token, stream)
         else -> {
@@ -129,67 +163,20 @@ private abstract class CodeScopeBuilder(val token: BlockToken.Code, val parent: 
             super.processComment(token, stream)
         }
     }
+}
 
-    protected open fun claimCodeBuilder(builder: CodeScopeBuilder, stream: FileTokenStream): Nothing? {
-        child = builder.apply { accept(stream.advance()) }
-        return null
-    }
-
-    // Line and lookup branches finish before their extension, which sits past a blank gap. This absorbs
-    // that gap and claims the extension as the [child], continuing the condition chain. The gap may hold
-    // any mix of blank content and blank comment blocks (their openers/closers aside).
-    protected fun claimTrailingExtension(stream: FileTokenStream) {
-        val distance: Int = findTrailingExtension(stream) ?: return
-        repeat(distance - 1) { this += blankGapBuilder(stream.peek(1)!!).also { stream.consume() } }
-        claimCodeBuilder(newCodeScopeBuilder(stream.peek(1) as BlockToken.Code), stream)
-    }
-
-    private fun blankGapBuilder(block: BlockToken): FileAstBuilder = when (block) {
-        is BlockToken.Content -> ContentBuilder(block)
-        is BlockToken.Comment -> CommentBuilder(block)
-        else -> error("Unexpected token in trailing extension gap: $block")
-    }
-
-    private fun findTrailingExtension(stream: FileTokenStream): Int? {
-        var offset = 1
-        while (true) when (val next: BlockToken = stream.peek(offset) ?: return null) {
-            // A `}`-bearing extension (`} else {`) closes an enclosing scoped block, not this open scope, so
-            // it's not claimed as a trailing branch and the search stops.
-            is BlockToken.Code -> return if (next.definition.let { it is DefinitionToken.ConditionExtension && it.closer == null }) offset else null
-            is BlockToken.Content if next.leaf.text.isBlank() -> offset++
-            is BlockToken.Comment if next.body.text.isBlank() -> offset++
-            else -> return null
+private abstract class ScopedScopeBuilder(token: BlockToken.Code, parent: ScopeBuilder) : CodeScopeBuilder(token, parent) {
+    override fun nestCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? =
+        buildNested(token, stream).also {
+            // A closer of another construct can't terminate this scope, so it's flagged rather than silently nested.
+            if (token.definition.role.isTerminator) reportInvalidCloserType(this.token, token)
         }
-    }
+
+    override fun onUnterminated(stream: FileTokenStream): Unit = reportMissingClosingBracket(token)
 }
 
-// No-scope definitions: every closer, replacement toggles, and named local replacements.
-private class EmptyCodeBuilder(token: BlockToken.Code, parent: ScopeBuilder) : CodeScopeBuilder(token, parent) {
-    override fun accept(stream: FileTokenStream): Unit = Unit
-    override fun collect(list: MutableList<BlockToken>): Unit = list.plusAssign(token)
-}
-
-// Scope delimited by `{ ... }`. Ends on its matching terminator (which it owns), on a foreign closer,
-// or at the stream's end - the latter is reported as a missing closer.
-private abstract class ScopedCodeScopeBuilder(token: BlockToken.Code, parent: ScopeBuilder) : CodeScopeBuilder(token, parent) {
-    override fun accept(stream: FileTokenStream) {
-        super.accept(stream)
-        // A terminator (own closer, extension, or a claimed foreign closer) becomes the [child]; its absence
-        // means the scope ran to the stream's end unterminated. Reported here as it needs the following tokens.
-        if (child == null) reportMissingClosingBracket(token)
-    }
-}
-
-// Scope covering the rest of the line, extended over leading blank lines. Content and comments are split at
-// the line break; a following condition branch is pulled in across any blank gap.
-private abstract class LineCodeScopeBuilder(token: BlockToken.Code, parent: ScopeBuilder) : CodeScopeBuilder(token, parent) {
-    // Set when the scope proceeds past an inline nested block, so the content right after it continues the
-    // same physical line and must be captured (and split at the line break), not rejected as a fresh line.
+private abstract class LineScopeBuilder(token: BlockToken.Code, parent: ScopeBuilder) : CodeScopeBuilder(token, parent) {
     protected var midLineContinuation: Boolean = false
-
-    override fun accept(stream: FileTokenStream) {
-        if (!foundSplitMatch) super.accept(stream)
-    }
 
     override fun processContent(token: BlockToken.Content, stream: FileTokenStream): FileAstBuilder? {
         val freshLine: Boolean = !midLineContinuation
@@ -207,61 +194,65 @@ private abstract class LineCodeScopeBuilder(token: BlockToken.Code, parent: Scop
         return processScopedComment(token, stream, token.findLineSplit(scopeIsNotBlank))
     }
 
-    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? {
-        // A definition following real content on the line starts a separate construct and is left for the
-        // enclosing scope (it becomes a sibling, not a nested child). On a still-blank line it nests and owns
-        // the rest of the line, as before.
-        return if (scopeIsNotBlank) null else super.processCode(token, stream)
-    }
+    // A definition following real content on the line starts a separate construct and is left for the
+    // enclosing scope (it becomes a sibling, not a nested child). On a still-blank line it nests and owns
+    // the rest of the line, as before.
+    override fun nestCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? =
+        if (scopeIsNotBlank) null else buildNested(token, stream)
 }
 
-private abstract class LookupCodeScopeBuilder(token: BlockToken.Code, parent: ScopeBuilder) : CodeScopeBuilder(token, parent) {
-    protected val lookupString: String?
-    protected val isCapturing: Boolean
+private abstract class LookupScopeBuilder(token: BlockToken.Code, parent: ScopeBuilder) : CodeScopeBuilder(token, parent) {
+    protected val lookup: String?
+    protected val capturing: Boolean
 
     init {
         val opener = token.definition.opener as? ScopeToken.Lookup
-        lookupString = opener?.lookup?.unquote()
-        isCapturing = opener?.plus != null
+        lookup = opener?.lookup?.unquote()
+        capturing = opener?.plus != null
     }
 
-    override fun accept(stream: FileTokenStream) {
-        if (!foundSplitMatch) super.accept(stream)
-    }
-
-    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? {
-        if (scopeIsNotBlank) return null
-
-        // The search shouldn't continue past the nested scope.
-        foundSplitMatch = true
-        return super.processCode(token, stream)
-    }
-
+    // Once the match is found the scope is complete; further tokens belong to the enclosing scope. Without
+    // this the remainder past the match (or a later token that happens to match again) would be re-captured.
     override fun processContent(token: BlockToken.Content, stream: FileTokenStream): FileAstBuilder? =
-        // Once the match is found the scope is complete; further tokens belong to the enclosing scope. Without
-        // this the remainder past the match (or a later token that happens to match again) would be re-captured.
-        if (foundSplitMatch) null else processSplitContent(token, stream, token.findLookupSplit(lookupString, isCapturing))
+        if (foundSplitMatch) null else processSplitContent(token, stream, token.findLookupSplit(lookup, capturing))
 
     override fun processComment(token: BlockToken.Comment, stream: FileTokenStream): FileAstBuilder? =
-        if (foundSplitMatch) null else processScopedComment(token, stream, token.findLookupSplit(lookupString, isCapturing))
+        if (foundSplitMatch) null else processScopedComment(token, stream, token.findLookupSplit(lookup, capturing))
+
+    override fun nestCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? =
+        if (scopeIsNotBlank) null else {
+            // The search shouldn't continue past the nested scope.
+            foundSplitMatch = true
+            buildNested(token, stream)
+        }
 }
 
-private class ScopedSwapBuilder(token: BlockToken.Code, parent: ScopeBuilder) : ScopedCodeScopeBuilder(token, parent) {
-    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? = when(token.definition) {
-        is DefinitionToken.SwapCloser -> claimCodeBuilder(EmptyCodeBuilder(token, this), stream)
-        else -> {
-            // Code in swaps is not processed in any way as to not affect the substituted scope.
-            stream.consume()
-            reportSwapNesting(token)
-            EmptyCodeBuilder(token, this)
-        }
+private class ScopedConditionBuilder(token: BlockToken.Code, parent: ScopeBuilder) : ScopedScopeBuilder(token, parent)
+
+private class LineConditionBuilder(token: BlockToken.Code, parent: ScopeBuilder) : LineScopeBuilder(token, parent) {
+    override fun onUnterminated(stream: FileTokenStream): Unit = claimTrailingExtension(stream)
+}
+
+private class LookupConditionBuilder(token: BlockToken.Code, parent: ScopeBuilder) : LookupScopeBuilder(token, parent) {
+    override fun onUnterminated(stream: FileTokenStream): Unit = claimTrailingExtension(stream)
+}
+
+private class ScopedReplacementBuilder(token: BlockToken.Code, parent: ScopeBuilder) : ScopedScopeBuilder(token, parent)
+
+private class LineReplacementBuilder(token: BlockToken.Code, parent: ScopeBuilder) : LineScopeBuilder(token, parent)
+
+private class LookupReplacementBuilder(token: BlockToken.Code, parent: ScopeBuilder) : LookupScopeBuilder(token, parent)
+
+private class ScopedSwapBuilder(token: BlockToken.Code, parent: ScopeBuilder) : ScopedScopeBuilder(token, parent) {
+    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? = when (def.determineAction(token.definition)) {
+        MatchAction.CLAIM -> claimCodeBuilder(newCodeScopeBuilder(token), stream)
+        else -> ignoreInSwap(token, stream)
     }
 }
 
-private class LineSwapBuilder(token: BlockToken.Code, parent: ScopeBuilder) : LineCodeScopeBuilder(token, parent) {
+private class LineSwapBuilder(token: BlockToken.Code, parent: ScopeBuilder) : LineScopeBuilder(token, parent) {
     override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? {
-        // Swap scopes have the least priority, so check if anything closes it.
-        if (anyAncestor { it.isTerminatedBy(token) }) return null
+        if (anyAncestor { it.def.isTerminatedBy(token.definition) }) return null
 
         // Handles the cases where a code block is found inside the line scope:
         // - If it spans multiple lines, it is included in the scope entirely, and the search ends.
@@ -272,106 +263,92 @@ private class LineSwapBuilder(token: BlockToken.Code, parent: ScopeBuilder) : Li
         if (token.host.findLineSplit(immediate = scopeIsNotBlank) !in -1..0) foundSplitMatch = true
         else if ('\n' !in token.host.closer?.text.orEmpty()) midLineContinuation = true
 
-        // Code in swaps is not processed in any way as to not affect the substituted scope.
-        stream.consume()
-        reportSwapNesting(token)
-        return EmptyCodeBuilder(token, this)
+        return ignoreInSwap(token, stream)
     }
 }
 
-private class LookupSwapBuilder(token: BlockToken.Code, parent: ScopeBuilder) : LookupCodeScopeBuilder(token, parent) {
-    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? {
-        // Unlike the line scope, a code block is rejected in lookup swaps because of the different expectations.
-        // I.e. the line scope is expected to affect the whole line, and lookup to find a string.
-        return null
+private class LookupSwapBuilder(token: BlockToken.Code, parent: ScopeBuilder) : LookupScopeBuilder(token, parent) {
+    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? = null
+}
+
+private enum class MatchAction {
+    CLAIM, YIELD, NEST,
+}
+
+private fun DefinitionToken.determineAction(incoming: DefinitionToken): MatchAction = when {
+    // Statements never terminate each other, so a foreign marker can only be nested. This compares [kind],
+    // not [type]: an opener and the closer that ends it are the same construct but different token types.
+    incoming.kind != kind -> MatchAction.NEST
+
+    // A `}`-bearing marker - a closer or a `} else` branch alike - terminates the nearest enclosing *scoped*
+    // block. A line or lookup scope has no `{` for it to match, so the scope ends here and the marker is left
+    // to the block that does, however little of the line the scope has covered so far.
+    incoming.closer != null && body != Body.SCOPED -> MatchAction.YIELD
+
+    // A branch continues this scope's chain, and a closer finishes it. Both belong to the scope they terminate.
+    incoming.role == Role.EXTENSION -> MatchAction.CLAIM
+    incoming.role == Role.CLOSER && body == Body.SCOPED -> MatchAction.CLAIM
+
+    else -> MatchAction.NEST
+}
+
+private fun DefinitionToken.isTerminatedBy(incoming: DefinitionToken): Boolean = when {
+    kind != incoming.kind -> false
+    body == Body.SCOPED -> incoming.role.isTerminator
+    body == Body.LINE || body == Body.LOOKUP -> incoming.role == Role.EXTENSION
+    else -> false
+}
+
+context(parent: ScopeBuilder)
+private fun newCodeScopeBuilder(token: BlockToken.Code): FileAstBuilder = when (token.definition.body) {
+    Body.NONE -> InertCodeBuilder(token)
+
+    Body.SCOPED -> when (token.definition.kind) {
+        Kind.CONDITION -> ScopedConditionBuilder(token, parent)
+        Kind.REPLACEMENT -> ScopedReplacementBuilder(token, parent)
+        Kind.SWAP -> ScopedSwapBuilder(token, parent)
+    }
+
+    Body.LINE -> when (token.definition.kind) {
+        Kind.CONDITION -> LineConditionBuilder(token, parent)
+        Kind.REPLACEMENT -> LineReplacementBuilder(token, parent)
+        Kind.SWAP -> LineSwapBuilder(token, parent)
+    }
+
+    Body.LOOKUP -> when (token.definition.kind) {
+        Kind.CONDITION -> LookupConditionBuilder(token, parent)
+        Kind.REPLACEMENT -> LookupReplacementBuilder(token, parent)
+        Kind.SWAP -> LookupSwapBuilder(token, parent)
     }
 }
 
-private class ScopedLocalReplacementBuilder(token: BlockToken.Code, parent: ScopeBuilder) : ScopedCodeScopeBuilder(token, parent) {
-    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? = when (token.definition) {
-        is DefinitionToken.ReplacementCloser -> claimCodeBuilder(EmptyCodeBuilder(token, this), stream)
-        else -> super.processCode(token, stream).also {
-            if (token.definition.kind.isCloser) reportInvalidCloserType(this.token, token)
-        }
+private fun CodeScopeBuilder.findTrailingExtension(stream: FileTokenStream): Int? {
+    var offset = 1
+    while (true) when (val next: BlockToken = stream.peek(offset) ?: return null) {
+        // Only a branch this scope may own ends the search successfully; a `}`-bearing one belongs to an
+        // enclosing block and leaves the chain unextended.
+        is BlockToken.Code -> return offset.takeIf { def.determineAction(next.definition) == MatchAction.CLAIM }
+        is BlockToken.Content if next.leaf.text.isBlank() -> offset++
+        is BlockToken.Comment if next.body.text.isBlank() -> offset++
+        else -> return null
     }
 }
 
-private class LineLocalReplacementBuilder(token: BlockToken.Code, parent: ScopeBuilder) : LineCodeScopeBuilder(token, parent)
-
-private class LookupLocalReplacementBuilder(token: BlockToken.Code, parent: ScopeBuilder) : LookupCodeScopeBuilder(token, parent)
-
-// These classes apply both to openers and extensions. Extensions are NOT to be added to [entries] but added via [claimCodeBuilder]
-private class ScopedConditionBuilder(token: BlockToken.Code, parent: ScopeBuilder) : ScopedCodeScopeBuilder(token, parent) {
-    // The closer and any following branch sit at the scope's end and are nested as the [child].
-    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? = when (token.definition) {
-        is DefinitionToken.ConditionCloser -> claimCodeBuilder(EmptyCodeBuilder(token, this), stream)
-        is DefinitionToken.ConditionExtension -> claimCodeBuilder(newCodeScopeBuilder(token), stream)
-        else -> super.processCode(token, stream).also {
-            if (token.definition.kind.isCloser) reportInvalidCloserType(this.token, token)
-        }
-    }
+private fun blankGapBuilder(block: BlockToken): FileAstBuilder = when (block) {
+    is BlockToken.Content -> ContentBuilder(block)
+    is BlockToken.Comment -> CommentBuilder(block)
+    else -> error("Unexpected token in trailing extension gap: $block")
 }
 
-private class LineConditionBuilder(token: BlockToken.Code, parent: ScopeBuilder) : LineCodeScopeBuilder(token, parent) {
-    override fun accept(stream: FileTokenStream) {
-        super.accept(stream)
-        if (child == null) claimTrailingExtension(stream)
-    }
-
-    // An extension directly abutting the opener (empty branch) is claimed here; otherwise [claimTrailingExtension] does.
-    // An extension carrying a `}` closer terminates an enclosing scoped block, not this line scope, so it's
-    // left for that ancestor (ending this scope here) instead of being swallowed as our own branch.
-    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? = when (val def = token.definition) {
-        is DefinitionToken.ConditionExtension -> if (def.closer == null) claimCodeBuilder(newCodeScopeBuilder(token), stream) else null
-        else -> super.processCode(token, stream)
-    }
-}
-
-private class LookupConditionBuilder(token: BlockToken.Code, parent: ScopeBuilder) : LookupCodeScopeBuilder(token, parent) {
-    override fun accept(stream: FileTokenStream) {
-        super.accept(stream)
-        if (child == null) claimTrailingExtension(stream)
-    }
-
-    override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? = when (val def = token.definition) {
-        is DefinitionToken.ConditionExtension -> if (def.closer == null) claimCodeBuilder(newCodeScopeBuilder(token), stream) else null
-        else -> super.processCode(token, stream)
-    }
+context(scope: CodeScopeBuilder)
+private fun ignoreInSwap(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder {
+    stream.consume()
+    reportSwapNesting(token)
+    return InertCodeBuilder(token)
 }
 
 private inline fun FileTokenStream.advance(): FileTokenStream =
     apply(FileTokenStream::consume)
-
-context(parent: ScopeBuilder)
-private fun newCodeScopeBuilder(token: BlockToken.Code): CodeScopeBuilder {
-    val def: DefinitionToken = token.definition
-    return if (def.kind.isEmpty) EmptyCodeBuilder(token, parent)
-    else newNonEmptyCodeScopeBuilder(token, def)
-}
-
-context(parent: ScopeBuilder)
-private fun newNonEmptyCodeScopeBuilder(token: BlockToken.Code, def: DefinitionToken): CodeScopeBuilder = when (def) {
-    is DefinitionToken.ConditionOpener, is DefinitionToken.ConditionExtension -> when (def.kind) {
-        LOOKUP_OPENER, LOOKUP_EXTENSION -> LookupConditionBuilder(token, parent)
-        LINE_OPENER, LINE_EXTENSION -> LineConditionBuilder(token, parent)
-        else -> ScopedConditionBuilder(token, parent)
-    }
-
-    is DefinitionToken.ReplacementLocal -> when (def.kind) {
-        LOOKUP_OPENER, LOOKUP_EXTENSION -> LookupLocalReplacementBuilder(token, parent)
-        LINE_OPENER, LINE_EXTENSION -> LineLocalReplacementBuilder(token, parent)
-        else -> ScopedLocalReplacementBuilder(token, parent)
-    }
-
-    // Local swaps have the same scope requirements as regular ones.
-    is DefinitionToken.SwapOpener, is DefinitionToken.SwapLocal -> when (def.kind) {
-        LOOKUP_OPENER, LOOKUP_EXTENSION -> LookupSwapBuilder(token, parent)
-        LINE_OPENER, LINE_EXTENSION -> LineSwapBuilder(token, parent)
-        else -> ScopedSwapBuilder(token, parent)
-    }
-
-    else -> EmptyCodeBuilder(token, parent)
-}
 
 context(parent: CodeScopeBuilder)
 private fun reportSwapNesting(block: BlockToken.Code): Unit = block.ref.report(LAYOUT_GROUP + "definition-in-swap-scope") {
@@ -390,18 +367,19 @@ private fun reportRootCloser(closer: BlockToken.Code): Unit = closer.ref.report(
     if (candidate != null) hint = "${candidate.title()} at this location may need to end with `{`:\n${candidate.ref.toUriString()}"
 }
 
-private fun RootScopeBuilder.findScopeCandidate(closer: BlockToken.Code): BlockToken.Code? {
-    for (builder in entries.asReversed()) if (builder is CodeScopeBuilder)
-        builder.findScopeCandidate(closer)?.let { return it }
-    return null
-}
+// Searches the tree built so far for an open scope that was likely meant to be closed - i.e. one written
+// without a `{`. The parsed-so-far entries are complete, so they're collected and searched as plain tokens.
+private fun RootScopeBuilder.findScopeCandidate(closer: BlockToken.Code): BlockToken.Code? =
+    ArrayList<BlockToken>().apply { collect(this) }.findScopeCandidate(closer)
 
-private fun CodeScopeBuilder.findScopeCandidate(closer: BlockToken.Code): BlockToken.Code? {
-    if (token === closer || token.marker neqtype closer.marker) return null
-    child?.findScopeCandidate(closer)?.let { return it }
-    for (builder in entries.asReversed()) if (builder is CodeScopeBuilder)
-        builder.findScopeCandidate(closer)?.let { return it }
-    return token.takeIf { it.definition.kind.isLine }
+private fun List<BlockToken>.findScopeCandidate(closer: BlockToken.Code): BlockToken.Code? {
+    for (token in asReversed()) {
+        if (token !is BlockToken.Code) continue
+        if (token === closer || token.marker neqtype closer.marker) continue
+        token.scope.findScopeCandidate(closer)?.let { return it }
+        if (token.definition.body == Body.LINE) return token
+    }
+    return null
 }
 
 private fun reportMissingClosingBracket(code: BlockToken.Code): Unit = code.ref.report(LAYOUT_GROUP + "missing-scope-closer") {
@@ -420,8 +398,14 @@ private fun reportInvalidCloserType(opener: BlockToken.Code, closer: BlockToken.
     }
 }
 
+private val CodeScopeBuilder.def: DefinitionToken
+    inline get() = token.definition
+
 private val CodeScopeBuilder.ref: DocumentReference
     inline get() = token.ref
+
+private val Role.isTerminator: Boolean
+    get() = this == Role.CLOSER || this == Role.EXTENSION
 
 private fun BlockToken.title(): String =
     name().titlecase()
@@ -444,16 +428,12 @@ private fun FileAstBuilder.isNotBlank(): Boolean = when (this) {
 }
 
 private inline fun CodeScopeBuilder.anyAncestor(action: (CodeScopeBuilder) -> Boolean): Boolean {
-    forEachAncestor { if (action(it)) return true }
-    return false
-}
-
-private inline fun CodeScopeBuilder.forEachAncestor(action: (CodeScopeBuilder) -> Unit) {
     var next: ScopeBuilder = parent
     while (next is CodeScopeBuilder) {
-        action(next)
+        if (action(next)) return true
         next = next.parent
     }
+    return false
 }
 
 private fun BlockToken.Content.findLineSplit(immediate: Boolean): Int =
