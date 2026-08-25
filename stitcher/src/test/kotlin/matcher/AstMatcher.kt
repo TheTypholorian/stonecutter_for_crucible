@@ -76,10 +76,11 @@ class CodeMatcher(val type: KClass<out DefinitionToken>) : BlockTokenMatcher() {
     }
 
     override fun test(token: BlockToken) {
-        token.shouldBeInstanceOf<BlockToken.Code>()
-        token.scope shouldBeSameSizeAs entries
-        for ((token, matcher) in token.scope.zip(entries))
-            matcher.test(token)
+        val code: BlockToken.Code = token.shouldBeInstanceOf<BlockToken.Code>()
+        check(code)
+        code.scope shouldBeSameSizeAs entries
+        for ((child, matcher) in code.scope.zip(entries))
+            matcher.test(child)
     }
 }
 

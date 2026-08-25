@@ -28,7 +28,7 @@ val FileAstParserTest by testSuite {
                 //?}
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.SCOPED_OPENER }
+                    check { definition.body shouldBe Body.SCOPED }
 
                     content()
                 }
@@ -43,7 +43,7 @@ val FileAstParserTest by testSuite {
                 // println(null)
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.LINE_OPENER }
+                    check { definition.body shouldBe Body.LINE }
 
                     content()
                 }
@@ -61,7 +61,7 @@ val FileAstParserTest by testSuite {
                 // println(null)
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.LINE_OPENER }
+                    check { definition.body shouldBe Body.LINE }
 
                     comment()
                     content()
@@ -77,7 +77,7 @@ val FileAstParserTest by testSuite {
                 println("OK!"); println("OK!")
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.LOOKUP_OPENER }
+                    check { definition.body shouldBe Body.LOOKUP }
 
                     content { leaf.text shouldEndWith ";" }
                 }
@@ -91,7 +91,7 @@ val FileAstParserTest by testSuite {
                 println("OK!")
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.LOOKUP_OPENER }
+                    check { definition.body shouldBe Body.LOOKUP }
 
                     content { leaf.text shouldBe "println" }
                 }
@@ -105,7 +105,7 @@ val FileAstParserTest by testSuite {
                 println("OK!");println("OK!")
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.LOOKUP_OPENER }
+                    check { definition.body shouldBe Body.LOOKUP }
 
                     content { leaf.text shouldEndWith ";" }
                 }
@@ -122,12 +122,12 @@ val FileAstParserTest by testSuite {
                 //?}
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.SCOPED_OPENER }
+                    check { definition.body shouldBe Body.SCOPED }
 
                     content()
                 }
                 code<ConditionExtension> {
-                    check { definition.kind shouldBe Kind.SCOPED_EXTENSION }
+                    check { definition.body shouldBe Body.SCOPED }
 
                     comment()
                 }
@@ -143,12 +143,12 @@ val FileAstParserTest by testSuite {
                 //println("OFF")
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.SCOPED_OPENER }
+                    check { definition.body shouldBe Body.SCOPED }
 
                     content()
                 }
                 code<ConditionExtension> {
-                    check { definition.kind shouldBe Kind.LINE_EXTENSION }
+                    check { definition.body shouldBe Body.LINE }
 
                     comment()
                 }
@@ -163,13 +163,13 @@ val FileAstParserTest by testSuite {
                 //println("OFF")
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.LINE_OPENER }
+                    check { definition.body shouldBe Body.LINE }
 
                     content()
                     content { leaf.text shouldBe "\n" }
                 }
                 code<ConditionExtension> {
-                    check { definition.kind shouldBe Kind.LINE_EXTENSION }
+                    check { definition.body shouldBe Body.LINE }
 
                     comment()
                 }
@@ -184,13 +184,13 @@ val FileAstParserTest by testSuite {
                 //println("OFF")
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.LOOKUP_OPENER }
+                    check { definition.body shouldBe Body.LOOKUP }
 
                     content()
                     content { leaf.text shouldBe "\n" }
                 }
                 code<ConditionExtension> {
-                    check { definition.kind shouldBe Kind.LINE_EXTENSION }
+                    check { definition.body shouldBe Body.LINE }
 
                     comment()
                 }
@@ -206,11 +206,11 @@ val FileAstParserTest by testSuite {
                 //?}
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.SCOPED_OPENER }
+                    check { definition.body shouldBe Body.SCOPED }
 
                     content { leaf.text.shouldBeBlank() }
                     code<ConditionOpener> {
-                        check { definition.kind shouldBe Kind.SCOPED_OPENER }
+                        check { definition.body shouldBe Body.SCOPED }
 
                         content()
                     }
@@ -228,11 +228,11 @@ val FileAstParserTest by testSuite {
                 //?}
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.SCOPED_OPENER }
+                    check { definition.body shouldBe Body.SCOPED }
 
                     content { leaf.text.shouldBeBlank() }
                     code<ConditionOpener> {
-                        check { definition.kind shouldBe Kind.LINE_OPENER }
+                        check { definition.body shouldBe Body.LINE }
 
                         content()
                     }
@@ -249,11 +249,11 @@ val FileAstParserTest by testSuite {
                     println("ON")
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.LINE_OPENER }
+                    check { definition.body shouldBe Body.LINE }
 
                     content { leaf.text.shouldBeBlank() }
                     code<ConditionOpener> {
-                        check { definition.kind shouldBe Kind.LINE_OPENER }
+                        check { definition.body shouldBe Body.LINE }
 
                         content()
                     }
@@ -271,16 +271,16 @@ val FileAstParserTest by testSuite {
                     //?}
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.LINE_OPENER }
+                    check { definition.body shouldBe Body.LINE }
 
                     content { leaf.text.shouldBeBlank() }
                     code<ConditionOpener> {
-                        check { definition.kind shouldBe Kind.SCOPED_OPENER }
+                        check { definition.body shouldBe Body.SCOPED }
 
                         content()
                     }
                     code<ConditionExtension> {
-                        check { definition.kind shouldBe Kind.SCOPED_EXTENSION }
+                        check { definition.body shouldBe Body.SCOPED }
 
                         content { leaf.text.shouldBeBlank() }
                         comment()
@@ -301,13 +301,13 @@ val FileAstParserTest by testSuite {
                 //println("OFF")
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.LINE_OPENER }
+                    check { definition.body shouldBe Body.LINE }
 
                     content()
                     content { leaf.text.shouldBeBlank() }
                 }
                 code<ConditionExtension> {
-                    check { definition.kind shouldBe Kind.LINE_EXTENSION }
+                    check { definition.body shouldBe Body.LINE }
 
                     comment()
                 }
@@ -323,14 +323,14 @@ val FileAstParserTest by testSuite {
                 //println("OFF")
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.LINE_OPENER }
+                    check { definition.body shouldBe Body.LINE }
 
                     content()
                     content { leaf.text.shouldBeBlank() }
                     comment()
                 }
                 code<ConditionExtension> {
-                    check { definition.kind shouldBe Kind.LINE_EXTENSION }
+                    check { definition.body shouldBe Body.LINE }
 
                     comment()
                 }
@@ -347,17 +347,17 @@ val FileAstParserTest by testSuite {
                     //println("OFF")
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.LINE_OPENER }
+                    check { definition.body shouldBe Body.LINE }
 
                     content { leaf.text.shouldBeBlank() }
                     code<ConditionOpener> {
-                        check { definition.kind shouldBe Kind.LINE_OPENER }
+                        check { definition.body shouldBe Body.LINE }
 
                         content()
                         content { leaf.text.shouldBeBlank() }
                     }
                     code<ConditionExtension> {
-                        check { definition.kind shouldBe Kind.LINE_EXTENSION }
+                        check { definition.body shouldBe Body.LINE }
 
                         content { leaf.text.shouldBeBlank() }
                         comment()
@@ -373,12 +373,12 @@ val FileAstParserTest by testSuite {
                     println("ON")
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.LINE_OPENER }
+                    check { definition.body shouldBe Body.LINE }
 
                     content()
                 }
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.LINE_OPENER }
+                    check { definition.body shouldBe Body.LINE }
 
                     content()
                 }
@@ -392,12 +392,219 @@ val FileAstParserTest by testSuite {
                     func()//?}
             """.trimIndent() shouldBeParsedAs ast {
                 code<ConditionOpener> {
-                    check { definition.kind shouldBe Kind.LINE_OPENER }
+                    check { definition.body shouldBe Body.SCOPED }
 
                     content { leaf.text.shouldBeBlank() }
                     code<SwapOpener> {
+                        check { definition.body shouldBe Body.LINE }
+
                         content()
                     }
+                }
+                code<ConditionCloser>()
+            }
+        }
+    }
+
+    testSuite("scope ownership") {
+        test("line scope ends at an enclosing `} else {`") {
+            """
+                //? if outer {
+                one()
+                //? if inner
+                two()
+                //?} else {
+                three()
+                //?}
+            """.trimIndent() shouldBeParsedAs ast {
+                code<ConditionOpener> {
+                    check { definition.body shouldBe Body.SCOPED }
+
+                    content()
+                    // The nested line condition owns only its own line, not the enclosing extension.
+                    code<ConditionOpener> {
+                        check { definition.body shouldBe Body.LINE }
+
+                        content()
+                    }
+                    content()
+                }
+                code<ConditionExtension> {
+                    check { definition.body shouldBe Body.SCOPED }
+
+                    content()
+                }
+                code<ConditionCloser>()
+            }
+        }
+
+        test("lookup scope ends at an enclosing `} else {`") {
+            """
+                //? if outer {
+                //? if inner >> '('
+                two()
+                //?} else {
+                three()
+                //?}
+            """.trimIndent() shouldBeParsedAs ast {
+                code<ConditionOpener> {
+                    check { definition.body shouldBe Body.SCOPED }
+
+                    code<ConditionOpener> {
+                        check { definition.body shouldBe Body.LOOKUP }
+
+                        content { leaf.text shouldBe "two" }
+                    }
+                    content()
+                }
+                code<ConditionExtension> {
+                    check { definition.body shouldBe Body.SCOPED }
+
+                    content()
+                }
+                code<ConditionCloser>()
+            }
+        }
+
+        test("line scope ends at an enclosing `}`") {
+            """
+                //? if outer {
+                one()
+                //? if inner
+                two()
+                //?}
+            """.trimIndent() shouldBeParsedAs ast {
+                code<ConditionOpener> {
+                    check { definition.body shouldBe Body.SCOPED }
+
+                    content()
+                    code<ConditionOpener> {
+                        check { definition.body shouldBe Body.LINE }
+
+                        content()
+                    }
+                    content()
+                }
+                code<ConditionCloser>()
+            }
+        }
+
+        // `else` without a leading `}` continues the line scope, unlike the cases above.
+        test("line scope claims a `}`-less `else`") {
+            """
+                //? if outer {
+                //? if inner
+                one()
+                //? else
+                two()
+                //?}
+            """.trimIndent() shouldBeParsedAs ast {
+                code<ConditionOpener> {
+                    check { definition.body shouldBe Body.SCOPED }
+
+                    code<ConditionOpener> {
+                        check { definition.body shouldBe Body.LINE }
+
+                        content()
+                        content()
+                    }
+                    code<ConditionExtension> {
+                        check { definition.body shouldBe Body.LINE }
+
+                        content()
+                    }
+                    content()
+                }
+                code<ConditionCloser>()
+            }
+        }
+
+        // Spacing between the marker and the `}` is insignificant.
+        test("spaced closers bind like unspaced ones") {
+            """
+                //? if outer {
+                one()
+                //? if inner
+                two()
+                //? } else {
+                three()
+                //? }
+            """.trimIndent() shouldBeParsedAs ast {
+                code<ConditionOpener> {
+                    check { definition.body shouldBe Body.SCOPED }
+
+                    content()
+                    code<ConditionOpener> {
+                        check { definition.body shouldBe Body.LINE }
+
+                        content()
+                    }
+                    content()
+                }
+                code<ConditionExtension> {
+                    check { definition.body shouldBe Body.SCOPED }
+
+                    content()
+                }
+                code<ConditionCloser>()
+            }
+        }
+
+        // A line scope that has not covered anything yet must still leave the closer to its enclosing block.
+        // Swallowing it used to strand the block unterminated and report a missing closer on a valid file.
+        test("empty line scope yields an enclosing `}`") {
+            """
+                //? if outer {
+                //? if inner
+                //?}
+            """.trimIndent() shouldBeParsedAs ast {
+                code<ConditionOpener> {
+                    check { definition.body shouldBe Body.SCOPED }
+
+                    code<ConditionOpener> {
+                        check { definition.body shouldBe Body.LINE }
+                    }
+                }
+                code<ConditionCloser>()
+            }
+        }
+
+        test("empty line scope before a closer is not a missing closer") {
+            """
+                //? if outer {
+                //? if inner
+                //?}
+            """.trimIndent() shouldHaveProblems {
+                shouldNotHave(LAYOUT_GROUP + "missing-scope-closer")
+            }
+        }
+
+        test("a line scope closes only one enclosing level") {
+            """
+                //? if a {
+                //? if b {
+                //? if c
+                one()
+                //?}
+                two()
+                //?}
+            """.trimIndent() shouldBeParsedAs ast {
+                code<ConditionOpener> {
+                    check { definition.body shouldBe Body.SCOPED }
+
+                    code<ConditionOpener> {
+                        check { definition.body shouldBe Body.SCOPED }
+
+                        code<ConditionOpener> {
+                            check { definition.body shouldBe Body.LINE }
+
+                            content()
+                        }
+                        content()
+                    }
+                    // The inner `//?}` closed `b`; `two()` still belongs to `a`.
+                    code<ConditionCloser>()
+                    content()
                 }
                 code<ConditionCloser>()
             }
@@ -544,6 +751,17 @@ val FileAstParserTest by testSuite {
     }
 
     testSuite("reported cases") {
+        test("root closer with else") {
+            """
+                //$ id {
+                func()
+                //$}
+                //?} else
+            """.trimIndent() shouldHaveProblems {
+                shouldHave(LAYOUT_GROUP + "unmatched-root-closer")
+            }
+        }
+
         test("root closer ignoring other types") {
             """
                 //$ id {
