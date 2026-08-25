@@ -57,10 +57,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
-          cache: gradle
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
       - name: Run tests
         run: |
-          chmod +x ./gradlew
           ./gradlew check --build-cache --configuration-cache
       - name: Upload test reports
         if: always()
