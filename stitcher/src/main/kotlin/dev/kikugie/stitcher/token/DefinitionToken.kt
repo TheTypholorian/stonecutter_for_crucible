@@ -1,52 +1,22 @@
 package dev.kikugie.stitcher.token
 
-import dev.kikugie.stitcher.token.DefinitionToken.Kind
 import dev.kikugie.stitcher.token.type.BuiltinTokenType
 
 sealed interface DefinitionToken : StitcherToken {
     val kind: Kind
+    val body: Body
+    val role: Role
+
     val closer: LeafToken? get() = null
     val opener: ScopeToken? get() = null
 
     fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T
 
-    enum class Kind {
-        SCOPED_OPENER, LINE_OPENER, LOOKUP_OPENER,
-        SCOPED_EXTENSION, LINE_EXTENSION, LOOKUP_EXTENSION,
-        CLOSER, INDEPENDENT;
+    enum class Kind { CONDITION, SWAP, REPLACEMENT }
 
-        /**Indicates that the definition ends with a `{`.*/
-        val isScoped: Boolean
-            get() = this == SCOPED_OPENER || this == SCOPED_EXTENSION
+    enum class Body { SCOPED, LINE, LOOKUP, NONE }
 
-        /**Indicates that the definition ends with a `>>`.*/
-        val isLookup: Boolean
-            get() = this == LOOKUP_OPENER || this == LOOKUP_EXTENSION
-
-        /**Indicates that the definition has an empty ending.*/
-        val isLine: Boolean
-            get() = this == LINE_OPENER || this == LINE_EXTENSION
-
-        /**Indicates that the definition doesn't need a matching `}` closer.*/
-        val isOpen: Boolean
-            get() = isLine || isLookup
-
-        /**Indicates that the definition should open a new scope without closing the current one.*/
-        val isOpener: Boolean
-            get() = this == SCOPED_OPENER || this == LINE_OPENER || this == LOOKUP_OPENER
-
-        /**Indicates that the definition should close the current scope and open a new one.*/
-        val isExtension: Boolean
-            get() = this == SCOPED_EXTENSION || this == LINE_EXTENSION || this == LOOKUP_EXTENSION
-
-        /**Indicates that the definition should close the current scope.*/
-        val isCloser: Boolean
-            get() = this == CLOSER || isExtension
-
-        /**Indicates that the definition should not have its own scope.*/
-        val isEmpty: Boolean
-            get() = this == CLOSER || this == INDEPENDENT
-    }
+    enum class Role { OPENER, EXTENSION, CLOSER, INDEPENDENT }
 
     interface Visitor<T, C> {
         fun visitSwapLocal(swap: SwapLocal, ctx: C): T
@@ -62,11 +32,14 @@ sealed interface DefinitionToken : StitcherToken {
         fun visitReplacementCloser(repl: ReplacementCloser, ctx: C): T
     }
 
-    sealed interface Swap : DefinitionToken
+    sealed interface Swap : DefinitionToken {
+        override val kind: Kind get() = Kind.SWAP
+    }
 
     data class SwapLocal(val entries: List<Entry>, override val opener: ScopeToken?) : Swap {
         override val type: BuiltinTokenType get() = BuiltinTokenType.SWAP_LOCAL
-        override val kind: Kind = opener.openerKind()
+        override val body: Body = body()
+        override val role: Role get() = Role.OPENER
 
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitSwapLocal(this, ctx)
 
@@ -79,19 +52,22 @@ sealed interface DefinitionToken : StitcherToken {
 
     data class SwapOpener(val identifier: LeafToken, val arguments: List<LeafToken>, override val opener: ScopeToken?) : Swap {
         override val type: BuiltinTokenType get() = BuiltinTokenType.SWAP_OPEN
-        override val kind: Kind = opener.openerKind()
+        override val body: Body = body()
+        override val role: Role get() = Role.OPENER
 
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitSwapOpener(this, ctx)
     }
 
     data class SwapCloser(override val closer: LeafToken) : Swap, StitcherToken by closer {
         override val type: BuiltinTokenType get() = BuiltinTokenType.SWAP_CLOSE
-        override val kind: Kind get() = Kind.CLOSER
+        override val body: Body get() = Body.NONE
+        override val role: Role get() = Role.CLOSER
 
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitSwapCloser(this, ctx)
     }
 
     sealed interface Condition : DefinitionToken {
+        override val kind: Kind get() = Kind.CONDITION
         val sugar: List<LeafToken> get() = emptyList()
         val expression: ExpressionToken? get() = null
     }
@@ -101,7 +77,8 @@ sealed interface DefinitionToken : StitcherToken {
         override val expression: ExpressionToken, override val opener: ScopeToken?
     ) : Condition {
         override val type: BuiltinTokenType get() = BuiltinTokenType.COND_OPEN
-        override val kind: Kind = opener.openerKind()
+        override val body: Body = body()
+        override val role: Role get() = Role.OPENER
 
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitConditionOpener(this, ctx)
     }
@@ -111,23 +88,28 @@ sealed interface DefinitionToken : StitcherToken {
         override val expression: ExpressionToken?, override val opener: ScopeToken?
     ) : Condition {
         override val type: BuiltinTokenType get() = BuiltinTokenType.COND_EXT
-        override val kind: Kind = opener.extensionKind()
+        override val body: Body = body()
+        override val role: Role get() = Role.EXTENSION
 
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitConditionExtension(this, ctx)
     }
 
     data class ConditionCloser(override val closer: LeafToken) : Condition, StitcherToken by closer {
         override val type: BuiltinTokenType get() = BuiltinTokenType.COND_CLOSE
-        override val kind: Kind get() = Kind.CLOSER
+        override val body: Body get() = Body.NONE
+        override val role: Role get() = Role.CLOSER
 
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitConditionCloser(this, ctx)
     }
 
-    sealed interface Replacement : DefinitionToken
+    sealed interface Replacement : DefinitionToken {
+        override val kind: Kind get() = Kind.REPLACEMENT
+    }
 
     data class ReplacementToggle(val entries: List<Entry>) : Replacement {
         override val type: BuiltinTokenType get() = BuiltinTokenType.REPL_TOGGLE
-        override val kind: Kind get() = Kind.INDEPENDENT
+        override val body: Body get() = Body.NONE
+        override val role: Role get() = Role.INDEPENDENT
 
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitReplacementToggle(this, ctx)
 
@@ -143,7 +125,8 @@ sealed interface DefinitionToken : StitcherToken {
         val entries: List<Entry>, override val opener: ScopeToken?
     ) : Replacement {
         override val type: BuiltinTokenType get() = BuiltinTokenType.REPL_LOCAL
-        override val kind: Kind = if (opener is ScopeToken.Named) Kind.INDEPENDENT else opener.openerKind()
+        override val body: Body = body()
+        override val role: Role = if (opener is ScopeToken.Named) Role.INDEPENDENT else Role.OPENER
 
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitReplacementLocal(this, ctx)
 
@@ -156,20 +139,16 @@ sealed interface DefinitionToken : StitcherToken {
 
     data class ReplacementCloser(override val closer: LeafToken) : Replacement, StitcherToken by closer {
         override val type: BuiltinTokenType get() = BuiltinTokenType.REPL_CLOSE
-        override val kind: Kind get() = Kind.CLOSER
+        override val body: Body get() = Body.NONE
+        override val role: Role get() = Role.CLOSER
 
         override fun <T, C> accept(visitor: Visitor<out T, C>, ctx: C): T = visitor.visitReplacementCloser(this, ctx)
     }
 }
 
-private fun ScopeToken?.openerKind(): Kind = when(this?.type as? BuiltinTokenType) {
-    BuiltinTokenType.CLOSED_SCOPE -> Kind.SCOPED_OPENER
-    BuiltinTokenType.LOOKUP_SCOPE -> Kind.LOOKUP_OPENER
-    else -> Kind.LINE_OPENER
-}
-
-private fun ScopeToken?.extensionKind(): Kind = when (this?.type as? BuiltinTokenType) {
-    BuiltinTokenType.CLOSED_SCOPE -> Kind.SCOPED_EXTENSION
-    BuiltinTokenType.LOOKUP_SCOPE -> Kind.LOOKUP_EXTENSION
-    else -> Kind.LINE_EXTENSION
+private fun DefinitionToken.body(): DefinitionToken.Body = when (opener?.type as? BuiltinTokenType) {
+    BuiltinTokenType.CLOSED_SCOPE -> DefinitionToken.Body.SCOPED
+    BuiltinTokenType.LOOKUP_SCOPE -> DefinitionToken.Body.LOOKUP
+    BuiltinTokenType.NAMED_SCOPE -> DefinitionToken.Body.NONE
+    else -> DefinitionToken.Body.LINE
 }
