@@ -4,6 +4,7 @@ package dev.kikugie.stonecutter.build.config
 
 import dev.kikugie.stitcher.replacement.toInt
 import dev.kikugie.stonecutter.Identifier
+import dev.kikugie.stonecutter.ReplacementID
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.build.config.ReplacementContainer.*
 import dev.kikugie.stonecutter.model.process.PerlReplacement
@@ -47,7 +48,7 @@ public sealed interface ReplacementContainer {
      * @param action Configuration action for the replacement spec.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#string-replacements">String Replacement Documentation</a>
      */
-    public fun string(id: Identifier, action: Action<StringReplacementSpec>): Unit =
+    public fun string(id: @ReplacementID Identifier, action: Action<StringReplacementSpec>): Unit =
         string { this.id.set(id); action.execute(this) }
 
     /**
@@ -68,7 +69,7 @@ public sealed interface ReplacementContainer {
      * @param action Configuration action for the replacement spec.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#string-replacements">String Replacement Documentation</a>
      */
-    public fun string(direction: Boolean, id: Identifier, action: Action<StringReplacementSpec>): Unit =
+    public fun string(direction: Boolean, id: @ReplacementID Identifier, action: Action<StringReplacementSpec>): Unit =
         string { this.direction.set(direction); this.id.set(id); action.execute(this) }
 
     /**
@@ -80,7 +81,7 @@ public sealed interface ReplacementContainer {
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#string-replacements">String Replacement Documentation</a>
      */
     @Deprecated("Use the direction-first variant `string(direction, id)`", replaceWith = ReplaceWith("string(direction, id, action)"))
-    public fun string(id: Identifier, direction: Boolean?, action: Action<StringReplacementSpec>): Unit =
+    public fun string(id: @ReplacementID Identifier, direction: Boolean?, action: Action<StringReplacementSpec>): Unit =
         string { this.id.set(id); this.direction.set(direction); action.execute(this) }
 
     /**
@@ -98,7 +99,7 @@ public sealed interface ReplacementContainer {
      * @param action Configuration action for the replacement spec.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#regex-replacements">Regex Replacement Documentation</a>
      */
-    public fun regex(id: Identifier, action: Action<RegexReplacementSpec>): Unit =
+    public fun regex(id: @ReplacementID Identifier, action: Action<RegexReplacementSpec>): Unit =
         regex { this.id.set(id); action.execute(this) }
 
     /**
@@ -119,7 +120,7 @@ public sealed interface ReplacementContainer {
      * @param action Configuration action for the replacement spec.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#regex-replacements">Regex Replacement Documentation</a>
      */
-    public fun regex(direction: Boolean, id: Identifier, action: Action<RegexReplacementSpec>): Unit =
+    public fun regex(direction: Boolean, id: @ReplacementID Identifier, action: Action<RegexReplacementSpec>): Unit =
         regex { this.direction.set(direction); this.id.set(id); action.execute(this) }
 
     /**
@@ -131,7 +132,7 @@ public sealed interface ReplacementContainer {
      * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#regex-replacements">Regex Replacement Documentation</a>
      */
     @Deprecated("Use the direction-first variant `regex(direction, id)`", replaceWith = ReplaceWith("regex(direction, id, action)"))
-    public fun regex(id: Identifier, direction: Boolean?, action: Action<RegexReplacementSpec>): Unit =
+    public fun regex(id: @ReplacementID Identifier, direction: Boolean?, action: Action<RegexReplacementSpec>): Unit =
         regex { this.id.set(id); this.direction.set(direction); action.execute(this) }
 
     @StonecutterExperimentalAPI
@@ -142,7 +143,7 @@ public sealed interface ReplacementContainer {
         perl { this.direction.set(direction); action.execute(this) }
 
     @StonecutterExperimentalAPI
-    public fun perl(direction: Boolean, id: Identifier, action: Action<PerlReplacementSpec>): Unit =
+    public fun perl(direction: Boolean, id: @ReplacementID Identifier, action: Action<PerlReplacementSpec>): Unit =
         perl { this.direction.set(direction); this.id.set(id); action.execute(this) }
 
     /**
@@ -175,6 +176,7 @@ public sealed interface ReplacementContainer {
          * The identifier must match `[_a-zA-Z][_\-a-zA-Z0-9]*`.
          * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#replacement-identifiers">Replacement Identifier Documentation</a>
          */
+        @ReplacementID
         public abstract val id: Property<Identifier>
 
         /**
@@ -227,6 +229,7 @@ public sealed interface ReplacementContainer {
          * The identifier must match `[_a-zA-Z][_\-a-zA-Z0-9]*`.
          * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#replacement-identifiers">Replacement Identifier Documentation</a>
          */
+        @ReplacementID
         public abstract val id: Property<Identifier>
 
         /**
@@ -359,6 +362,7 @@ public sealed interface ReplacementContainer {
          * The identifier must match `[_a-zA-Z][_\-a-zA-Z0-9]*`.
          * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#replacement-identifiers">Replacement Identifier Documentation</a>
          */
+        @ReplacementID
         public abstract val id: Property<Identifier>
 
         public abstract fun replace(
