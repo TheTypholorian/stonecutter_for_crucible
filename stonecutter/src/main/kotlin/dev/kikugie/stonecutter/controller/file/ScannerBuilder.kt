@@ -20,9 +20,10 @@ private annotation class ScannerDsl
  *
  * The comment lexer *(AKA scanner)* should only emit tokens declared in [openers]
  * and [closers] sets. The complete requirements can be found on the
- * [wiki](https://stonecutter.kikugie.dev/wiki/config/handlers#scanner).
+ * [wiki](https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#scanner).
  *
  * @see FileHandlerContainer
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#token-ordering">Token Ordering Documentation</a>
  */
 @ScannerDsl
 public abstract class ScannerBuilder @Inject constructor(objects: ObjectFactory) {
@@ -58,7 +59,10 @@ public abstract class ScannerBuilder @Inject constructor(objects: ObjectFactory)
         closers.set(types.toSet())
     }
 
-    /**Creates a new lexer based on the ANTLR [grammar].*/
+    /**
+     * Creates a new lexer based on the ANTLR [grammar].
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#naive-scanner">Naive Scanner Documentation</a>
+     */
     public fun interpreted(@Language("ANTLRv4") grammar: CharSequence): LexerFactory = InterpretedLexerFactory(grammar.toString())
 
     /**Creates a new lexer by instantiating the provided [cls].*/

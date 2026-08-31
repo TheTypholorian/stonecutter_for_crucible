@@ -19,10 +19,14 @@ private annotation class FileHandlerDsl
 /**
  * Extension class for configuring how Stonecutter should process the associated file format.
  * @see FileHandlerContainer
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#handler-registration">Handler Registration Documentation</a>
  */
 @FileHandlerDsl
 public abstract class HandlerBuilder @Inject constructor(objects: ObjectFactory) : Named {
-    /**Comment lexer configuration. Not reassignable - configure instead.*/
+    /**
+     * Comment lexer configuration. Not reassignable - configure instead.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#scanner">Scanner Documentation</a>
+     */
     public abstract val scanner: Property<ScannerBuilder>
 
     /**
@@ -30,6 +34,7 @@ public abstract class HandlerBuilder @Inject constructor(objects: ObjectFactory)
      *
      * The function receives a text block and should return a new string,
      * commented according to the associated file format.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#commenter">Commenter Documentation</a>
      */
     public abstract val commenter: Property<CommentingStrategy>
 
@@ -38,6 +43,7 @@ public abstract class HandlerBuilder @Inject constructor(objects: ObjectFactory)
      *
      * The function receives a comment body and should reformat it if needed.
      * *In most cases the default value works well enough*.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#uncommenter">Uncommenter Documentation</a>
      */
     public abstract val uncommenter: Property<UncommentingStrategy>
 
@@ -46,6 +52,7 @@ public abstract class HandlerBuilder @Inject constructor(objects: ObjectFactory)
      *
      * The function receives a text block and the value that it should be replaced with,
      * and output a formatted string. *In most cases the default value works well enough*.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/swaps">Swaps Documentation</a>
      */
     public abstract val swapper: Property<SwappingStrategy>
 
@@ -68,7 +75,10 @@ public abstract class HandlerBuilder @Inject constructor(objects: ObjectFactory)
         action.execute(scanner.get())
     }
 
-    /**Creates a [commenter] that prepends the given [prefix] on each line.*/
+    /**
+     * Creates a [commenter] that prepends the given [prefix] on each line.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#naive-commenter">Naive Commenter Documentation</a>
+     */
     public fun line(prefix: String): CommentingStrategy =
         LineCommentingStrategy(prefix)
 

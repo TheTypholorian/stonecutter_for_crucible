@@ -29,8 +29,8 @@ private annotation class SettingsDsl
  * The extension provides Stonecutter project registration functions
  * and buildscript DSL configuration.
  *
- * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params">Wiki #1</a>
- * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings">Wiki #2</a>
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/project-setup">Project Setup Guide</a>
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model">Project Model Documentation</a>
  */
 @SettingsDsl
 public abstract class StonecutterSettingsExtension(
@@ -56,7 +56,7 @@ public abstract class StonecutterSettingsExtension(
      * 1. [TreeBuilder.centralScript]
      * 2. [TreeBuilder.mapBuilds]
      * 3. [NodeBuilder.buildscript][dev.kikugie.stonecutter.settings.tree.NodeBuilder.buildscript]
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#buildscript-mapping">Build Script Mapping Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#build-script">Build Script Mapping Documentation</a>
      */
     public abstract val centralScript: Property<String>
 
@@ -67,12 +67,13 @@ public abstract class StonecutterSettingsExtension(
      *
      * This value applies to all registered project trees, and can be overridden with
      * [TreeBuilder.kotlinController]
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/faq#groovy-support">Groovy Support FAQ</a>
      */
     public abstract val kotlinController: Property<Boolean>
 
     /**
      * Accessor for strictly SemVer version evaluation.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/build#arbitrary-operations">Semantic Operations Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/build-setup#version-aware-buildscript">Semantic Operations Documentation</a>
      */
     public val semantics: VersionOperations<SemanticVersion> get() = SemanticOperations
 
@@ -112,8 +113,8 @@ public abstract class StonecutterSettingsExtension(
      *
      * The file's parameters may be overridden with the [action] parameter or the [shared]
      * configuration.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/project-setup">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
     public fun create(project: ProjectReference, file: File, action: Action<TreeBuilder> = shared): Unit =
@@ -128,8 +129,8 @@ public abstract class StonecutterSettingsExtension(
      *
      * The file's parameters may be overridden with the [action] parameter or the [shared]
      * configuration.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/project-setup">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
     public fun create(project: ProjectReference, file: File, converter: SCConverter, action: Action<TreeBuilder> = shared): Unit =
@@ -143,8 +144,8 @@ public abstract class StonecutterSettingsExtension(
      *
      * The file's parameters may be overridden with the [action] parameter or the [shared]
      * configuration.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/project-setup">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
     public fun create(vararg projects: ProjectReference, file: File, action: Action<TreeBuilder> = shared): Unit =
@@ -159,8 +160,8 @@ public abstract class StonecutterSettingsExtension(
      *
      * The file's parameters may be overridden with the [action] parameter or the [shared]
      * configuration.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/project-setup">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
     public fun create(vararg projects: ProjectReference, file: File, converter: SCConverter, action: Action<TreeBuilder> = shared): Unit =
@@ -174,8 +175,8 @@ public abstract class StonecutterSettingsExtension(
      *
      * The file's parameters may be overridden with the [action] parameter or the [shared]
      * configuration.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/project-setup">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
     public fun create(projects: Iterable<ProjectReference>, file: File, action: Action<TreeBuilder> = shared): Unit =
@@ -190,8 +191,8 @@ public abstract class StonecutterSettingsExtension(
      *
      * The file's parameters may be overridden with the [action] parameter or the [shared]
      * configuration.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/project-setup">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
     public fun create(projects: Iterable<ProjectReference>, file: File, converter: SCConverter, action: Action<TreeBuilder> = shared): Unit =
@@ -203,7 +204,7 @@ public abstract class StonecutterSettingsExtension(
      *
      * The subprojects and their associated versions are configured in the provided [action],
      * or the [shared] one.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/project-setup">Project Setup Guide</a>
      */
     @JvmOverloads
     public fun create(project: ProjectReference, action: Action<TreeBuilder> = shared): Unit =
@@ -214,7 +215,7 @@ public abstract class StonecutterSettingsExtension(
      *
      * The subprojects and their associated versions are configured in the provided [action],
      * or the [shared] one.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/project-setup">Project Setup Guide</a>
      */
     @JvmOverloads
     public fun create(vararg projects: ProjectReference, action: Action<TreeBuilder> = shared): Unit =
@@ -225,7 +226,7 @@ public abstract class StonecutterSettingsExtension(
      *
      * The subprojects and their associated versions are configured in the provided [action],
      * or the [shared] one.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/project-setup">Project Setup Guide</a>
      */
     @JvmOverloads
     public fun create(projects: Iterable<ProjectReference>, action: Action<TreeBuilder> = shared): Unit = projects.forEach {

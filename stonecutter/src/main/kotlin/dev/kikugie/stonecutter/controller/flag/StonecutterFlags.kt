@@ -6,7 +6,10 @@ import kotlin.annotation.AnnotationRetention.BINARY
 @DslMarker @Retention(BINARY)
 private annotation class FlagDsl
 
-/**Extension interface to provide read-write access to [StonecutterFlag]s.*/
+/**
+ * Extension interface to provide read-write access to [StonecutterFlag]s.
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#flags">Flags Documentation</a>
+ */
 @FlagDsl
 public interface StonecutterFlags {
     public operator fun get(key: String): Any = get(StonecutterFlag.named(key))

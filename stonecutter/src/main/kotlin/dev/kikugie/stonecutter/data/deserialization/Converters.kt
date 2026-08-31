@@ -26,7 +26,7 @@ internal fun File.defaultConverterOrNull(): SCConverter? = when (extension.lower
 
 internal fun determineConverter(
     file: File,
-    docs: String = "https://stonecutter.kikugie.dev/wiki/config/projects"
+    docs: String = "https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/data-driven-setup"
 ): SCConverter = requireNotNull(file.defaultConverterOrNull()) {
     """
     file://${file.absolutePath} is not of a supported format

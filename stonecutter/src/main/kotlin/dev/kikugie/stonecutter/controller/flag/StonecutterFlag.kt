@@ -12,6 +12,7 @@ import org.gradle.api.SupportsKotlinAssignmentOverloading
  * @property key The flag key, used in [named] and Gradle property accessors
  * @property default The default value of the flag
  * @property scope The [FlagScope] this flag belongs to
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#flags">Flags Documentation</a>
  */
 @SupportsKotlinAssignmentOverloading
 @ConsistentCopyVisibility
@@ -126,9 +127,9 @@ public data class StonecutterFlag<T : Any> private constructor(
 
         /**
          * Configures the implicit receiver target used in file processing.
-         * For more information on this functionality refer to the wiki.
          *
          * **Default**: `"minecraft"`
+         * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#targets">Targets Documentation</a>
          */
         @JvmField
         public val IMPLICIT_RECEIVER: StonecutterFlag<String> = StonecutterFlag("implicit_receiver", "minecraft")

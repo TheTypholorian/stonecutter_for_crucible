@@ -13,7 +13,7 @@ import org.gradle.kotlin.dsl.setProperty
  * Registered handlers describe how Stonecutter should process a file of a given format.
  * File formats are associated by their lowercase extensions, without a dot prefix.
  *
- * @see <a href="https://stonecutter.kikugie.dev/wiki/config/handlers">Wiki</a>
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats">File Handlers Documentation</a>
  */
 public abstract class FileHandlerContainer : GradleContainerService {
     internal abstract val handlers: NamedDomainObjectContainer<HandlerBuilder>
@@ -31,13 +31,19 @@ public abstract class FileHandlerContainer : GradleContainerService {
     public fun named(extension: String): NamedDomainObjectProvider<HandlerBuilder> =
         handlers.named(extension)
 
-    /**Copies the configuration of the [from] extension to the provided [extensions].*/
+    /**
+     * Copies the configuration of the [from] extension to the provided [extensions].
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#configuration-reuse">Configuration Reuse Documentation</a>
+     */
     public fun inherit(from: String, vararg extensions: String) {
         val parent = named(from).get()
         for (it in extensions) handlers.make(it) { copy(parent) }
     }
 
-    /**Registers or updates the configurations for the given [extensions].*/
+    /**
+     * Registers or updates the configurations for the given [extensions].
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#handler-registration">Handler Registration Documentation</a>
+     */
     public fun configure(vararg extensions: String, configuration: Action<HandlerBuilder>) {
         for (it in extensions) handlers.make(it, configuration)
     }

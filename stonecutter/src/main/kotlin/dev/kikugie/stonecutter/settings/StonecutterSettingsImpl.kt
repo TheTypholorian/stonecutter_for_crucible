@@ -156,7 +156,7 @@ private fun Logger.reportGroovyComplaint(): Unit = warn(
     - Kotlin-exclusive operator functions for simpler configurations.
     ------------------------------------------------------------------------------------
     For more information see:
-    - https://stonecutter.kikugie.dev/wiki/faq#groovy-support
+    - https://stonecutter.kikugie.dev/wiki/v2/faq#groovy-support
     - https://docs.gradle.org/current/userguide/migrating_from_groovy_to_kotlin_dsl.html
     
     To acknowledge and disable this warning add to the `gradle.properties`:

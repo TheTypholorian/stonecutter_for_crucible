@@ -16,16 +16,24 @@ private typealias ProjectFilter = (ProjectNode.() -> Boolean)
 /**
  * Extension class providing access to [StonecutterControllerExtension][dev.kikugie.stonecutter.controller.StonecutterControllerExtension]
  * tasks and aggregation utilities.
+ *
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#task-hooks">Task Hooks Documentation</a>
  */
 @ControllerTasksDsl
 public abstract class StonecutterControllerTasks {
     /**The default node ordering used in [order], sorting by [StonecutterProject.parsed][dev.kikugie.stonecutter.data.StonecutterProject.parsed].*/
     public val versionComparator: Comparator<ProjectNode> get() = VERSION_COMPARATOR
 
-    /**All `stonecutterSwitchTo..` tasks.*/
+    /**
+     * All `stonecutterSwitchTo..` tasks.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#lifecycle">Task Lifecycle Documentation</a>
+     */
     public abstract val switch: TaskProviderMap<StonecutterSwitchTask>
 
-    /**Returns a lazily evaluated collection of tasks in nodes with the given [name].*/
+    /**
+     * Returns a lazily evaluated collection of tasks in nodes with the given [name].
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#aggregation">Task Aggregation Documentation</a>
+     */
     @JvmOverloads
     public fun named(name: String, filter: ProjectFilter = ALWAYS_TRUE): MapProperty<ProjectNode, TaskProvider<*>> =
         namedImpl(name, null, filter)
@@ -54,6 +62,7 @@ public abstract class StonecutterControllerTasks {
      * - The targeted task must be an endpoint task, otherwise the function will have no effect.
      * For example, `publishMods` is not an endpoint task as it just calls `publishModrinth`
      * and `publishCurseforge`, which should be ordered instead.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#ordering">Task Ordering Documentation</a>
      */
     @JvmOverloads
     public fun order(name: String, ordering: Comparator<ProjectNode> = versionComparator, filter: ProjectFilter = ALWAYS_TRUE): Unit =

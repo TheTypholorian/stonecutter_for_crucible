@@ -18,7 +18,7 @@ private annotation class TreeBuilderDsl
  * Provides functionality to construct and manage a hierarchical structure of project branches.
  * Serves as the root of the project tree and facilitates branching operations and shared configurations.
  *
- * @see <a href="https://stonecutter.kikugie.dev/wiki/config/branches">Wiki</a>
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#tree">Project Tree Documentation</a>
  */
 @TreeBuilderDsl
 public abstract class TreeBuilder : BranchBuilder() {
@@ -27,7 +27,8 @@ public abstract class TreeBuilder : BranchBuilder() {
      * Must be one of the registered project names.
      * When unset, the first registered version is used.
      *
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/glossary#vcs-version">Glossary</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/glossary#vcs-version">Glossary</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/data-driven-setup#vcs-version">VCS Version Documentation</a>
      */
     public abstract val vcsVersion: Property<String>
 
@@ -38,12 +39,14 @@ public abstract class TreeBuilder : BranchBuilder() {
     *
     * @see [mapBuilds]
     * @see [NodeBuilder.buildscript]
+    * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#build-script">Build Script Documentation</a>
     */
     public abstract val centralScript: Property<String>
 
     /**
      * Configures whenever `stonecutter.gradle.kts` or `stonecutter.gradle` is used.
      * When unset, prefers the `.kts` variant, but uses `.gradle` one if it already exists.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/faq#groovy-support">Groovy Support FAQ</a>
      */
     public abstract val kotlinController: Property<Boolean>
 
@@ -54,8 +57,8 @@ public abstract class TreeBuilder : BranchBuilder() {
      * Loads the serialized project tree from the given [file]
      * with an optional [converter].
      *
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/project-setup">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
     public fun load(file: File, converter: SCConverter = determineConverter(file)): Unit =
@@ -86,7 +89,7 @@ public abstract class TreeBuilder : BranchBuilder() {
     /**
      * Creates a new project branch with the given [name], copying all already registered versions.
      *
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/branches">Wiki</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#inheritance">Branch Inheritance Documentation</a>
      */
     public fun branch(name: Identifier): Unit = branch(name) { inherit() }
 
@@ -94,7 +97,7 @@ public abstract class TreeBuilder : BranchBuilder() {
      * Defines a new branch identified by [name] and configures it using the [config] block.
      * The [config] block provides access to the branch-specific operations via [BranchBuilder].
      *
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/branches">Wiki</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#registration">Branch Registration Documentation</a>
      */
     public abstract fun branch(name: Identifier, config: Action<BranchBuilder>)
 
@@ -103,7 +106,7 @@ public abstract class TreeBuilder : BranchBuilder() {
      * The [mapping] accepts a branch [name][Identifier] and the version [metadata][StonecutterProject]
      * as parameters, returning the build script filename.
      *
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#naming-strategy">Wiki</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#build-script">Build Script Documentation</a>
      */
     public abstract fun mapBuilds(mapping: (branch: Identifier, node: StonecutterProject) -> String)
 
@@ -118,7 +121,7 @@ public abstract class TreeBuilder : BranchBuilder() {
  * configure versions using multiple overloads of the [versions] method, and perform
  * inheritance using [inherit].
  *
- * @see <a href="https://stonecutter.kikugie.dev/wiki/config/branches">Wiki</a>
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#branch">Project Branch Documentation</a>
  */
 @TreeBuilderDsl
 public abstract class BranchBuilder {
@@ -135,11 +138,17 @@ public abstract class BranchBuilder {
     public fun vers(project: Identifier, value: AnyVersion): NodeBuilder =
         version(project, value)
 
-    /**Registers a new subproject with the same name and version.*/
+    /**
+     * Registers a new subproject with the same name and version.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#project">Node Project Documentation</a>
+     */
     public fun version(version: AnyVersion): NodeBuilder =
         versions(listOf(StonecutterProject(version, version)))
 
-    /**Registers a new subproject with distinct [name][project] and [version].*/
+    /**
+     * Registers a new subproject with distinct [name][project] and [version].
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#version">Node Version Documentation</a>
+     */
     public fun version(project: Identifier, version: AnyVersion): NodeBuilder =
         versions(listOf(StonecutterProject(project, version)))
 
@@ -178,6 +187,7 @@ public abstract class BranchBuilder {
      * // Only has 2.0 and 3.0
      * branch("C") { inherit("B"); version("3.0") }
      * ```
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#inheritance">Branch Inheritance Documentation</a>
      */
     public open fun inherit(): Unit = inherit("")
 
@@ -194,6 +204,7 @@ public abstract class BranchBuilder {
      * // Only has 2.0 and 3.0
      * branch("C") { inherit("B"); version("3.0") }
      * ```
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#inheritance">Branch Inheritance Documentation</a>
      */
     public fun inherit(vararg branches: Identifier): Unit = inherit(branches.asIterable())
 
@@ -210,6 +221,7 @@ public abstract class BranchBuilder {
      * // Only has 2.0 and 3.0
      * branch("C") { inherit("B"); version("3.0") }
      * ```
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#inheritance">Branch Inheritance Documentation</a>
      */
     public abstract fun inherit(branches: Iterable<Identifier>)
 
@@ -231,7 +243,7 @@ public abstract class NodeBuilder {
      * It cannot be set to `stonecutter.gradle[.kts]`.
      * When unset, uses [TreeBuilder.mapBuilds] or [TreeBuilder.centralScript] if the former is also unset..
      *
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#name-overrides">Wiki</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#build-script">Build Script Documentation</a>
      */
     public abstract val buildscript: Property<String>
 

@@ -22,8 +22,8 @@ private annotation class ControllerDsl
  * The extension provides active version configuration, task aggregation utilities,
  * and custom file format registration.
  *
- * @see <a href="https://stonecutter.kikugie.dev/wiki/config/controller">Controller Utilities Documentation</a>
- * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params">Preprocessor Configuration Documentation</a>
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller">Controller Utilities Documentation</a>
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/">Preprocessor Configuration Documentation</a>
  */
 @ControllerDsl
 public interface StonecutterControllerExtension : VersionOperations<Version>, StructuredPropertiesProvider {
@@ -34,7 +34,7 @@ public interface StonecutterControllerExtension : VersionOperations<Version>, St
      * with `stonecutter.create()` in `settings.gradle(.kts)`.
      * The tree instance provides access to shared properties, such as
      * the active and VCS versions and all existing nodes.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#project-branches">Project Structure Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#tree">Project Tree Documentation</a>
      */
     public val tree: ProjectTree
 
@@ -42,6 +42,7 @@ public interface StonecutterControllerExtension : VersionOperations<Version>, St
      * Project descriptor for the version assigned with the [active] function.
      *
      * The active subproject has its sources linked to the shared `src/` directory.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#active-version">Active Version Documentation</a>
      */
     public val current: StonecutterProject? get() = tree.current
 
@@ -51,7 +52,7 @@ public interface StonecutterControllerExtension : VersionOperations<Version>, St
      * The VCS version can be switched to with the `Reset active project` task,
      * which modifies the shared `src/` directory to be in a consistent state
      * before submitting a commit.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings#the-vcs-reset-point">VCS Version Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/glossary#vcs-version">VCS Version Documentation</a>
      */
     public val vcsVersion: StonecutterProject get() = tree.vcs
 
@@ -67,7 +68,7 @@ public interface StonecutterControllerExtension : VersionOperations<Version>, St
 
     /**
      * Accessor for strictly SemVer version evaluation.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/build#arbitrary-operations">Semantic Operations Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/build-setup#version-aware-buildscript">Semantic Operations Documentation</a>
      */
     public val semantics: VersionOperations<SemanticVersion> get() = SemanticOperations
 
@@ -76,14 +77,20 @@ public interface StonecutterControllerExtension : VersionOperations<Version>, St
      *
      * Flags are used to configure the internal behaviour of the plugin.
      * **The flags should be configured before the [active] call.**
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/controller#flags">Flags Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#flags">Flags Documentation</a>
      */
     public val flags: StonecutterFlags
 
-    /**Stonecutter version switch tasks and aggregation utility extension.*/
+    /**
+     * Stonecutter version switch tasks and aggregation utility extension.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#task-hooks">Task Hooks Documentation</a>
+     */
     public val tasks: StonecutterControllerTasks
 
-    /**Custom file format descriptor registry extension.*/
+    /**
+     * Custom file format descriptor registry extension.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats">File Handlers Documentation</a>
+     */
     public val handlers: FileHandlerContainer
 
     /**
@@ -100,7 +107,7 @@ public interface StonecutterControllerExtension : VersionOperations<Version>, St
      *   In this mode the shared `src/` directory is not attached as a project source.
      *   Instead its contents are processed as each version's generated sources.
      *   This mode can be used in CI workflows that build the project with multiple runners.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/controller#active-version">Active Version Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#active-version">Active Version Documentation</a>
      */
     public infix fun active(provider: Any?)
 
@@ -112,6 +119,7 @@ public interface StonecutterControllerExtension : VersionOperations<Version>, St
      *
      * However, it **must be used only for Stonecutter configuration**. It's safe to access project properties,
      * but other plugins may not be applied when the [action] is executed.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#shared-parameters">Shared Parameters Documentation</a>
      */
     public infix fun parameters(action: Action<StonecutterBuildExtension>)
 
@@ -120,13 +128,16 @@ public interface StonecutterControllerExtension : VersionOperations<Version>, St
      *
      * Flags are used to configure the internal behaviour of the plugin.
      * **The flags should be configured before the [active] call.**
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/controller#flags">Flags Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#flags">Flags Documentation</a>
      */
     public infix fun flags(action: Action<StonecutterFlags>): Unit = action.execute(flags)
 
     /**Configures the [tasks] extension.*/
     public infix fun tasks(action: Action<StonecutterControllerTasks>): Unit = action.execute(tasks)
 
-    /**Configures the [handlers] extension.*/
+    /**
+     * Configures the [handlers] extension.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#handler-registration">Handler Registration Documentation</a>
+     */
     public infix fun handlers(action: Action<FileHandlerContainer>): Unit = action.execute(handlers)
 }

@@ -15,14 +15,14 @@ public interface VersionOperations<T : Version> {
     /**
      * Parses the provided [version] string as the [T] version.
      * @throws IllegalArgumentException if parsing fails, with [VersionParsingException] as its cause
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#version-types">Version specification</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
      */
     public fun parse(version: AnyVersion): T
 
     /**
      * Tries to parse the provided [version] string as the [T] version.
      * @return [Result] with [VersionParsingException] if parsing fails.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#version-types">Version specification</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
      */
     public fun tryParse(version: AnyVersion): Result<T>
 
@@ -36,8 +36,8 @@ public interface VersionOperations<T : Version> {
      * assert(eval(version, ">1.0 <2.0"))
      * ```
      * @throws IllegalArgumentException if parsing fails, with [VersionParsingException] as its cause
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#version-types">Version specification</a>
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#version-predicates">Predicate specification</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#predicate-operators">Predicate specification</a>
      */
     public fun eval(version: Version, vararg predicates: String): Boolean
 
@@ -51,8 +51,8 @@ public interface VersionOperations<T : Version> {
      * assert(tryEval(version, ">1.0 <2.0").getOrThrow())
      * ```
      * @return [Result] with [VersionParsingException] if parsing fails
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#version-types">Version specification</a>
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#version-predicates">Predicate specification</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#predicate-operators">Predicate specification</a>
      */
     public fun tryEval(version: Version, vararg predicates: String): Result<Boolean>
 
@@ -65,8 +65,8 @@ public interface VersionOperations<T : Version> {
      * assert(eval("1.1", ">1.0 <2.0"))
      * ```
      * @throws IllegalArgumentException if parsing fails, with [VersionParsingException] as its cause
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#version-types">Version specification</a>
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#version-predicates">Predicate specification</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#predicate-operators">Predicate specification</a>
      */
     public fun eval(version: String, vararg predicates: String): Boolean
 
@@ -79,8 +79,8 @@ public interface VersionOperations<T : Version> {
      * assert(tryEval("1.1", ">1.0 <2.0").getOrThrow())
      * ```
      * @return [Result] with [VersionParsingException] if parsing fails
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#version-types">Version specification</a>
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#version-predicates">Predicate specification</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#predicate-operators">Predicate specification</a>
      */
     public fun tryEval(version: String, vararg predicates: String): Result<Boolean>
 
@@ -89,7 +89,7 @@ public interface VersionOperations<T : Version> {
      * Parses each version as [T] and compares them
      * according to the [Comparable] specification.
      * @throws IllegalArgumentException if parsing fails, with [VersionParsingException] as its cause
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#version-types">Version specification</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
      */
     public fun compare(version: String, other: String): Int
 
@@ -97,7 +97,7 @@ public interface VersionOperations<T : Version> {
      * Parses each version as [T] and compares them
      * according to the [Comparable] specification.
      * @return [Result] with [VersionParsingException] if parsing fails
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#version-types">Version specification</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
      */
     public fun tryCompare(version: String, other: String): Result<Int>
 }

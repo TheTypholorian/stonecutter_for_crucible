@@ -9,6 +9,7 @@ import kotlin.compareTo
  * Parsed representation of [StonecutterProject.version], providing additional comparison utilities.
  *
  * @property value The underlying parsed version
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version Types Documentation</a>
  */
 public class ParsedVersion(public val value: Version) : Comparable<Any> {
     /**Creates a parsed version from a string [value]. Throws if the version is invalid.*/
@@ -39,6 +40,7 @@ public class ParsedVersion(public val value: Version) : Comparable<Any> {
 
     /**
      * Checks if this version matches the space-separated [predicates].
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#predicate-operators">Predicate Operators Documentation</a>
      */
     public infix fun matches(predicates: String): Boolean =
         LenientOperations.eval(value, predicates)

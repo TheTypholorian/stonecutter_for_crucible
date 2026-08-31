@@ -13,7 +13,7 @@ import javax.inject.Inject
 @DslMarker @Retention(AnnotationRetention.BINARY)
 private annotation class ConstantDsl
 
-/**[Stonecutter constant](https://stonecutter.kikugie.dev/wiki/config/params#condition-constants) configuration extension.*/
+/**[Stonecutter constant](https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#constants) configuration extension.*/
 @ConstantDsl
 public abstract class ConstantContainer @Inject constructor(private val delegate: MapProperty<Identifier, Boolean>) :
     ExtendedMapProperty<@ConstantID Identifier, Boolean>, MapProperty<@ConstantID Identifier, Boolean> by delegate {
@@ -22,7 +22,7 @@ public abstract class ConstantContainer @Inject constructor(private val delegate
      *
      * @param choices Constant keys matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
      * @sample dev.kikugie.stonecutter.samples.constants.match_vararg
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#choice-selector">Constant Selector Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#choice-selector">Constant Selector Documentation</a>
      */
     public fun match(sample: Identifier, @ConstantID vararg choices: Identifier): Unit = choices.forEach { put(it, it == sample) }
 
@@ -31,7 +31,7 @@ public abstract class ConstantContainer @Inject constructor(private val delegate
      *
      * @param choices Constant keys matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
      * @sample dev.kikugie.stonecutter.samples.constants.match_iter
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#choice-selector">Constant Selector Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#choice-selector">Constant Selector Documentation</a>
      */
     public fun match(sample: Identifier, @ConstantID choices: Iterable<Identifier>): Unit = choices.forEach { put(it, it == sample) }
 
@@ -39,7 +39,7 @@ public abstract class ConstantContainer @Inject constructor(private val delegate
      * Defines a constant by the [key] with the provided [value].
      *
      * @param key Constant key matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#constant-specificationr">Constant Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#defining-constants">Constant Documentation</a>
      */
     override fun put(@ConstantID key: Identifier, value: Boolean): Unit =
         check(key) then delegate.put(key, value)
@@ -48,7 +48,7 @@ public abstract class ConstantContainer @Inject constructor(private val delegate
      * Defines a constant by the [key] with the value lazily provided by [providerOfValue].
      *
      * @param key Constant key matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#constant-specificationr">Constant Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#defining-constants">Constant Documentation</a>
      */
     override fun put(@ConstantID key: Identifier, providerOfValue: Provider<out Boolean>): Unit =
         check(key) then delegate.put(key, providerOfValue)
@@ -57,7 +57,7 @@ public abstract class ConstantContainer @Inject constructor(private val delegate
      * Defines multiple constants from the provided [entries].
      *
      * @param entries Constant map with keys matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#constant-specificationr">Constant Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#defining-constants">Constant Documentation</a>
      */
     override fun putAll(entries: Map<out @ConstantID Identifier, Boolean>): Unit =
         entries.keys.forEach(::check) then delegate.putAll(entries)
@@ -66,7 +66,7 @@ public abstract class ConstantContainer @Inject constructor(private val delegate
      * Defines multiple constants from the map lazily provided by [provider].
      *
      * @param provider Constant map provider with keys matching `[_a-zA-Z][_\-a-zA-Z0-9]*`
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#constant-specificationr">Constant Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#defining-constants">Constant Documentation</a>
      */
     override fun putAll(provider: Provider<out Map<out @ConstantID Identifier, Boolean>>): Unit =
         delegate.putAll(provider.map { it.keys.forEach(::check); it })

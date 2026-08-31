@@ -10,6 +10,8 @@ import java.nio.file.Path
 /**
  * Represents a member entity within a Gradle-based structure that provides access to its [hierarchy],
  * the [location] it resides in, and the associated Gradle [project].
+ *
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model">Project Model Documentation</a>
  */
 public interface GradleMember {
     /**
@@ -33,6 +35,8 @@ public interface GradleMember {
 /**
  * Represents a node in a project structure associated with a [StonecutterProject] and a [branch].
  * Provides methods to navigate between related nodes within the structure.
+ *
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#node">Project Node Documentation</a>
  */
 public interface ProjectNode : GradleMember, Named {
     /**
@@ -70,6 +74,8 @@ public interface ProjectNode : GradleMember, Named {
 /**
  * Represents a branch in the [ProjectTree].
  * Implements [GradleMember] and maps [ProjectNode.metadata.project][StonecutterProject.project] keys to [ProjectNode] values.
+ *
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#branch">Project Branch Documentation</a>
  */
 public interface ProjectBranch : GradleMember, Named, Map<Identifier, ProjectNode> {
     /**
@@ -102,16 +108,20 @@ public interface ProjectBranch : GradleMember, Named, Map<Identifier, ProjectNod
 /**
  * Represents a hierarchical structure of projects, offering access to branches, nodes, and version control information.
  * Implements [GradleMember] and maps [ProjectBranch.id] keys to [ProjectBranch] values.
+ *
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#tree">Project Tree Documentation</a>
  */
 public interface ProjectTree : GradleMember, Named, Map<Identifier, ProjectBranch> {
     /**
      * The version control reset point for this tree.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/glossary#vcs-version">Glossary</a>
      */
     public val vcs: StonecutterProject
 
     /**
      * The active version or `null` if the project is not using an active version.
      * *(You **really** need to know what you're doing)*
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#active-version">Active Version Documentation</a>
      */
     public val current: StonecutterProject?
 
