@@ -337,7 +337,10 @@ val ExpressionCheckerTest by testSuite {
 }
 
 context(scope: Test.ExecutionScope)
-private inline fun @receiver:Language("kotlin") String.shouldHaveProblems(parameters: ProcessParameters = vars(), action: List<ProblemReport>.() -> Unit) {
+private inline fun @receiver:Language("kotlin") String.shouldHaveProblems(
+    parameters: ProcessParameters = vars(),
+    action: List<ProblemReport>.() -> Unit
+) {
     val problems = mutableListOf<ProblemReport>()
     val reporter = DefaultProblemReporter(problems::plusAssign)
     val scope = kotlin.runCatching { scope.parseSnippet(this, reporter) }

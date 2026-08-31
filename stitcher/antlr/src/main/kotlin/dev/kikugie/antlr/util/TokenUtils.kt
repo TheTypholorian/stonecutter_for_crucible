@@ -4,12 +4,7 @@ package dev.kikugie.antlr.util
 
 import dev.kikugie.antlr.MissingRuleContextException
 import dev.kikugie.antlr.MissingTerminalNodeException
-import org.antlr.v4.runtime.CharStream
-import org.antlr.v4.runtime.CommonToken
-import org.antlr.v4.runtime.ParserRuleContext
-import org.antlr.v4.runtime.Token
-import org.antlr.v4.runtime.TokenSource
-import org.antlr.v4.runtime.WritableToken
+import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.tree.TerminalNode
 import org.antlr.v4.runtime.tree.Tree
 
@@ -27,12 +22,16 @@ public val Token.length: Int
 /**Exclusive end index for the token = `stopIndex + 1`.*/
 public var CommonToken.endIndex: Int
     inline get() = stopIndex + 1
-    inline set(value) { stopIndex = value - 1 }
+    inline set(value) {
+        stopIndex = value - 1
+    }
 
 /**Zero-indexed line of the token = `line - 1`.*/
 public var WritableToken.lineIndex: Int
     inline get() = line - 1
-    inline set(value) { line = value + 1 }
+    inline set(value) {
+        line = value + 1
+    }
 
 
 /**[Token.getType] of [TerminalNode.getSymbol]*/

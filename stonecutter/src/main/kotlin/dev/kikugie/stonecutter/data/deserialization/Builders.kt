@@ -28,14 +28,14 @@ internal object SCNullBuilder : SCElementBuilder {
 
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation")
 @JvmInline @SCElementBuilderDsl
-internal value class SCListBuilder(private val items: MutableList<SCElementBuilder> = mutableListOf())
-    : SCElementBuilder, MutableList<SCElementBuilder> by items {
+internal value class SCListBuilder(private val items: MutableList<SCElementBuilder> = mutableListOf()) :
+    SCElementBuilder, MutableList<SCElementBuilder> by items {
     override fun build(): SCList = SCList(items.map(SCElementBuilder::build))
 }
 
 @JvmInline @SCElementBuilderDsl
-internal value class SCMapBuilder(private val items: MutableMap<String, SCElementBuilder> = LinkedHashMap())
-    : SCElementBuilder, MutableMap<String, SCElementBuilder> by items {
+internal value class SCMapBuilder(private val items: MutableMap<String, SCElementBuilder> = LinkedHashMap()) :
+    SCElementBuilder, MutableMap<String, SCElementBuilder> by items {
     override fun build(): SCMap = SCMap(items.mapValues { (_, it) -> it.build() })
 }
 

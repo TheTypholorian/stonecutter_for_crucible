@@ -5,9 +5,9 @@ import dev.kikugie.stitcher.document.issue.output.FullProblemFormatter
 import dev.kikugie.stitcher.document.issue.output.ShortProblemFormatter
 import org.gradle.api.GradleException
 import org.gradle.api.logging.LogLevel
-import org.gradle.api.problems.Problems
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
+import org.gradle.api.problems.Problems
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.services.BuildService
 import org.gradle.api.services.BuildServiceParameters
@@ -68,11 +68,12 @@ internal abstract class StonecutterErrorsService : BuildService<StonecutterError
     companion object {
         const val NAME: String = "StonecutterTaskErrors"
 
-        val ProblemReport.level get() = when(severity) {
-            ProblemReport.Severity.INFO -> LogLevel.LIFECYCLE
-            ProblemReport.Severity.WARN -> LogLevel.WARN
-            ProblemReport.Severity.ERROR -> LogLevel.ERROR
-        }
+        val ProblemReport.level
+            get() = when (severity) {
+                ProblemReport.Severity.INFO -> LogLevel.LIFECYCLE
+                ProblemReport.Severity.WARN -> LogLevel.WARN
+                ProblemReport.Severity.ERROR -> LogLevel.ERROR
+            }
 
         fun Logger.log(report: ProblemReport) =
             log(report.level, report.accept(FullProblemFormatter))

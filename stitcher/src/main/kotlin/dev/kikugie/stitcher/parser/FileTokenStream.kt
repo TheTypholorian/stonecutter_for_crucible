@@ -56,7 +56,9 @@ class FileTokenStream(val document: Document, val stream: TokenStream) {
         AntlrToken.EOF -> null
         CONTENT.value -> processContent(stream.advance())
         COMMENT_OPEN.value -> processComment(stream.advance(), stream.advance(), stream.advance())
-        else -> { document.reportUnknownToken(stream.advance()); processNext() }
+        else -> {
+            document.reportUnknownToken(stream.advance()); processNext()
+        }
     }
 
     private fun processContent(token: AntlrToken): BlockToken.Content =

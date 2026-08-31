@@ -33,14 +33,14 @@ public abstract class TreeBuilder : BranchBuilder() {
     public abstract val vcsVersion: Property<String>
 
     /**
-    * Defines the name for the shared buildscript for all versions.
-    * It cannot be set to `stonecutter.gradle[.kts]`.
-    * When unset, prefers `build.gradle.kts`, but uses `build.gradle` if it already exists.
-    *
-    * @see [mapBuilds]
-    * @see [NodeBuilder.buildscript]
-    * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#build-script">Build Script Documentation</a>
-    */
+     * Defines the name for the shared buildscript for all versions.
+     * It cannot be set to `stonecutter.gradle[.kts]`.
+     * When unset, prefers `build.gradle.kts`, but uses `build.gradle` if it already exists.
+     *
+     * @see [mapBuilds]
+     * @see [NodeBuilder.buildscript]
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#build-script">Build Script Documentation</a>
+     */
     public abstract val centralScript: Property<String>
 
     /**

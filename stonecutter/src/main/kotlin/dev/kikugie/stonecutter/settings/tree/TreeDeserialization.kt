@@ -143,7 +143,7 @@ private sealed interface VersionLayout {
     class Complete(override val branches: List<Identifier>) : VersionLayout
 
     object Serializer : JsonContentPolymorphicSerializer<VersionLayout>(VersionLayout::class) {
-        override fun selectDeserializer(element: JsonElement): DeserializationStrategy<VersionLayout> = when(element) {
+        override fun selectDeserializer(element: JsonElement): DeserializationStrategy<VersionLayout> = when (element) {
             is JsonPrimitive if (element.isString) -> Single.serializer()
             is JsonArray -> BranchesOnly.serializer()
             is JsonObject -> Complete.serializer()
@@ -205,7 +205,7 @@ private sealed interface SerializedVersion {
     ) : SerializedVersion
 
     object Serializer : JsonContentPolymorphicSerializer<SerializedVersion>(SerializedVersion::class) {
-        override fun selectDeserializer(element: JsonElement): DeserializationStrategy<SerializedVersion> = when(element) {
+        override fun selectDeserializer(element: JsonElement): DeserializationStrategy<SerializedVersion> = when (element) {
             is JsonPrimitive -> Primitive.serializer()
             is JsonObject -> Composite.serializer()
             else -> error("Can't deserialize SerializedVersion from ${element::class.simpleName}")

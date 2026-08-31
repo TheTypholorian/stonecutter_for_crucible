@@ -29,7 +29,7 @@ object SlashStarUncommentingStrategy : UncommentingStrategy {
         val tokens = CharStreams.fromString(leaf.text, leaf.ref.document.file.absolutePathString())
             .let { CommonTokenStream(StarCommentEscaper(it)) }
         var depth = 0
-        while (true) depth = when(val it = tokens.LA(1)) {
+        while (true) depth = when (val it = tokens.LA(1)) {
             Tokens.TILDA_COMMENT_START -> tracker.handleOpener(tokens.advance(), depth, leaf.start)
             Tokens.TILDA_COMMENT_END -> tracker.handleCloser(tokens.advance(), depth, leaf.start)
             AntlrToken.EOF -> break
@@ -37,7 +37,7 @@ object SlashStarUncommentingStrategy : UncommentingStrategy {
         }
     }
 
-    private fun ModificationTracker.handleOpener(token: AntlrToken, depth: Int, offset: Int): Int = when(depth) {
+    private fun ModificationTracker.handleOpener(token: AntlrToken, depth: Int, offset: Int): Int = when (depth) {
         // /^¹²³ -> /*
         0 -> replace(token.startIndex + offset + 1, token.endIndex + offset, "*").let { 1 }
         else -> {
@@ -47,7 +47,7 @@ object SlashStarUncommentingStrategy : UncommentingStrategy {
         }
     }
 
-    private fun ModificationTracker.handleCloser(token: AntlrToken, depth: Int, offset: Int): Int = when(depth) {
+    private fun ModificationTracker.handleCloser(token: AntlrToken, depth: Int, offset: Int): Int = when (depth) {
         0 -> 0
         // ¹²³^/ -> */
         1 -> replace(token.startIndex + offset, token.endIndex + offset - 1, "*").let { 0 }

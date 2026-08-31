@@ -1,9 +1,9 @@
 package dev.kikugie.stonecutter.settings.task
 
 import dev.kikugie.stonecutter.Identifier
+import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.util.overwriteText
-import dev.kikugie.stonecutter.StonecutterPlugin
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileTree
 import org.gradle.api.provider.MapProperty

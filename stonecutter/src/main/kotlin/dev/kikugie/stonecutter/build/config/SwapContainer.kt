@@ -56,6 +56,6 @@ public abstract class SwapContainer @Inject constructor(private val delegate: Ma
 
     private fun check(key: Identifier) {
         require(key.isNotBlank()) { "Swap key '$key' cannot be blank" }
-        require(key.isValidIdentifier()) { "Swap key '$key' must match the pattern `$IDENTIFIER_PATTERN`"}
+        require(key.isValidIdentifier()) { "Swap key '$key' must match the pattern `$IDENTIFIER_PATTERN`" }
     }
 }

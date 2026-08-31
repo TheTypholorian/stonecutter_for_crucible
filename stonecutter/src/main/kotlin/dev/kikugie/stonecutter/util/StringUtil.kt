@@ -43,7 +43,7 @@ internal fun join(vararg parts: String, separator: String): String = when (parts
  * certain characters like newline (`\n`) and carriage return (`\r`) are converted
  * to their literal forms instead of escape sequences.
  */
-public fun Char.escape(multiline: Boolean = false): String = when(this) {
+public fun Char.escape(multiline: Boolean = false): String = when (this) {
     '\\' -> "\\\\"
     '\t' -> if (multiline) toString() else "\\t"
     '\n' -> if (multiline) toString() else "\\n"
@@ -96,8 +96,10 @@ private fun StringBuilder.next(input: String, index: Int, it: Char): Int = when 
     'f' -> append('\u000c') then 2
     'u' -> if (index + 5 >= input.length) append("\\u") then 2
     else append(input.substring(index + 2, index + 6).toInt(16).toChar()) then 6
+
     'U' -> if (index + 9 >= input.length) append("\\U") then 2
     else append(input.substring(index + 2, index + 10).toInt(16).toChar()) then 6
+
     else -> append("\\$it") then 2
 }
 

@@ -104,13 +104,19 @@ private fun settingsFallback(flag: StonecutterFlag<*>, provider: StructuredPrope
     else -> null
 }
 
-private fun controllerFallback(flag: StonecutterFlag<*>, fallback: ConfigurationRegistry, provider: StructuredPropertiesExtension): String? = when (flag.scope) {
-    FlagScope.SETTINGS -> fallback[flag.configuration].toString()
-    FlagScope.CONTROLLER, FlagScope.LOCAL -> provider.getOrNull(flag.propertyKey)
-    else -> null
-}
+private fun controllerFallback(flag: StonecutterFlag<*>, fallback: ConfigurationRegistry, provider: StructuredPropertiesExtension): String? =
+    when (flag.scope) {
+        FlagScope.SETTINGS -> fallback[flag.configuration].toString()
+        FlagScope.CONTROLLER, FlagScope.LOCAL -> provider.getOrNull(flag.propertyKey)
+        else -> null
+    }
 
-private fun nodeFallback(flag: StonecutterFlag<*>, fallfront: ConfigurationRegistry, fallback: ConfigurationRegistry, provider: StructuredPropertiesExtension): String? = when (flag.scope) {
+private fun nodeFallback(
+    flag: StonecutterFlag<*>,
+    fallfront: ConfigurationRegistry,
+    fallback: ConfigurationRegistry,
+    provider: StructuredPropertiesExtension
+): String? = when (flag.scope) {
     FlagScope.SETTINGS -> fallback[flag.configuration].toString()
     FlagScope.CONTROLLER -> fallfront[flag.configuration].toString()
     else -> provider.getOrNull(flag.propertyKey)

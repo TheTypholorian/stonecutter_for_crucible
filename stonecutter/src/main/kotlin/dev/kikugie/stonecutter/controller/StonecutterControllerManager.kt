@@ -32,16 +32,19 @@ internal interface StonecutterControllerManager : Serializable {
         override val filename: String = "stonecutter.gradle"
         override val pattern: Regex = Regex("""(sc|stonecutter)\s*\.\s*active\s*\(?\s*["'](\S+)["']\s*\)?""")
 
-        override fun create(file: Path, project: Identifier): Unit = file.overwriteText("""
+        override fun create(file: Path, project: Identifier): Unit = file.overwriteText(
+            """
             plugins {
                 id "dev.kikugie.stonecutter"
             }
             stonecutter.active "$project"
-        """.trimIndent(), true)
+        """.trimIndent(), true
+        )
 
         override fun replace(text: String, template: String): String = text.replace(pattern) {
             it.value.replace(it.groupValues[2], template)
         }
+
         private fun readResolve(): Any = Groovy
     }
 
@@ -49,16 +52,19 @@ internal interface StonecutterControllerManager : Serializable {
         override val filename: String = "stonecutter.gradle.kts"
         override val pattern: Regex = Regex("""(sc|stonecutter)\s*\.?\s*active\s*\(?\s*"(\S+)"\s*\)?""")
 
-        override fun create(file: Path, project: Identifier): Unit = file.overwriteText("""
+        override fun create(file: Path, project: Identifier): Unit = file.overwriteText(
+            """
             plugins {
                 id("dev.kikugie.stonecutter")
             }
             stonecutter active "$project"
-        """.trimIndent(), true)
+        """.trimIndent(), true
+        )
 
         override fun replace(text: String, template: String): String = text.replace(pattern) {
             it.value.replace(it.groupValues[2], template)
         }
+
         private fun readResolve(): Any = Kotlin
     }
 }

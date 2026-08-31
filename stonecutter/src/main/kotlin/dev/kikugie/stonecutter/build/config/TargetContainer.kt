@@ -74,7 +74,7 @@ public abstract class TargetContainer @Inject constructor(private val delegate: 
 
     private fun check(key: String, value: AnyVersion? = null) {
         require(key.isNotBlank()) { "Target key '$key' cannot be blank" }
-        require(key.isValidIdentifier()) { "Target key '$key' must match the pattern `$IDENTIFIER_PATTERN`"}
+        require(key.isValidIdentifier()) { "Target key '$key' must match the pattern `$IDENTIFIER_PATTERN`" }
         if (value != null) LenientOperations.tryParse(value).getOrElse {
             it as VersionParsingException
             throw it.asIllegalArg(value, message = "${it.message} (for target '$key')")

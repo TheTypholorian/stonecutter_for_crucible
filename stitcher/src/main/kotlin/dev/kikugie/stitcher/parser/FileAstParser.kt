@@ -7,9 +7,7 @@ import dev.kikugie.stitcher.document.issue.LAYOUT_GROUP
 import dev.kikugie.stitcher.document.issue.ProblemReport.Severity
 import dev.kikugie.stitcher.document.issue.report
 import dev.kikugie.stitcher.token.*
-import dev.kikugie.stitcher.token.DefinitionToken.Body
-import dev.kikugie.stitcher.token.DefinitionToken.Kind
-import dev.kikugie.stitcher.token.DefinitionToken.Role
+import dev.kikugie.stitcher.token.DefinitionToken.*
 import dev.kikugie.stitcher.util.*
 
 object FileAstParser {
@@ -388,15 +386,16 @@ private fun reportMissingClosingBracket(code: BlockToken.Code): Unit = code.ref.
     hint = "Add a `${code.marker.text}}` comment to close the scope opened here."
 }
 
-private fun reportInvalidCloserType(opener: BlockToken.Code, closer: BlockToken.Code): Unit = closer.ref.report(LAYOUT_GROUP + "mismatched-closer-type") {
-    severity = Severity.WARN
-    label = "Mismatched closer type"
-    info = "${opener.title()} can't be closed with a ${closer.name()} marker."
-    hint = buildString {
-        appendLine("${opener.title()} at this location needs to be closed with `${opener.marker.text}}`:")
-        append(opener.ref.toUriString())
+private fun reportInvalidCloserType(opener: BlockToken.Code, closer: BlockToken.Code): Unit =
+    closer.ref.report(LAYOUT_GROUP + "mismatched-closer-type") {
+        severity = Severity.WARN
+        label = "Mismatched closer type"
+        info = "${opener.title()} can't be closed with a ${closer.name()} marker."
+        hint = buildString {
+            appendLine("${opener.title()} at this location needs to be closed with `${opener.marker.text}}`:")
+            append(opener.ref.toUriString())
+        }
     }
-}
 
 private val CodeScopeBuilder.def: DefinitionToken
     inline get() = token.definition
@@ -415,9 +414,9 @@ private fun BlockToken.name(): String = when (this) {
     is BlockToken.Comment -> "comment"
     is BlockToken.Root -> "root"
     is BlockToken.Code -> when (definition) {
-        is DefinitionToken.Swap -> "swap"
-        is DefinitionToken.Condition -> "condition"
-        is DefinitionToken.Replacement -> "replacement"
+        is Swap -> "swap"
+        is Condition -> "condition"
+        is Replacement -> "replacement"
     }
 }
 

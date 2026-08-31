@@ -9,6 +9,7 @@ import dev.kikugie.stitcher.util.OpenIntRange
 data class ModificationEvent(override val start: Int, override val end: Int, val text: String) : OpenIntRange {
     /** Span of this event before the change is applied. */
     val sourceLength: Int inline get() = end - start
+
     /** Span of this event after the change is applied. */
     val textLength: Int inline get() = text.length
 

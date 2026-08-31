@@ -51,7 +51,7 @@ fun TerminalNode.toLeaf(doc: Document, type: StitcherTokenType = StitcherTokenTy
 fun AntlrToken.toLeaf(doc: Document, type: StitcherTokenType = StitcherTokenType.of(this.type)): LeafToken =
     LeafToken(type, doc.reference(startIndex, endIndex))
 
-fun LeafToken.unquote(): String = when(type.value) {
+fun LeafToken.unquote(): String = when (type.value) {
     Tokens.QUOTED -> text.removeSurrounding("'").unescapeQuoted()
     else -> text
 }
@@ -100,7 +100,9 @@ private object BlockTokenJoiner : BlockToken.Visitor<Unit, Appendable> {
         var end = 0
         for (it in tokens) when (it) {
             is BlockToken.Content, is BlockToken.Comment -> it.ref.let { ref ->
-                if (ref.document === document && ref.start == end) { end = ref.end; return@let }
+                if (ref.document === document && ref.start == end) {
+                    end = ref.end; return@let
+                }
 
                 document?.appendTo(ctx, start, end)
                 document = ref.document

@@ -10,12 +10,7 @@ import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.UnexpectedBuildFailure
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.ExperimentalPathApi
-import kotlin.io.path.Path
-import kotlin.io.path.absolutePathString
-import kotlin.io.path.copyToRecursively
-import kotlin.io.path.deleteRecursively
-import kotlin.io.path.readText
+import kotlin.io.path.*
 
 class ConcurrentTestSession : TestSession(
     defaultCompartment = { TestCompartment.Concurrent }
@@ -33,7 +28,7 @@ fun runGradle(dir: Path, vararg arguments: String): BuildResult = configureGradl
 @OptIn(ExperimentalPathApi::class)
 fun TestSuiteScope.tempDirFixture(prefix: String = "${testSuiteInScope.testElementPath}-"): TestFixture<Path> = testFixture {
     Files.createTempDirectory(Path("build/tmp"), prefix)
-} closeWith {ok ->
+} closeWith { ok ->
     if (ok || testPlatform.environment("CI") != null) deleteRecursively()
     else println("Temporary directory: file://${absolutePathString()}")
 }

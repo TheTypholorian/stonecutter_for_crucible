@@ -43,7 +43,8 @@ inline fun <T> ProblemReporter.runMultiThrowing(action: ProblemReporter.(Resetta
 }
 
 class ResettableMarker(private var marker: Long) {
-    context(reporter: ProblemReporter) fun check(): Unit = when (val errors = reporter.errors) {
+    context(reporter: ProblemReporter)
+    fun check(): Unit = when (val errors = reporter.errors) {
         marker -> marker = errors
         else -> throw BailException()
     }

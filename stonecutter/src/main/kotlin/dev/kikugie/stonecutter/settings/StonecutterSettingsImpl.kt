@@ -7,17 +7,14 @@ import dev.kikugie.stonecutter.build.task.StonecutterErrorsService
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
-import dev.kikugie.stonecutter.controller.flag.FlagScope
+import dev.kikugie.stonecutter.controller.file.configureDefaults
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
-import dev.kikugie.stonecutter.data.ProjectHierarchy
-import dev.kikugie.stonecutter.controller.file.configureDefaults
 import dev.kikugie.stonecutter.data.container.FlagContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.createContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
 import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
-import dev.kikugie.stonecutter.data.property.StructuredPropertiesExtension
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesImpl
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
@@ -27,7 +24,6 @@ import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.isIdeaSync
 import dev.kikugie.stonecutter.util.newInstance
 import dev.kikugie.stonecutter.util.projectDirectory
-import dev.kikugie.stonecutter.util.propertyKey
 import dev.kikugie.stonecutter.util.requestTasks
 import org.gradle.api.configuration.BuildFeatures
 import org.gradle.api.initialization.Settings

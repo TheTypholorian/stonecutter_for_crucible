@@ -147,7 +147,11 @@ internal object LenientOperations : BasicOperations<Version>(Version, VersionPre
 internal object SemanticOperations : BasicOperations<SemanticVersion>(SemanticVersion, VersionPredicate.Semantic)
 
 @Suppress("NOTHING_TO_INLINE")
-internal inline fun VersionParsingException.asIllegalArg(str: String, message: String = this.message, position: Int = this.position): IllegalArgumentException {
+internal inline fun VersionParsingException.asIllegalArg(
+    str: String,
+    message: String = this.message,
+    position: Int = this.position
+): IllegalArgumentException {
     val pointer = " ".repeat(position) + '^'
     val message = "$message:\n| $str\n| $pointer"
     return IllegalArgumentException(message).apply { addSuppressed(this@asIllegalArg) }
@@ -160,7 +164,7 @@ private fun Array<out String>.unpack(ops: VersionPredicate.Operations): List<Ver
     var length = 0
     for (str in this@unpack) {
         var cursor = 0
-        while (cursor < str.length) when(str[cursor]) {
+        while (cursor < str.length) when (str[cursor]) {
             ' ', '\t' -> cursor++
             else -> cursor = parsePredicate(str, cursor, length, ops, this)
         }

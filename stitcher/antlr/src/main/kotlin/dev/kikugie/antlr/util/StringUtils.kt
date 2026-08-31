@@ -1,6 +1,6 @@
 package dev.kikugie.antlr.util
 
-import java.util.Locale
+import java.util.*
 
 public fun String.toCamelCase(capFirstChar: Boolean = false, locale: Locale = Locale.getDefault(), vararg delimiters: Char): String {
     if (isEmpty() || delimiters.isEmpty()) return this

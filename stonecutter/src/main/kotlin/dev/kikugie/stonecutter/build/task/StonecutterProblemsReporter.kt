@@ -1,6 +1,5 @@
 package dev.kikugie.stonecutter.build.task
 
-import dev.kikugie.stitcher.document.DocumentReference
 import dev.kikugie.stitcher.document.issue.BailException
 import dev.kikugie.stitcher.document.issue.ProblemReport
 import dev.kikugie.stitcher.document.issue.ProblemReport.Severity.*
@@ -9,8 +8,6 @@ import org.gradle.api.problems.ProblemGroup
 import org.gradle.api.problems.ProblemId
 import org.gradle.api.problems.ProblemReporter
 import org.gradle.api.problems.ProblemSpec
-import org.gradle.api.problems.Problems
-import org.gradle.api.problems.Severity
 
 @JvmInline @Suppress("UnstableApiUsage")
 internal value class StonecutterProblemsReporter(val reporter: ProblemReporter) {

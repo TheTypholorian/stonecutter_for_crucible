@@ -17,6 +17,7 @@ internal class ProjectNodeImpl(
 ) : ProjectNode {
     constructor(gradle: Gradle, hierarchy: ProjectHierarchy, metadata: StonecutterProject) :
         this(hierarchy, gradle[hierarchy].projectDir.toPath(), metadata)
+
     private val name: String = "ProjectNode@$hierarchy"
 
     internal val gradle: Gradle get() = (branch as ProjectBranchImpl).gradle
@@ -34,6 +35,7 @@ internal class ProjectBranchImpl(
 ) : ProjectBranch, Map<Identifier, ProjectNode> by delegate {
     constructor(gradle: Gradle, hierarchy: ProjectHierarchy, id: Identifier, nodes: Collection<ProjectNode>) :
         this(hierarchy, gradle[hierarchy].projectDir.toPath(), id, nodes.associateBy { it.metadata.project })
+
     private val name: String = "ProjectBranch@$hierarchy"
 
     internal val gradle: Gradle get() = (tree as ProjectTreeImpl).gradle
@@ -58,6 +60,7 @@ internal class ProjectTreeImpl(
         this(hierarchy, gradle[hierarchy].projectDir.toPath(), vcs, branches.associateBy(ProjectBranch::id)) {
         this.gradle = gradle
     }
+
     private val name: String = "ProjectTree@$hierarchy"
 
     @Transient

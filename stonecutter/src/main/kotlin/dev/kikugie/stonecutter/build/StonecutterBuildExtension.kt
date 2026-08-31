@@ -2,11 +2,7 @@ package dev.kikugie.stonecutter.build
 
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.Version
-import dev.kikugie.stonecutter.build.config.ConstantContainer
-import dev.kikugie.stonecutter.build.config.DependencyContainer
-import dev.kikugie.stonecutter.build.config.ReplacementContainer
-import dev.kikugie.stonecutter.build.config.SwapContainer
-import dev.kikugie.stonecutter.build.config.TargetContainer
+import dev.kikugie.stonecutter.build.config.*
 import dev.kikugie.stonecutter.build.task.StonecutterBuildTasks
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
 import dev.kikugie.stonecutter.data.StonecutterProject
@@ -39,6 +35,7 @@ public interface StonecutterBuildExtension : VersionOperations<Version>, Structu
      * Gradle project this extension is applied to.
      */
     public val project: Project
+
     /**
      * Node associated with the applied Gradle [Project][org.gradle.api.Project].
      *

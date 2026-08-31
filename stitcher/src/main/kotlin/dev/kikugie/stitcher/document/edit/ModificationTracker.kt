@@ -2,11 +2,12 @@ package dev.kikugie.stitcher.document.edit
 
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.DocumentReference
-import java.util.LinkedList
+import java.util.*
 
 @Suppress("NOTHING_TO_INLINE")
 class ModificationTracker(val document: Document, val start: Int, val end: Int) {
     constructor(reference: DocumentReference) : this(reference.document, reference.start, reference.end)
+
     private val eventList: ModificationList = ModificationList()
     private var isLive: Boolean = true
 

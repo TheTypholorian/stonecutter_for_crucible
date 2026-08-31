@@ -2,11 +2,7 @@ package dev.kikugie.stitcher.antlr
 
 import dev.kikugie.commons.collections.present
 import dev.kikugie.stitcher.antlr.StitcherLexer.Tokens
-import org.antlr.v4.runtime.DefaultErrorStrategy
-import org.antlr.v4.runtime.FailedPredicateException
-import org.antlr.v4.runtime.InputMismatchException
-import org.antlr.v4.runtime.NoViableAltException
-import org.antlr.v4.runtime.Parser
+import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.IntervalSet
 
 object StitcherErrorStrategy : DefaultErrorStrategy() {
@@ -21,7 +17,8 @@ object StitcherErrorStrategy : DefaultErrorStrategy() {
         )
     }
 
-    private val ALL_INTERPRETERS: List<TokenInterpreter> = listOf(EOF_INTERPRETER, IDENTIFIER_INTERPRETER, VERSION_INTERPRETER, COMPARATOR_INTERPRETER)
+    private val ALL_INTERPRETERS: List<TokenInterpreter> =
+        listOf(EOF_INTERPRETER, IDENTIFIER_INTERPRETER, VERSION_INTERPRETER, COMPARATOR_INTERPRETER)
 
     override fun reportInputMismatch(recognizer: Parser, err: InputMismatchException) {
         val options = buildOptions(recognizer, err.expectedTokens)

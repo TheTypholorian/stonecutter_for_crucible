@@ -155,7 +155,7 @@ public object YamlConverter : SCConverter, SCElement.Visitor<YamlPath, YamlNode>
         return YamlMap(entries.toMap(), ctx)
     }
 
-    private fun SCPrimitive.toYamlString(): String = if (kind != Kind.Float) toString() else when(val d = toDouble()) {
+    private fun SCPrimitive.toYamlString(): String = if (kind != Kind.Float) toString() else when (val d = toDouble()) {
         Double.POSITIVE_INFINITY -> ".inf"
         Double.NEGATIVE_INFINITY -> "-.inf"
         else -> if (d.isNaN()) ".nan" else toString()

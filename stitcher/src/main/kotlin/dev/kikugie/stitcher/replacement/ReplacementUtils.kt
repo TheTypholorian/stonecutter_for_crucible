@@ -1,9 +1,8 @@
 package dev.kikugie.stitcher.replacement
 
 import dev.kikugie.stonecutter.model.process.Replacement
-import java.util.EnumSet
+import java.util.*
 import java.util.regex.MatchResult
-import kotlin.collections.contains
 import kotlin.enums.enumEntries
 
 context(exec: ReplacementExecutor)

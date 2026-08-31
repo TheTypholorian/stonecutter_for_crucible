@@ -185,10 +185,11 @@ private fun ProjectTreeImpl.configureSyncTask(root: Project, flags: StonecutterF
         root.gradle.requestTasks(listOf("stonecutterSaveModels"), root.path, root.projectDir)
 }
 
-private tailrec fun Any?.resolveActive(): Any? = when(this) {
+private tailrec fun Any?.resolveActive(): Any? = when (this) {
     null,
     is String,
     is File -> this
+
     is Path -> toFile()
     is RegularFile -> asFile
     is Provider<*> -> get().resolveActive()

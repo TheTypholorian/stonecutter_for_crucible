@@ -4,7 +4,7 @@ import dev.kikugie.antlr.util.toCamelCase
 import org.antlr.v4.codegen.CodeGenerator
 import org.stringtemplate.v4.STGroup
 import org.stringtemplate.v4.StringRenderer
-import java.util.Locale
+import java.util.*
 
 public class KotlinTarget(gen: CodeGenerator) : JavaTarget(gen) {
     override fun getVersion(): String = ANTLR_VERSION

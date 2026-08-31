@@ -9,6 +9,7 @@ import dev.kikugie.stitcher.document.reference
 import dev.kikugie.stitcher.replacement.CompositeExecutor
 import dev.kikugie.stitcher.token.*
 import dev.kikugie.stitcher.token.BlockToken.*
+import dev.kikugie.stitcher.token.BlockToken.Visitor as BlockTokenVisitor
 import dev.kikugie.stitcher.token.DefinitionToken.*
 import dev.kikugie.stitcher.util.append
 import dev.kikugie.stitcher.util.findInsertionPlaces
@@ -16,7 +17,7 @@ import dev.kikugie.stitcher.util.indexOfFirst
 import dev.kikugie.stitcher.util.tokenize
 import dev.kikugie.stonecutter.model.process.StringReplacement
 
-class FileAstAssembler(val params: StitcherParameters) : BlockToken.Visitor<BlockToken, Nothing?>, DefinitionToken.Visitor<Code, Code> {
+class FileAstAssembler(val params: StitcherParameters) : BlockTokenVisitor<BlockToken, Nothing?>, DefinitionToken.Visitor<Code, Code> {
     private val replacer: CompositeExecutor = CompositeExecutor(params.vars.replacements)
 
     override fun visitContent(content: Content, ctx: Nothing?): BlockToken = content
@@ -47,6 +48,7 @@ class FileAstAssembler(val params: StitcherParameters) : BlockToken.Visitor<Bloc
                 is ConditionCloser -> node.also { carry = false }
                 else -> node.accept(this@FileAstAssembler, null)
             }
+
             else -> index++
         }
     }
@@ -109,7 +111,7 @@ class FileAstAssembler(val params: StitcherParameters) : BlockToken.Visitor<Bloc
 
         val replacements = def.entries.map {
             val from: LeafToken = if (direction) it.source else it.target
-            val to: LeafToken  = if (direction) it.target else it.source
+            val to: LeafToken = if (direction) it.target else it.source
             StringReplacement(from.unquote(), to.unquote(), opener?.id ?: it.id)
         }
         val ids = replacements.mapNotNull(StringReplacement::identifier).toSet()

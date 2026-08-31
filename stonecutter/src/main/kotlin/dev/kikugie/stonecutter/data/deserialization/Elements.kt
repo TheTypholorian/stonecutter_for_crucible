@@ -302,10 +302,13 @@ public class SCPrimitive internal constructor(override val content: Any, public 
     public enum class Kind {
         /**Matches the [Boolean][kotlin.Boolean] type.*/
         Boolean,
+
         /**Matches the [Int][kotlin.Int] and [Long][kotlin.Long] types.*/
         Integer,
+
         /**Matches the [Float][kotlin.Float] and [Double][kotlin.Double] types.*/
         Float,
+
         /**Matches the [String][kotlin.String] type.*/
         String
     }

@@ -745,7 +745,7 @@ val FileAstParserTest by testSuite {
                         content()
                     }
                 }
-                code<ConditionCloser> {  }
+                code<ConditionCloser> { }
             }
         }
     }

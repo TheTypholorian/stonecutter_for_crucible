@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.transformer
 
+import dev.kikugie.antlr.util.toSequence
 import dev.kikugie.stitcher.StitcherParameters
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.InjectedDocument
@@ -12,12 +13,11 @@ import dev.kikugie.stitcher.token.DefinitionToken
 import dev.kikugie.stitcher.token.LeafToken
 import dev.kikugie.stitcher.token.toLeaf
 import dev.kikugie.stitcher.util.LINE_BREAKS
+import dev.kikugie.stitcher.util.length
 import dev.kikugie.stitcher.util.parse
 import dev.kikugie.stitcher.util.tokenize
-import dev.kikugie.antlr.util.toSequence
-import dev.kikugie.stitcher.util.length
 
-class FileAstUncommenter(val params: StitcherParameters) : BlockToken.Visitor<BlockToken, Nothing?>, DefinitionToken.Visitor<Code, Code> {
+class FileAstUncommenter(val params: StitcherParameters) : Visitor<BlockToken, Nothing?>, DefinitionToken.Visitor<Code, Code> {
     override fun visitContent(content: Content, ctx: Nothing?): BlockToken = content
     override fun visitComment(comment: Comment, ctx: Nothing?): BlockToken = reopenDanglingComment(comment)
     override fun visitCode(code: Code, ctx: Nothing?): BlockToken = code.definition.accept(this, code)
@@ -41,7 +41,8 @@ class FileAstUncommenter(val params: StitcherParameters) : BlockToken.Visitor<Bl
         while (lead < bodyLength && spliced[lead] in LINE_BREAKS) lead++
 
         val body = ModificationTracker(spliced, lead, bodyLength).run {
-            params.commenter.comment(this, tokenize(spliced, params.scanner).toSequence()
+            params.commenter.comment(
+                this, tokenize(spliced, params.scanner).toSequence()
                 .map { it.toLeaf(spliced) }
                 .filter { it.start >= lead && it.end <= bodyLength })
             InjectedDocument(this).toString()

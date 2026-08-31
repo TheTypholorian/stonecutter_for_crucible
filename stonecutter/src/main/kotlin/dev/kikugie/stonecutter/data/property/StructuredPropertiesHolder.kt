@@ -203,8 +203,8 @@ public class StructuredPropertiesHolder {
     }
 }
 
-private class StructuredPropertiesMerger(val policy: StructuredPropertiesHolder.OverwritePolicy, val builder: SCMapBuilder)
-    : SCElement.Visitor<String, Unit> {
+private class StructuredPropertiesMerger(val policy: StructuredPropertiesHolder.OverwritePolicy, val builder: SCMapBuilder) :
+    SCElement.Visitor<String, Unit> {
     override fun visitNull(ctx: String) {
         builder[ctx, policy != KEEP] = Null
     }
@@ -248,8 +248,8 @@ private class StructuredPropertiesMerger(val policy: StructuredPropertiesHolder.
     }
 }
 
-private class StructuredPropertiesFlattener(val builder: MutableMap<String, SCElement>, val warnOnDuplicate: Boolean)
-    : SCElement.Visitor<String, Unit> {
+private class StructuredPropertiesFlattener(val builder: MutableMap<String, SCElement>, val warnOnDuplicate: Boolean) :
+    SCElement.Visitor<String, Unit> {
     override fun visitNull(ctx: String): Unit = append(ctx, SCNull)
     override fun visitPrimitive(prim: SCPrimitive, ctx: String): Unit = append(ctx, prim)
     override fun visitList(list: SCList, ctx: String) {

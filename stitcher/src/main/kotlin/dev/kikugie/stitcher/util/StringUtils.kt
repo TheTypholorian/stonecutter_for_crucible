@@ -77,7 +77,10 @@ internal fun CharSequence.withoutTrailingBlankLine(): CharSequence {
     var seenNewLine = false
     for (i in lastIndex downTo 0) when (val ch = get(i)) {
         in WORD_BREAKS -> if (seenNewLine) break else count++
-        in LINE_BREAKS -> { count++; seenNewLine = true }
+        in LINE_BREAKS -> {
+            count++; seenNewLine = true
+        }
+
         else -> break
     }
     if (!seenNewLine) count = 0

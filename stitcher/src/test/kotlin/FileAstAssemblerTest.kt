@@ -397,10 +397,12 @@ val FileAstAssemblerTest by testSuite {
             """
                 //? if false
                 //val x = "old"
-            """.trimIndent().shouldAssembleTo(params, """
+            """.trimIndent().shouldAssembleTo(
+                params, """
                 //? if false
                 //val x = "new"
-            """.trimIndent())
+            """.trimIndent()
+            )
         }
 
         test("global replacement with disabled id") {
@@ -409,11 +411,13 @@ val FileAstAssemblerTest by testSuite {
                 val x = "old"
                 //~ id
                 val y = "old"
-            """.trimIndent().shouldAssembleTo(params, """
+            """.trimIndent().shouldAssembleTo(
+                params, """
                 val x = "old"
                 //~ id
                 val y = "new"
-            """.trimIndent())
+            """.trimIndent()
+            )
         }
 
         test("global replacement with enabled id") {
@@ -422,11 +426,13 @@ val FileAstAssemblerTest by testSuite {
                 val x = "old"
                 //~ !id
                 val y = "old"
-            """.trimIndent().shouldAssembleTo(params, """
+            """.trimIndent().shouldAssembleTo(
+                params, """
                 val x = "new"
                 //~ !id
                 val y = "old"
-            """.trimIndent())
+            """.trimIndent()
+            )
         }
 
         test("replacements don't apply to swap scopes") {
@@ -434,10 +440,12 @@ val FileAstAssemblerTest by testSuite {
             """
                 //$ id
                 val str = "old"
-            """.trimIndent().shouldAssembleTo(params, """
+            """.trimIndent().shouldAssembleTo(
+                params, """
                 //$ id
                 val str = "old"
-            """.trimIndent())
+            """.trimIndent()
+            )
         }
 
         // https://codeberg.org/stonecutter/stonecutter/issues/40
@@ -486,11 +494,13 @@ val FileAstAssemblerTest by testSuite {
                 //~ if true 'b.c' -> '2.3' {
                 a.b.c.d.e
                 //~}
-            """.trimIndent().shouldAssembleTo(params, """
+            """.trimIndent().shouldAssembleTo(
+                params, """
                 //~ if true 'b.c' -> '2.3' {
                 a.2.3.4.5
                 //~}
-            """.trimIndent())
+            """.trimIndent()
+            )
         }
 
         test("named local replacement applies to the rest of the file") {
@@ -548,13 +558,15 @@ val FileAstAssemblerTest by testSuite {
                 //~ a !b
                 val a2 = "olda"
                 val b2 = "oldb"
-            """.trimIndent().shouldAssembleTo(params, """
+            """.trimIndent().shouldAssembleTo(
+                params, """
                 val a1 = "olda"
                 val b1 = "newb"
                 //~ a !b
                 val a2 = "newa"
                 val b2 = "oldb"
-            """.trimIndent())
+            """.trimIndent()
+            )
         }
     }
 
@@ -582,14 +594,16 @@ val FileAstAssemblerTest by testSuite {
                     val three = 3
                     //$}
                 }
-            """.trimIndent().shouldAssembleTo(params, """
+            """.trimIndent().shouldAssembleTo(
+                params, """
                 run {
                     //$ id {
                     val one = 1
                     val two = 2
                     //$}
                 }
-            """.trimIndent())
+            """.trimIndent()
+            )
         }
 
         test("mid-line swap leaves the first line un-indented") {
@@ -602,13 +616,15 @@ val FileAstAssemblerTest by testSuite {
                     val three = 3
                     //$}
                 }
-            """.trimIndent().shouldAssembleTo(params, """
+            """.trimIndent().shouldAssembleTo(
+                params, """
                 run {
                     /*$ id {*/val one = 1
                     val two = 2
                     //$}
                 }
-            """.trimIndent())
+            """.trimIndent()
+            )
         }
 
         test("swap template expands placeholders") {
@@ -621,14 +637,18 @@ val FileAstAssemblerTest by testSuite {
                 //$ if param 'method1()' else 'method2()'
                     ???
             """.trimIndent()
-            content.shouldAssembleTo(params { constants["param"] = true }, """
+            content.shouldAssembleTo(
+                params { constants["param"] = true }, """
                 //$ if param 'method1()' else 'method2()'
                     method1()
-            """.trimIndent())
-            content.shouldAssembleTo(params { constants["param"] = false }, """
+            """.trimIndent()
+            )
+            content.shouldAssembleTo(
+                params { constants["param"] = false }, """
                 //$ if param 'method1()' else 'method2()'
                     method2()
-            """.trimIndent())
+            """.trimIndent()
+            )
         }
     }
 
@@ -660,7 +680,8 @@ val FileAstAssemblerTest by testSuite {
             */}
         """.trimIndent()
 
-        content.shouldAssembleTo(params { targets[""] = SemanticVersion(26, 3) }, """
+        content.shouldAssembleTo(
+            params { targets[""] = SemanticVersion(26, 3) }, """
             fun test() {
                 //? if >26.2
                 //? if >26.1
@@ -668,12 +689,14 @@ val FileAstAssemblerTest by testSuite {
                 //? else
                 //println(2)
             }
-        """.trimIndent())
+        """.trimIndent()
+        )
 
-        content.shouldAssembleTo(params {
-            targets[""] = SemanticVersion(26, 3)
-            string("nonexistent", "whatever", enabled = true)
-        }, """
+        content.shouldAssembleTo(
+            params {
+                targets[""] = SemanticVersion(26, 3)
+                string("nonexistent", "whatever", enabled = true)
+            }, """
             fun test() {
                 //? if >26.2
                 //? if >26.1
@@ -681,7 +704,8 @@ val FileAstAssemblerTest by testSuite {
                 //? else
                 //println(2)
             }
-        """.trimIndent())
+        """.trimIndent()
+        )
     }
 
     test("nested version condition inside a constant branch") {
@@ -702,10 +726,11 @@ val FileAstAssemblerTest by testSuite {
             targets[""] = SemanticVersion(1, 21, 6)
         }, content)
 
-        content.shouldAssembleTo(params {
-            constants["neoforge"] = true
-            targets[""] = SemanticVersion(1, 21, 5)
-        }, """
+        content.shouldAssembleTo(
+            params {
+                constants["neoforge"] = true
+                targets[""] = SemanticVersion(1, 21, 5)
+            }, """
             //? if neoforge {
             import net.neoforged.bus.api.SubscribeEvent;
             import net.neoforged.neoforge.client.event.RenderFrameEvent;
@@ -715,12 +740,14 @@ val FileAstAssemblerTest by testSuite {
             /*import net.minecraftforge.event.TickEvent;
             import net.minecraftforge.eventbus.api.SubscribeEvent;
             *///? }
-        """.trimIndent())
+        """.trimIndent()
+        )
 
-        content.shouldAssembleTo(params {
-            constants["neoforge"] = false
-            targets[""] = SemanticVersion(1, 21, 6)
-        }, """
+        content.shouldAssembleTo(
+            params {
+                constants["neoforge"] = false
+                targets[""] = SemanticVersion(1, 21, 6)
+            }, """
             //? if neoforge {
             /*import net.neoforged.bus.api.SubscribeEvent;
             import net.neoforged.neoforge.client.event.RenderFrameEvent;
@@ -730,7 +757,8 @@ val FileAstAssemblerTest by testSuite {
             import net.minecraftforge.event.TickEvent;
             import net.minecraftforge.eventbus.api.SubscribeEvent;
             //? }
-        """.trimIndent())
+        """.trimIndent()
+        )
     }
 }
 

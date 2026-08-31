@@ -39,8 +39,10 @@ class StarCommentingStrategy(val flatten: Boolean) : CommentingStrategy {
         for (token in tokens) when (token.type as? BuiltinTokenType) {
             BuiltinTokenType.COMMENT_OPEN -> if (token.text == "/*")
                 tracker.replace(token.start + 1, token.end, "^")
+
             BuiltinTokenType.COMMENT_CLOSE -> if (token.text == "*/")
                 tracker.replace(token.start, token.end - 1, "^")
+
             else -> {}
         }
     }
@@ -131,5 +133,8 @@ private fun Document.hasLineContentAfter(start: Int, end: Int): Boolean {
 }
 
 /** Reads a character, treating any out-of-bounds index (EOF) as a line break. */
-private fun Document.charOrNewline(index: Int): Char =
-    try { this[index] } catch (_: IndexOutOfBoundsException) { '\n' }
+private fun Document.charOrNewline(index: Int): Char = try {
+    this[index]
+} catch (_: IndexOutOfBoundsException) {
+    '\n'
+}

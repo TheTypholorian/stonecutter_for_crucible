@@ -6,6 +6,7 @@ import org.antlr.v4.runtime.IntStream
 
 class InlineCharStream(val stream: CharStream, val start: Int, val end: Int) : AutoCloseable, CharStream by stream {
     constructor(token: AntlrToken) : this(token.inputStream, token.startIndex, token.endIndex)
+
     val position: Int = stream.index()
     val marker: Int = stream.mark()
 

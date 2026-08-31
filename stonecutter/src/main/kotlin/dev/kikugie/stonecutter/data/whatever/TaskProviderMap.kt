@@ -25,12 +25,15 @@ public class TaskProviderMap<T : Task> internal constructor(
      */
     override val keys: Set<String>
         get() = identifiers.toSet()
+
     /**List of lazily configured task providers.*/
     override val values: Collection<TaskProvider<T>>
         get() = keys.map { getOrThrow(it) }
+
     /**Set of [keys] to [values] pairs.*/
     override val entries: Set<Map.Entry<String, TaskProvider<T>>>
         get() = keys.map { SimpleMapEntry(it, getOrThrow(it)) }.toSet()
+
     /**Set of registered task names.*/
     public val tasks: Set<String>
         get() = identifiers.map(namer).toSet()

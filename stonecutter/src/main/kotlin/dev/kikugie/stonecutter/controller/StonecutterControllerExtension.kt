@@ -1,16 +1,16 @@
 package dev.kikugie.stonecutter.controller
 
+import dev.kikugie.semver.data.SemanticVersion
+import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
 import dev.kikugie.stonecutter.controller.task.StonecutterControllerTasks
 import dev.kikugie.stonecutter.data.StonecutterProject
+import dev.kikugie.stonecutter.data.property.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.version.SemanticOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.semver.data.SemanticVersion
-import dev.kikugie.semver.data.Version
-import dev.kikugie.stonecutter.data.property.StructuredPropertiesProvider
 import org.gradle.api.Action
 
 @DslMarker @Retention(AnnotationRetention.BINARY)

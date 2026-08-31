@@ -11,7 +11,10 @@ import dev.kikugie.stitcher.document.issue.report
 import dev.kikugie.stitcher.document.reference
 import dev.kikugie.stitcher.token.type.BuiltinTokenType
 import dev.kikugie.stitcher.token.type.StitcherTokenType
-import org.antlr.v4.runtime.*
+import org.antlr.v4.runtime.CharStream
+import org.antlr.v4.runtime.CommonToken
+import org.antlr.v4.runtime.Lexer
+import org.antlr.v4.runtime.TokenSource
 import java.io.Serializable
 
 
@@ -153,7 +156,8 @@ class ScannerAdapter(
     private fun reportUnknown(token: AntlrToken): Unit = document.reference(token).report(SCANNER_GROUP + "unregistered-token") {
         label = "Unknown token type"
 
-        info = "Comment scanner ${scanner.name} provided token ${scanner.vocabulary.getDisplayName(token.type)} which is not registered as an opener or a closer."
+        info = "Comment scanner ${scanner.name} provided token ${scanner.vocabulary.getDisplayName(token.type)} " +
+            "which is not registered as an opener or a closer."
         docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-counting"
     }
 }

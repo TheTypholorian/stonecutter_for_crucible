@@ -8,9 +8,7 @@ import dev.kikugie.stonecutter.data.deserialization.SCPrimitive
 import dev.kikugie.stonecutter.data.deserialization.TomlConverter
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesHolder
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesHolder.OverwritePolicy
-import dev.kikugie.stonecutter.data.property.StructuredPropertiesHolder.OverwritePolicy.KEEP
-import dev.kikugie.stonecutter.data.property.StructuredPropertiesHolder.OverwritePolicy.MERGE
-import dev.kikugie.stonecutter.data.property.StructuredPropertiesHolder.OverwritePolicy.WRITE
+import dev.kikugie.stonecutter.data.property.StructuredPropertiesHolder.OverwritePolicy.*
 import io.kotest.matchers.shouldBe
 import org.intellij.lang.annotations.Language
 import java.io.File
@@ -157,11 +155,11 @@ val StructuredPropertiesHolderTest by testSuite {
     test("raw merges matching maps across tags") {
         holder("common.deps.a = 1", "fabric.deps.b = 2", tags = listOf("common", "fabric"))
             .raw("deps") shouldBe scmap(
-                """
-                a = 1
-                b = 2
-                """
-            )
+            """
+            a = 1
+            b = 2
+            """
+        )
     }
 
     test("raw concatenates matching lists across tags") {

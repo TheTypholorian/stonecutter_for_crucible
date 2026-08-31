@@ -136,7 +136,7 @@ public class ProjectHierarchy private constructor(@PublishedApi internal val pat
         while (start > 0) {
             if (path.startsWith(norm, start) && path.sepAt(start + norm.length))
                 return index
-            start = path.indexOf(SEP_CH, start)  + 1
+            start = path.indexOf(SEP_CH, start) + 1
             index++
         }
         return -1

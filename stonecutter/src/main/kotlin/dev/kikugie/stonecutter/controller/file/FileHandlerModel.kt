@@ -13,7 +13,7 @@ internal data class ScannerModel(
     val openers: IntArray,
     val closers: IntArray,
     val lexer: ScannerBuilder.LexerFactory
-): Serializable, ScannerAdapter.Factory {
+) : Serializable, ScannerAdapter.Factory {
     constructor(builder: ScannerBuilder) : this(
         builder.openers.get().toIntArray(),
         builder.closers.get().toIntArray(),

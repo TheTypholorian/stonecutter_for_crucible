@@ -20,6 +20,7 @@ public interface StonecutterFlags {
         require(value::class == it.default::class) { "Value must be ${it.default::class.simpleName} for flag '$key'" }
         @Suppress("UNCHECKED_CAST") set(it as StonecutterFlag<Any>, value)
     }
+
     public operator fun <T : Any> set(key: StonecutterFlag<T>, value: T)
     public operator fun <T : Any> StonecutterFlag<T>.invoke(value: T): Unit = set(this, value)
 

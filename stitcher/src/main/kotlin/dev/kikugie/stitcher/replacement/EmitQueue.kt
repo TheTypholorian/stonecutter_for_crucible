@@ -3,7 +3,7 @@ package dev.kikugie.stitcher.replacement
 import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stitcher.util.OpenIntRange
 import dev.kikugie.stitcher.util.length
-import java.util.LinkedList
+import java.util.*
 
 @JvmInline
 value class EmitQueue(val entries: LinkedList<Entry> = LinkedList()) {

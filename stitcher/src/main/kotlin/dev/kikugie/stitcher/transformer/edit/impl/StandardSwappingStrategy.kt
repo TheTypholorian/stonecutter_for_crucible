@@ -6,7 +6,6 @@ import dev.kikugie.stitcher.document.minIndex
 import dev.kikugie.stitcher.transformer.edit.SwappingStrategy
 import dev.kikugie.stitcher.util.LINE_BREAKS
 import dev.kikugie.stitcher.util.WORD_BREAKS
-import kotlin.text.iterator
 
 object StandardSwappingStrategy : SwappingStrategy {
     override fun substitute(tracker: ModificationTracker, text: String): Unit = with(tracker) {
@@ -32,7 +31,10 @@ private fun CharSequence.countOffset(): Int {
     var seenNewLine = false
     for (char in this) when (char) {
         in WORD_BREAKS -> if (seenNewLine) break else count++
-        in LINE_BREAKS -> { count++; seenNewLine = true }
+        in LINE_BREAKS -> {
+            count++; seenNewLine = true
+        }
+
         else -> break
     }
     return if (seenNewLine) count else 0
@@ -76,5 +78,8 @@ private fun Document.hasLineContentBefore(index: Int): Boolean {
     return false
 }
 
-private fun Document.charOrNewline(index: Int): Char =
-    try { this[index] } catch (_: IndexOutOfBoundsException) { '\n' }
+private fun Document.charOrNewline(index: Int): Char = try {
+    this[index]
+} catch (_: IndexOutOfBoundsException) {
+    '\n'
+}

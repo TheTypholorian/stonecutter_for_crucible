@@ -8,7 +8,6 @@ import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
-import dev.kikugie.stonecutter.settings.StonecutterSettingsExtension
 import dev.kikugie.stonecutter.settings.StonecutterSettingsImpl
 import dev.kikugie.stonecutter.util.isValidIdentifier
 import dev.kikugie.stonecutter.util.toRegularFile
@@ -29,8 +28,8 @@ import kotlin.io.path.notExists
 
 private const val ROOT: String = ""
 
-internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory, hierarchy: String)
-    : TreeBuilder(), Named {
+internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory, hierarchy: String) :
+    TreeBuilder(), Named {
     private val name: String = "TreeBuilderImpl@$hierarchy"
     internal var localBuildScriptProvider: ((Identifier, StonecutterProject) -> String)? = null
         private set
@@ -102,10 +101,11 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
         objects.newInstance<BranchBuilderImpl>(name, this)
     }
 
-    private fun resolveVcs(project: ProjectHierarchy): StonecutterProject = when(val vcs = vcsVersion.orNull) {
+    private fun resolveVcs(project: ProjectHierarchy): StonecutterProject = when (val vcs = vcsVersion.orNull) {
         null -> checkNotNull(branchBuilders.values.firstOrNull()?.versions?.firstOrNull()?.data) {
             "No versions have been registered for project '$project'"
         }
+
         else -> {
             val valid = branchBuilders.values.firstNotNullOfOrNull { br ->
                 br.versions.firstOrNull { v -> v.project == vcs }?.data
@@ -183,7 +183,12 @@ internal abstract class BranchBuilderImpl @Inject constructor(
         prepareNodes(this, nodeBuilders, ext, project)
     }
 
-    private fun prepareNodes(to: MutableMap<String, BuiltNodeInfo>, nodes: List<NodeBuilderImpl>, ext: StonecutterSettingsImpl, project: ProjectDescriptor) {
+    private fun prepareNodes(
+        to: MutableMap<String, BuiltNodeInfo>,
+        nodes: List<NodeBuilderImpl>,
+        ext: StonecutterSettingsImpl,
+        project: ProjectDescriptor
+    ) {
         for (node in nodes) node.prepare(to, ext, project)
     }
 
@@ -241,7 +246,7 @@ private fun register(path: String, settings: Settings): ProjectDescriptor = with
     return settings.project(":$this")
 }
 
-private tailrec fun ProjectDescriptor.resolve(relative: ProjectReference, settings: Settings): ProjectDescriptor = when(relative) {
+private tailrec fun ProjectDescriptor.resolve(relative: ProjectReference, settings: Settings): ProjectDescriptor = when (relative) {
     is CharSequence -> if (relative.isEmpty()) this else register("$path:$relative", settings)
     is ProjectDescriptor -> register(path, settings)
     is Provider<*> -> resolve(relative.get(), settings)

@@ -1,10 +1,6 @@
 package dev.kikugie.antlr.util
 
-import org.antlr.v4.runtime.CharStream
-import org.antlr.v4.runtime.IntStream
-import org.antlr.v4.runtime.Token
-import org.antlr.v4.runtime.TokenSource
-import org.antlr.v4.runtime.TokenStream
+import org.antlr.v4.runtime.*
 
 public const val EOF_CHAR: Char = '\u0000'
 

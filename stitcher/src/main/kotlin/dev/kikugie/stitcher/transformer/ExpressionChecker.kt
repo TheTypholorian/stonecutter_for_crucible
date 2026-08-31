@@ -1,7 +1,6 @@
 package dev.kikugie.stitcher.transformer
 
 import dev.kikugie.commons.takeAsOrNull
-import dev.kikugie.stitcher.antlr.StitcherLexer
 import dev.kikugie.stitcher.document.issue.ProblemReport.Severity
 import dev.kikugie.stitcher.document.issue.SYNTAX_GROUP
 import dev.kikugie.stitcher.document.issue.report
@@ -49,10 +48,12 @@ object ExpressionChecker : BlockToken.Visitor<Unit, Context>, DefinitionToken.Vi
         ) {
             is DefinitionToken.ConditionOpener,
             is DefinitionToken.ConditionCloser -> terminated = false
+
             is DefinitionToken.ConditionExtension -> {
                 if (terminated) reportConditionAfterElse(def)
                 if (def.expression == null) terminated = true
             }
+
             else -> {}
         }
     }
@@ -139,9 +140,11 @@ object ExpressionChecker : BlockToken.Visitor<Unit, Context>, DefinitionToken.Vi
     fun visitReplacementToggleEntry(entry: DefinitionToken.ReplacementToggle.Entry, ctx: Context): Unit = when (val id = entry.id) {
         !in ctx.knownReplacementIds ->
             reportUnresolvedReplacementId(entry, ctx.knownReplacementIds)
+
         else if (entry.op == null) ->
             if (ctx.activeReplacementIds.add(id)) Unit
             else reportDuplicateEnabledReplacement(entry)
+
         else ->
             if (ctx.activeReplacementIds.remove(id)) Unit
             else reportDuplicateDisabledReplacement(entry)

@@ -10,6 +10,7 @@ import dev.kikugie.stitcher.util.OpenIntRange
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation", "UNCHECKED_CAST")
 class InjectedDocument(val parent: Document, val start: Int, val end: Int, tracker: ModificationTracker) : Document by parent {
     constructor(tracker: ModificationTracker) : this(tracker.document, tracker.start, tracker.end, tracker)
+
     private val text: StringBuilder = StringBuilder()
     private val segments: Array<Segment> = arrayOfNulls<Segment>(tracker.toList().size) as Array<Segment>
 
@@ -38,11 +39,13 @@ class InjectedDocument(val parent: Document, val start: Int, val end: Int, track
      * - The line break character (`\n`) counts to the line before it.
      * - If [charIndex] is out of bounds, [DocumentLocation.UNKNOWN] is returned.
      */
-    override fun locate(charIndex: Int): DocumentLocation = parent.locate(when (charIndex) {
-        in indices -> toParentIndex(charIndex)
-        in 0..Int.MAX_VALUE -> end + (charIndex - length)
-        else -> start + charIndex
-    })
+    override fun locate(charIndex: Int): DocumentLocation = parent.locate(
+        when (charIndex) {
+            in indices -> toParentIndex(charIndex)
+            in 0..Int.MAX_VALUE -> end + (charIndex - length)
+            else -> start + charIndex
+        }
+    )
 
     /**
      * Matches [lineIndex] and [columnIndex] to a character index in the document.
@@ -101,6 +104,7 @@ class InjectedDocument(val parent: Document, val start: Int, val end: Int, track
         val segment = findMatchingSegment { it.sourceStart <= sourceIndex }
         return segment?.localIndexOf(sourceIndex) ?: sourceIndex
     }
+
     private inline fun findMatchingSegment(predicate: (Segment) -> Boolean): Segment? {
         var low = 0
         var high = segments.lastIndex

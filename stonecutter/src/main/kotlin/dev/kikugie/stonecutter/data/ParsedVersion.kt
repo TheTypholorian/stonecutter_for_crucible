@@ -1,9 +1,8 @@
 package dev.kikugie.stonecutter.data
 
+import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.AnyVersion
 import dev.kikugie.stonecutter.data.version.LenientOperations
-import dev.kikugie.semver.data.Version
-import kotlin.compareTo
 
 /**
  * Parsed representation of [StonecutterProject.version], providing additional comparison utilities.

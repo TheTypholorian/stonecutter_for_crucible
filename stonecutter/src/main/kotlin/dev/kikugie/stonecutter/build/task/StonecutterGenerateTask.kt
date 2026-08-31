@@ -2,16 +2,10 @@ package dev.kikugie.stonecutter.build.task
 
 import dev.kikugie.stitcher.Stitcher
 import dev.kikugie.stitcher.StitcherParameters
-import dev.kikugie.stitcher.document.DocumentReference
 import dev.kikugie.stitcher.document.SourceDocument
 import dev.kikugie.stitcher.document.io.LineNormalizingReader
 import dev.kikugie.stitcher.document.io.LineNormalizingWriter
-import dev.kikugie.stitcher.document.issue.BailException
-import dev.kikugie.stitcher.document.issue.DefaultProblemReporter
-import dev.kikugie.stitcher.document.issue.ProblemID
-import dev.kikugie.stitcher.document.issue.ProblemReporter
-import dev.kikugie.stitcher.document.issue.output.ProblemConsumer
-import dev.kikugie.stitcher.document.issue.report
+import dev.kikugie.stitcher.document.issue.*
 import dev.kikugie.stitcher.document.reference
 import dev.kikugie.stitcher.token.BlockToken
 import dev.kikugie.stitcher.token.appendTo

@@ -26,9 +26,9 @@ import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.withType
 import javax.inject.Inject
 
-internal abstract class StonecutterBuildImpl private constructor(val config: StonecutterBuildConfiguration)
-    : StonecutterBuildExtension by config {
+internal abstract class StonecutterBuildImpl private constructor(val config: StonecutterBuildConfiguration) : StonecutterBuildExtension by config {
     @Inject constructor(project: Project) : this(project.findConfig())
+
     override val tasks: StonecutterBuildTasksImpl = project.objects.newInstance(this)
 
     init {
@@ -95,7 +95,7 @@ private fun SourceSet.createProcessingTasks(
 
 private fun Project.configureManifest(flags: StonecutterFlags, node: ProjectNode) {
     if (!flags[StonecutterFlag.GENERATE_MANIFEST]) return
-    
+
     val attributes = buildStonecutterManifest(node, gradle)
     tasks.withType<Jar>().configureEach {
         manifest.attributes(attributes)

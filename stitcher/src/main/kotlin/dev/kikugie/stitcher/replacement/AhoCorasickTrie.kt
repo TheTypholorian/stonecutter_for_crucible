@@ -1,6 +1,6 @@
 package dev.kikugie.stitcher.replacement
 
-import java.util.LinkedList
+import java.util.*
 
 @JvmInline
 value class AhoCorasickTrie private constructor(private val root: State) {
