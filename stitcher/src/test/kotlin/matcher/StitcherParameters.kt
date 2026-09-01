@@ -152,8 +152,8 @@ open class ProcessParametersBuilder {
         replacements += StringReplacement(from, to, id, enabled)
     }
 
-    fun regex(@Language("RegExp") from: String, to: String, id: String? = null, enabled: Boolean = false) {
-        replacements += RegexReplacement(from, to, 0, id, enabled)
+    fun regex(@Language("RegExp") from: String, to: String, id: String? = null, enabled: Boolean = false, flags: Int = 0) {
+        replacements += RegexReplacement(from, to, flags, id, enabled)
     }
 
     fun perl(@Language("RegExp") from: String, to: String, id: String? = null, enabled: Boolean = false) {
