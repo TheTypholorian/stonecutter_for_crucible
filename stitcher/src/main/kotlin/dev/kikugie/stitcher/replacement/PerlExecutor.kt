@@ -8,6 +8,8 @@ import dev.kikugie.stonecutter.model.process.PerlReplacement
 import dev.kikugie.stonecutter.model.process.Replacement
 import org.pcre4j.Pcre2Code
 import org.pcre4j.Pcre2MatchData
+import org.pcre4j.option.Pcre2CompileOption
+import org.pcre4j.option.Pcre2CompileOption.UTF
 import org.pcre4j.option.Pcre2MatchOption
 import org.pcre4j.option.Pcre2SubstituteOption
 import org.pcre4j.option.Pcre2SubstituteOption.EXTENDED
@@ -20,7 +22,7 @@ private val MATCH_FLAGS: EnumSet<Pcre2MatchOption> = EnumSet.noneOf(Pcre2MatchOp
 class PerlExecutor(replacements: List<Replacement>, override val identifiers: Set<String>) : ReplacementExecutor {
     private val replacements: List<Pair<Pcre2Code, PerlReplacement>> = replacements.asSequence()
         .filterIsInstance<PerlReplacement>()
-        .map { Pcre2Code(it.pattern, it.flags.toEnumSet()) to it }
+        .map { Pcre2Code(it.pattern, it.compileOptions()) to it }
         .toList()
 
     override fun isEmpty(): Boolean =
@@ -34,6 +36,7 @@ class PerlExecutor(replacements: List<Replacement>, override val identifiers: Se
 
     private fun process(tracker: ModificationTracker, pattern: Pcre2Code, target: String, text: String, queue: EmitQueue) {
         val data = Pcre2MatchData(pattern)
+        val cursor = Utf8Cursor(text)
         var start = 0
         while (start in text.indices) {
             // `substitute` reports no match by returning an empty result and leaving the previous match in the `ovector`,
@@ -48,7 +51,8 @@ class PerlExecutor(replacements: List<Replacement>, override val identifiers: Se
             }
 
             val offsets = data.ovector()
-            val (from, to) = offsets[0].toInt() to offsets[1].toInt()
+            val from = cursor.indexOf(offsets[0])
+            val to = cursor.indexOf(offsets[1])
             queue += PerlEmit(from, to, value)
             start = if (to == from) to + 1 else to
         }
@@ -60,6 +64,35 @@ class PerlExecutor(replacements: List<Replacement>, override val identifiers: Se
         }
     }
 }
+
+private class Utf8Cursor(private val text: String) {
+    private var offset: Int = 0
+    private var index: Int = 0
+
+    fun indexOf(bytes: Long): Int {
+        if (bytes < offset) reset()
+        while (offset < bytes && index < text.length) {
+            offset += text[index].utf8Length()
+            index++
+        }
+        return index
+    }
+
+    private fun reset() {
+        offset = 0
+        index = 0
+    }
+}
+
+private fun Char.utf8Length(): Int = when {
+    this <= '\u007F' -> 1
+    this <= '\u07FF' -> 2
+    Character.isSurrogate(this) -> 2
+    else -> 3
+}
+
+private fun PerlReplacement.compileOptions(): EnumSet<Pcre2CompileOption> =
+    flags.toEnumSet<Pcre2CompileOption>().apply { add(UTF) }
 
 private fun ModificationTracker.reportFailedReplacement(offset: Int, cause: RuntimeException): Unit = document.report(
     REPLACEMENT_GROUP + "pcre-error"
