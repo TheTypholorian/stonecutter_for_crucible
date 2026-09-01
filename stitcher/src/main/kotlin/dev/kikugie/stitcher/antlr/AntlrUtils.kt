@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.antlr
 
+import dev.kikugie.antlr.CharSequenceCharStream
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.token.LeafToken
 import dev.kikugie.stitcher.token.type.StitcherTokenType
@@ -44,3 +45,6 @@ internal fun <T : AntlrToken> TokenFactory<T>.create(
         location.columnIndex
     )
 }
+
+fun CharSequence.charStream(name: String = IntStream.UNKNOWN_SOURCE_NAME): CharSequenceCharStream =
+    CharSequenceCharStream(this, name)

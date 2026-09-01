@@ -6,11 +6,11 @@ import dev.kikugie.antlr.util.length
 import dev.kikugie.stitcher.antlr.AntlrToken
 import dev.kikugie.stitcher.antlr.StarCommentEscaper
 import dev.kikugie.stitcher.antlr.StarCommentEscaper.Tokens
+import dev.kikugie.stitcher.antlr.charStream
 import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stitcher.token.LeafToken
 import dev.kikugie.stitcher.token.type.BuiltinTokenType
 import dev.kikugie.stitcher.transformer.edit.UncommentingStrategy
-import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import kotlin.io.path.absolutePathString
 
@@ -26,7 +26,7 @@ object SlashStarUncommentingStrategy : UncommentingStrategy {
     }
 
     private fun processEscapedComment(tracker: ModificationTracker, leaf: LeafToken) {
-        val tokens = CharStreams.fromString(leaf.text, leaf.ref.document.file.absolutePathString())
+        val tokens = leaf.text.charStream(leaf.ref.document.file.absolutePathString())
             .let { CommonTokenStream(StarCommentEscaper(it)) }
         var depth = 0
         while (true) depth = when (val it = tokens.LA(1)) {

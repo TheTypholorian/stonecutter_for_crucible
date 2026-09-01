@@ -4,7 +4,7 @@ import dev.kikugie.antlr.util.endIndex
 import dev.kikugie.antlr.util.toSequence
 import dev.kikugie.stitcher.antlr.AntlrToken
 import dev.kikugie.stitcher.antlr.SwapTemplateLexer
-import org.antlr.v4.runtime.CharStreams
+import dev.kikugie.stitcher.antlr.charStream
 import kotlin.math.min
 
 internal val LINE_BREAKS: CharArray = charArrayOf('\r', '\n')
@@ -95,7 +95,7 @@ internal fun CharSequence.commonIndent(ignoreFirstLine: Boolean): String {
 }
 
 internal fun String.findInsertionPlaces(): Sequence<InsertionPlace> =
-    SwapTemplateLexer(CharStreams.fromString(this)).toSequence().map(::InsertionPlace)
+    SwapTemplateLexer(charStream()).toSequence().map(::InsertionPlace)
 
 @JvmInline
 internal value class InsertionPlace(val token: AntlrToken) {

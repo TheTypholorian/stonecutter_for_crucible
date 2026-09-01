@@ -13,6 +13,7 @@ import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.SLASH_COMMENT_START
 import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.STAR_COMMENT_END
 import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.STAR_COMMENT_START
 import dev.kikugie.stitcher.antlr.StitcherErrorListener
+import dev.kikugie.stitcher.antlr.charStream
 import dev.kikugie.stitcher.antlr.errorListener
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.SourceDocument
@@ -47,7 +48,7 @@ fun immediateThrow(): ProblemReporter = DefaultProblemReporter({
 
 fun Test.ExecutionScope.parseSnippet(value: String, reporter: ProblemReporter = immediateThrow()): BlockToken.Root {
     val document = SourceDocument(Path("$testElementPath"), value, reporter)
-    val source = Scanner.Java.create(CharStreams.fromString(value), document).apply {
+    val source = Scanner.Java.create(value.charStream(), document).apply {
         scanner.errorListener = StitcherErrorListener(document)
     }
 
