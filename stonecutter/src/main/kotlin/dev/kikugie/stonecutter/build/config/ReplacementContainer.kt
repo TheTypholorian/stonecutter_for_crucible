@@ -419,8 +419,8 @@ internal abstract class RegexSpecImpl @Inject constructor(val replacements: List
         else require(id.isValidIdentifier()) { "Invalid replacement identifier '$id'" }
 
         val it =
-            if (direction.get()) RegexReplacement(directReplacement, directPattern.pattern(), directPattern.flags(), id, enabled)
-            else RegexReplacement(reverseReplacement, reversePattern.pattern(), directPattern.flags(), id, enabled)
+            if (direction.get()) RegexReplacement(directPattern.pattern(), directReplacement, directPattern.flags(), id, enabled)
+            else RegexReplacement(reversePattern.pattern(), reverseReplacement, reversePattern.flags(), id, enabled)
         replacements.add(it)
     }
 
@@ -453,8 +453,8 @@ internal abstract class PerlSpecImpl @Inject constructor(val replacements: ListP
             .toInt()
 
         val it =
-            if (direction.get()) PerlReplacement(directReplacement, directPattern, set, id, enabled)
-            else PerlReplacement(reverseReplacement, reversePattern, set, id, enabled)
+            if (direction.get()) PerlReplacement(directPattern, directReplacement, set, id, enabled)
+            else PerlReplacement(reversePattern, reverseReplacement, set, id, enabled)
         replacements.add(it)
     }
 
