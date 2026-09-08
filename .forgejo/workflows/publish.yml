@@ -14,7 +14,6 @@ jobs:
     runs-on: kiku-server
     container: node:24-bookworm
     env:
-      MVN_KIKUGIE_USERNAME: ${{ secrets.MVN_KIKUGIE_USERNAME }}
       MVN_KIKUGIE_PASSWORD: ${{ secrets.MVN_KIKUGIE_PASSWORD }}
       SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
       SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
