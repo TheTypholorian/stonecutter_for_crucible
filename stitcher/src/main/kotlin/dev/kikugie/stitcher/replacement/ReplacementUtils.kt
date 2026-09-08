@@ -25,7 +25,7 @@ inline fun <reified T : Enum<T>> Int.toEnumSet(): EnumSet<T> = EnumSet.noneOf(T:
 inline fun <reified T : Enum<T>> EnumSet<T>.toInt(): Int {
     var value = 0
     val entries = enumEntries<T>()
-    check(entries.size <= 64) { "Can't encode ${T::class.qualifiedName} as Long" }
+    check(entries.size <= 32) { "Can't encode ${T::class.qualifiedName} as Int" }
 
     for (entry in entries) {
         if (entry in this) value += 1
