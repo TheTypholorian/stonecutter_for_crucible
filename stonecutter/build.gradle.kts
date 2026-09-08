@@ -179,22 +179,25 @@ gradlePlugin {
 
 publishing {
     repositories {
-        fun register(type: String, build: MavenArtifactRepository.() -> Unit) {
-            val username = env.fetchOrNull("MVN_${type.uppercase()}_USERNAME")
-            val password = env.fetchOrNull("MVN_${type.uppercase()}_PASSWORD")
-            if (username == null || password == null)
+        fun register(
+            type: String,
+            user: String? = env.fetchOrNull("MVN_${type.uppercase()}_USERNAME"),
+            pass: String? = env.fetchOrNull("MVN_${type.uppercase()}_PASSWORD"),
+            build: MavenArtifactRepository.() -> Unit
+        ) {
+            if (user == null || pass == null)
                 return println("Missing credentials for $type maven repository")
 
             maven {
                 build()
                 credentials {
-                    this.username = username
-                    this.password = password
+                    this.username = user
+                    this.password = pass
                 }
             }
         }
 
-        register("kikugie") {
+        register("kikugie", user = "kikugie") {
             name = "KikuGieMaven"
             url = when {
                 '-' in project.version.toString() -> uri("https://maven.kikugie.dev/snapshots")
