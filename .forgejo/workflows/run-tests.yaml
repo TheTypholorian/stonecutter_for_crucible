@@ -52,6 +52,8 @@ jobs:
         with:
           fetch-depth: 1
           token: ${{ secrets.CB_TOKEN }}
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:

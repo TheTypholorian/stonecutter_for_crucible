@@ -192,8 +192,8 @@ gradlePlugin {
 publishing {
     repositories {
         fun register(type: String, build: MavenArtifactRepository.() -> Unit) {
-            val username = findProperty("mvn.$type.username") as String?
-            val password = findProperty("mvn.$type.password") as String?
+            val username = env.fetchOrNull("MVN_${type.uppercase()}_USERNAME")
+            val password = env.fetchOrNull("MVN_${type.uppercase()}_PASSWORD")
             if (username == null || password == null)
                 return println("Missing credentials for $type maven repository")
 
@@ -254,5 +254,8 @@ publishing {
 }
 
 signing {
+    env.fetchOrNull("SIGNING_KEY")?.let {
+        useInMemoryPgpKeys(it, env.fetch("SIGNING_PASSWORD", ""))
+    }
     sign(configurations.runtimeElements.get())
 }

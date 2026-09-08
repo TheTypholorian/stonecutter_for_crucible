@@ -1,0 +1,68 @@
+name: Publish
+on:
+  workflow_dispatch:
+    inputs:
+      build-docs:
+        description: Build KDoc on success
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: kiku-server
+    container: node:24-bookworm
+    env:
+      MVN_KIKUGIE_USERNAME: ${{ secrets.MVN_KIKUGIE_USERNAME }}
+      MVN_KIKUGIE_PASSWORD: ${{ secrets.MVN_KIKUGIE_PASSWORD }}
+      SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+      GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+      GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.CB_TOKEN }}
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+      - name: Resolve version
+        id: version
+        run: |
+          VERSION=$(sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*(.*)$/\1/p' gradle.properties | tail -1 | tr -d '[:space:]')
+          [ -n "$VERSION" ] || { echo "Failed to read version from gradle.properties"; exit 1; }
+          # SemVer pre-release is everything after the first '-', ignoring '+' build metadata
+          case "${VERSION%%+*}" in
+            *-*) RELEASE=false ;;
+            *)   RELEASE=true ;;
+          esac
+          echo "Publishing version $VERSION (release: $RELEASE)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release=$RELEASE" >> "$GITHUB_OUTPUT"
+      # The configuration cache doesn't track the credential env vars,
+      # so a restored entry would silently drop the Maven repository.
+      - name: Publish to Maven
+        run: |
+          ./gradlew publish --no-daemon --no-configuration-cache
+      - name: Publish to Gradle Plugin Portal
+        if: ${{ steps.version.outputs.release == 'true' }}
+        run: |
+          ./gradlew publishPlugins --no-daemon --no-configuration-cache
+      - name: Trigger KDoc build
+        if: ${{ inputs.build-docs }}
+        continue-on-error: true
+        run: |
+          curl -f -X POST \
+            -H "Authorization: token ${{ secrets.CB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"ref":"${{ forgejo.ref_name }}"}' \
+            "${{ forgejo.server_url }}/api/v1/repos/${{ forgejo.repository }}/actions/workflows/build-docs.yml/dispatches"
