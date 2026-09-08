@@ -118,10 +118,6 @@ dokka {
 }
 
 tasks {
-    test {
-        useJUnitPlatform()
-    }
-
     compileKotlin {
         mustRunAfter("generateVersion")
     }
@@ -130,14 +126,6 @@ tasks {
         compilerOptions {
             freeCompilerArgs.add("-Xcontext-parameters")
         }
-    }
-
-    publishPlugins {
-        dependOnPublishTasks()
-    }
-
-    publish {
-        finalizedBy(publishToMavenLocal)
     }
 
     shadowJar {
