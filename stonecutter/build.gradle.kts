@@ -24,7 +24,11 @@ plugins {
 
 version = property("version") as String
 val baseVersion: String = property("version").toString()
-    .substringBefore('-').substringBeforeLast('.')
+    .substringBefore('-')
+    .let {
+        val trimmed = it.substringBeforeLast('.')
+        if ('.' in trimmed) trimmed else it
+    }
 
 sourceSets.main {
     kotlin.srcDirs(files("build/generated/ver/main/kotlin").builtBy("generateVersion"), files("src/samples/kotlin"))
