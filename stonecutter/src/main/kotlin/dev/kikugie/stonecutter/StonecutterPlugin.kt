@@ -18,6 +18,13 @@ import org.gradle.kotlin.dsl.add
 import org.gradle.kotlin.dsl.create
 import javax.inject.Inject
 
+/**
+ * The Stonecutter Gradle plugin.
+ *
+ * Registers the `stonecutter` extension, additionally aliased as `sc`,
+ * on the [Settings] or [Project] it is [applied][apply] to.
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/project-setup">Project Setup Documentation</a>
+ */
 public abstract class StonecutterPlugin @Inject constructor(
     private val objects: ObjectFactory,
     private val registry: BuildEventsListenerRegistry

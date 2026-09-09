@@ -25,7 +25,7 @@ fun Document.minIndex(): Int = when (this) {
 /**
  * Calculates the biggest acceptable exclusive character index for [this] document.
  *
- * Returns [length] for [SourceDocument], or a non-negative value for [InjectedDocument].
+ * Returns [Document.length] for [SourceDocument], or a non-negative value for [InjectedDocument].
  */
 fun Document.maxIndex(): Int = when (this) {
     is InjectedDocument -> calculateMinOffset(this, length)

@@ -81,6 +81,7 @@ public abstract class ScannerBuilder @Inject constructor(objects: ObjectFactory)
      * as it will be serialized after the configuration stage.
      */
     public fun interface LexerFactory : Serializable {
+        /**Creates a new [Lexer] reading the [input] stream.*/
         public fun create(input: CharStream): Lexer
     }
 }

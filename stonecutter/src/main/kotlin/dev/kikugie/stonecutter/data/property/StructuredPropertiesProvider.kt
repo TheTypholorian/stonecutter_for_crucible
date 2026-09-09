@@ -4,6 +4,10 @@ import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import org.gradle.api.Action
 import java.io.File
 
+/**
+ * Provides access to the [StructuredPropertiesExtension] and shorthands for loading files into it.
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/structured-properties">Structured Properties Docs</a>
+ */
 public interface StructuredPropertiesProvider {
     /**
      * Structured properties extension accessor.

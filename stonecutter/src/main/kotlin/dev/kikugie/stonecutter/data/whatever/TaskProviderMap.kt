@@ -38,9 +38,16 @@ public class TaskProviderMap<T : Task> internal constructor(
     public val tasks: Set<String>
         get() = identifiers.map(namer).toSet()
 
+    /** Number of registered tasks. */
     override val size: Int get() = keys.size
+
+    /** Checks if no tasks are registered. */
     override fun isEmpty(): Boolean = keys.isEmpty()
+
+    /** Checks if a task is registered under the given [key] identifier, **not the name**. */
     override fun containsKey(key: String): Boolean = key in keys
+
+    /** Checks if the [value] task is present in the project. Realizes the task provider. */
     override fun containsValue(value: TaskProvider<T>): Boolean = project.tasks.contains(value.get())
 
     /**Retrieves the task provider by its identifier, **not the name**.*/

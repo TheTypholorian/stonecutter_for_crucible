@@ -7,6 +7,10 @@ import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 import java.io.File
 
+/**
+ * Extension for loading and accessing structured properties.
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/structured-properties">Structured Properties Docs</a>
+ */
 public abstract class StructuredPropertiesExtension {
     /**
      * Loads structured properties from the provided [file] using the [converter].

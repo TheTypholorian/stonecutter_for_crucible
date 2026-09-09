@@ -12,18 +12,35 @@ private annotation class FlagDsl
  */
 @FlagDsl
 public interface StonecutterFlags {
+    /**
+     * Returns the value of the flag with the given [key].
+     * @throws IllegalStateException If no flag is registered under the [key]
+     */
     public operator fun get(key: String): Any = get(StonecutterFlag.named(key))
+
+    /** Returns the value of the given [key] flag. */
     public operator fun <T : Any> get(key: StonecutterFlag<T>): T
+
+    /** Returns the value of this flag. */
     public operator fun <T : Any> StonecutterFlag<T>.invoke(): T = get(this)
 
+    /**
+     * Assigns the [value] to the flag with the given [key].
+     * @throws IllegalStateException If no flag is registered under the [key]
+     * @throws IllegalArgumentException If the [value] type doesn't match the flag's
+     */
     public operator fun set(key: String, value: Any): Unit = StonecutterFlag.named(key).let {
         require(value::class == it.default::class) { "Value must be ${it.default::class.simpleName} for flag '$key'" }
         @Suppress("UNCHECKED_CAST") set(it as StonecutterFlag<Any>, value)
     }
 
+    /** Assigns the [value] to the given [key] flag. */
     public operator fun <T : Any> set(key: StonecutterFlag<T>, value: T)
+
+    /** Assigns the [value] to this flag. */
     public operator fun <T : Any> StonecutterFlag<T>.invoke(value: T): Unit = set(this, value)
 
+    /** Assigns the [value] to this flag, enabling the `FLAG = value` syntax. */
     public fun <T : Any> StonecutterFlag<T>.assign(value: T): Unit = set(this, value)
 }
 

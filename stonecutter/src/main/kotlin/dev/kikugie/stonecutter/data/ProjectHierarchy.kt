@@ -25,18 +25,28 @@ private annotation class ProjectHierarchyDsl
 @Serializable(with = ProjectHierarchy.Serializer::class)
 @ProjectHierarchyDsl @OptIn(ExperimentalStdlibApi::class)
 public class ProjectHierarchy private constructor(@PublishedApi internal val path: PathString) : List<PathString>, java.io.Serializable {
+    /** Number of segments in the path, which is `0` for [ROOT]. */
     override val size: Int
         get() = if (isEmpty()) 0 else path.count { it == SEP_CH }
 
+    /** Returns the absolute path string, or an empty string for [ROOT]. */
     public fun orEmpty(): String =
         if (isEmpty()) "" else path
 
+    /** Deprecated alias for [orEmpty]. */
     @Deprecated("Use 'orEmpty()'", replaceWith = ReplaceWith("orEmpty()"))
     public fun orBlank(): String = orEmpty()
 
+    /** Checks if this path starts with the [other] one, comparing whole segments. */
     public fun startsWith(other: ProjectHierarchy): Boolean =
         other.isEmpty() || path.startsWith(other.path) && path.sepAt(other.path.length)
 
+    /**
+     * Returns this path relative to the [base] one.
+     *
+     * Returns an empty string if the paths are equal,
+     * or `null` if this path doesn't [start with][startsWith] the [base].
+     */
     public fun relativeTo(base: ProjectHierarchy): PathString? = when {
         base.isEmpty() -> path.drop(1)
         path == base.path -> ""
@@ -44,15 +54,18 @@ public class ProjectHierarchy private constructor(@PublishedApi internal val pat
         else -> null
     }
 
+    /** Returns the [longer] path relative to this one, mirroring [relativeTo]. */
     public fun relativize(longer: ProjectHierarchy): PathString? =
         longer.relativeTo(this)
 
+    /** Appends the [path] to this one. */
     public fun resolve(path: PathString): ProjectHierarchy = when {
         isEmpty() -> invoke(path)
         path.isEmpty() -> this
         else -> invoke("${this.path}:$path")
     }
 
+    /** Removes the trailing [path] from this one, if it's present. */
     public fun removeSuffix(path: PathString): ProjectHierarchy {
         if (isEmpty()) return this
         val norm = normalize(path) ?: return this
@@ -62,9 +75,11 @@ public class ProjectHierarchy private constructor(@PublishedApi internal val pat
         else this
     }
 
+    /** Appends the [path] to this one. Same as [resolve]. */
     public operator fun plus(path: PathString): ProjectHierarchy =
         resolve(path)
 
+    /** Removes the trailing [path] from this one. Same as [removeSuffix]. */
     public operator fun minus(path: PathString): ProjectHierarchy =
         removeSuffix(path)
 
@@ -161,10 +176,16 @@ public class ProjectHierarchy private constructor(@PublishedApi internal val pat
         return -1
     }
 
+    /** Returns an iterator over the path segments. */
     override fun iterator(): Iterator<PathString> = makeIterator()
+
+    /** Returns a list iterator over the path segments. */
     override fun listIterator(): ListIterator<PathString> = makeIterator()
+
+    /** Returns a list iterator over the path segments, starting at the given [index]. */
     override fun listIterator(index: Int): ListIterator<PathString> = makeIterator(index)
 
+    /** Returns the path segments in `fromIndex..<toIndex`. */
     override fun subList(fromIndex: Int, toIndex: Int): List<PathString> =
         path.drop(1).split(':').subList(fromIndex, toIndex)
 
@@ -204,37 +225,56 @@ public class ProjectHierarchy private constructor(@PublishedApi internal val pat
         }
     }
 
+    /** Serializes the hierarchy as its absolute path [String]. */
     public object Serializer : KSerializer<ProjectHierarchy> {
+        /** Descriptor of the [PrimitiveKind.STRING] path representation. */
         override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor(ProjectHierarchy::class.qualifiedName!!, PrimitiveKind.STRING)
+
+        /** Encodes the [value] as its absolute path [String]. */
         override fun serialize(encoder: Encoder, value: ProjectHierarchy): Unit = encoder.encodeString(value.path)
+
+        /** Decodes an absolute path [String] into a [ProjectHierarchy]. */
         override fun deserialize(decoder: Decoder): ProjectHierarchy = ProjectHierarchy(decoder.decodeString())
     }
 
     public companion object {
         private val EMPTY_ITERATOR: ListIterator<PathString> = emptyList<PathString>().listIterator()
 
+        /** The root project path `:`. */
         public val ROOT: ProjectHierarchy = ProjectHierarchy(SEP_STR)
 
+        /** The hierarchy of [this] project's path. */
         public val Project.hierarchy: ProjectHierarchy
             get() = ProjectHierarchy(path)
 
+        /**The hierarchy of [this] project's path.*/
         public val ProjectDescriptor.hierarchy: ProjectHierarchy
             get() = ProjectHierarchy(path)
 
+        /** Deprecated alias for [get]. */
         @Deprecated("Use 'get()'", replaceWith = ReplaceWith("get(hierarchy)"))
         public fun Project.locate(hierarchy: ProjectHierarchy): Project =
             project(hierarchy.path)
 
+        /** Deprecated alias for [get]. */
         @Deprecated("Use 'get()'", replaceWith = ReplaceWith("get(hierarchy)"))
         public fun Gradle.locate(hierarchy: ProjectHierarchy): Project =
             rootProject.project(hierarchy.path)
 
+        /** Returns the project at the given [hierarchy] path. */
         public operator fun Project.get(hierarchy: ProjectHierarchy): Project =
             project(hierarchy.path)
 
+        /** Returns the project at the given [hierarchy] path, relative to the root project. */
         public operator fun Gradle.get(hierarchy: ProjectHierarchy): Project =
             rootProject.project(hierarchy.path)
 
+        /**
+         * Creates a hierarchy from the given absolute [path], where leading and trailing `:` are optional.
+         *
+         * Returns [ROOT] if the [path] has no segments.
+         * @throws IllegalArgumentException If the [path] contains blank segments
+         */
         @JvmName("of")
         public operator fun invoke(path: PathString): ProjectHierarchy {
             val norm = normalize(path) ?: return ROOT
@@ -242,6 +282,12 @@ public class ProjectHierarchy private constructor(@PublishedApi internal val pat
             return ProjectHierarchy("$SEP_CH$norm")
         }
 
+        /**
+         * Creates a hierarchy from the given path [components].
+         *
+         * Returns [ROOT] if there are no [components].
+         * @throws IllegalArgumentException If any of the [components] is blank
+         */
         @JvmName("of")
         public operator fun invoke(components: Iterable<PathString>): ProjectHierarchy {
             require(components.none(PathString::isBlank)) { "Path '$SEP_CH${components.joinToString(SEP_STR)}' must not contain blank segments" }
@@ -249,6 +295,12 @@ public class ProjectHierarchy private constructor(@PublishedApi internal val pat
             return ProjectHierarchy("$SEP_CH$norm")
         }
 
+        /**
+         * Creates a hierarchy from the given path [components].
+         *
+         * Returns [ROOT] if there are no [components].
+         * @throws IllegalArgumentException If any of the [components] is blank
+         */
         @JvmName("of")
         public operator fun invoke(vararg components: String): ProjectHierarchy {
             if (components.isEmpty()) return ROOT

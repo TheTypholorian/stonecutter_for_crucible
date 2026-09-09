@@ -35,11 +35,18 @@ internal fun determineConverter(
     """.trimIndent()
 }
 
+/**
+ * Converts text in a specific format to the common [SCElement] structure.
+ * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/structured-properties">Structured Properties Docs</a>
+ */
 public fun interface SCConverter {
+    /**Parses the [text] into a [SCElement] structure.*/
     public fun convert(text: String): SCElement
 }
 
+/**[SCConverter] for the Json and Json5 formats.*/
 public object JsonConverter : SCConverter, SCElement.Visitor<Nothing?, JsonElement> {
+    /**The [Json] instance used to parse and serialize this format.*/
     @JvmField public val SPEC: Json = SCJSON
 
     override fun visitNull(ctx: Nothing?): JsonNull = JsonNull
@@ -92,7 +99,9 @@ private fun String.toHexLongOrNull(): Long? {
     return if (negative) -value else value
 }
 
+/**[SCConverter] for the Toml format.*/
 public object TomlConverter : SCConverter, SCElement.Visitor<Nothing?, TomlElement> {
+    /**The [Toml] instance used to parse and serialize this format.*/
     @JvmField public val SPEC: Toml = Toml { ignoreUnknownKeys = true }
 
     override fun visitNull(ctx: Nothing?): TomlNull = TomlNull
@@ -130,7 +139,9 @@ public object TomlConverter : SCConverter, SCElement.Visitor<Nothing?, TomlEleme
     }
 }
 
+/**[SCConverter] for the Yaml format.*/
 public object YamlConverter : SCConverter, SCElement.Visitor<YamlPath, YamlNode> {
+    /**The [Yaml] instance used to parse and serialize this format.*/
     @JvmField public val SPEC: Yaml = Yaml(configuration = YamlConfiguration(strictMode = false))
     private val NOWHERE: Location = Location(1, 1)
 

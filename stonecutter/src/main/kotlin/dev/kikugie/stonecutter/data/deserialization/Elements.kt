@@ -180,13 +180,23 @@ public sealed class SCElement {
      * @param T The return type of the visit result
      */
     public interface Visitor<C, T> {
+        /**Visits the [SCNull] element with the given [ctx].*/
         public fun visitNull(ctx: C): T
+
+        /**Visits the [prim] element with the given [ctx].*/
         public fun visitPrimitive(prim: SCPrimitive, ctx: C): T
+
+        /**Visits the [list] element with the given [ctx].*/
         public fun visitList(list: SCList, ctx: C): T
+
+        /**Visits the [map] element with the given [ctx].*/
         public fun visitMap(map: SCMap, ctx: C): T
     }
 }
 
+/**
+ * Represents a `null` value within the sealed data structure.
+ */
 @SCStruct
 public object SCNull : SCElement() {
     /**
@@ -314,6 +324,11 @@ public class SCPrimitive internal constructor(override val content: Any, public 
     }
 }
 
+/**
+ * Represents a list of values within the sealed data structure.
+ *
+ * @param content Contained elements
+ */
 @SCStruct
 @Suppress("JavaDefaultMethodsNotOverriddenByDelegation")
 public class SCList(override val content: List<SCElement>) : SCElement(), List<SCElement> by content {
@@ -337,6 +352,11 @@ public class SCList(override val content: List<SCElement>) : SCElement(), List<S
     override fun <C, T> accept(visitor: Visitor<C, T>, ctx: C): T = visitor.visitList(this, ctx)
 }
 
+/**
+ * Represents a map of keyed values within the sealed data structure.
+ *
+ * @param content Contained key-value entries
+ */
 @SCStruct
 public class SCMap(override val content: Map<String, SCElement>) : SCElement(), Map<String, SCElement> by content {
     override fun equals(other: Any?): Boolean {

@@ -135,13 +135,34 @@ public sealed interface ReplacementContainer {
     public fun regex(id: @ReplacementID Identifier, direction: Boolean?, action: Action<RegexReplacementSpec>): Unit =
         regex { this.id.set(id); this.direction.set(direction); action.execute(this) }
 
+    /**
+     * Defines new PCRE replacements.
+     *
+     * @param action Configuration action for the replacement spec.
+     * @see <a href="https://perldoc.perl.org/perlre">Perl Regular Expressions Documentation</a>
+     */
     @StonecutterExperimentalAPI
     public fun perl(action: Action<PerlReplacementSpec>)
 
+    /**
+     * Defines new PCRE replacements.
+     *
+     * @param direction Switches which way the replacement parameters are used.
+     * @param action Configuration action for the replacement spec.
+     * @see <a href="https://perldoc.perl.org/perlre">Perl Regular Expressions Documentation</a>
+     */
     @StonecutterExperimentalAPI
     public fun perl(direction: Boolean, action: Action<PerlReplacementSpec>): Unit =
         perl { this.direction.set(direction); action.execute(this) }
 
+    /**
+     * Defines new PCRE replacements.
+     *
+     * @param direction Switches which way the replacement parameters are used.
+     * @param id Replacement identifier used to toggle replacements throughout the file.
+     * @param action Configuration action for the replacement spec.
+     * @see <a href="https://perldoc.perl.org/perlre">Perl Regular Expressions Documentation</a>
+     */
     @StonecutterExperimentalAPI
     public fun perl(direction: Boolean, id: @ReplacementID Identifier, action: Action<PerlReplacementSpec>): Unit =
         perl { this.direction.set(direction); this.id.set(id); action.execute(this) }
@@ -285,14 +306,22 @@ public sealed interface ReplacementContainer {
          * using the [direction] and [id] defined in the extension.
          * Can be called multiple times.
          */
+        @Suppress("DeprecatedCallableAddReplaceWith")
         @Deprecated("Use the comma-separated version")
         public fun replace(direct: Pair<String, String>, reverse: Pair<String, String>): Unit =
             replace(direct.first, direct.second, reverse.first, reverse.second)
 
         /**
-         * Registers a replacement with the function parameters,
-         * using the [direction] and [id] defined in the extension.
+         * Registers a replacement, using the [direction] and [id] defined in the extension.
          * Can be called multiple times.
+         *
+         * Only one of the two pairs is used, selected by [direction].
+         *
+         * @param directPattern Pattern matched when [direction] is `true`
+         * @param directReplacement Value replacing the [directPattern] matches
+         * @param reversePattern Pattern matched when [direction] is `false`
+         * @param reverseReplacement Value replacing the [reversePattern] matches
+         * @param flags [Pattern] compilation flags applied to both patterns
          */
         @JvmOverloads
         public fun replace(
@@ -305,9 +334,16 @@ public sealed interface ReplacementContainer {
         )
 
         /**
-         * Registers a replacement with the function parameters,
-         * using the [direction] and [id] defined in the extension.
+         * Registers a replacement, using the [direction] and [id] defined in the extension.
          * Can be called multiple times.
+         *
+         * Only one of the two pairs is used, selected by [direction].
+         *
+         * @param directPattern Pattern matched when [direction] is `true`
+         * @param directReplacement Value replacing the [directPattern] matches
+         * @param reversePattern Pattern matched when [direction] is `false`
+         * @param reverseReplacement Value replacing the [reversePattern] matches
+         * @param options [RegexOption]s applied to both patterns
          */
         public fun replace(
             @Language("RegExp") directPattern: String, directReplacement: String,
@@ -319,9 +355,15 @@ public sealed interface ReplacementContainer {
         )
 
         /**
-         * Registers a replacement with the function parameters,
-         * using the [direction] and [id] defined in the extension.
+         * Registers a replacement, using the [direction] and [id] defined in the extension.
          * Can be called multiple times.
+         *
+         * Only one of the two pairs is used, selected by [direction].
+         *
+         * @param directPattern Pattern matched when [direction] is `true`
+         * @param directReplacement Value replacing the [directPattern] matches
+         * @param reversePattern Pattern matched when [direction] is `false`
+         * @param reverseReplacement Value replacing the [reversePattern] matches
          */
         public fun replace(
             directPattern: Regex, directReplacement: String,
@@ -332,9 +374,15 @@ public sealed interface ReplacementContainer {
         )
 
         /**
-         * Registers a replacement with the function parameters,
-         * using the [direction] and [id] defined in the extension.
+         * Registers a replacement, using the [direction] and [id] defined in the extension.
          * Can be called multiple times.
+         *
+         * Only one of the two pairs is used, selected by [direction].
+         *
+         * @param directPattern Pattern matched when [direction] is `true`
+         * @param directReplacement Value replacing the [directPattern] matches
+         * @param reversePattern Pattern matched when [direction] is `false`
+         * @param reverseReplacement Value replacing the [reversePattern] matches
          */
         public abstract fun replace(
             directPattern: Pattern, directReplacement: String,
@@ -342,12 +390,21 @@ public sealed interface ReplacementContainer {
         )
     }
 
+    /**
+     * PCRE replacement configuration extension.
+     *
+     * PCRE replacements must have a defined [direction] and optionally an [id].
+     * Replaced values are added with the [replace] function or corresponding properties.
+     * @see <a href="https://perldoc.perl.org/perlre">Perl Regular Expressions Documentation</a>
+     */
     @ReplacementSpecDsl @StonecutterExperimentalAPI
     public abstract class PerlReplacementSpec {
         /**
          * Selector for the replaced values.
          *
-         * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#regex-replacements">Regex Replacement Documentation</a>
+         * When:
+         * - `true`: the direct pattern of each [replace] call is used
+         * - `false`: the reverse pattern of each [replace] call is used
          */
         public abstract val direction: Property<Boolean>
 
@@ -365,6 +422,19 @@ public sealed interface ReplacementContainer {
         @ReplacementID
         public abstract val id: Property<Identifier>
 
+        /**
+         * Registers a replacement, using the [direction] and [id] defined in the extension.
+         * Can be called multiple times.
+         *
+         * Only one of the two pairs is used, selected by [direction].
+         *
+         * @param directPattern Pattern matched when [direction] is `true`
+         * @param directReplacement Value replacing the [directPattern] matches
+         * @param reversePattern Pattern matched when [direction] is `false`
+         * @param reverseReplacement Value replacing the [reversePattern] matches
+         * @param options Compile options applied to both patterns; `UTF` is always enabled
+         * @see <a href="https://perldoc.perl.org/perlre">Perl Regular Expressions Documentation</a>
+         */
         public abstract fun replace(
             directPattern: String, directReplacement: String,
             reversePattern: String, reverseReplacement: String,

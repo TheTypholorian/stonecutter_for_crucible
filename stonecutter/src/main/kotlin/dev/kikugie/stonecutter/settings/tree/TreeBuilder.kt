@@ -68,8 +68,8 @@ public abstract class TreeBuilder : BranchBuilder() {
      * Loads the serialized project tree from the [data] string,
      * deserialized with the [converter] (defaults to Json).
      *
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/project-setup">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
     public fun load(data: String, converter: SCConverter = JsonConverter): Unit =
@@ -79,8 +79,8 @@ public abstract class TreeBuilder : BranchBuilder() {
      * Loads the serialized project tree from the [data] string,
      * deserialized with the [converter] (defaults to Json).
      *
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/start/settings">Project Setup Guide</a>
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#data-driven-setup">Data-driven Setup Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/project-setup">Project Setup Guide</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/data-driven-setup">Data-driven Setup Documentation</a>
      */
     @JvmOverloads
     public fun load(data: Provider<String>, converter: SCConverter = JsonConverter): Unit =
@@ -130,10 +130,12 @@ public abstract class BranchBuilder {
     @Deprecated("Not fully supported :P")
     public abstract val branchScript: Property<String>
 
+    /** Deprecated alias for [version]. */
     @Deprecated("Use the fully-spelled variant `version()`", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("version(value)"))
     public fun vers(value: AnyVersion): NodeBuilder =
         version(value)
 
+    /** Deprecated alias for [version]. */
     @Deprecated("Use the fully-spelled variant `version()`", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("version(project, value)"))
     public fun vers(project: Identifier, value: AnyVersion): NodeBuilder =
         version(project, value)
