@@ -2,17 +2,11 @@ package dev.kikugie.stitcher.replacement
 
 import dev.kikugie.stonecutter.model.process.Replacement
 import java.util.*
-import java.util.regex.MatchResult
 import kotlin.enums.enumEntries
 
 context(exec: ReplacementExecutor)
 internal val Replacement.isActive: Boolean
     get() = identifier == null || identifier in exec.identifiers
-
-internal fun MatchResult.nextIndex(text: CharSequence): Int {
-    val next = end() + if (end() == start()) 1 else 0
-    return if (next <= text.length) next else -1
-}
 
 inline fun <reified T : Enum<T>> Int.toEnumSet(): EnumSet<T> = EnumSet.noneOf(T::class.java).apply {
     if (this@toEnumSet == 0) return@apply

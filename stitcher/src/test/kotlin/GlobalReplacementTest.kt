@@ -53,6 +53,13 @@ val GlobalReplacementTest by testSuite {
             "v1 v22 v333".shouldAssembleTo(params { regex("""v\d+""", "vX") }, "vX vX vX")
         }
 
+        test("expand a capture group into the target") {
+            "MOD_ALPHA_LEGACY MOD_BETA_LEGACY".shouldAssembleTo(
+                params { regex("""MOD_(\w+)_LEGACY""", "MOD_\$1_MODERN") },
+                "MOD_ALPHA_MODERN MOD_BETA_MODERN"
+            )
+        }
+
         test("leave the text alone without a match") {
             "val a = 1".shouldAssembleTo(params { regex("""v\d+x""", "vX") }, "val a = 1")
         }
