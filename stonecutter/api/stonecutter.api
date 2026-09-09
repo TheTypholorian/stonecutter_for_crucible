@@ -492,6 +492,11 @@ public abstract class dev/kikugie/stonecutter/controller/task/StonecutterSwitchT
 	public abstract fun getVersion ()Lorg/gradle/api/provider/Property;
 }
 
+public abstract interface class dev/kikugie/stonecutter/controller/task/StonecutterTaskMutexService : org/gradle/api/services/BuildService {
+	public static final field Companion Ldev/kikugie/stonecutter/controller/task/StonecutterTaskMutexService$Companion;
+	public static fun create (Lorg/gradle/api/invocation/Gradle;Ljava/lang/String;)Lorg/gradle/api/provider/Provider;
+}
+
 public final class dev/kikugie/stonecutter/controller/task/StonecutterTaskMutexService$Companion {
 	public final fun create (Lorg/gradle/api/invocation/Gradle;Ljava/lang/String;)Lorg/gradle/api/provider/Provider;
 }
@@ -847,17 +852,6 @@ public abstract class dev/kikugie/stonecutter/data/property/StructuredProperties
 	public final fun rawOrNull ([Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
 	public abstract fun tags (Ljava/lang/Iterable;)V
 	public final fun tags ([Ljava/lang/String;)V
-}
-
-public final class dev/kikugie/stonecutter/data/property/StructuredPropertiesHolder {
-	public fun <init> ()V
-	public final fun all ()Ldev/kikugie/stonecutter/data/deserialization/SCMap;
-	public final fun get (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
-	public final fun load (Ljava/io/File;ZLkotlin/jvm/functions/Function0;)Z
-	public static synthetic fun load$default (Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder;Ljava/io/File;ZLkotlin/jvm/functions/Function0;ILjava/lang/Object;)Z
-	public final fun overwrite (Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy;)V
-	public final fun raw (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
-	public final fun tags (Ljava/lang/Iterable;)Z
 }
 
 public final class dev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy : java/lang/Enum {
