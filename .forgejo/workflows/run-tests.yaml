@@ -41,6 +41,7 @@ jobs:
       image: node:24-bookworm
     continue-on-error: ${{ matrix.gradle-version != needs.resolve-versions.outputs.release }}
     strategy:
+      max-parallel: 1
       fail-fast: false
       matrix:
         gradle-version: ${{ fromJSON(needs.resolve-versions.outputs.versions) }}
