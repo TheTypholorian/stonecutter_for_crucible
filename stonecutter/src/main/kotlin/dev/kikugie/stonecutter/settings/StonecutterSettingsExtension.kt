@@ -81,7 +81,7 @@ public abstract class StonecutterSettingsExtension(
      * Mutable view of settings-scoped Stonecutter configuration flags.
      *
      * Flags are used to configure the internal behaviour of the plugin.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#flags">Flags Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#flags">Flags Documentation</a>
      */
     public abstract val flags: StonecutterFlags
 
@@ -89,7 +89,7 @@ public abstract class StonecutterSettingsExtension(
      * Configures settings-scoped Stonecutter configuration flags.
      *
      * Flags are used to configure the internal behaviour of the plugin.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/settings#flags">Flags Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#flags">Flags Documentation</a>
      */
     public infix fun flags(action: Action<StonecutterFlags>): Unit = action.execute(flags)
 

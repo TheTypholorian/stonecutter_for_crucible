@@ -142,7 +142,7 @@ class ScannerAdapter(
 
         val options = closers.joinToString(", ", "[", "]") { scanner.vocabulary.getDisplayName(it) }
         info = "Comment scanner ${scanner.name} provided token ${scanner.vocabulary.getDisplayName(token.type)}, but $options were expected."
-        docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-ordering"
+        docs = "https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#token-ordering"
     }
 
     private fun reportInvalidCloser(token: AntlrToken): Unit = document.reference(token).report(SCANNER_GROUP + "inconsistent-token") {
@@ -150,7 +150,7 @@ class ScannerAdapter(
 
         val options = openers.joinToString(", ", "[", "]") { scanner.vocabulary.getDisplayName(it) }
         info = "Comment scanner ${scanner.name} provided token ${scanner.vocabulary.getDisplayName(token.type)}, but $options were expected."
-        docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-ordering"
+        docs = "https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#token-ordering"
     }
 
     private fun reportUnknown(token: AntlrToken): Unit = document.reference(token).report(SCANNER_GROUP + "unregistered-token") {
@@ -158,7 +158,7 @@ class ScannerAdapter(
 
         info = "Comment scanner ${scanner.name} provided token ${scanner.vocabulary.getDisplayName(token.type)} " +
             "which is not registered as an opener or a closer."
-        docs = "https://stonecutter.kikugie.dev/wiki/config/handlers#token-counting"
+        docs = "https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#token-counting"
     }
 }
 

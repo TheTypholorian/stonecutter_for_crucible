@@ -122,6 +122,12 @@ public data class StonecutterFlag<T : Any> private constructor(
         @JvmField
         public val APPEND_SOURCES_AFTER_EVAL: StonecutterFlag<Boolean> = StonecutterFlag("extra_source_check", true)
 
+        /**
+         * Saves the Stonecutter parameters to project's `build/stonecutter-cache` directories
+         * to be used by the IntelliJ plugin and other third-party tools.
+         *
+         * **Default**: `true`
+         */
         @JvmField
         public val SERIALIZE_TREE_MODEL: StonecutterFlag<Boolean> = StonecutterFlag("serialize_tree_model", true)
 

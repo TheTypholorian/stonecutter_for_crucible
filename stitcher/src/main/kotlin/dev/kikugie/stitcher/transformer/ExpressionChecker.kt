@@ -172,7 +172,7 @@ private fun reportUnresolvedSwapId(swap: SwapOpener, ids: Collection<Identifier>
         if (candidate != null) appendLine("Did you mean '$candidate'?")
         if (ids.isNotEmpty()) append("Available swaps: [${ids.joinToString()}]")
     }
-    docs = "https://stonecutter.kikugie.dev/wiki/config/params#string-swaps"
+    docs = "https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/swaps#declaring-swaps"
 }
 
 private fun reportInsufficientSwapInsertions(swap: SwapOpener, placeholders: Int): Unit = report(
@@ -182,7 +182,7 @@ private fun reportInsufficientSwapInsertions(swap: SwapOpener, placeholders: Int
 
     label = "Insufficient insertions for swap '${swap.id}'"
     info = "Substituted string requires $placeholders parameters, but only ${swap.arguments.size} were provided."
-    docs = "https://stonecutter.kikugie.dev/wiki/config/params#swap-parameters"
+    docs = "https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/swaps#parametrized-swaps"
 }
 
 private fun reportUnresolvedReplacementId(repl: DefinitionToken.ReplacementToggle.Entry, ids: Collection<Identifier>): Unit = report(
@@ -196,7 +196,7 @@ private fun reportUnresolvedReplacementId(repl: DefinitionToken.ReplacementToggl
         if (candidate != null) appendLine("Did you mean '$candidate'?")
         if (ids.isNotEmpty()) append("Available replacements: [${ids.joinToString()}]")
     }
-    docs = "https://stonecutter.kikugie.dev/wiki/config/params#replacements"
+    docs = "https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/replacements#replacement-identifiers"
 }
 
 private fun reportDuplicateEnabledReplacement(repl: DefinitionToken.ReplacementToggle.Entry): Unit = report(
@@ -239,7 +239,7 @@ private fun reportUnresolvedConstant(constant: ExpressionToken.Constant, ids: Co
         if (candidate != null) appendLine("Did you mean '$candidate'?")
         if (ids.isNotEmpty()) append("Available constants: [${ids.joinToString()}]")
     }
-    docs = "https://stonecutter.kikugie.dev/wiki/config/params#condition-constants"
+    docs = "https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#defining-constants"
 }
 
 private fun reportUnresolvedExplicitTarget(token: LeafToken, ids: Collection<Identifier>): Unit = report(
@@ -253,7 +253,7 @@ private fun reportUnresolvedExplicitTarget(token: LeafToken, ids: Collection<Ide
         if (candidate != null) appendLine("Did you mean '$candidate'?")
         if (ids.isNotEmpty()) append("Available targets: [${ids.joinToString()}]")
     }
-    docs = "https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies"
+    docs = "https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#defining-targets"
 }
 
 private fun reportUnresolvedImplicitTarget(predicates: List<PredicateToken>): Unit = report(

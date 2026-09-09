@@ -417,7 +417,7 @@ public sealed interface ReplacementContainer {
          * - prefixed with '!': replacement is active by default and can be disabled by the id
          *
          * The identifier must match `[_a-zA-Z][_\-a-zA-Z0-9]*`.
-         * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#replacement-identifiers">Replacement Identifier Documentation</a>
+         * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/replacements#replacement-identifiers">Replacement Identifier Documentation</a>
          */
         @ReplacementID
         public abstract val id: Property<Identifier>

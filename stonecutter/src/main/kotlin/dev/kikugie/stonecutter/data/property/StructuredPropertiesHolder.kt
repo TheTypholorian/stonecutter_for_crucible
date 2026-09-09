@@ -1,6 +1,7 @@
 package dev.kikugie.stonecutter.data.property
 
 import dev.kikugie.commons.takeAsOrNull
+import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.data.deserialization.*
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesHolder.OverwritePolicy.*
 import org.gradle.api.plugins.ExtraPropertiesExtension
@@ -11,6 +12,8 @@ import java.io.File
 private val LOGGER: Logger = LoggerFactory.getLogger("StonecutterProperties")
 
 // If you can, don't look here
+/** @suppress */
+@StonecutterInternalAPI
 public class StructuredPropertiesHolder {
     private val appliedTags: HashSet<String> = HashSet()
     private val loadedFiles: HashSet<File> = HashSet()
