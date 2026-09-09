@@ -11,7 +11,11 @@ plugins {
 }
 
 val baseVersion: String = property("version").toString()
-    .substringBefore('-').substringBeforeLast('.')
+    .substringBefore('-')
+    .let {
+        val trimmed = it.substringBeforeLast('.')
+        if ('.' in trimmed) trimmed else it
+    }
 
 dependencies {
     antlr(libs.antlr)
@@ -64,6 +68,9 @@ dokka {
     pluginsConfiguration.html {
         homepageLink = "https://stonecutter.kikugie.dev/"
         footerMessage = "(c) 2026 KikuGie"
+
+        customAssets.from(isolated.rootProject.projectDirectory.dir("tools/dokka-icons").asFileTree.matching { include("*.svg") })
+        customStyleSheets.from(isolated.rootProject.projectDirectory.file("tools/dokka-theme.css"))
     }
 
     dokkaSourceSets.named("main") {

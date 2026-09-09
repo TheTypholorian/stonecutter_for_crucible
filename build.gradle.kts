@@ -7,7 +7,11 @@ plugins {
 
 version = property("version").toString()
 val baseVersion: String = property("version").toString()
-    .substringBefore('-').substringBeforeLast('.')
+    .substringBefore('-')
+    .let {
+        val trimmed = it.substringBeforeLast('.')
+        if ('.' in trimmed) trimmed else it
+    }
 
 repositories {
     mavenCentral()
@@ -16,6 +20,7 @@ repositories {
 dependencies {
     dokka(project(":stonecutter"))
     dokka(project(":stitcher"))
+    dokka(project(":model"))
 
     dokkaHtmlPlugin(common.kotlin.dokka.versioning)
 }
@@ -28,6 +33,8 @@ dokka {
         footerMessage = "(c) 2026 KikuGie"
 
         customAssets.from("tools/logo-icon.svg")
+        customAssets.from(layout.projectDirectory.dir("tools/dokka-icons").asFileTree.matching { include("*.svg") })
+        customStyleSheets.from("tools/dokka-theme.css")
     }
 
     pluginsConfiguration.versioning {
