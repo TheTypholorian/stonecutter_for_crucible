@@ -65,10 +65,11 @@ jobs:
         run: |
           ./gradlew check --build-cache --configuration-cache
       - name: Upload test reports
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v3
         with:
           name: test-reports-gradle-${{ matrix.gradle-version }}
           path: |
             **/build/reports/tests/
             **/build/test-results/
+          if-no-files-found: ignore
