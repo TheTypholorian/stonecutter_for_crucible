@@ -10,7 +10,7 @@ on:
 jobs:
   resolve-versions:
     name: Resolve Gradle versions
-    runs-on: kiku-server-heavy
+    runs-on: kiku-server-light
     container:
       image: node:24-bookworm
     outputs:
@@ -36,7 +36,7 @@ jobs:
   test:
     name: Run tests
     needs: resolve-versions
-    runs-on: kiku-server
+    runs-on: kiku-server-heavy
     container:
       image: node:24-bookworm
     continue-on-error: ${{ matrix.gradle-version != needs.resolve-versions.outputs.release }}
