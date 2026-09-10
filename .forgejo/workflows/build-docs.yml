@@ -8,7 +8,7 @@ env:
 jobs:
   build-docs:
     name: Build docs
-    runs-on: kiku-server
+    runs-on: kiku-server-light
     container: node:24-bookworm
     steps:
       - name: Checkout repository

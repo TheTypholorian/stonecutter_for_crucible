@@ -11,7 +11,7 @@ on:
 jobs:
   publish:
     name: Publish
-    runs-on: kiku-server
+    runs-on: kiku-server-light
     container: node:24-bookworm
     env:
       MVN_KIKUGIE_PASSWORD: ${{ secrets.MVN_KIKUGIE_PASSWORD }}
