@@ -22,7 +22,7 @@ open class SharedSetupPlugin : Plugin<Project> {
 
         tasks {
             withType<Test> {
-                useJUnitPlatform()
+                outputs.doNotCacheIf("test results should not be cached") { true }
             }
         }
 
