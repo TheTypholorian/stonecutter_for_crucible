@@ -2,8 +2,23 @@ name: Run tests
 on:
   push:
     paths:
-      - stitcher/src/**
-      - stonecutter/src/**
+      - stitcher/**
+      - stonecutter/**
+      - model/**
+      - build-logic/**
+      - gradle/**
+      - '*.gradle.kts'
+      - gradle.properties
+      - .forgejo/workflows/run-tests.yaml
+  pull_request:
+    paths:
+      - stitcher/**
+      - stonecutter/**
+      - model/**
+      - build-logic/**
+      - gradle/**
+      - '*.gradle.kts'
+      - gradle.properties
       - .forgejo/workflows/run-tests.yaml
   workflow_dispatch:
 
@@ -66,7 +81,7 @@ jobs:
           ./gradlew check --build-cache --configuration-cache
       - name: Upload test reports
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-reports-gradle-${{ matrix.gradle-version }}
           path: |
