@@ -3,7 +3,7 @@ package dev.kikugie.stonecutter.build.config
 import dev.kikugie.stonecutter.AnyVersion
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.TargetID
-import dev.kikugie.stonecutter.data.whatever.ExtendedMapProperty
+import dev.kikugie.stonecutter.data.collection.ExtendedMapProperty
 import org.gradle.api.provider.MapProperty
 import javax.inject.Inject
 
