@@ -26,6 +26,24 @@ public class ConfigurationRegistry(private val registry: MutableMap<Configuratio
         registry.remove(flag)
     }
 
+    /**
+     * Compares the assigned configuration, ignoring flags that hold their own default.
+     *
+     * [get] caches a default on read, so the backing map also depends on which flags have been
+     * looked at - a registry that was read from is still equal to one that was not.
+     */
+    override fun equals(other: Any?): Boolean =
+        other is ConfigurationRegistry && assigned() == other.assigned()
+
+    override fun hashCode(): Int =
+        assigned().hashCode()
+
+    override fun toString(): String =
+        assigned().entries.joinToString(", ", "ConfigurationRegistry(", ")") { (flag, value) -> "${flag.key}=$value" }
+
+    private fun assigned(): Map<ConfigurationFlag<*>, Any> =
+        registry.filterNot { (flag, value) -> value == flag.default }
+
     @Serializable
     private enum class ConfigurationType { BOOL, INT, FLOAT, STRING }
 
