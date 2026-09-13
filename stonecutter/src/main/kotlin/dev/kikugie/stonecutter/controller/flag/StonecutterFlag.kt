@@ -174,10 +174,14 @@ public data class StonecutterFlag<T : Any> private constructor(
 //            StonecutterFlag("application_task", "runClient", FlagScope.NODE)
 
         /**
-         * Disables the *'Limited Groovy DSL support for Stonecutter'* message,
-         * printed when a `.gradle` build script is used in the project.
+         * Opts the project into Groovy build scripts.
+         *
+         * When enabled, generated controller and versioned scripts are named `.gradle`
+         * rather than `.gradle.kts` even where no `.gradle` file exists yet, and the
+         * *'Limited Groovy DSL support for Stonecutter'* message is no longer printed.
          *
          * **Default**: `false`
+         * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/faq#groovy-support">Groovy Support FAQ</a>
          */
         @JvmField
         public val HARD_MODE: StonecutterFlag<Boolean> =
