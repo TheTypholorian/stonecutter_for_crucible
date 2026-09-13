@@ -38,6 +38,7 @@ import dev.kikugie.stitcher.transformer.edit.UncommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.SlashStarUncommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.StandardSwappingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.JavaLikeCommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.impl.LineCommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.XmlCommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.XmlUncommentingStrategy
 import dev.kikugie.stonecutter.model.Identifier
@@ -124,6 +125,9 @@ object Commenter {
     val Java: CommentingStrategy = JavaLikeCommentingStrategy.Java
     val Kotlin: CommentingStrategy = JavaLikeCommentingStrategy.Kotlin
     val Xml: CommentingStrategy = XmlCommentingStrategy
+
+    /** Matches the `cfg`/`toml`/`yaml`/`properties` handler default in `Defaults.kt`. */
+    val Hash: CommentingStrategy = LineCommentingStrategy("#")
 }
 
 object Swapper {
