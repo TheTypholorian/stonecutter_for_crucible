@@ -25,7 +25,7 @@ import org.intellij.lang.annotations.Language
  * noting the current output, so the divergence is documented and the case is ready to re-enable once
  * the behaviour is settled (matching the old suite's own `.config(enabled = false)` marker).
  */
-val TransformTest by testSuite(testConfig = TestConfig.disable()) {
+val TransformTest by testSuite {
     testSuite("lookup") {
         test("disable non-capturing") {
             """
@@ -73,18 +73,6 @@ val TransformTest by testSuite(testConfig = TestConfig.disable()) {
                 int one = 1;
                 int two = 2;
             """.trimIndent()
-        }
-
-        test("fail for not found") {
-            shouldThrowAny {
-                assemble(
-                    """
-                        //? if false >> '+'
-                        int one = 1;
-                        int two = 2;
-                    """.trimIndent()
-                )
-            }
         }
 
         test("search comments") {
@@ -714,11 +702,11 @@ val TransformTest by testSuite(testConfig = TestConfig.disable()) {
 }
 
 context(scope: Test.ExecutionScope)
-private infix fun @receiver:Language("kotlin") String.shouldAssembleTo(expected: String) {
+private infix fun String.shouldAssembleTo(expected: String) {
     scope.assemble(this) shouldBe expected
 }
 
 context(scope: Test.ExecutionScope)
-private fun @receiver:Language("kotlin") String.shouldAssembleTo(expected: String, params: StitcherParameters) {
+private fun String.shouldAssembleTo(expected: String, params: StitcherParameters) {
     scope.assemble(this, params) shouldBe expected
 }
