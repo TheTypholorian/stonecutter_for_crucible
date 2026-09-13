@@ -184,6 +184,20 @@ public data class StonecutterFlag<T : Any> private constructor(
             StonecutterFlag("hard_mode", false, FlagScope.SETTINGS)
 
         /**
+        /**
+         * Registers the `sc` alias alongside the `stonecutter` extension.
+         *
+         * The alias is added when the plugin is applied, before any `flags { }` block runs,
+         * so this flag is only read from the `dev.kikugie.stonecutter.short_extension`
+         * Gradle property.
+         *
+         * **Default**: `true`
+         */
+        @JvmField
+        public val SHORT_EXTENSION: StonecutterFlag<Boolean> =
+            StonecutterFlag("short_extension", true, FlagScope.LOCAL)
+
+        /**
          * Exposes resolved structured properties as Gradle
          * [extra][org.gradle.api.plugins.ExtraPropertiesExtension] entries.
          *
