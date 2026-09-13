@@ -2,24 +2,33 @@ package dev.kikugie.stonecutter.controller.file
 
 import dev.kikugie.stitcher.antlr.HashStyleScanner
 import dev.kikugie.stitcher.antlr.SlashStyleScanner
+import dev.kikugie.stitcher.antlr.XmlStyleScanner
 import dev.kikugie.stitcher.transformer.edit.impl.SlashStarUncommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.JavaLikeCommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.impl.XmlCommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.impl.XmlUncommentingStrategy
 
 internal fun FileHandlerContainer.configureDefaults() {
     configureJava()
     configureKotlin()
     configureShader()
     configureHash()
+    configureXml()
+    configurePlainText()
 }
 
-private fun FileHandlerContainer.configureJava(): Unit = configure("java", "scala", "sc", "groovy", "gradle", "json5") {
+private fun FileHandlerContainer.configureJava(): Unit = configure(
+    "java", "scala", "sc", "groovy", "gradle", "json5",
+    "js", "mjs", "cjs", "jsx", "ts", "tsx",
+    "c", "h", "cc", "cpp", "hpp", "cs", "go",
+) {
     useSlashScanner(nested = false)
 
     commenter.set(JavaLikeCommentingStrategy.Java)
     uncommenter.set(SlashStarUncommentingStrategy)
 }
 
-private fun FileHandlerContainer.configureKotlin(): Unit = configure("kt", "kts") {
+private fun FileHandlerContainer.configureKotlin(): Unit = configure("kt", "kts", "rs", "swift") {
     useSlashScanner(nested = true)
 
     commenter.set(JavaLikeCommentingStrategy.Kotlin)
@@ -41,7 +50,10 @@ private fun HandlerBuilder.useSlashScanner(nested: Boolean): Unit = scanner {
     closers(SlashStyleScanner.Tokens.SLASH_COMMENT_END, SlashStyleScanner.Tokens.STAR_COMMENT_END)
 }
 
-private fun FileHandlerContainer.configureHash(): Unit = configure("cfg", "aw", "accesswidener", "ct", "classtweaker", "yml", "yaml") {
+private fun FileHandlerContainer.configureHash(): Unit = configure(
+    "cfg", "aw", "accesswidener", "ct", "classtweaker", "yml", "yaml",
+    "toml", "properties", "py", "sh", "bash",
+) {
     scanner {
         lexer.set(::HashStyleScanner)
         openers(HashStyleScanner.Tokens.HASH_COMMENT_START)
@@ -49,4 +61,18 @@ private fun FileHandlerContainer.configureHash(): Unit = configure("cfg", "aw", 
     }
 
     commenter.set(line("#"))
+}
+
+private fun FileHandlerContainer.configureXml(): Unit = configure("xml", "html", "htm", "xhtml", "svg", "xsd", "xsl") {
+    scanner {
+        lexer.set(::XmlStyleScanner)
+        openers(XmlStyleScanner.Tokens.XML_COMMENT_START)
+        closers(XmlStyleScanner.Tokens.XML_COMMENT_END)
+    }
+
+    commenter.set(XmlCommentingStrategy)
+    uncommenter.set(XmlUncommentingStrategy)
+}
+
+private fun FileHandlerContainer.configurePlainText(): Unit = configure("json", "mcmeta", "txt", "md", "csv") {
 }
