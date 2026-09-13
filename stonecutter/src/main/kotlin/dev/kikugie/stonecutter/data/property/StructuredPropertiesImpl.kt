@@ -52,8 +52,8 @@ internal abstract class StructuredPropertiesImpl @Inject constructor(
     }
 
     override fun tags(tags: Iterable<String>) {
-        // TODO: add better tag verification
         val filtered = tags.filter { it.isNotBlank() }
+        for (tag in filtered) validateTag(tag)
         holder.tags(filtered)
     }
 
@@ -127,4 +127,14 @@ private value class TypeMapper(private val mappings: LinkedHashMap<Class<out Any
 
     inline fun <reified T : Any> register(noinline action: (String) -> T) =
         register(T::class.java, action)
+}
+
+private fun validateTag(tag: String) {
+    val segments: List<String> = tag.split(':')
+    require(segments.none(String::isBlank)) {
+        "Property tag '$tag' has an empty segment - ':' separates nested names and cannot be leading, trailing or repeated"
+    }
+    require(segments.none { segment -> segment.any(Char::isWhitespace) }) {
+        "Property tag '$tag' contains whitespace"
+    }
 }
