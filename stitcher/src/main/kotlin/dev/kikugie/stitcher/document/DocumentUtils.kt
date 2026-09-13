@@ -15,7 +15,8 @@ val Document.ancestor: Document
 /**
  * Calculates the smallest acceptable character index for [this] document.
  *
- * Returns `0` for [SourceDocument], or a non-positive value for [InjectedDocument].
+ * Returns `0` for [SourceDocument], or a non-positive value for [InjectedDocument] - an injected
+ * window reads backwards into its [parent][InjectedDocument.parent] through negative indices.
  */
 fun Document.minIndex(): Int = when (this) {
     is InjectedDocument -> calculateMinOffset(this, 0)
@@ -25,10 +26,12 @@ fun Document.minIndex(): Int = when (this) {
 /**
  * Calculates the biggest acceptable exclusive character index for [this] document.
  *
- * Returns [Document.length] for [SourceDocument], or a non-negative value for [InjectedDocument].
+ * Returns [Document.length] for [SourceDocument], or a value past it for [InjectedDocument] -
+ * an injected window reads forwards into its [parent][InjectedDocument.parent] through indices
+ * beyond its own [length][Document.length].
  */
 fun Document.maxIndex(): Int = when (this) {
-    is InjectedDocument -> calculateMinOffset(this, length)
+    is InjectedDocument -> calculateMaxOffset(this, length)
     else -> length
 }
 
@@ -81,10 +84,10 @@ private tailrec fun findAncestor(doc: Document): Document = when (doc) {
 
 private tailrec fun calculateMinOffset(doc: InjectedDocument, offset: Int): Int = when (val parent = doc.parent) {
     is InjectedDocument -> calculateMinOffset(parent, offset - doc.start)
-    else -> offset
+    else -> offset - doc.start
 }
 
 private tailrec fun calculateMaxOffset(doc: InjectedDocument, offset: Int): Int = when (val parent = doc.parent) {
     is InjectedDocument -> calculateMaxOffset(parent, offset + (parent.length - doc.end))
-    else -> offset
+    else -> offset + (parent.length - doc.end)
 }
