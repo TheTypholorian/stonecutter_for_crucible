@@ -79,7 +79,7 @@ class FileAstAssembler(val params: StitcherParameters) : BlockTokenVisitor<Block
             InjectedDocument(this)
         }
         val commented = ModificationTracker(spliced, 0, spliced.length).run {
-            params.commenter.comment(this, tokenize(spliced, params.scanner).toSequence().map { it.toLeaf(document) })
+            params.commenter.comment(params.flags, this, tokenize(spliced, params.scanner).toSequence().map { it.toLeaf(document) })
             InjectedDocument(this)
         }
         return code.copy(scope = listOf(Content(commented.reference())))
@@ -87,7 +87,7 @@ class FileAstAssembler(val params: StitcherParameters) : BlockTokenVisitor<Block
 
     private fun substituteSwap(code: Code, value: String): Code {
         val substituted = ModificationTracker((code.scope.firstOrNull() ?: code).ref join (code.scope.lastOrNull() ?: code).ref).run {
-            params.swapper.substitute(this, value)
+            params.swapper.substitute(params.flags, this, value)
             InjectedDocument(this)
         }
         // Swap contents should not be reprocessed

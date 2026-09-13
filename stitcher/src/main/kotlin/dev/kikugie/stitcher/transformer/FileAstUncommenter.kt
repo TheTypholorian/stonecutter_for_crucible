@@ -42,7 +42,7 @@ class FileAstUncommenter(val params: StitcherParameters) : Visitor<BlockToken, N
 
         val body = ModificationTracker(spliced, lead, bodyLength).run {
             params.commenter.comment(
-                this, tokenize(spliced, params.scanner).toSequence()
+                params.flags, this, tokenize(spliced, params.scanner).toSequence()
                 .map { it.toLeaf(spliced) }
                 .filter { it.start >= lead && it.end <= bodyLength })
             InjectedDocument(this).toString()
@@ -65,7 +65,7 @@ class FileAstUncommenter(val params: StitcherParameters) : Visitor<BlockToken, N
         if (!isCommented(code)) return reprocess(code)
 
         val document = ModificationTracker(code.scope.run { first().ref join last().ref }).run {
-            params.uncommenter.uncomment(this, toSequence(document, code.scope))
+            params.uncommenter.uncomment(params.flags, this, toSequence(document, code.scope))
             InjectedDocument(this)
         }
         return reprocess(code, parse(document, params.scanner).scope)
