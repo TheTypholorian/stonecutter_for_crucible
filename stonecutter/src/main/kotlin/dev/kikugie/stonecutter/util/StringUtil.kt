@@ -1,7 +1,10 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package dev.kikugie.stonecutter.util
 
 import dev.kikugie.commons.then
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
+import dev.kikugie.stonecutter.data.ParsedVersion
 
 internal const val IDENTIFIER_PATTERN: String = "[_a-zA-Z][_\\-a-zA-Z0-9]*"
 
@@ -29,6 +32,27 @@ internal fun join(vararg parts: String, separator: String): String = when (parts
     2 -> join(parts[0], parts[1], separator)
     else -> parts.filter(String::isNotEmpty).joinToString(separator)
 }
+
+/**
+ * Checks if the [version] lies within this range, allowing version literals as the bounds:
+ * ```kotlin
+ * if (sc.current.parsed in "1.20".."1.22") { /* ... */ }
+ * ```
+ * @throws IllegalArgumentException if either bound can't be read as a single version
+ */
+public inline operator fun ClosedRange<String>.contains(version: ParsedVersion): Boolean =
+    version within this
+
+/**
+ * Checks if the [version] lies within this range, allowing version literals as the bounds:
+ * ```kotlin
+ * if (sc.current.parsed in "1.20"..<"1.22") { /* ... */ }
+ * ```
+ * @throws IllegalArgumentException if either bound can't be read as a single version
+ */
+public inline operator fun OpenEndRange<String>.contains(version: ParsedVersion): Boolean =
+    version within this
+
 
 /**
  * Converts the character to its escaped representation based on the input flag.

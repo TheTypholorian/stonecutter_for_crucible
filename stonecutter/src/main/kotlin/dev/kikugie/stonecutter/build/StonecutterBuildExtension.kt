@@ -129,7 +129,7 @@ public interface StonecutterBuildExtension : VersionOperations<Version>, Structu
      * Target configuration extension.
      *
      * Targets define named versions, which can be checked against predicates in preprocessed conditions.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies">Targets Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#targets">Targets Documentation</a>
      */
     public val targets: TargetContainer
 
@@ -196,7 +196,7 @@ public interface StonecutterBuildExtension : VersionOperations<Version>, Structu
      * Configures the targets extension.
      *
      * Targets define named versions, which can be checked against predicates in preprocessed conditions.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies">Targets Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#targets">Targets Documentation</a>
      */
     public infix fun targets(action: Action<TargetContainer>): Unit = action.execute(targets)
 

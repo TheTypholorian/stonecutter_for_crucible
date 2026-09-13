@@ -8,6 +8,7 @@ import dev.kikugie.semver.data.Version
 import dev.kikugie.semver.data.VersionPredicate
 import dev.kikugie.semver.impl.VersionParsingException
 import dev.kikugie.stonecutter.AnyVersion
+import dev.kikugie.stonecutter.data.ParsedVersion
 import java.util.concurrent.ConcurrentHashMap
 
 /**Marker interface for extensions supporting version-based conditional evaluation.*/
@@ -84,7 +85,6 @@ public interface VersionOperations<T : Version> {
      */
     public fun tryEval(version: String, vararg predicates: String): Result<Boolean>
 
-
     /**
      * Parses each version as [T] and compares them
      * according to the [Comparable] specification.
@@ -100,6 +100,30 @@ public interface VersionOperations<T : Version> {
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
      */
     public fun tryCompare(version: String, other: String): Result<Int>
+
+    /**
+     * Checks if the [version] lies within this range, allowing version literals as the bounds:
+     * ```kotlin
+     * if (current.parsed in "1.20".."1.22") {
+     *     // ...
+     * }
+     * ```
+     * @throws IllegalArgumentException if either bound can't be read as a single version
+     */
+    public operator fun ClosedRange<String>.contains(version: ParsedVersion): Boolean =
+        version within this
+
+    /**
+     * Checks if the [version] lies within this range, allowing version literals as the bounds:
+     * ```kotlin
+     * if (current.parsed in "1.20"..<"1.22") {
+     *     // ...
+     * }
+     * ```
+     * @throws IllegalArgumentException if either bound can't be read as a single version
+     */
+    public operator fun OpenEndRange<String>.contains(version: ParsedVersion): Boolean =
+        version within this
 }
 
 internal open class BasicOperations<T : Version>(
@@ -160,7 +184,7 @@ internal inline fun VersionParsingException.asIllegalArg(
 private fun MutableMap<AnyVersion, Version>.getOrParse(version: AnyVersion, ops: Version.Operations): Result<Version> =
     kotlin.runCatching { computeIfAbsent(version, ops::parse) }
 
-private fun Array<out String>.unpack(ops: VersionPredicate.Operations): List<VersionPredicate> = buildList {
+internal fun Array<out String>.unpack(ops: VersionPredicate.Operations): List<VersionPredicate> = buildList {
     var length = 0
     for (str in this@unpack) {
         var cursor = 0

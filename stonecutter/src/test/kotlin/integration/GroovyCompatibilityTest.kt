@@ -29,7 +29,7 @@ val GroovyCompatibilityTest by testSuite {
         testSuite("build") {
             integrationTest("access parsed wrapper") { runGradle(it) }
             integrationTest("compare parsed wrapper") {
-                runGradle(it).output shouldContain "[1: 0 true true 1]"
+                runGradle(it).output shouldContain "[1: 0 true true true]"
             }
         }
     }
