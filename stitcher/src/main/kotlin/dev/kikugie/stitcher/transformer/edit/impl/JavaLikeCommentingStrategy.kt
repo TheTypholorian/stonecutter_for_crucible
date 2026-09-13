@@ -41,8 +41,19 @@ class JavaLikeCommentingStrategy(val flatten: Boolean) : CommentingStrategy {
     }
 }
 
+private const val MARKERS: String = "?$~"
+
 private fun Document.canUseLineComment(start: Int, end: Int): Boolean =
-    !spansMultipleLines(start, end) && !hasLineContentAfter(start, end)
+    !spansMultipleLines(start, end) && !hasLineContentAfter(start, end) && !containsNestedMarker(start, end)
+
+private fun Document.containsNestedMarker(start: Int, end: Int): Boolean {
+    for (index in start..end - 3) {
+        if (get(index) != '/') continue
+        if (get(index + 1) != '/' && get(index + 1) != '*') continue
+        if (get(index + 2) in MARKERS) return true
+    }
+    return false
+}
 
 private fun Document.spansMultipleLines(start: Int, end: Int): Boolean {
     val content: CharSequence = subSequence(start, end).trim()
@@ -50,7 +61,10 @@ private fun Document.spansMultipleLines(start: Int, end: Int): Boolean {
 }
 
 private fun Document.hasLineContentAfter(start: Int, end: Int): Boolean {
-    for (index in end until maxIndex()) when (get(index)) {
+    var last: Int = end - 1
+    while (last >= start && get(last).isWhitespace()) last--
+
+    for (index in last + 1 until maxIndex()) when (get(index)) {
         ' ', '\t' -> continue
         '\n' -> break
         else -> return true
