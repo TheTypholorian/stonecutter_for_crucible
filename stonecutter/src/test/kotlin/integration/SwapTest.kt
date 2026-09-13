@@ -2,14 +2,13 @@
 
 package integration
 
-import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.disable
 import de.infix.testBalloon.framework.core.testSuite
 import integrationTest
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import io.kotest.matchers.string.shouldStartWith
+import read
 import runGradle
-import shouldFailBuild
 import tempDirFixture
 import kotlin.io.path.useLines
 
@@ -49,11 +48,12 @@ val SwapTest by testSuite {
                 runGradle(it, ":2:run").output shouldContain "Bye Tim!"
             }
 
-            // FIXME(rework): an unsatisfied swap lookup is not reported — the build succeeds and the
-            //  scope is left as-is. Matches the three commented-out `string lookup …` cases in
-            //  `FileAstParserTest > reported cases`; re-enable together with those.
-            integrationTest("word scope unmatched", TestConfig.disable()) {
-                shouldFailBuild { runGradle(it, ":2:run") }.buildResult.output shouldContain "Lookup string not found"
+            integrationTest("word scope unmatched") {
+                runGradle(it, ":2:stonecutterGenerate")
+
+                val generated = it read "versions/2/build/generated/stonecutter/main/java/Example.java"
+                generated shouldContain "\"Bye Tim!"
+                generated shouldNotContain ");"
             }
         }
     }

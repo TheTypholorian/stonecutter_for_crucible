@@ -5,5 +5,6 @@ plugins {
 stonecutter active "1"
 
 stonecutter handlers {
-    inherit("py", "custom")
+    // `inherit` requires the source extension to be registered; this one never is.
+    inherit("not_a_registered_format", "custom")
 }

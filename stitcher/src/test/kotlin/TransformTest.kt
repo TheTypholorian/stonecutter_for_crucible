@@ -366,8 +366,7 @@ val TransformTest by testSuite {
             """.trimIndent()
         }
 
-        // FIXME(rework): RegexExecutor writes the target literally, so `$1` back-references are not expanded.
-        test("regex groups", testConfig = TestConfig.disable()) {
+        test("regex groups") {
             val content = """
                 EntityType.RABBIT
                 EntityType.RABBIT
@@ -623,8 +622,7 @@ val TransformTest by testSuite {
     }
 
     testSuite("deep nesting") {
-        // FIXME(rework): nested comments now use flat `/^ ^/` placeholders; the depth superscripts (`/^¹ ¹^/`) are gone.
-        test("superscript placeholders track depth", testConfig = TestConfig.disable()) {
+        test("nested placeholders stay flat", testConfig = TestConfig.disable()) {
             """
                 /*? if false {*/
                     ...
@@ -665,33 +663,33 @@ val TransformTest by testSuite {
                         /*...
                         /^? if false {^/
                             /^...
-                            /^¹? if false {¹^/
-                                /^¹...
-                                /^²? if false {²^/
-                                    /^²...
-                                    /^³? if false {³^/
-                                        /^³...
-                                        /^⁴? if false {⁴^/
-                                            /^⁴...
-                                            /^⁵? if false {⁵^/
-                                                /^⁵...
-                                                /^⁶? if false {⁶^/
-                                                    /^⁶...
-                                                    /^⁷? if false {⁷^/
-                                                        /^⁷...
-                                                        /^⁸? if false {⁸^/
-                                                            /^⁸...
-                                                            /^⁹? if false {⁹^/
-                                                                /^⁹...
-                                                            ⁹^//^⁹?}⁹^/
-                                                        ⁸^//^⁸?}⁸^/
-                                                    ⁷^//^⁷?}⁷^/
-                                                ⁶^//^⁶?}⁶^/
-                                            ⁵^//^⁵?}⁵^/
-                                        ⁴^//^⁴?}⁴^/
-                                    ³^//^³?}³^/
-                                ²^//^²?}²^/
-                            ¹^//^¹?}¹^/
+                            /^? if false {^/
+                                /^...
+                                /^? if false {^/
+                                    /^...
+                                    /^? if false {^/
+                                        /^...
+                                        /^? if false {^/
+                                            /^...
+                                            /^? if false {^/
+                                                /^...
+                                                /^? if false {^/
+                                                    /^...
+                                                    /^? if false {^/
+                                                        /^...
+                                                        /^? if false {^/
+                                                            /^...
+                                                            /^? if false {^/
+                                                                /^...
+                                                            ^//^?}^/
+                                                        ^//^?}^/
+                                                    ^//^?}^/
+                                                ^//^?}^/
+                                            ^//^?}^/
+                                        ^//^?}^/
+                                    ^//^?}^/
+                                ^//^?}^/
+                            ^//^?}^/
                         ^//^?}^/
                     *//*?}*/
                 """.trimIndent(),

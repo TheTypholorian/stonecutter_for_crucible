@@ -626,6 +626,23 @@ val FileAstAssemblerTest by testSuite {
             )
         }
 
+        // A matched capturing lookup ends the scope just after the match.
+        test("swap lookup ends at its match") {
+            "println(/*\$ sw >>+ '!'*/\n\t\"Hello Lace!\"\n);\nafter();".shouldAssembleTo(
+                params { swaps["sw"] = "SWAPPED" },
+                "println(/*\$ sw >>+ '!'*/\n\tSWAPPED\"\n);\nafter();"
+            )
+        }
+
+        // An unmatched lookup reports nothing and extends the scope to end of file, so the swap
+        // replaces every line after the marker. Documents the behaviour; it is not obviously wanted.
+        test("swap lookup without a match runs to end of file") {
+            "println(/*\$ sw >>+ '!'*/\n\tone();\n\ttwo();\n\tthree();".shouldAssembleTo(
+                params { swaps["sw"] = "SWAPPED" },
+                "println(/*\$ sw >>+ '!'*/\n\tSWAPPED"
+            )
+        }
+
         test("swap template expands placeholders") {
             val params = params { swaps["id"] = $$"$1 and $2" }
             "/*$ id 'X' 'Y' {*/old/*$}*/".shouldAssembleTo(params, "/*$ id 'X' 'Y' {*/X and Y/*$}*/")

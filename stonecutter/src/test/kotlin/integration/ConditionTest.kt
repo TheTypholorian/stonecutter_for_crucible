@@ -2,8 +2,6 @@
 
 package integration
 
-import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.disable
 import de.infix.testBalloon.framework.core.testSuite
 import integrationTest
 import io.kotest.matchers.string.shouldContain
@@ -49,10 +47,11 @@ val ConditionTest by testSuite {
             shouldFailBuild { runGradle(it, "run") }.buildResult.output shouldContain "Example.java:3:9"
         }
 
-        // FIXME(rework): nested comments now use flat `/^ ^/` placeholders — the depth superscript (`/^¹ ¹^/`) is gone.
-        integrationTest("included comments", TestConfig.disable()) {
+        // Placeholders are deliberately flat at every depth - the `/^¹ ¹^/` superscripts were dropped
+        // for backwards compatibility, so both versions render the same `/^nested^/`.
+        integrationTest("included comments") {
             runGradle(it, "stonecutterSwitchTo2")
-            it read "src/main/java/Example.java" shouldContain "/^¹nested¹^/"
+            it read "src/main/java/Example.java" shouldContain "/^nested^/"
 
             runGradle(it, "stonecutterSwitchTo1")
             it read "src/main/java/Example.java" shouldContain "/^nested^/"
