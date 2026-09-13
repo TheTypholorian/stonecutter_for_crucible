@@ -27,6 +27,7 @@ public class StructuredPropertiesHolder {
     private var parsedTags: Array<Array<String>> = emptyArray()
     internal var extraProperties: ExtraPropertiesExtension? = null
     private var exposeProperties: Boolean = false
+    private var warnOnDuplicate: Boolean = false
     private val exportedKeys: HashSet<String> = HashSet()
 
     public fun all(): SCMap = flattenedMap[""]?.takeAsOrNull<SCMap>()
@@ -139,8 +140,7 @@ public class StructuredPropertiesHolder {
         for (struct in loadedStructs) for ((key, value) in struct)
             value.accept(merger, key)
 
-        // TODO: The `warnOnDuplicate` option will be a configuration flag.
-        val flattener = StructuredPropertiesFlattener(LinkedHashMap(), false)
+        val flattener = StructuredPropertiesFlattener(LinkedHashMap(), warnOnDuplicate)
         build().accept(flattener, "")
 
         primitiveCache.clear()
@@ -154,6 +154,13 @@ public class StructuredPropertiesHolder {
         exposeProperties = enabled
         extraProperties = ext
         refreshExport()
+    }
+
+    internal fun configureWarnings(enabled: Boolean) {
+        if (enabled == warnOnDuplicate) return
+
+        warnOnDuplicate = enabled
+        reload()
     }
 
     private fun refreshExport() {

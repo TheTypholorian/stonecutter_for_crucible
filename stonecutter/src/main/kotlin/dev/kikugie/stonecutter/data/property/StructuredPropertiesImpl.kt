@@ -88,6 +88,9 @@ internal abstract class StructuredPropertiesImpl @Inject constructor(
     internal fun configureExport(enabled: Boolean, ext: ExtraPropertiesExtension): Unit =
         holder.configureExport(enabled, ext)
 
+    internal fun configureWarnings(enabled: Boolean): Unit =
+        holder.configureWarnings(enabled)
+
     internal fun loadDefaults(directory: Directory) {
         val file = DEFAULT_FILES
             .firstNotNullOfOrNull { name -> directory.file(name).takeIf { it.asFile.exists() } }

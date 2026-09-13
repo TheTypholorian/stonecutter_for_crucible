@@ -188,6 +188,17 @@ public data class StonecutterFlag<T : Any> private constructor(
             StonecutterFlag("hard_mode", false, FlagScope.SETTINGS)
 
         /**
+         * Reports a structured property key that is written more than once.
+         *
+         * The report is always made - this only raises it from `debug` to `warn`, since a
+         * duplicate is expected when tagged files deliberately override one another.
+         *
+         * **Default**: `false`
+         */
+        @JvmField
+        public val WARN_DUPLICATE_PROPERTIES: StonecutterFlag<Boolean> =
+            StonecutterFlag("warn_duplicate_properties", false, FlagScope.LOCAL)
+
         /**
          * Registers the `sc` alias alongside the `stonecutter` extension.
          *

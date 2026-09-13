@@ -54,6 +54,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
 
     init {
         properties.configureExport(flags[StonecutterFlag.EXPOSE_PROPERTIES], settings.extra)
+        properties.configureWarnings(flags[StonecutterFlag.WARN_DUPLICATE_PROPERTIES])
 
         LOGGER.lifecycle("Running Stonecutter ${StonecutterPlugin.VERSION}")
         if (buildFeatures.isolatedProjects.active.get()) LOGGER.reportIsolatedProjectsComplaint()
