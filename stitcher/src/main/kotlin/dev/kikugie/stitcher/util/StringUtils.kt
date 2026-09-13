@@ -95,7 +95,7 @@ internal fun CharSequence.commonIndent(ignoreFirstLine: Boolean): String {
 }
 
 internal fun String.findInsertionPlaces(): Sequence<InsertionPlace> =
-    SwapTemplateLexer(charStream()).toSequence().map(::InsertionPlace)
+    SwapTemplateLexer(charStream()).toSequence().map(::InsertionPlace).filter { it.number > 0 }
 
 @JvmInline
 internal value class InsertionPlace(val token: AntlrToken) {
@@ -103,5 +103,5 @@ internal value class InsertionPlace(val token: AntlrToken) {
     val end: Int inline get() = token.endIndex
 
     val number: Int
-        get() = token.text.trim('$', '{', '}').toInt()
+        get() = token.text.trim('$', '{', '}').toIntOrNull() ?: 0
 }

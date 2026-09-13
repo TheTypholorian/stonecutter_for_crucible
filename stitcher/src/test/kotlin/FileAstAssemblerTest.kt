@@ -627,8 +627,41 @@ val FileAstAssemblerTest by testSuite {
         }
 
         test("swap template expands placeholders") {
-            val params = params { swaps["id"] = "\$1 and \$2" }
-            "/*\$ id 'X' 'Y' {*/old/*\$}*/".shouldAssembleTo(params, "/*\$ id 'X' 'Y' {*/X and Y/*\$}*/")
+            val params = params { swaps["id"] = $$"$1 and $2" }
+            "/*$ id 'X' 'Y' {*/old/*$}*/".shouldAssembleTo(params, "/*$ id 'X' 'Y' {*/X and Y/*$}*/")
+        }
+
+        test("swap template expands the braced placeholder form") {
+            val params = params { swaps["id"] = $$"${1} and ${2}" }
+            "/*$ id 'X' 'Y' {*/old/*$}*/".shouldAssembleTo(params, "/*$ id 'X' 'Y' {*/X and Y/*$}*/")
+        }
+
+        test("swap template repeats a placeholder") {
+            val params = params { swaps["id"] = $$"$1 + $1" }
+            "/*$ id 'X' {*/old/*$}*/".shouldAssembleTo(params, "/*$ id 'X' {*/X + X/*$}*/")
+        }
+
+        test("swap template expands placeholders at both edges") {
+            val params = params { swaps["id"] = $$"$1$2" }
+            "/*$ id 'X' 'Y' {*/old/*$}*/".shouldAssembleTo(params, "/*$ id 'X' 'Y' {*/XY/*$}*/")
+        }
+
+        // Placements are located in the template, so a `$n` arriving from an argument is never rescanned.
+        test("swap argument containing a placeholder is not re-expanded") {
+            val params = params { swaps["id"] = $$"$1" }
+            "/*$ id '$2' {*/old/*$}*/".shouldAssembleTo(params, "/*$ id '$2' {*/$2/*$}*/")
+        }
+
+        // A template with no arguments keeps `$n` literal, so a template may hold a real dollar amount.
+        test("swap template keeps placeholders literal without arguments") {
+            val params = params { swaps["id"] = $$"cost = $1" }
+            "/*$ id {*/old/*$}*/".shouldAssembleTo(params, $$"/*$ id {*/cost = $1/*$}*/")
+        }
+
+        // `SwapTemplateLexer` accepts any digit count; one too large for an Int is text, not a reference.
+        test("swap template leaves an oversized placeholder number alone") {
+            val params = params { swaps["id"] = $$"$99999999999999 $1" }
+            "/*$ id 'X' {*/old/*$}*/".shouldAssembleTo(params, $$"/*$ id 'X' {*/$99999999999999 X/*$}*/")
         }
 
         test("local swap picks the branch matching its condition") {
