@@ -6,9 +6,10 @@ import dev.kikugie.stitcher.document.minIndex
 import dev.kikugie.stitcher.transformer.edit.SwappingStrategy
 import dev.kikugie.stitcher.util.LINE_BREAKS
 import dev.kikugie.stitcher.util.WORD_BREAKS
+import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 
 object StandardSwappingStrategy : SwappingStrategy {
-    override fun substitute(tracker: ModificationTracker, text: String): Unit = with(tracker) {
+    override fun substitute(config: ConfigurationRegistry, tracker: ModificationTracker, text: String): Unit = with(tracker) {
         val document = document
         val scope = document.subSequence(start, end).toString()
 

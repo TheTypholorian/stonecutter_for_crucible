@@ -11,11 +11,12 @@ import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stitcher.token.LeafToken
 import dev.kikugie.stitcher.token.type.BuiltinTokenType
 import dev.kikugie.stitcher.transformer.edit.UncommentingStrategy
+import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 import org.antlr.v4.runtime.CommonTokenStream
 import kotlin.io.path.absolutePathString
 
 object SlashStarUncommentingStrategy : UncommentingStrategy {
-    override fun uncomment(tracker: ModificationTracker, tokens: Sequence<LeafToken>) {
+    override fun uncomment(config: ConfigurationRegistry, tracker: ModificationTracker, tokens: Sequence<LeafToken>) {
         var isMultiLine = false
         for (leaf in tokens) when (leaf.type as? BuiltinTokenType ?: BuiltinTokenType.ROOT) {
             BuiltinTokenType.COMMENT_OPEN -> tracker.delete(leaf).also { isMultiLine = leaf.text.startsWith("/*") }

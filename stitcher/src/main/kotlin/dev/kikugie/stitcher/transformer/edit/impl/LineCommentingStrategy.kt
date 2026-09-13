@@ -8,9 +8,10 @@ import dev.kikugie.stitcher.transformer.edit.CommentingStrategy
 import dev.kikugie.stitcher.util.LINE_BREAKS
 import dev.kikugie.stitcher.util.commonIndent
 import dev.kikugie.stitcher.util.withoutTrailingBlankLine
+import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 
 class LineCommentingStrategy(val symbol: String) : CommentingStrategy {
-    override fun comment(tracker: ModificationTracker, tokens: Sequence<LeafToken>): Unit = with(tracker) {
+    override fun comment(config: ConfigurationRegistry, tracker: ModificationTracker, tokens: Sequence<LeafToken>): Unit = with(tracker) {
         // Checks if this scope is following a line comment, or block one
         val isFirstLineInline: Boolean = start > document.minIndex() && document[start - 1] !in LINE_BREAKS
         val contentSequence: CharSequence = charSequenceContent().withoutTrailingBlankLine()

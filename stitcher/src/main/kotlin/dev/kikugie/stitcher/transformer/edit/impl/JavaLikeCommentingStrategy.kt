@@ -6,9 +6,10 @@ import dev.kikugie.stitcher.document.maxIndex
 import dev.kikugie.stitcher.token.LeafToken
 import dev.kikugie.stitcher.token.type.BuiltinTokenType
 import dev.kikugie.stitcher.transformer.edit.CommentingStrategy
+import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 
 class JavaLikeCommentingStrategy(val flatten: Boolean) : CommentingStrategy {
-    override fun comment(tracker: ModificationTracker, tokens: Sequence<LeafToken>): Unit = with(tracker) {
+    override fun comment(config: ConfigurationRegistry, tracker: ModificationTracker, tokens: Sequence<LeafToken>): Unit = with(tracker) {
         val offset = start + document.countLeadingIndent(start, end)
         if (document.canUseLineComment(start, end))
             tracker.insert(offset, "//")
