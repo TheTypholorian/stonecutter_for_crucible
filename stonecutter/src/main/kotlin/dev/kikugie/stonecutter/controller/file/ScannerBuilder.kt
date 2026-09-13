@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.controller.file
 
+import dev.kikugie.stitcher.antlr.PlainTextScanner
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.Lexer
 import org.antlr.v4.tool.LexerGrammar
@@ -33,8 +34,16 @@ public abstract class ScannerBuilder @Inject constructor(objects: ObjectFactory)
     /**ANTLR token types representing comment closers.*/
     public abstract val closers: SetProperty<Int>
 
-    /**The comment lexer constructor.*/
+    /**
+     * The comment lexer constructor.
+     *
+     * Defaults to a lexer that finds no comments at all, which marks the format as having no comment syntax.
+     */
     public abstract val lexer: Property<LexerFactory>
+
+    init {
+        lexer.convention(PlainTextLexerFactory)
+    }
 
     /**Copies all configurations of the [other] builder.*/
     public fun copy(other: ScannerBuilder) {
@@ -84,6 +93,12 @@ public abstract class ScannerBuilder @Inject constructor(objects: ObjectFactory)
         /**Creates a new [Lexer] reading the [input] stream.*/
         public fun create(input: CharStream): Lexer
     }
+}
+
+/**Emits no comment tokens, so the whole document is resolved as a single content block.*/
+private object PlainTextLexerFactory : ScannerBuilder.LexerFactory {
+    private fun readResolve(): Any = PlainTextLexerFactory
+    override fun create(input: CharStream): Lexer = PlainTextScanner(input)
 }
 
 private class InterpretedLexerFactory(grammarString: String) : ScannerBuilder.LexerFactory {

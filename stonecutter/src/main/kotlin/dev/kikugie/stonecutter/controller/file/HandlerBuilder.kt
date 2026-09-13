@@ -34,6 +34,8 @@ public abstract class HandlerBuilder @Inject constructor(objects: ObjectFactory)
      *
      * The function receives a text block and should return a new string,
      * commented according to the associated file format.
+     *
+     * Defaults to a no-op, which is only correct for a format with no comment syntax.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#commenter">Commenter Documentation</a>
      */
     public abstract val commenter: Property<CommentingStrategy>
@@ -59,6 +61,7 @@ public abstract class HandlerBuilder @Inject constructor(objects: ObjectFactory)
     init {
         swapper.convention(StandardSwappingStrategy)
         uncommenter.convention(BASIC_UNCOMMENTER)
+        commenter.convention(NO_COMMENTER)
         scanner.value(objects.newInstance<ScannerBuilder>()).disallowChanges()
     }
 
@@ -84,9 +87,17 @@ public abstract class HandlerBuilder @Inject constructor(objects: ObjectFactory)
 
     private companion object {
         /**Default uncommenter for line-comment formats: strips the comment opener token.*/
-        val BASIC_UNCOMMENTER: UncommentingStrategy = UncommentingStrategy { tracker, tokens ->
+        val BASIC_UNCOMMENTER: UncommentingStrategy = UncommentingStrategy { _, tracker, tokens ->
             for (token in tokens) if (token.type == BuiltinTokenType.COMMENT_OPEN)
                 tracker.delete(token)
         }
+
+        /**
+         * Default commenter, paired with the default comment-less scanner.
+         *
+         * A format that has no comments can hold no conditions,
+         * so no scope is ever disabled, and this is never reached.
+         */
+        val NO_COMMENTER: CommentingStrategy = CommentingStrategy { _, _, _ -> }
     }
 }
