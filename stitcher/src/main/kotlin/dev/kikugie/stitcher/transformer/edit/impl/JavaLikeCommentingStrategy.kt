@@ -2,10 +2,12 @@ package dev.kikugie.stitcher.transformer.edit.impl
 
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.edit.ModificationTracker
-import dev.kikugie.stitcher.document.maxIndex
 import dev.kikugie.stitcher.token.LeafToken
 import dev.kikugie.stitcher.token.type.BuiltinTokenType
 import dev.kikugie.stitcher.transformer.edit.CommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.countLeadingIndent
+import dev.kikugie.stitcher.transformer.edit.hasLineContentAfter
+import dev.kikugie.stitcher.transformer.edit.spansMultipleLines
 import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 
 class JavaLikeCommentingStrategy(val flatten: Boolean) : CommentingStrategy {
@@ -53,29 +55,4 @@ private fun Document.containsNestedMarker(start: Int, end: Int): Boolean {
         if (get(index + 2) in MARKERS) return true
     }
     return false
-}
-
-private fun Document.spansMultipleLines(start: Int, end: Int): Boolean {
-    val content: CharSequence = subSequence(start, end).trim()
-    return '\n' in content
-}
-
-private fun Document.hasLineContentAfter(start: Int, end: Int): Boolean {
-    var last: Int = end - 1
-    while (last >= start && get(last).isWhitespace()) last--
-
-    for (index in last + 1 until maxIndex()) when (get(index)) {
-        ' ', '\t' -> continue
-        '\n' -> break
-        else -> return true
-    }
-    return false
-}
-
-private fun Document.countLeadingIndent(start: Int, end: Int): Int {
-    for (index in start until end) when (get(index)) {
-        ' ', '\t', '\n' -> continue
-        else -> return index - start
-    }
-    return end - start
 }

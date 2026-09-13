@@ -1,9 +1,9 @@
 package dev.kikugie.stitcher.transformer.edit.impl
 
-import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.edit.ModificationTracker
-import dev.kikugie.stitcher.document.minIndex
 import dev.kikugie.stitcher.transformer.edit.SwappingStrategy
+import dev.kikugie.stitcher.transformer.edit.hasLineContentBefore
+import dev.kikugie.stitcher.transformer.edit.lineIndent
 import dev.kikugie.stitcher.util.LINE_BREAKS
 import dev.kikugie.stitcher.util.WORD_BREAKS
 import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
@@ -51,36 +51,3 @@ private fun String.reindent(indent: String, dropFirstIndent: Boolean): String {
     return substring(0, newline) + '\n' + substring(newline + 1).replaceIndent(indent)
 }
 
-/** The character index of the start of the line containing [index], reading into context if needed. */
-private fun Document.lineStart(index: Int): Int {
-    val min = minIndex()
-    var start = index
-    while (start > min && charOrNewline(start - 1) != '\n') start--
-    return start
-}
-
-/** The leading whitespace (spaces and tabs) of the line containing [index]. */
-private fun Document.lineIndent(index: Int): String = buildString {
-    var cursor = lineStart(index)
-    while (true) {
-        val char = charOrNewline(cursor)
-        if (char == ' ' || char == '\t') append(char) else break
-        cursor++
-    }
-}
-
-/** Whether the line containing [index] has any non-whitespace content before [index]. */
-private fun Document.hasLineContentBefore(index: Int): Boolean {
-    var cursor = lineStart(index)
-    while (cursor < index) {
-        if (!charOrNewline(cursor).isWhitespace()) return true
-        cursor++
-    }
-    return false
-}
-
-private fun Document.charOrNewline(index: Int): Char = try {
-    this[index]
-} catch (_: IndexOutOfBoundsException) {
-    '\n'
-}
