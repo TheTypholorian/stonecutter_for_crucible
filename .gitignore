@@ -15,7 +15,7 @@ out
 
 # gradle
 build/
-!**/src/**build/
+!**/src/**/build/
 .gradle
 .kotlin
 
