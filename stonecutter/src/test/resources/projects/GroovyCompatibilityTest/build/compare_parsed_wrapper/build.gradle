@@ -1,0 +1,4 @@
+def target = "1"
+def parsed = stonecutter.current.parsed
+// `"$target"` is a GString rather than a String, so this only works if the operand is coerced.
+print("[${stonecutter.current.version}: ${parsed.compareTo("$target")} ${parsed.matches('>=1')} ${parsed.matches('>=1', '<3')} ${parsed.major}]")

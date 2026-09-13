@@ -125,5 +125,19 @@ val ReplacementTest by testSuite {
                 }
             """.trimIndent()
         }
+
+        integrationTest("apply replacements without comments") {
+            runGradle(it, "stonecutterSwitchTo2")
+            it read "src/main/resources/data.txt" shouldBe """
+                name = MODERN_NAME
+                note = //? if false is not a directive here
+            """.trimIndent() + "\n"
+
+            runGradle(it, "stonecutterSwitchTo1")
+            it read "src/main/resources/data.txt" shouldBe """
+                name = LEGACY_NAME
+                note = //? if false is not a directive here
+            """.trimIndent() + "\n"
+        }
     }
 }

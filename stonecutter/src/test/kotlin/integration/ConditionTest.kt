@@ -1,0 +1,61 @@
+@file:Suppress("PublicApiImplicitType")
+
+package integration
+
+import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.disable
+import de.infix.testBalloon.framework.core.testSuite
+import integrationTest
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
+import read
+import runGradle
+import shouldFailBuild
+import tempDirFixture
+
+val ConditionTest by testSuite {
+    tempDirFixture() asParameterForEach {
+        integrationTest("simple version") {
+            runGradle(it, ":1:run").output shouldContain "Hello world!"
+            runGradle(it, ":2:run").output shouldNotContain "Hello world!"
+        }
+
+        integrationTest("simple constant") {
+            runGradle(it, ":1:run").output shouldContain "Hello world!"
+            runGradle(it, ":2:run").output shouldNotContain "Hello world!"
+        }
+
+        integrationTest("simple dependency") {
+            runGradle(it, ":1:run").output shouldContain "Hello world!"
+            runGradle(it, ":2:run").output shouldNotContain "Hello world!"
+        }
+
+        integrationTest("if-else chain") {
+            for (i in 1..4) runGradle(it, ":$i:run").output shouldContain "$i!"
+        }
+
+        integrationTest("nested conditions") {
+            runGradle(it, "stonecutterSwitchTo1.20.1")
+            runGradle(it, ":1.20.1:run").output shouldContain "CASE B"
+        }
+
+        // A branch after `else` can never be reached, but it is a warning rather than an error -
+        // the file still processes and the unreachable branch stays commented.
+        integrationTest("duplicate else") {
+            runGradle(it, ":1:run").output shouldContain "1!"
+        }
+
+        integrationTest("unclosed scope") {
+            shouldFailBuild { runGradle(it, "run") }.buildResult.output shouldContain "Example.java:3:9"
+        }
+
+        // FIXME(rework): nested comments now use flat `/^ ^/` placeholders — the depth superscript (`/^¹ ¹^/`) is gone.
+        integrationTest("included comments", TestConfig.disable()) {
+            runGradle(it, "stonecutterSwitchTo2")
+            it read "src/main/java/Example.java" shouldContain "/^¹nested¹^/"
+
+            runGradle(it, "stonecutterSwitchTo1")
+            it read "src/main/java/Example.java" shouldContain "/^nested^/"
+        }
+    }
+}

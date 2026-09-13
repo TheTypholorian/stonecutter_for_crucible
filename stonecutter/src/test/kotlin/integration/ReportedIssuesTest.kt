@@ -49,13 +49,14 @@ val ReportedIssuesTest by testSuite {
         }
 
         // https://codeberg.org/stonecutter/stonecutter/issues/22
+        // The closer stays on the last content line: it sits inside the enclosing block comment,
+        // where the leading `//` opens nothing, so there is no `*/` for it to swallow.
         integrationTest("combine line scopes") {
             runGradle(it, "stonecutterSwitchTo1")
             it read "src/main/java/Example.java" shouldBe """
                 //? if >1
                 /*//? if >2
-                //public class Example { }
-                */
+                //public class Example { }*/
             """.trimIndent()
         }
 
