@@ -8,15 +8,9 @@ internal const val IDENTIFIER_PATTERN: String = "[_a-zA-Z][_\\-a-zA-Z0-9]*"
 private val IDENTIFIER_REGEX: Regex = Regex(IDENTIFIER_PATTERN)
 
 private val ASCII_ESCAPES: List<String> = buildList(128) {
-    for (i in 0x00..0x0f) {
-        add(i, "\\u000$i")
-    }
-    for (i in 0x10..0x1f) {
-        add(i, "\\u00$i")
-    }
-    for (i in 0x20..0x7f) {
-        add(i, i.toChar().toString())
-    }
+    // `toString(16)` is used over interpolation, which would render the index in base 10.
+    for (i in 0x00..0x1f) add("\\u" + i.toString(16).padStart(4, '0'))
+    for (i in 0x20..0x7f) add(i.toChar().toString())
     set('\b'.code, "\\b")
     set('\t'.code, "\\t")
     set('\n'.code, "\\n")
@@ -94,13 +88,22 @@ private fun StringBuilder.next(input: String, index: Int, it: Char): Int = when 
     'r' -> append('\r') then 2
     't' -> append('\t') then 2
     'f' -> append('\u000c') then 2
-    'u' -> if (index + 5 >= input.length) append("\\u") then 2
-    else append(input.substring(index + 2, index + 6).toInt(16).toChar()) then 6
-
-    'U' -> if (index + 9 >= input.length) append("\\U") then 2
-    else append(input.substring(index + 2, index + 10).toInt(16).toChar()) then 6
-
+    'u' -> unicode(input, index, digits = 4)
+    'U' -> unicode(input, index, digits = 8)
     else -> append("\\$it") then 2
+}
+
+/**
+ * Appends the code point of the `\u`/`\U` escape starting at [index] and spanning [digits] hex digits.
+ * Truncated, non-hexadecimal and out-of-range escapes are appended as-is.
+ * @return the number of consumed characters
+ */
+private fun StringBuilder.unicode(input: String, index: Int, digits: Int): Int {
+    val consumed = digits + 2
+    val end = index + consumed
+    val code = if (end > input.length) null else input.substring(index + 2, end).toIntOrNull(16)
+    return if (code == null || !Character.isValidCodePoint(code)) append(input, index, index + 2) then 2
+    else appendCodePoint(code) then consumed
 }
 
 internal fun stonecutterProperty(key: String): String =
