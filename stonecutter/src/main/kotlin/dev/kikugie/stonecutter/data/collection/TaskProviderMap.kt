@@ -1,4 +1,4 @@
-package dev.kikugie.stonecutter.data.whatever
+package dev.kikugie.stonecutter.data.collection
 
 import org.gradle.api.Project
 import org.gradle.api.Task

@@ -10,7 +10,7 @@ import dev.kikugie.stonecutter.controller.tree.toModel
 import dev.kikugie.stonecutter.data.tree.ProjectBranch
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
-import dev.kikugie.stonecutter.data.whatever.TaskProviderMap
+import dev.kikugie.stonecutter.data.collection.TaskProviderMap
 import dev.kikugie.stonecutter.util.SCJSON
 import dev.kikugie.stonecutter.util.set
 import org.gradle.api.DefaultTask

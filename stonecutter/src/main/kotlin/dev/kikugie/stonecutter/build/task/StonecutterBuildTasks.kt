@@ -1,7 +1,7 @@
 package dev.kikugie.stonecutter.build.task
 
 import dev.kikugie.stonecutter.StonecutterInternalAPI
-import dev.kikugie.stonecutter.data.whatever.TaskProviderMap
+import dev.kikugie.stonecutter.data.collection.TaskProviderMap
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSet

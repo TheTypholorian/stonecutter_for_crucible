@@ -5,7 +5,7 @@ import dev.kikugie.stonecutter.build.StonecutterBuildImpl
 import dev.kikugie.stonecutter.controller.task.StonecutterModelTask
 import dev.kikugie.stonecutter.controller.task.registerDefault
 import dev.kikugie.stonecutter.controller.tree.toModel
-import dev.kikugie.stonecutter.data.whatever.TaskProviderMap
+import dev.kikugie.stonecutter.data.collection.TaskProviderMap
 import dev.kikugie.stonecutter.util.SCJSON
 import dev.kikugie.stonecutter.util.allSources
 import dev.kikugie.stonecutter.util.set
