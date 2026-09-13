@@ -61,6 +61,7 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
 
     init {
         properties.configureExport(flags[StonecutterFlag.EXPOSE_PROPERTIES], root.extra)
+        properties.configureWarnings(flags[StonecutterFlag.WARN_DUPLICATE_PROPERTIES])
 
         root.afterEvaluate {
             if (!hasInitialized) {

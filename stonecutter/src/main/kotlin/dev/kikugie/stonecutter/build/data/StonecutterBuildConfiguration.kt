@@ -65,6 +65,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
 
     init {
         properties.configureExport(flags[StonecutterFlag.EXPOSE_PROPERTIES], project.extra)
+        properties.configureWarnings(flags[StonecutterFlag.WARN_DUPLICATE_PROPERTIES])
     }
 
     override val tasks: StonecutterBuildTasks
