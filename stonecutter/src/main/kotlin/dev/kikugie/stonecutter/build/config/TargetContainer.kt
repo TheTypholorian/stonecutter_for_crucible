@@ -17,7 +17,7 @@ import javax.inject.Inject
 @DslMarker @Retention(AnnotationRetention.BINARY)
 private annotation class TargetDsl
 
-/**[Stonecutter target](https://stonecutter.kikugie.dev/wiki/config/params#condition-dependencies) configuration extension.*/
+/**[Stonecutter target](https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#targets) configuration extension.*/
 @TargetDsl
 public abstract class TargetContainer @Inject constructor(private val delegate: MapProperty<Identifier, AnyVersion>) :
     ExtendedMapProperty<@TargetID Identifier, AnyVersion>, MapProperty<@TargetID Identifier, AnyVersion> by delegate {
@@ -28,7 +28,7 @@ public abstract class TargetContainer @Inject constructor(private val delegate: 
      * @param value Version string that can be parsed as either
      *        [SemanticVersion][dev.kikugie.semver.data.SemanticVersion] or
      *        [StringVersion][dev.kikugie.semver.data.StringVersion]
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#dependency-specification">Target Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#defining-targets">Target Documentation</a>
      */
     override fun put(key: @TargetID Identifier, value: AnyVersion): Unit =
         check(key, value) then delegate.put(key, value)
@@ -40,7 +40,7 @@ public abstract class TargetContainer @Inject constructor(private val delegate: 
      * @param providerOfValue Provider supplying a version that can be parsed as either
      *        [SemanticVersion][dev.kikugie.semver.data.SemanticVersion] or
      *        [StringVersion][dev.kikugie.semver.data.StringVersion]
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#dependency-specification">Target Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#defining-targets">Target Documentation</a>
      */
     override fun put(key: @TargetID Identifier, providerOfValue: Provider<out AnyVersion>): Unit =
         check(key) then delegate.put(key, providerOfValue.map { check(key, it); it })
@@ -52,7 +52,7 @@ public abstract class TargetContainer @Inject constructor(private val delegate: 
      *        and values that can be parsed as either
      *        [SemanticVersion][dev.kikugie.semver.data.SemanticVersion] or
      *        [StringVersion][dev.kikugie.semver.data.StringVersion]
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#dependency-specification">Target Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#defining-targets">Target Documentation</a>
      */
     override fun putAll(entries: Map<out @TargetID Identifier, AnyVersion>): Unit =
         entries.forEach(::check) then delegate.putAll(entries)
@@ -64,7 +64,7 @@ public abstract class TargetContainer @Inject constructor(private val delegate: 
      *        and values that can be parsed as either
      *        [SemanticVersion][dev.kikugie.semver.data.SemanticVersion] or
      *        [StringVersion][dev.kikugie.semver.data.StringVersion]
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/config/params#dependency-specification">Target Documentation</a>
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#defining-targets">Target Documentation</a>
      */
     override fun putAll(provider: Provider<out Map<out @TargetID Identifier, AnyVersion>>): Unit =
         delegate.putAll(provider.map { it.forEach(::check); it })
