@@ -2,8 +2,6 @@
 
 package integration
 
-import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.disable
 import de.infix.testBalloon.framework.core.testSuite
 import integrationTest
 import runGradle
@@ -23,8 +21,7 @@ val ExtPropsTest by testSuite {
         integrationTest("accept json files") { runGradle(it) }
         integrationTest("accept yaml files") { runGradle(it) }
         integrationTest("use typed properties") { runGradle(it) }
-        // For some reason this only fails in test env
-        integrationTest("parse property types", TestConfig.disable()) { runGradle(it) }
+        integrationTest("parse property types") { runGradle(it) }
         integrationTest("retain all tags") { runGradle(it) }
         integrationTest("expose to extra") { runGradle(it) }
         integrationTest("hide when disabled") { runGradle(it) }
