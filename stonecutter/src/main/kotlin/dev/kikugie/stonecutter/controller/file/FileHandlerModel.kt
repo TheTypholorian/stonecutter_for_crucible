@@ -1,11 +1,11 @@
 package dev.kikugie.stonecutter.controller.file
 
+import dev.kikugie.stitcher.antlr.charStream
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.parser.ScannerAdapter
 import dev.kikugie.stitcher.transformer.edit.CommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.SwappingStrategy
 import dev.kikugie.stitcher.transformer.edit.UncommentingStrategy
-import org.antlr.v4.runtime.CharStream
 import java.io.Serializable
 
 @JvmRecord
@@ -20,8 +20,8 @@ internal data class ScannerModel(
         builder.lexer.get()
     )
 
-    override fun create(input: CharStream, document: Document): ScannerAdapter =
-        ScannerAdapter(lexer.create(input), openers, closers, document)
+    override fun create(document: Document): ScannerAdapter =
+        ScannerAdapter(lexer.create(document.charStream()), openers, closers, document)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

@@ -11,7 +11,6 @@ import dev.kikugie.stitcher.document.issue.report
 import dev.kikugie.stitcher.document.reference
 import dev.kikugie.stitcher.token.type.BuiltinTokenType
 import dev.kikugie.stitcher.token.type.StitcherTokenType
-import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.CommonToken
 import org.antlr.v4.runtime.Lexer
 import org.antlr.v4.runtime.TokenSource
@@ -57,8 +56,8 @@ class ScannerAdapter(
      * a specific [Lexer], [openers][ScannerAdapter.openers] and [closers][ScannerAdapter.closers].
      */
     fun interface Factory : Serializable {
-        // TODO: Make it use the document source directly
-        fun create(input: CharStream, document: Document): ScannerAdapter
+        /**Creates an adapter reading the [document], which is also the scanner's input.*/
+        fun create(document: Document): ScannerAdapter
     }
 
     private val queue: FixedQueue<AntlrToken> = FixedQueue(4)

@@ -4,6 +4,7 @@ import de.infix.testBalloon.framework.core.Test
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stitcher.Stitcher
 import dev.kikugie.stitcher.StitcherParameters
+import dev.kikugie.stitcher.antlr.charStream
 import dev.kikugie.stitcher.antlr.HashStyleScanner
 import dev.kikugie.stitcher.antlr.HashStyleScanner.Tokens.HASH_COMMENT_END
 import dev.kikugie.stitcher.antlr.HashStyleScanner.Tokens.HASH_COMMENT_START
@@ -13,7 +14,6 @@ import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.SLASH_COMMENT_START
 import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.STAR_COMMENT_END
 import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.STAR_COMMENT_START
 import dev.kikugie.stitcher.antlr.StitcherErrorListener
-import dev.kikugie.stitcher.antlr.charStream
 import dev.kikugie.stitcher.antlr.errorListener
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.SourceDocument
@@ -48,7 +48,7 @@ fun immediateThrow(): ProblemReporter = DefaultProblemReporter({
 
 fun Test.ExecutionScope.parseSnippet(value: String, reporter: ProblemReporter = immediateThrow()): BlockToken.Root {
     val document = SourceDocument(Path("$testElementPath"), value, reporter)
-    val source = Scanner.Java.create(value.charStream(), document).apply {
+    val source = Scanner.Java.create(document).apply {
         scanner.errorListener = StitcherErrorListener(document)
     }
 
@@ -94,15 +94,15 @@ object Scanner {
         val closers: IntArray,
         val constructor: (CharStream) -> Lexer,
     ) : ScannerAdapter.Factory {
-        override fun create(input: CharStream, document: Document): ScannerAdapter =
-            ScannerAdapter(constructor(input), openers, closers, document)
+        override fun create(document: Document): ScannerAdapter =
+            ScannerAdapter(constructor(document.charStream()), openers, closers, document)
     }
 }
 
 object Uncommenter {
     val Java: UncommentingStrategy = SlashStarUncommentingStrategy
 
-    val Lines: UncommentingStrategy = UncommentingStrategy { tracker, tokens ->
+    val Lines: UncommentingStrategy = UncommentingStrategy { _, tracker, tokens ->
         for (it in tokens) if (it.type == BuiltinTokenType.COMMENT_OPEN)
             tracker.delete(it)
     }

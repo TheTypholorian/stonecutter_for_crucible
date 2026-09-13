@@ -6,6 +6,7 @@ import dev.kikugie.stitcher.token.LeafToken
 import dev.kikugie.stitcher.token.type.StitcherTokenType
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.misc.Pair
+import kotlin.io.path.absolutePathString
 
 typealias AntlrToken = Token
 
@@ -48,3 +49,6 @@ internal fun <T : AntlrToken> TokenFactory<T>.create(
 
 fun CharSequence.charStream(name: String = IntStream.UNKNOWN_SOURCE_NAME): CharSequenceCharStream =
     CharSequenceCharStream(this, name)
+
+fun Document.charStream(): CharSequenceCharStream =
+    charStream(file.absolutePathString())
