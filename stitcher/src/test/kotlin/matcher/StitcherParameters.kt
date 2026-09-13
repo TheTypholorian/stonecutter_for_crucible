@@ -14,6 +14,9 @@ import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.SLASH_COMMENT_START
 import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.STAR_COMMENT_END
 import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.STAR_COMMENT_START
 import dev.kikugie.stitcher.antlr.StitcherErrorListener
+import dev.kikugie.stitcher.antlr.XmlStyleScanner
+import dev.kikugie.stitcher.antlr.XmlStyleScanner.Tokens.XML_COMMENT_END
+import dev.kikugie.stitcher.antlr.XmlStyleScanner.Tokens.XML_COMMENT_START
 import dev.kikugie.stitcher.antlr.errorListener
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.SourceDocument
@@ -35,6 +38,8 @@ import dev.kikugie.stitcher.transformer.edit.UncommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.SlashStarUncommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.StandardSwappingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.JavaLikeCommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.impl.XmlCommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.impl.XmlUncommentingStrategy
 import dev.kikugie.stonecutter.model.Identifier
 import dev.kikugie.stonecutter.model.process.*
 import org.antlr.v4.runtime.*
@@ -89,6 +94,12 @@ object Scanner {
         ::HashStyleScanner
     )
 
+    val Xml: ScannerAdapter.Factory = Template(
+        intArrayOf(XML_COMMENT_START),
+        intArrayOf(XML_COMMENT_END),
+        ::XmlStyleScanner
+    )
+
     private class Template(
         val openers: IntArray,
         val closers: IntArray,
@@ -101,6 +112,7 @@ object Scanner {
 
 object Uncommenter {
     val Java: UncommentingStrategy = SlashStarUncommentingStrategy
+    val Xml: UncommentingStrategy = XmlUncommentingStrategy
 
     val Lines: UncommentingStrategy = UncommentingStrategy { _, tracker, tokens ->
         for (it in tokens) if (it.type == BuiltinTokenType.COMMENT_OPEN)
@@ -111,6 +123,7 @@ object Uncommenter {
 object Commenter {
     val Java: CommentingStrategy = JavaLikeCommentingStrategy.Java
     val Kotlin: CommentingStrategy = JavaLikeCommentingStrategy.Kotlin
+    val Xml: CommentingStrategy = XmlCommentingStrategy
 }
 
 object Swapper {
