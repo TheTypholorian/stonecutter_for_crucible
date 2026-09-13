@@ -34,7 +34,7 @@ import dev.kikugie.stitcher.transformer.edit.SwappingStrategy
 import dev.kikugie.stitcher.transformer.edit.UncommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.SlashStarUncommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.StandardSwappingStrategy
-import dev.kikugie.stitcher.transformer.edit.impl.StarCommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.impl.JavaLikeCommentingStrategy
 import dev.kikugie.stonecutter.model.Identifier
 import dev.kikugie.stonecutter.model.process.*
 import org.antlr.v4.runtime.*
@@ -109,8 +109,8 @@ object Uncommenter {
 }
 
 object Commenter {
-    val Java: CommentingStrategy = StarCommentingStrategy.Java
-    val Kotlin: CommentingStrategy = StarCommentingStrategy.Kotlin
+    val Java: CommentingStrategy = JavaLikeCommentingStrategy.Java
+    val Kotlin: CommentingStrategy = JavaLikeCommentingStrategy.Kotlin
 }
 
 object Swapper {

@@ -75,7 +75,7 @@ val FileAstAssemblerTest by testSuite {
             """.trimIndent()
         }
 
-        test("disable line with one multi-line comment") {
+        test("disable multi-line with one single-line comment") {
             """
                 //? if false
                 
@@ -84,9 +84,9 @@ val FileAstAssemblerTest by testSuite {
                 val two = 2
             """.trimIndent() shouldAssembleTo """
                 //? if false
-                /*
                 
-                val one = 1*/
+                
+                //val one = 1
                 val two = 2
             """.trimIndent()
         }
@@ -214,8 +214,7 @@ val FileAstAssemblerTest by testSuite {
             """.trimIndent() shouldAssembleTo """
                 //? if false
                     /*//? if false
-                        //val one = 1
-                */
+                        //val one = 1*/
             """.trimIndent()
         }
 

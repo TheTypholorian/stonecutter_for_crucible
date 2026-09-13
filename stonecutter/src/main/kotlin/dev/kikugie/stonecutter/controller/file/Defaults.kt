@@ -3,7 +3,7 @@ package dev.kikugie.stonecutter.controller.file
 import dev.kikugie.stitcher.antlr.HashStyleScanner
 import dev.kikugie.stitcher.antlr.SlashStyleScanner
 import dev.kikugie.stitcher.transformer.edit.impl.SlashStarUncommentingStrategy
-import dev.kikugie.stitcher.transformer.edit.impl.StarCommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.impl.JavaLikeCommentingStrategy
 
 internal fun FileHandlerContainer.configureDefaults() {
     configureJava()
@@ -15,14 +15,14 @@ internal fun FileHandlerContainer.configureDefaults() {
 private fun FileHandlerContainer.configureJava(): Unit = configure("java", "scala", "sc", "groovy", "gradle", "json5") {
     useSlashScanner(nested = false)
 
-    commenter.set(StarCommentingStrategy.Java)
+    commenter.set(JavaLikeCommentingStrategy.Java)
     uncommenter.set(SlashStarUncommentingStrategy)
 }
 
 private fun FileHandlerContainer.configureKotlin(): Unit = configure("kt", "kts") {
     useSlashScanner(nested = true)
 
-    commenter.set(StarCommentingStrategy.Kotlin)
+    commenter.set(JavaLikeCommentingStrategy.Kotlin)
     uncommenter.set(SlashStarUncommentingStrategy)
 }
 
