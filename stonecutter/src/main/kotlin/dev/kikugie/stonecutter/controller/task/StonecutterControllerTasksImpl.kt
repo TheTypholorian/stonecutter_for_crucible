@@ -97,8 +97,7 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
     }
 
     fun registerBranchModelTask(branch: ProjectBranch) = branch.project.registerDefault<StonecutterModelTask>("stonecutterSaveBranchModel") {
-        // TODO: this should use project's layout.buildDirectory in isolated-projects-compatible way
-        output.set(branch.location.resolve("build/stonecutter-cache/branch.json").toFile())
+        output.set(branch.project.layout.buildDirectory.file("stonecutter-cache/branch.json"))
         model.set(controller.root.providers) {
             branch.toModel().let(SCJSON::encodeToString)
         }
