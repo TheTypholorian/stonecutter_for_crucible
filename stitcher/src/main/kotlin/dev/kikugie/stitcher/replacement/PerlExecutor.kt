@@ -30,13 +30,13 @@ class PerlExecutor(replacements: List<Replacement>, override val identifiers: Se
 
     override fun collect(tracker: ModificationTracker, text: String, queue: EmitQueue) {
         if (replacements.isEmpty()) return
+        val cursor = Utf8Cursor(text)
         for ((pattern, repl) in replacements) if (repl.isActive)
-            process(tracker, pattern, repl.target, text, queue)
+            process(tracker, pattern, repl.target, text, queue, cursor)
     }
 
-    private fun process(tracker: ModificationTracker, pattern: Pcre2Code, target: String, text: String, queue: EmitQueue) {
+    private fun process(tracker: ModificationTracker, pattern: Pcre2Code, target: String, text: String, queue: EmitQueue, cursor: Utf8Cursor) {
         val data = Pcre2MatchData(pattern)
-        val cursor = Utf8Cursor(text)
         var start = 0
         while (start in text.indices) {
             // `substitute` reports no match by returning an empty result and leaving the previous match in the `ovector`,
@@ -65,22 +65,19 @@ class PerlExecutor(replacements: List<Replacement>, override val identifiers: Se
     }
 }
 
+/**
+ * Translates PCRE2's UTF-8 byte offsets back to character indices in [text].
+ */
 private class Utf8Cursor(private val text: String) {
+    private val ascii: Boolean = text.all { it.code <= 0x7F }
     private var offset: Int = 0
     private var index: Int = 0
 
     fun indexOf(bytes: Long): Int {
-        if (bytes < offset) reset()
-        while (offset < bytes && index < text.length) {
-            offset += text[index].utf8Length()
-            index++
-        }
+        if (ascii) return bytes.toInt()
+        while (offset > bytes && index > 0) offset -= text[--index].utf8Length()
+        while (offset < bytes && index < text.length) offset += text[index++].utf8Length()
         return index
-    }
-
-    private fun reset() {
-        offset = 0
-        index = 0
     }
 }
 
