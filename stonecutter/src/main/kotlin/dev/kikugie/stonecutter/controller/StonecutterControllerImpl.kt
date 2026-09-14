@@ -172,8 +172,8 @@ private fun ProjectTreeImpl.createSwitchTasks(root: Project, impls: StonecutterC
 
 private fun ProjectTreeImpl.createModelTasks(impls: StonecutterControllerTasksImpl) {
     impls.registerTreeModelTask()
-    for (branch in branches)
-        impls.registerBranchModelTask(branch)
+    impls.registerBranchModelTask()
+    impls.publishBranchModels()
     impls.registerModelGroupingTask()
 }
 

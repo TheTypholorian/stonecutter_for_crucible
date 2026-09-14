@@ -7,7 +7,8 @@ import dev.kikugie.stonecutter.controller.StonecutterControllerImpl
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
 import dev.kikugie.stonecutter.controller.tree.toModel
-import dev.kikugie.stonecutter.data.tree.ProjectBranch
+import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
+import dev.kikugie.stonecutter.data.container.ProjectBranchContainer
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.collection.TaskProviderMap
@@ -96,23 +97,23 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
         }
     }
 
-    fun registerBranchModelTask(branch: ProjectBranch) = branch.project.registerDefault<StonecutterModelTask>("stonecutterSaveBranchModel") {
-        // TODO: Consider removing this comment.
-        //       Just to keep track as I go.
-        // The main branch is registered on the controller's own root project,
-        // so its `layout.buildDirectory` is safe to use under isolated
-        // projects. Non-main branches are still registered cross-project via
-        // `branch.project`; making that isolated-projects-safe needs a
-        // per-branch "mini-controller" that registers this task from the branch
-        // project itself.
-        if (branch.id.isEmpty()) {
+    // The main branch is the controller's own project, so its task lives here.
+    // Non-main branches register their own tasks from the models published by
+    // publishBranchModels().
+    fun registerBranchModelTask() {
+        val main = controller.tree.branches.firstOrNull { it.id.isEmpty() } ?: return
+        controller.root.registerDefault<StonecutterModelTask>("stonecutterSaveBranchModel") {
             output.set(controller.root.layout.buildDirectory.file("stonecutter-cache/branch.json"))
-        } else {
-            output.set(branch.location.resolve("build/stonecutter-cache/branch.json").toFile())
+            model.set(controller.root.providers) {
+                main.toModel().let(SCJSON::encodeToString)
+            }
         }
-        model.set(controller.root.providers) {
-            branch.toModel().let(SCJSON::encodeToString)
-        }
+    }
+
+    fun publishBranchModels() {
+        val container = controller.root.gradle.getContainer<ProjectBranchContainer>()
+        for (branch in controller.tree.branches) if (branch.id.isNotEmpty())
+            container[branch.hierarchy.toString()] = branch.toModel().let(SCJSON::encodeToString)
     }
 
     private fun interface TaskSelector {

@@ -13,11 +13,8 @@ import tempDirFixture
 
 val ModelTaskTest by testSuite {
     tempDirFixture() asParameterForEach {
-        // With the default build directory, the branch model must land under
-        // `<project>/build/stonecutter-cache/branch.json`. This holds both
-        // before and after the isolated-projects fix (the paths coincide),
-        // guarding the de-facto public output contract against accidental
-        // relocation.
+        // Main branch, default build dir: the model lands under
+        // build/stonecutter-cache/branch.json.
         integrationTest("default build directory") {
             runGradle(it, "stonecutterSaveBranchModel")
 
@@ -25,16 +22,42 @@ val ModelTaskTest by testSuite {
             (it read "build/stonecutter-cache/branch.json") shouldContain "\"1\""
         }
 
-        // When the branch project relocates its buildDirectory, the model must
-        // follow it. This FAILS before the fix (the output path is hardcoded to
-        // `<projectDir>/build/...`) and PASSES after switching to
-        // `branch.project.layout.buildDirectory`.
+        // Main branch with a relocated build dir: the model follows it.
         integrationTest("custom build directory") {
             runGradle(it, "stonecutterSaveBranchModel")
 
             it.resolve("custom-build/stonecutter-cache/branch.json").shouldExist()
             it.resolve("build/stonecutter-cache/branch.json").shouldNotExist()
             (it read "custom-build/stonecutter-cache/branch.json") shouldContain "\"1\""
+        }
+
+        // A non-main branch is a separate project; its model is written under
+        // its own build dir by a task registered on the branch project, not the
+        // controller.
+        integrationTest("non main branch default directory") {
+            runGradle(it, "stonecutterSaveBranchModel")
+
+            it.resolve("build/stonecutter-cache/branch.json").shouldExist()
+            it.resolve("experimental/build/stonecutter-cache/branch.json").shouldExist()
+            (it read "experimental/build/stonecutter-cache/branch.json") shouldContain "experimental"
+        }
+
+        // Non-main branch with a relocated build dir: the model follows it.
+        integrationTest("non main branch custom directory") {
+            runGradle(it, "stonecutterSaveBranchModel")
+
+            it.resolve("experimental/custom-build/stonecutter-cache/branch.json").shouldExist()
+            it.resolve("experimental/build/stonecutter-cache/branch.json").shouldNotExist()
+            (it read "experimental/custom-build/stonecutter-cache/branch.json") shouldContain "experimental"
+        }
+
+        // Same non-main branch, isolated projects on: must still work with no
+        // cross-project access.
+        integrationTest("non main branch isolated") {
+            runGradle(it, "stonecutterSaveBranchModel")
+
+            it.resolve("experimental/build/stonecutter-cache/branch.json").shouldExist()
+            (it read "experimental/build/stonecutter-cache/branch.json") shouldContain "experimental"
         }
     }
 }

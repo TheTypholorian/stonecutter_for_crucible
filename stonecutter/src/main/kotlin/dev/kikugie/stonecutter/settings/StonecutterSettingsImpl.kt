@@ -10,9 +10,12 @@ import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.configureDefaults
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
+import dev.kikugie.stonecutter.controller.task.StonecutterModelTask
+import dev.kikugie.stonecutter.controller.task.registerDefault
 import dev.kikugie.stonecutter.data.container.FlagContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.createContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
+import dev.kikugie.stonecutter.data.container.ProjectBranchContainer
 import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesImpl
@@ -64,6 +67,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
             val handlers = createContainer<FileHandlerContainer>().get()
             handlers.configureDefaults()
             configureSyncTask()
+            configureBranchModels()
             configureServices(handlers, registry)
             settingsEvaluated {
                 if (usesGroovy && !flags[StonecutterFlag.HARD_MODE]) LOGGER.reportGroovyComplaint()
@@ -96,6 +100,27 @@ private fun Gradle.configureSyncTask() {
         }
         if (isIdeaSync)
             requestTasks(listOf(task.name), root.path, root.projectDir)
+    }
+}
+
+// Registers each non-main branch's model task on the branch project itself, so
+// we never reach into another project. Paths come from TreeBuilderImpl; the
+// models are published later by the controller.
+private fun Gradle.configureBranchModels() {
+    createContainer<ProjectBranchContainer>()
+    // Capture nothing external here, or Gradle can't isolate the
+    // callback - grab the service off the project's own `gradle` instead.
+    lifecycle.beforeProject {
+        val branches = gradle.createContainer<ProjectBranchContainer>()
+        val branchPath = path
+        if (branchPath !in branches.get()) return@beforeProject
+        registerDefault<StonecutterModelTask>("stonecutterSaveBranchModel") {
+            output.set(layout.buildDirectory.file("stonecutter-cache/branch.json"))
+            // Read eagerly so the value is captured for the configuration
+            // cache; a lazy service read would hit a fresh, empty service at
+            // execution time.
+            model.set(branches.get()[branchPath] ?: error("Branch model for '$branchPath' was not published"))
+        }
     }
 }
 
