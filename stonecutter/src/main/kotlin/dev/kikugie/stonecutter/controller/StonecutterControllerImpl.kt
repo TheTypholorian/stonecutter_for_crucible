@@ -9,12 +9,14 @@ import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
 import dev.kikugie.stonecutter.controller.task.StonecutterControllerTasksImpl
+import dev.kikugie.stonecutter.controller.tree.toModel
 import dev.kikugie.stonecutter.data.ParsedVersion
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.container.FlagContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
+import dev.kikugie.stonecutter.data.container.ProjectBranchContainer
 import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesImpl
@@ -26,6 +28,7 @@ import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.BranchBuilderImpl
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
+import dev.kikugie.stonecutter.util.SCJSON
 import dev.kikugie.stonecutter.util.isIdeaSync
 import dev.kikugie.stonecutter.util.newInstance
 import dev.kikugie.stonecutter.util.requestTasks
@@ -173,8 +176,14 @@ private fun ProjectTreeImpl.createSwitchTasks(root: Project, impls: StonecutterC
 private fun ProjectTreeImpl.createModelTasks(impls: StonecutterControllerTasksImpl) {
     impls.registerTreeModelTask()
     impls.registerBranchModelTask()
-    impls.publishBranchModels()
+    publishBranchModels()
     impls.registerModelGroupingTask()
+}
+
+private fun ProjectTreeImpl.publishBranchModels() {
+    val container = gradle.getContainer<ProjectBranchContainer>()
+    for (branch in branches) if (branch.id.isNotEmpty())
+        container[branch.hierarchy.toString()] = branch.toModel().let(SCJSON::encodeToString)
 }
 
 private fun ProjectTreeImpl.configureSyncTask(root: Project, flags: StonecutterFlags): Unit = root.afterEvaluate {

@@ -7,8 +7,6 @@ import dev.kikugie.stonecutter.controller.StonecutterControllerImpl
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
 import dev.kikugie.stonecutter.controller.tree.toModel
-import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
-import dev.kikugie.stonecutter.data.container.ProjectBranchContainer
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.collection.TaskProviderMap
@@ -98,8 +96,8 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
     }
 
     // The main branch is the controller's own project, so its task lives here.
-    // Non-main branches register their own tasks from the models published by
-    // publishBranchModels().
+    // Non-main branches register their own tasks from the models the controller
+    // publishes to the ProjectBranchContainer.
     fun registerBranchModelTask() {
         val main = controller.tree[""] ?: return
         controller.root.registerDefault<StonecutterModelTask>("stonecutterSaveBranchModel") {
@@ -108,12 +106,6 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
                 main.toModel().let(SCJSON::encodeToString)
             }
         }
-    }
-
-    fun publishBranchModels() {
-        val container = controller.root.gradle.getContainer<ProjectBranchContainer>()
-        for (branch in controller.tree.branches) if (branch.id.isNotEmpty())
-            container[branch.hierarchy.toString()] = branch.toModel().let(SCJSON::encodeToString)
     }
 
     private fun interface TaskSelector {
