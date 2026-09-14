@@ -101,7 +101,7 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
     // Non-main branches register their own tasks from the models published by
     // publishBranchModels().
     fun registerBranchModelTask() {
-        val main = controller.tree.branches.firstOrNull { it.id.isEmpty() } ?: return
+        val main = controller.tree[""] ?: return
         controller.root.registerDefault<StonecutterModelTask>("stonecutterSaveBranchModel") {
             output.set(controller.root.layout.buildDirectory.file("stonecutter-cache/branch.json"))
             model.set(controller.root.providers) {
