@@ -97,7 +97,19 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
     }
 
     fun registerBranchModelTask(branch: ProjectBranch) = branch.project.registerDefault<StonecutterModelTask>("stonecutterSaveBranchModel") {
-        output.set(branch.project.layout.buildDirectory.file("stonecutter-cache/branch.json"))
+        // TODO: Consider removing this comment.
+        //       Just to keep track as I go.
+        // The main branch is registered on the controller's own root project,
+        // so its `layout.buildDirectory` is safe to use under isolated
+        // projects. Non-main branches are still registered cross-project via
+        // `branch.project`; making that isolated-projects-safe needs a
+        // per-branch "mini-controller" that registers this task from the branch
+        // project itself.
+        if (branch.id.isEmpty()) {
+            output.set(controller.root.layout.buildDirectory.file("stonecutter-cache/branch.json"))
+        } else {
+            output.set(branch.location.resolve("build/stonecutter-cache/branch.json").toFile())
+        }
         model.set(controller.root.providers) {
             branch.toModel().let(SCJSON::encodeToString)
         }
