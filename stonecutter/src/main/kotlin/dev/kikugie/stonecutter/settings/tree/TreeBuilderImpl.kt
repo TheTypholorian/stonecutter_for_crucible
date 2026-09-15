@@ -6,6 +6,8 @@ import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
+import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
+import dev.kikugie.stonecutter.data.container.ProjectBranchContainer
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.settings.StonecutterSettingsImpl
@@ -79,6 +81,15 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
         prepare(ext, project)
         create(ext, project)
         ext.treeBuilderContainer += this
+        publishBranchPaths(ext, project)
+    }
+
+    // Records each non-main branch's path so the lifecycle callback knows which
+    // projects to configure.
+    private fun publishBranchPaths(ext: StonecutterSettingsImpl, project: ProjectDescriptor) {
+        val container = ext.settings.gradle.getContainer<ProjectBranchContainer>()
+        for (branch in branchBuilders.values) if (branch.name.isNotEmpty())
+            container.register(project.hierarchy.resolve(branch.name).toString())
     }
 
     internal fun prepare(ext: StonecutterSettingsImpl, project: ProjectDescriptor) {

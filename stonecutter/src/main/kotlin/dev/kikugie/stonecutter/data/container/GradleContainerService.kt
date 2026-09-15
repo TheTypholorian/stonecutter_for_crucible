@@ -23,6 +23,7 @@ import org.gradle.api.services.BuildService
 import org.gradle.api.services.BuildServiceParameters
 import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.registerIfAbsent
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 /**Represents a Gradle-level extension used for storing per-project data.*/
@@ -74,6 +75,44 @@ internal abstract class ProjectNodeContainer : GradleContainerService {
         val nodes = tree.nodes.map { "StonecutterBuildConfiguration@${it.hierarchy}" }.toSet()
         configs.named { it in nodes }.all(action)
     }
+}
+
+/**
+ * Carries non-main branch models to their branch projects without a
+ * cross-project reference.
+ *
+ * Branch roots are neither the controller nor nodes, so the controller can't
+ * register their model task directly. Each branch path is
+ * [registered][register] at settings time with an empty placeholder, the
+ * controller later [publishes][set] the real model, and the branch project
+ * reads it back to register its own task.
+ */
+internal abstract class ProjectBranchContainer : GradleContainerService {
+    // Branch project path -> serialized model, or "" while only the path is
+    // known.
+    private val models: MutableMap<String, String> = ConcurrentHashMap()
+
+    /**
+     * Records a branch project [path] at settings time, before its model
+     * exists.
+     */
+    fun register(path: String) {
+        models.putIfAbsent(path, "")
+    }
+
+    /** Whether [path] is a known non-main branch root. */
+    operator fun contains(path: String): Boolean = path in models
+
+    /** Publishes the serialized [model] for the branch project at [path]. */
+    operator fun set(path: String, model: String) {
+        models[path] = model
+    }
+
+    /**
+     * The serialized model for [path], or `null` if it hasn't been published
+     * yet.
+     */
+    operator fun get(path: String): String? = models[path]?.ifEmpty { null }
 }
 
 internal abstract class FlagContainer : GradleContainerService {

@@ -7,7 +7,6 @@ import dev.kikugie.stonecutter.controller.StonecutterControllerImpl
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
 import dev.kikugie.stonecutter.controller.tree.toModel
-import dev.kikugie.stonecutter.data.tree.ProjectBranch
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.collection.TaskProviderMap
@@ -96,11 +95,16 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
         }
     }
 
-    fun registerBranchModelTask(branch: ProjectBranch) = branch.project.registerDefault<StonecutterModelTask>("stonecutterSaveBranchModel") {
-        // TODO: this should use project's layout.buildDirectory in isolated-projects-compatible way
-        output.set(branch.location.resolve("build/stonecutter-cache/branch.json").toFile())
-        model.set(controller.root.providers) {
-            branch.toModel().let(SCJSON::encodeToString)
+    // The main branch is the controller's own project, so its task lives here.
+    // Non-main branches register their own tasks from the models the controller
+    // publishes to the ProjectBranchContainer.
+    fun registerBranchModelTask() {
+        val main = controller.tree[""] ?: return
+        controller.root.registerDefault<StonecutterModelTask>("stonecutterSaveBranchModel") {
+            output.set(controller.root.layout.buildDirectory.file("stonecutter-cache/branch.json"))
+            model.set(controller.root.providers) {
+                main.toModel().let(SCJSON::encodeToString)
+            }
         }
     }
 
