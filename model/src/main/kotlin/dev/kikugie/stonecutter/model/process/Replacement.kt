@@ -35,3 +35,9 @@ public data class PerlReplacement(
     @SerialName("default_enabled")
     override val defaultEnabled: Boolean = false,
 ) : Replacement, JavaSerializable
+
+@Serializable @JvmRecord
+public data class ReplacementFilter(
+    val includes: Set<String> = emptySet(),
+    val excludes: Set<String> = emptySet(),
+) : JavaSerializable

@@ -10,11 +10,13 @@ import dev.kikugie.stonecutter.build.config.ReplacementContainer.*
 import dev.kikugie.stonecutter.model.process.PerlReplacement
 import dev.kikugie.stonecutter.model.process.RegexReplacement
 import dev.kikugie.stonecutter.model.process.Replacement
+import dev.kikugie.stonecutter.model.process.ReplacementFilter
 import dev.kikugie.stonecutter.model.process.StringReplacement
 import dev.kikugie.stonecutter.util.isValidIdentifier
 import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.newInstance
@@ -172,10 +174,11 @@ public sealed interface ReplacementContainer {
      *
      * String replacements must have a defined [direction] and optionally an [id].
      * Replaced values are added with the [replace] function or [from] and [to] properties.
+     * Registered replacements only apply to the files matched by this spec's [PatternFilter].
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/replacements#string-replacements">String Replacement Documentation</a>
      */
     @ReplacementSpecDsl
-    public abstract class StringReplacementSpec {
+    public abstract class StringReplacementSpec : PatternFilter {
         /**
          * Ordering of the replaced values.
          *
@@ -225,10 +228,11 @@ public sealed interface ReplacementContainer {
      *
      * Regex replacements must have a defined [direction] and optionally an [id].
      * Replaced values are added with the [replace] function or corresponding properties.
+     * Registered replacements only apply to the files matched by this spec's [PatternFilter].
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/replacements#regex-replacements">Regex Replacement Documentation</a>
      */
     @ReplacementSpecDsl
-    public abstract class RegexReplacementSpec {
+    public abstract class RegexReplacementSpec : PatternFilter {
         /**
          * Selector for the replaced values.
          *
@@ -395,10 +399,11 @@ public sealed interface ReplacementContainer {
      *
      * PCRE replacements must have a defined [direction] and optionally an [id].
      * Replaced values are added with the [replace] function or corresponding properties.
+     * Registered replacements only apply to the files matched by this spec's [PatternFilter].
      * @see <a href="https://perldoc.perl.org/perlre">Perl Regular Expressions Documentation</a>
      */
     @ReplacementSpecDsl @StonecutterExperimentalAPI
-    public abstract class PerlReplacementSpec {
+    public abstract class PerlReplacementSpec : PatternFilter {
         /**
          * Selector for the replaced values.
          *
@@ -445,20 +450,30 @@ public sealed interface ReplacementContainer {
 
 internal abstract class ReplacementContainerImpl @Inject constructor(
     val replacements: ListProperty<Replacement>,
+    val filters: MapProperty<Int, ReplacementFilter>,
     val objects: ObjectFactory
 ) : ReplacementContainer {
+    private var count: Int = 0
+
     override fun string(action: Action<StringReplacementSpec>): Unit =
-        objects.newInstance<StringSpecImpl>(replacements).also(action::execute).finalise()
+        objects.newInstance<StringSpecImpl>(this).also(action::execute).finalise()
 
     override fun regex(action: Action<RegexReplacementSpec>): Unit =
-        objects.newInstance<RegexSpecImpl>(replacements).also(action::execute).finalise()
+        objects.newInstance<RegexSpecImpl>(this).also(action::execute).finalise()
 
     @OptIn(StonecutterExperimentalAPI::class)
     override fun perl(action: Action<PerlReplacementSpec>): Unit =
-        objects.newInstance<PerlSpecImpl>(replacements).also(action::execute).finalise()
+        objects.newInstance<PerlSpecImpl>(this).also(action::execute).finalise()
+
+    fun register(replacement: Replacement): Int {
+        replacements.add(replacement)
+        return count++
+    }
 }
 
-internal abstract class StringSpecImpl @Inject constructor(val replacements: ListProperty<Replacement>) : StringReplacementSpec() {
+internal abstract class StringSpecImpl @Inject constructor(val container: ReplacementContainerImpl) :
+    StringReplacementSpec(), PatternFilter by PatternSetFilter() {
+    private val indices: MutableList<Int> = mutableListOf()
     private var usedImmediateAnonymousAssignment: Boolean = false
 
     override fun replace(from: String, to: String) {
@@ -469,7 +484,7 @@ internal abstract class StringSpecImpl @Inject constructor(val replacements: Lis
         val it =
             if (direction.get()) StringReplacement(from, to, id, enabled)
             else StringReplacement(to, from, id, enabled)
-        replacements.add(it)
+        indices += container.register(it)
     }
 
     fun finalise() {
@@ -477,10 +492,13 @@ internal abstract class StringSpecImpl @Inject constructor(val replacements: Lis
             error("String replacement id '${id.get()}' was assigned after replacements were registered")
 
         if (from.isPresent || to.isPresent) replace(from.get(), to.get())
+        container.registerFilter(indices, this)
     }
 }
 
-internal abstract class RegexSpecImpl @Inject constructor(val replacements: ListProperty<Replacement>) : RegexReplacementSpec() {
+internal abstract class RegexSpecImpl @Inject constructor(val container: ReplacementContainerImpl) :
+    RegexReplacementSpec(), PatternFilter by PatternSetFilter() {
+    private val indices: MutableList<Int> = mutableListOf()
     private var usedImmediateAnonymousAssignment: Boolean = false
 
     override fun replace(directPattern: Pattern, directReplacement: String, reversePattern: Pattern, reverseReplacement: String) {
@@ -491,7 +509,7 @@ internal abstract class RegexSpecImpl @Inject constructor(val replacements: List
         val it =
             if (direction.get()) RegexReplacement(directPattern.pattern(), directReplacement, directPattern.flags(), id, enabled)
             else RegexReplacement(reversePattern.pattern(), reverseReplacement, reversePattern.flags(), id, enabled)
-        replacements.add(it)
+        indices += container.register(it)
     }
 
     fun finalise() {
@@ -500,11 +518,14 @@ internal abstract class RegexSpecImpl @Inject constructor(val replacements: List
 
         if (fromPattern.isPresent || toValue.isPresent || reversePattern.isPresent || reverseValue.isPresent)
             replace(fromPattern.get(), toValue.get(), reversePattern.get(), reverseValue.get())
+        container.registerFilter(indices, this)
     }
 }
 
 @OptIn(StonecutterExperimentalAPI::class)
-internal abstract class PerlSpecImpl @Inject constructor(val replacements: ListProperty<Replacement>) : PerlReplacementSpec() {
+internal abstract class PerlSpecImpl @Inject constructor(val container: ReplacementContainerImpl) :
+    PerlReplacementSpec(), PatternFilter by PatternSetFilter() {
+    private val indices: MutableList<Int> = mutableListOf()
     private var usedImmediateAnonymousAssignment: Boolean = false
 
     override fun replace(
@@ -525,13 +546,20 @@ internal abstract class PerlSpecImpl @Inject constructor(val replacements: ListP
         val it =
             if (direction.get()) PerlReplacement(directPattern, directReplacement, set, id, enabled)
             else PerlReplacement(reversePattern, reverseReplacement, set, id, enabled)
-        replacements.add(it)
+        indices += container.register(it)
     }
 
     fun finalise() {
         if (usedImmediateAnonymousAssignment && id.isPresent)
             error("Regex replacement id '${id.get()}' was assigned after replacements were registered")
+        container.registerFilter(indices, this)
     }
+}
+
+private fun ReplacementContainerImpl.registerFilter(indices: List<Int>, spec: PatternFilter) {
+    if (indices.isEmpty() || (spec.includes.isEmpty() && spec.excludes.isEmpty())) return
+    val filter = ReplacementFilter(spec.includes.toSet(), spec.excludes.toSet())
+    for (index in indices) filters.put(index, filter)
 }
 
 private fun Provider<Identifier>.unwrap(): Pair<String?, Boolean> {

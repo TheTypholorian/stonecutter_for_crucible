@@ -20,6 +20,8 @@ import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
 import dev.kikugie.stonecutter.controller.tree.forFile
+import dev.kikugie.stonecutter.controller.tree.resolveFiles
+import dev.kikugie.stonecutter.controller.tree.restrictedTo
 import dev.kikugie.stonecutter.controller.tree.toParameters
 import dev.kikugie.stonecutter.data.container.FlagContainer
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
@@ -60,7 +62,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     @Suppress("DEPRECATION")
     @Deprecated("Stonecutter dependencies were renamed to targets", ReplaceWith("targets"))
     override val dependencies: DependencyContainer = objects.newInstance(targets)
-    override val replacements: ReplacementContainerImpl = objects.newInstance(data.replacements)
+    override val replacements: ReplacementContainerImpl = objects.newInstance(data.replacements, data.replacementFilters)
     override val filters: PatternFilterable = PatternSet()
 
     init {
@@ -72,7 +74,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
         get() = throw UnsupportedOperationException("Build tasks are not available in the controller")
 
     override fun process(file: File, destination: String): File {
-        val parameters: StitcherParameters = project.collectTransformParams(file, data)
+        val parameters: StitcherParameters = project.collectTransformParams(file, node, data)
         val problems: MutableCollection<ProblemReport> = mutableListOf()
         val reporter = DefaultProblemReporter({
             if (it.severity == ProblemReport.Severity.ERROR) problems += it
@@ -109,8 +111,23 @@ private fun Project.setupDefaultProperties(node: ProjectNode, objects: ObjectFac
     holder.reload()
 }
 
-private fun Project.collectTransformParams(file: File, data: StonecutterBuildData): StitcherParameters {
+private fun Project.collectTransformParams(file: File, node: ProjectNode, data: StonecutterBuildData): StitcherParameters {
     val handlers = gradle.getContainer<FileHandlerContainer>()
         .handlers[file.extension.lowercase()].let { mapOf(it.name to HandlerModel(it)) }
-    return data.toParameters().forFile(file.toPath(), handlers)!!
+    val resolved: File = file(file)
+    val scopes = node.sourceRoot(resolved)
+        ?.let { data.replacementFilters.get().resolveFiles(fileTree(it)) }
+        .orEmpty()
+    return data.toParameters().restrictedTo(resolved, scopes).forFile(resolved.toPath(), handlers)!!
+}
+
+private fun ProjectNode.sourceRoot(file: File): File? {
+    val target = file.toPath().normalize()
+    for (root in sequenceOf(branch.location, location)) {
+        val src = root.resolve("src").normalize()
+        if (!target.startsWith(src)) continue
+        val name = target.relativeTo(src).firstOrNull() ?: continue
+        return src.resolve(name).toFile()
+    }
+    return null
 }

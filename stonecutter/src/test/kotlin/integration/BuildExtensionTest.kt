@@ -42,6 +42,16 @@ val BuildExtensionTest by testSuite {
             }
         }
 
+        // `process()` is called on a file outside the generated sources, so it has to resolve
+        // the source set itself: the replacement scoped to `java/**` must not touch a resource.
+        integrationTest("filter processed file replacements") {
+            runGradle(it)
+            it read "versions/1/build/processed.txt" shouldBe """
+                scoped = LEGACY_SCOPED
+                shared = MODERN_SHARED
+            """.trimIndent() + "\n"
+        }
+
         integrationTest("create extension alias") { runGradle(it) }
         integrationTest("fail with disabled alias") { shouldFailBuild { runGradle(it) } }
     }

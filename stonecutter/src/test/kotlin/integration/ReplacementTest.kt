@@ -5,6 +5,7 @@ package integration
 import de.infix.testBalloon.framework.core.testSuite
 import integrationTest
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import read
 import runGradle
 import tempDirFixture
@@ -124,6 +125,36 @@ val ReplacementTest by testSuite {
                     String d = OLD_BETA;
                 }
             """.trimIndent()
+        }
+
+        integrationTest("filter replacement files") {
+            runGradle(it, "stonecutterSwitchTo2")
+            it read "src/main/java/Scoped.java" shouldBe """
+                public class Scoped {
+                    String a = MODERN_SCOPED;
+                    String b = LEGACY_OTHER;
+                    String c = MODERN_SHARED;
+                }
+            """.trimIndent() + "\n"
+
+            it read "src/main/java/Other.java" shouldBe """
+                public class Other {
+                    String a = LEGACY_SCOPED;
+                    String b = MODERN_OTHER;
+                    String c = MODERN_SHARED;
+                }
+            """.trimIndent() + "\n"
+        }
+
+        integrationTest("serialize replacement filters") {
+            runGradle(it, "stonecutterSaveNodeModel")
+
+            with(it read "versions/1/build/stonecutter-cache/node.json") {
+                shouldContain("\"replacement_filters\"")
+                shouldContain("\"1\"")
+                shouldContain("**/Scoped.java")
+                shouldContain("**/Other.java")
+            }
         }
 
         integrationTest("apply replacements without comments") {

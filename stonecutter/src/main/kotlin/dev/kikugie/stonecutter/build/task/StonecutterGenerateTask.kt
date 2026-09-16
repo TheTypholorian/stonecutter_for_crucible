@@ -14,6 +14,8 @@ import dev.kikugie.stonecutter.build.data.StonecutterBuildData
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.controller.tree.forFile
+import dev.kikugie.stonecutter.controller.tree.resolveFiles
+import dev.kikugie.stonecutter.controller.tree.restrictedTo
 import dev.kikugie.stonecutter.controller.tree.toParameters
 import dev.kikugie.stonecutter.model.process.ProcessParameters
 import dev.kikugie.stonecutter.util.clearIfNotIncremental
@@ -101,13 +103,15 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
     @TaskAction
     internal fun run(inputs: InputChanges) {
         inputs.clearIfNotIncremental(destination.asFile.get())
-        val model = params.get().toParameters()
+        val data = params.get()
+        val model = data.toParameters()
+        val scopes: Map<Int, Set<File>> = data.replacementFilters.get().resolveFiles(source.asFileTree)
         val processable: Set<File> = processable.files
 
         with(executor.noIsolation()) {
             for (change in inputs.getFileChanges(source))
                 if (change.fileType != FileType.DIRECTORY)
-                    processFile(change, model, change.file in processable)
+                    processFile(change, model.restrictedTo(change.file, scopes), change.file in processable)
             await()
         }
         errors.get().complete(path)

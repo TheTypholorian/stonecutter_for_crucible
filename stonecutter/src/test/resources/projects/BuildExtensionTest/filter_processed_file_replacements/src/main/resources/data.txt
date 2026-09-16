@@ -1,0 +1,2 @@
+scoped = LEGACY_SCOPED
+shared = LEGACY_SHARED

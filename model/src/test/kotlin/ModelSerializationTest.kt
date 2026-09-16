@@ -78,6 +78,13 @@ val ModelSerializationTest by testSuite {
             JSON.decodeFromString<NodeModel>(JSON.encodeToString(value)) shouldBe value
         }
 
+        test("node model keeps replacement filters") {
+            val filters: Map<Int, ReplacementFilter> = mapOf(1 to ReplacementFilter(includes = setOf("java/**"), excludes = setOf("**/Ignored.java")))
+            val value = NodeModel("1.21.4", "1.21.4", true, branch, Path("."), parameters(), replacementFilters = filters)
+
+            JSON.decodeFromString<NodeModel>(JSON.encodeToString(value)) shouldBe value
+        }
+
         test("branch model survives json") {
             val value = BranchModel("fabric", Path("fabric"), listOf(node))
             JSON.decodeFromString<BranchModel>(JSON.encodeToString(value)) shouldBe value

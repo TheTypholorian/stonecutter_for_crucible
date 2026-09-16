@@ -6,7 +6,9 @@ import dev.kikugie.stonecutter.model.AnyVersion
 import dev.kikugie.stonecutter.model.Identifier
 import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 import dev.kikugie.stonecutter.model.process.ProcessParameters
+import dev.kikugie.stonecutter.model.process.ReplacementFilter
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -41,6 +43,8 @@ public data class NodeModel(
     val root: Path,
     val parameters: ProcessParameters,
     val flags: ConfigurationRegistry = ConfigurationRegistry(),
+    @SerialName("replacement_filters")
+    val replacementFilters: Map<Int, ReplacementFilter> = emptyMap(),
 )
 
 @Serializable @JvmRecord
