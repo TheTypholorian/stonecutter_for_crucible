@@ -933,15 +933,6 @@ public abstract class dev/kikugie/stonecutter/data/property/StructuredProperties
 	public final fun tags ([Ljava/lang/String;)V
 }
 
-public final class dev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy : java/lang/Enum {
-	public static final field KEEP Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy;
-	public static final field MERGE Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy;
-	public static final field WRITE Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public static fun valueOf (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy;
-	public static fun values ()[Ldev/kikugie/stonecutter/data/property/StructuredPropertiesHolder$OverwritePolicy;
-}
-
 public abstract interface class dev/kikugie/stonecutter/data/property/StructuredPropertiesProvider {
 	public abstract fun getProperties ()Ldev/kikugie/stonecutter/data/property/StructuredPropertiesExtension;
 	public fun properties (Ljava/io/File;)V

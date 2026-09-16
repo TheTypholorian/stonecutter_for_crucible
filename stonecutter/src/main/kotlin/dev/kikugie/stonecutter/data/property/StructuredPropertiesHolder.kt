@@ -12,9 +12,7 @@ import java.io.File
 private val LOGGER: Logger = LoggerFactory.getLogger("StonecutterProperties")
 
 // If you can, don't look here
-/** @suppress */
-@StonecutterInternalAPI
-public class StructuredPropertiesHolder {
+internal class StructuredPropertiesHolder {
     private val appliedTags: HashSet<String> = HashSet()
     private val loadedFiles: HashSet<File> = HashSet()
     private val loadedStructs: ArrayList<SCMap> = ArrayList()
