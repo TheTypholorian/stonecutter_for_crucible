@@ -2,16 +2,22 @@
 
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.testSuite
+import dev.kikugie.semver.data.SemanticVersion
+import dev.kikugie.semver.data.VersionOperator
 import dev.kikugie.stitcher.document.issue.DefaultProblemReporter
 import dev.kikugie.stitcher.document.issue.LAYOUT_GROUP
 import dev.kikugie.stitcher.document.issue.ProblemReport
+import dev.kikugie.stitcher.token.DefinitionToken
 import dev.kikugie.stitcher.token.DefinitionToken.*
+import dev.kikugie.stitcher.token.ExpressionToken
+import dev.kikugie.stitcher.token.PredicateToken
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldBeBlank
 import io.kotest.matchers.string.shouldEndWith
+import io.kotest.matchers.types.shouldBeInstanceOf
 import matcher.RootMatcher
 import matcher.ast
 import matcher.parseSnippet
@@ -402,6 +408,69 @@ val FileAstParserTest by testSuite {
                     }
                 }
                 code<ConditionCloser>()
+            }
+        }
+    }
+
+    testSuite("version predicates") {
+        test("pre-release wildcard target") {
+            """
+                //? if >=1.21-*
+                println("OK!")
+            """.trimIndent() shouldBeParsedAs ast {
+                code<ConditionOpener> {
+                    check {
+                        val predicate: PredicateToken = definition.singlePredicate()
+                        predicate.operator shouldBe VersionOperator.GREATER_EQUAL
+                        predicate.version shouldBe SemanticVersion(listOf(1, 21), SemanticVersion.PRE_RELEASE_WILDCARD)
+                    }
+
+                    content()
+                }
+            }
+        }
+
+        test("an ordinary pre-release is unaffected") {
+            """
+                //? if >=1.21-alpha.1+build.7
+                println("OK!")
+            """.trimIndent() shouldBeParsedAs ast {
+                code<ConditionOpener> {
+                    check {
+                        definition.singlePredicate().version shouldBe SemanticVersion(listOf(1, 21), "alpha.1", "build.7")
+                    }
+
+                    content()
+                }
+            }
+        }
+
+        test("build metadata without a pre-release is unaffected") {
+            """
+                //? if >=1.21+build.7
+                println("OK!")
+            """.trimIndent() shouldBeParsedAs ast {
+                code<ConditionOpener> {
+                    check {
+                        definition.singlePredicate().version shouldBe SemanticVersion(listOf(1, 21), "", "build.7")
+                    }
+
+                    content()
+                }
+            }
+        }
+
+        // The wildcard stands for the whole pre-release, so it can't be one identifier among several.
+        test("wildcard mixed into a pre-release is rejected") {
+            "//? if >=1.21-alpha.*".shouldHaveProblems {
+                shouldNotBeEmpty()
+            }
+        }
+
+        // Build metadata carries no precedence, so it says nothing about where a wildcard bound sits.
+        test("wildcard followed by build metadata is rejected") {
+            "//? if >1.21-*+build.7".shouldHaveProblems {
+                shouldNotBeEmpty()
             }
         }
     }
@@ -951,3 +1020,7 @@ private inline infix fun @receiver:Language("kotlin") String.shouldHaveProblems(
     kotlin.runCatching { scope.parseSnippet(this, reporter) }
     action(problems)
 }
+
+private fun DefinitionToken.singlePredicate(): PredicateToken = shouldBeInstanceOf<Condition>().expression
+    .shouldBeInstanceOf<ExpressionToken.Assignment>()
+    .predicates.single()

@@ -21,11 +21,27 @@ public interface VersionOperations<T : Version> {
     public fun parse(version: AnyVersion): T
 
     /**
+     * Parses the provided [version] string as the [T] version.
+     * Allows for the `-*` suffix for [SemanticVersion]s.
+     * @throws IllegalArgumentException if parsing fails, with [VersionParsingException] as its cause
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
+     */
+    public fun parseAsPredicate(version: AnyVersion): T
+
+    /**
      * Tries to parse the provided [version] string as the [T] version.
      * @return [Result] with [VersionParsingException] if parsing fails.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
      */
     public fun tryParse(version: AnyVersion): Result<T>
+
+    /**
+     * Tries to parse the provided [version] string as the [T] version.
+     * Allows for the `-*` suffix for [SemanticVersion]s.
+     * @return [Result] with [VersionParsingException] if parsing fails.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
+     */
+    public fun tryParseAsPredicate(version: AnyVersion): Result<T>
 
     /**
      * Checks if the provided [version] satisfies the [predicates].
@@ -126,18 +142,29 @@ public interface VersionOperations<T : Version> {
         version within this
 }
 
-internal open class BasicOperations<T : Version>(
-    val vops: Version.Operations,
-    val pops: VersionPredicate.Operations, // NOT "father"
-) : VersionOperations<T> {
+@Suppress("UNCHECKED_CAST")
+internal abstract class BasicOperations<T : Version> : VersionOperations<T> {
     protected val cache: MutableMap<String, Version> = ConcurrentHashMap()
+
+    // Kept apart from [cache] because the two disagree on `-*`: sharing one map would let whichever
+    // call came first decide whether the other accepts the wildcard.
+    protected val predicateCache: MutableMap<String, Version> = ConcurrentHashMap()
+
     override fun parse(version: AnyVersion): T = tryParse(version).getOrElse {
-        it as VersionParsingException
-        throw it.asIllegalArg(version)
+        throw it.takeAs<VersionParsingException>().asIllegalArg(version)
     }
 
-    override fun tryParse(version: AnyVersion): Result<T> =
-        cache.getOrParse(version, vops).takeAs()
+    override fun tryParse(version: AnyVersion): Result<T> = cache.runCatching {
+        computeIfAbsent(version) { tryParseVersion(it, false) } as T
+    }
+
+    override fun parseAsPredicate(version: AnyVersion): T = tryParseAsPredicate(version).getOrElse {
+        throw it.takeAs<VersionParsingException>().asIllegalArg(version)
+    }
+
+    override fun tryParseAsPredicate(version: AnyVersion): Result<T> = predicateCache.runCatching {
+        computeIfAbsent(version) { tryParseVersion(it, true) } as T
+    }
 
     override fun eval(version: Version, vararg predicates: String): Boolean = tryEval(version, *predicates).getOrElse {
         it as VersionParsingException
@@ -150,7 +177,7 @@ internal open class BasicOperations<T : Version>(
     }
 
     override fun tryEval(version: Version, vararg predicates: String): Result<Boolean> =
-        kotlin.runCatching { predicates.unpack(pops).all { it(version) } }
+        kotlin.runCatching { unpackPredicates(*predicates).all { it(version) } }
 
     override fun eval(version: String, vararg predicates: String): Boolean =
         eval(parse(version), *predicates)
@@ -159,16 +186,31 @@ internal open class BasicOperations<T : Version>(
         tryParse(version).mapResult { tryEval(it as Version, *predicates) }
 
     override fun compare(version: String, other: String): Int =
-        parse(version) compareTo parse(other)
+        parseAsPredicate(version) compareTo parseAsPredicate(other)
 
     override fun tryCompare(version: String, other: String): Result<Int> =
         // Is this what functional programming shills dream of?
-        tryParse(version).mapResult { a -> tryParse(other).map { b -> a compareTo b } }
+        tryParseAsPredicate(version).mapResult { a -> tryParseAsPredicate(other).map { b -> a compareTo b } }
+
+    protected abstract fun tryParseVersion(str: AnyVersion, predicate: Boolean): Version
+    protected abstract fun unpackPredicates(vararg str: String): List<VersionPredicate>
 }
 
-internal object LenientOperations : BasicOperations<Version>(Version, VersionPredicate)
+internal object LenientOperations : BasicOperations<Version>() {
+    override fun tryParseVersion(str: AnyVersion, predicate: Boolean): Version =
+        if (predicate) Version.parseAsPredicate(str) else Version.parse(str)
 
-internal object SemanticOperations : BasicOperations<SemanticVersion>(SemanticVersion, VersionPredicate.Semantic)
+    override fun unpackPredicates(vararg str: String): List<VersionPredicate> =
+        str.unpack(VersionPredicate.Companion)
+}
+
+internal object SemanticOperations : BasicOperations<SemanticVersion>() {
+    override fun tryParseVersion(str: AnyVersion, predicate: Boolean): Version =
+        if (predicate) SemanticVersion.parseAsPredicate(str) else SemanticVersion.parse(str)
+
+    override fun unpackPredicates(vararg str: String): List<VersionPredicate> =
+        str.unpack(VersionPredicate.Semantic)
+}
 
 @Suppress("NOTHING_TO_INLINE")
 internal inline fun VersionParsingException.asIllegalArg(
@@ -180,9 +222,6 @@ internal inline fun VersionParsingException.asIllegalArg(
     val message = "$message:\n| $str\n| $pointer"
     return IllegalArgumentException(message).apply { addSuppressed(this@asIllegalArg) }
 }
-
-private fun MutableMap<AnyVersion, Version>.getOrParse(version: AnyVersion, ops: Version.Operations): Result<Version> =
-    kotlin.runCatching { computeIfAbsent(version, ops::parse) }
 
 internal fun Array<out String>.unpack(ops: VersionPredicate.Operations): List<VersionPredicate> = buildList {
     var length = 0

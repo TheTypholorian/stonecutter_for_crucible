@@ -471,6 +471,56 @@ val TransformTest by testSuite {
             )
         }
 
+        test("pre-release wildcard admits a pre-release of its own line") {
+            val content = """
+                //? if >=1.21-*
+                ...
+            """.trimIndent()
+            content.shouldAssembleTo(content, params { targets[""] = SemanticVersion(1, 21, preRelease = "alpha.1") })
+        }
+
+        test("a bare bound excludes the pre-releases below it") {
+            """
+                //? if >=1.21
+                ...
+            """.trimIndent().shouldAssembleTo(
+                """
+                    //? if >=1.21
+                    //...
+                """.trimIndent(),
+                params { targets[""] = SemanticVersion(1, 21, preRelease = "alpha.1") }
+            )
+        }
+
+        test("pre-release wildcard bounds from below") {
+            """
+                //? if <1.21-*
+                ...
+            """.trimIndent().shouldAssembleTo(
+                """
+                    //? if <1.21-*
+                    //...
+                """.trimIndent(),
+                params { targets[""] = SemanticVersion(1, 21, preRelease = "alpha.1") }
+            )
+        }
+
+        test("pre-release wildcard as a range bound") {
+            val content = """
+                //? if >=1.20-* <1.21-*
+                ...
+            """.trimIndent()
+            content.shouldAssembleTo(content, params { targets[""] = SemanticVersion(1, 20, preRelease = "beta") })
+        }
+
+        test("pre-release wildcard under the same-minor operator") {
+            val content = """
+                //? if ~1.21-*
+                ...
+            """.trimIndent()
+            content.shouldAssembleTo(content, params { targets[""] = SemanticVersion(1, 21, preRelease = "alpha") })
+        }
+
         // https://codeberg.org/stonecutter/stonecutter/issues/31
         test("spaced string lookup bug") {
             "/*? if <1.21.9 >>*/ /*,0*/ )".shouldAssembleTo(

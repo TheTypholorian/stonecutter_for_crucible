@@ -28,6 +28,14 @@ val ConditionTest by testSuite {
             runGradle(it, ":2:run").output shouldNotContain "Hello world!"
         }
 
+        integrationTest("pre-release wildcard") { dir ->
+            runGradle(dir, ":1.21-alpha.1:run").output.run {
+                this shouldContain "WILDCARD"
+                this shouldNotContain "BARE"
+            }
+            runGradle(dir, ":1.21.1:run").output shouldContain "BARE"
+        }
+
         integrationTest("if-else chain") {
             for (i in 1..4) runGradle(it, ":$i:run").output shouldContain "$i!"
         }

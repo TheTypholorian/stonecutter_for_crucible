@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.data
 
+import dev.kikugie.commons.takeAs
 import dev.kikugie.semver.data.*
 import dev.kikugie.semver.impl.VersionParsingException
 import dev.kikugie.stonecutter.AnyVersion
@@ -184,20 +185,17 @@ private sealed interface VersionTarget {
             is Version -> Exact(target)
             is StonecutterProject -> Exact(target.parsed.value)
             is CharSequence -> interpret(target.toString())
-            is Number -> Exact(LenientOperations.parse(target.toString()))
+            is Number -> Exact(LenientOperations.parseAsPredicate(target.toString()))
             null -> throw IllegalArgumentException("Version target is null")
             else -> throw IllegalArgumentException("Unsupported version target of ${target::class.qualifiedName}")
         }
 
         private fun interpret(value: String): VersionTarget {
-            val predicates = runCatching { arrayOf(value).unpack(VersionPredicate) }.getOrElse {
-                it as VersionParsingException
-                throw it.asIllegalArg(value)
-            }
-            val single = predicates.singleOrNull()
-            return when {
-                predicates.isEmpty() -> throw IllegalArgumentException("Version target is blank")
-                single != null && single.operator == VersionOperator.IMPLICIT_EQUAL -> Exact(single.version)
+            val predicates = runCatching { arrayOf(value).unpack(VersionPredicate) }
+                .getOrElse { throw it.takeAs<VersionParsingException>().asIllegalArg(value) }
+            return when (predicates.size) {
+                0 -> throw IllegalArgumentException("Version target is blank")
+                1 if (predicates.first().operator == VersionOperator.IMPLICIT_EQUAL) -> Exact(predicates.first().version)
                 else -> Match(predicates)
             }
         }

@@ -247,4 +247,66 @@ val ParsedVersionTest by testSuite {
             (version("1.2.0") matches "^1") shouldBe true
         }
     }
+
+    // `-*` orders below every pre-release sharing its core, so it names the start of a release line.
+    testSuite("pre-release wildcard") {
+        test("a bound written with the wildcard admits the pre-releases below it") {
+            (version("1.21-alpha.1") matches ">=1.21-*") shouldBe true
+            (version("1.21.1") matches ">=1.21-*") shouldBe true
+            (version("1.20.6") matches ">=1.21-*") shouldBe false
+        }
+
+        test("a bare bound excludes them") {
+            (version("1.21-alpha.1") matches ">=1.21") shouldBe false
+            (version("1.21-alpha.1") matches "<1.21") shouldBe true
+        }
+
+        test("the wildcard is below every pre-release of its line") {
+            (version("1.21-alpha.1") matches "<1.21-*") shouldBe false
+            (version("1.20.6") matches "<1.21-*") shouldBe true
+        }
+
+        test("spans a whole release line as a range") {
+            version("1.20-beta").matches(">=1.20-*", "<1.21-*") shouldBe true
+            version("1.21-beta").matches(">=1.20-*", "<1.21-*") shouldBe false
+        }
+
+        test("satisfies the same-minor operator") {
+            (version("1.21-alpha") matches "~1.21-*") shouldBe true
+            (version("1.21-alpha") matches "~1.21") shouldBe false
+        }
+
+        // Ordering drops the operator but keeps the target, wildcard included.
+        test("orders against a predicate carrying it") {
+            (version("1.21") compareTo ">=1.21-*" > 0) shouldBe true
+            (version("1.20") compareTo ">=1.21-*" < 0) shouldBe true
+        }
+
+        // Operands are read as predicate targets, so a bare wildcard is a usable bound - unlike
+        // the string constructor, which parses a concrete version and refuses it.
+        test("usable as an operand but not as a constructed version") {
+            shouldThrow<IllegalArgumentException> { version("1.21-*") }
+
+            (version("1.21") compareTo "1.21-*" > 0) shouldBe true
+            (version("1.21-alpha") compareTo "1.21-*" > 0) shouldBe true
+            (version("1.20.6") compareTo "1.21-*" < 0) shouldBe true
+        }
+
+        test("wraps as a version through the factories") {
+            ParsedVersion(StringBuilder("1.21-*")).toString() shouldBe "1.21-*"
+            ParsedVersion.parseOrNull("1.21-*")?.toString() shouldBe "1.21-*"
+        }
+
+        test("a wildcard bound opens a range at the start of its line") {
+            (version("1.21-alpha") within "1.21-*".."1.22") shouldBe true
+            (version("1.21-alpha") within "1.21".."1.22") shouldBe false
+            (version("1.20.6") within "1.21-*".."1.22") shouldBe false
+        }
+
+        test("equality treats it as the distinct version it orders as") {
+            version("1.21") shouldNotBe "1.21-*"
+            version("1.21-alpha") shouldNotBe "1.21-*"
+            ParsedVersion(StringBuilder("1.21-*")) shouldBe "1.21-*"
+        }
+    }
 }
