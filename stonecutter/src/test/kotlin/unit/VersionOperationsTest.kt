@@ -109,6 +109,18 @@ val VersionOperationsTest by testSuite {
             LenientOperations.tryEval("1.21.1", ">1.20 <>")
                 .exceptionOrNull().shouldBeInstanceOf<VersionParsingException>()
         }
+
+        // Offsets are reported into the predicates concatenated, but the message joins them
+        // with ", ", so the pointer has to move over every separator that precedes the failure.
+        test("the failure points into the joined predicates") {
+            val failure = shouldThrow<IllegalArgumentException> { LenientOperations.eval("1.21.1", ">1.20", "^release") }
+            failure.message!!.lines().drop(1) shouldBe listOf("| >1.20, ^release", "| " + " ".repeat(7) + "^")
+        }
+
+        test("predicates already in one string need no shift") {
+            val failure = shouldThrow<IllegalArgumentException> { LenientOperations.eval("1.21.1", ">1.20 ^release") }
+            failure.message!!.lines().drop(1) shouldBe listOf("| >1.20 ^release", "| " + " ".repeat(6) + "^")
+        }
     }
 
     testSuite("comparison") {

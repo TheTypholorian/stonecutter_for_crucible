@@ -28,12 +28,19 @@ val ConditionTest by testSuite {
             runGradle(it, ":2:run").output shouldNotContain "Hello world!"
         }
 
+        // A `-*` bound reaches down into the pre-releases of its own release line, which a bare
+        // bound of the same version excludes. The active version - the first one listed - compiles
+        // the shared source as it stands, so the committed file has to match it and the pre-release
+        // comes second, where the processor actually runs.
         integrationTest("pre-release wildcard") { dir ->
+            runGradle(dir, ":1.21.1:run").output.run {
+                this shouldContain "WILDCARD"
+                this shouldContain "BARE"
+            }
             runGradle(dir, ":1.21-alpha.1:run").output.run {
                 this shouldContain "WILDCARD"
                 this shouldNotContain "BARE"
             }
-            runGradle(dir, ":1.21.1:run").output shouldContain "BARE"
         }
 
         integrationTest("if-else chain") {

@@ -144,17 +144,14 @@ public interface VersionOperations<T : Version> {
 
 @Suppress("UNCHECKED_CAST")
 internal abstract class BasicOperations<T : Version> : VersionOperations<T> {
-    protected val cache: MutableMap<String, Version> = ConcurrentHashMap()
-
-    // Kept apart from [cache] because the two disagree on `-*`: sharing one map would let whichever
-    // call came first decide whether the other accepts the wildcard.
-    protected val predicateCache: MutableMap<String, Version> = ConcurrentHashMap()
+    protected val versions: MutableMap<String, Version> = ConcurrentHashMap()
+    protected val predicates: MutableMap<String, Version> = ConcurrentHashMap()
 
     override fun parse(version: AnyVersion): T = tryParse(version).getOrElse {
         throw it.takeAs<VersionParsingException>().asIllegalArg(version)
     }
 
-    override fun tryParse(version: AnyVersion): Result<T> = cache.runCatching {
+    override fun tryParse(version: AnyVersion): Result<T> = versions.runCatching {
         computeIfAbsent(version) { tryParseVersion(it, false) } as T
     }
 
@@ -162,18 +159,13 @@ internal abstract class BasicOperations<T : Version> : VersionOperations<T> {
         throw it.takeAs<VersionParsingException>().asIllegalArg(version)
     }
 
-    override fun tryParseAsPredicate(version: AnyVersion): Result<T> = predicateCache.runCatching {
+    override fun tryParseAsPredicate(version: AnyVersion): Result<T> = predicates.runCatching {
         computeIfAbsent(version) { tryParseVersion(it, true) } as T
     }
 
     override fun eval(version: Version, vararg predicates: String): Boolean = tryEval(version, *predicates).getOrElse {
-        it as VersionParsingException
-        // What the fuck am I cooking here
-        val position = kotlin.run {
-            var sum = 0
-            it.position + 2 * predicates.count { p -> (sum + p.length <= it.position).also { sum += p.length } }
-        }
-        throw it.asIllegalArg(predicates.joinToString(), position = position)
+        val error = it.takeAs<VersionParsingException>()
+        throw error.asIllegalArg(predicates.joinToString(), position = predicates.joinedOffset(error.position))
     }
 
     override fun tryEval(version: Version, vararg predicates: String): Result<Boolean> =
@@ -221,6 +213,20 @@ internal inline fun VersionParsingException.asIllegalArg(
     val pointer = " ".repeat(position) + '^'
     val message = "$message:\n| $str\n| $pointer"
     return IllegalArgumentException(message).apply { addSuppressed(this@asIllegalArg) }
+}
+
+private fun Array<out String>.joinedOffset(offset: Int): Int {
+    var consumed = 0
+    var separators = 0
+    for (str in this) when {
+        consumed + str.length > offset -> break
+        else -> {
+            consumed += str.length
+            separators++
+        }
+    }
+
+    return offset + separators * 2
 }
 
 internal fun Array<out String>.unpack(ops: VersionPredicate.Operations): List<VersionPredicate> = buildList {
