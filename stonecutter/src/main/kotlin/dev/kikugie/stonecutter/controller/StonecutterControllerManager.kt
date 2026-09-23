@@ -41,9 +41,9 @@ internal interface StonecutterControllerManager : Serializable {
         """.trimIndent(), true
         )
 
-        override fun replace(text: String, template: String): String = text.replace(pattern) {
-            it.value.replace(it.groupValues[2], template)
-        }
+        override fun replace(text: String, template: String): String = pattern.find(text)?.groups?.get(2)?.range
+            ?.let { text.replaceRange(it, template) }
+            ?: error("No active version pattern found")
 
         private fun readResolve(): Any = Groovy
     }
@@ -61,9 +61,9 @@ internal interface StonecutterControllerManager : Serializable {
         """.trimIndent(), true
         )
 
-        override fun replace(text: String, template: String): String = text.replace(pattern) {
-            it.value.replace(it.groupValues[2], template)
-        }
+        override fun replace(text: String, template: String): String = pattern.find(text)?.groups?.get(2)?.range
+            ?.let { text.replaceRange(it, template) }
+            ?: error("No active version pattern found")
 
         private fun readResolve(): Any = Kotlin
     }
