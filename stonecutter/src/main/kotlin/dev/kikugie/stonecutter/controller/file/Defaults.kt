@@ -19,8 +19,6 @@ internal fun FileHandlerContainer.configureDefaults() {
 
 private fun FileHandlerContainer.configureJava(): Unit = configure(
     "java", "scala", "sc", "groovy", "gradle", "json5",
-    "js", "mjs", "cjs", "jsx", "ts", "tsx",
-    "c", "h", "cc", "cpp", "hpp", "cs", "go",
 ) {
     useSlashScanner(nested = false)
 
@@ -28,14 +26,18 @@ private fun FileHandlerContainer.configureJava(): Unit = configure(
     uncommenter.set(SlashStarUncommentingStrategy)
 }
 
-private fun FileHandlerContainer.configureKotlin(): Unit = configure("kt", "kts", "rs", "swift") {
+private fun FileHandlerContainer.configureKotlin(): Unit = configure(
+    "kt", "kts",
+) {
     useSlashScanner(nested = true)
 
     commenter.set(JavaLikeCommentingStrategy.Kotlin)
     uncommenter.set(SlashStarUncommentingStrategy)
 }
 
-private fun FileHandlerContainer.configureShader(): Unit = configure("fsh", "vsh") {
+private fun FileHandlerContainer.configureShader(): Unit = configure(
+    "fsh", "vsh", "glsl",
+) {
     useSlashScanner(nested = false)
 
     commenter.set(line("//"))
@@ -50,9 +52,9 @@ private fun HandlerBuilder.useSlashScanner(nested: Boolean): Unit = scanner {
     closers(SlashStyleScanner.Tokens.SLASH_COMMENT_END, SlashStyleScanner.Tokens.STAR_COMMENT_END)
 }
 
+// FIXME: Yaml and Toml formats can have issues with quotes inside literals.
 private fun FileHandlerContainer.configureHash(): Unit = configure(
-    "cfg", "aw", "accesswidener", "ct", "classtweaker", "yml", "yaml",
-    "toml", "properties", "py", "sh", "bash",
+    "cfg", "aw", "accesswidener", "ct", "classtweaker", "yml", "yaml", "toml", "properties",
 ) {
     scanner {
         lexer.set(::HashStyleScanner)
@@ -63,7 +65,9 @@ private fun FileHandlerContainer.configureHash(): Unit = configure(
     commenter.set(line("#"))
 }
 
-private fun FileHandlerContainer.configureXml(): Unit = configure("xml", "html", "htm", "xhtml", "svg", "xsd", "xsl") {
+private fun FileHandlerContainer.configureXml(): Unit = configure(
+    "xml", "html", "htm", "xhtml", "svg", "xsd", "xsl"
+) {
     scanner {
         lexer.set(::XmlStyleScanner)
         openers(XmlStyleScanner.Tokens.XML_COMMENT_START)
@@ -74,5 +78,7 @@ private fun FileHandlerContainer.configureXml(): Unit = configure("xml", "html",
     uncommenter.set(XmlUncommentingStrategy)
 }
 
-private fun FileHandlerContainer.configurePlainText(): Unit = configure("json", "mcmeta", "txt", "md", "csv") {
+private fun FileHandlerContainer.configurePlainText(): Unit = configure(
+    "json", "mcmeta", "txt", "md", "csv",
+) {
 }
