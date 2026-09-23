@@ -143,7 +143,7 @@ tasks {
             exclude(dependency("org.jetbrains.kotlin:kotlin-stdlib:.*"))
         }
 
-        exclude("idea_config.xml", "org/abego/**", "antlr/runtime/**", "**/*.pro")
+        exclude("org/abego/**", "antlr/runtime/**", "**/*.pro")
     }
 
     register<GenerateVersionTask>("generateVersion") {
