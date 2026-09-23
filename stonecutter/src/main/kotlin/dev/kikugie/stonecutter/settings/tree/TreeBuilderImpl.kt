@@ -117,11 +117,10 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
             "No versions have been registered for project '$project'"
         }
 
-        else -> {
-            val valid = branchBuilders.values.firstNotNullOfOrNull { br ->
-                br.versions.firstOrNull { v -> v.project == vcs }?.data
-            }
-            checkNotNull(valid) { "VCS version '$vcs' doesn't match any registered subproject for project '$project'" }
+        else -> checkNotNull(branchBuilders.values.firstNotNullOfOrNull { br ->
+            br.versions.firstOrNull { v -> v.project == vcs }?.data
+        }) {
+            "VCS project '$vcs' doesn't match any registered subproject for project '$project'"
         }
     }
 

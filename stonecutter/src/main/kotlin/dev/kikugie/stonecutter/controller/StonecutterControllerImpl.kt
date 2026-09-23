@@ -110,7 +110,8 @@ private fun setupDefaultProperties(project: Project, objects: ObjectFactory): St
 
 private fun constructTree(root: Project): ProjectTreeImpl {
     val builder = checkNotNull(root.gradle.getContainer<TreeBuilderContainer>()[root.hierarchy]) {
-        "Project ${root.path} is not registered. This might've been caused by removing a project while it's active"
+        "Project ${root.path} is not registered in `settings.gradle(.kts)`. " +
+            "This might've been caused by removing a project while it's active"
     }
     val branches = builder.constructBranches(root, root.hierarchy)
     return ProjectTreeImpl(root.gradle, root.hierarchy, builder.vcsProject, branches).apply {
