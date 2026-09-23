@@ -44,7 +44,16 @@ public interface StonecutterControllerExtension : VersionOperations<Version>, St
      * The active subproject has its sources linked to the shared `src/` directory.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#active-version">Active Version Documentation</a>
      */
+    @Deprecated("Use the `active` property.", ReplaceWith("active"))
     public val current: StonecutterProject? get() = tree.current
+
+    /**
+     * Project descriptor for the version assigned with the [active] function.
+     *
+     * The active subproject has its sources linked to the shared `src/` directory.
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#active-version">Active Version Documentation</a>
+     */
+    public val active: StonecutterProject? get() = tree.current
 
     /**
      * Project descriptor for the VCS reset version.

@@ -352,6 +352,7 @@ public abstract interface class dev/kikugie/stonecutter/build/task/StonecutterBu
 public abstract interface class dev/kikugie/stonecutter/controller/StonecutterControllerExtension : dev/kikugie/stonecutter/data/property/StructuredPropertiesProvider, dev/kikugie/stonecutter/data/version/VersionOperations {
 	public abstract fun active (Ljava/lang/Object;)V
 	public fun flags (Lorg/gradle/api/Action;)V
+	public fun getActive ()Ldev/kikugie/stonecutter/data/StonecutterProject;
 	public fun getCurrent ()Ldev/kikugie/stonecutter/data/StonecutterProject;
 	public abstract fun getFlags ()Ldev/kikugie/stonecutter/controller/flag/StonecutterFlags;
 	public abstract fun getHandlers ()Ldev/kikugie/stonecutter/controller/file/FileHandlerContainer;
@@ -369,6 +370,7 @@ public final class dev/kikugie/stonecutter/controller/StonecutterControllerExten
 	public static fun contains (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;Lkotlin/ranges/ClosedRange;Ldev/kikugie/stonecutter/data/ParsedVersion;)Z
 	public static fun contains (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;Lkotlin/ranges/OpenEndRange;Ldev/kikugie/stonecutter/data/ParsedVersion;)Z
 	public static fun flags (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;Lorg/gradle/api/Action;)V
+	public static fun getActive (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;)Ldev/kikugie/stonecutter/data/StonecutterProject;
 	public static fun getCurrent (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;)Ldev/kikugie/stonecutter/data/StonecutterProject;
 	public static fun getSemantics (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;)Ldev/kikugie/stonecutter/data/version/VersionOperations;
 	public static fun getVcsVersion (Ldev/kikugie/stonecutter/controller/StonecutterControllerExtension;)Ldev/kikugie/stonecutter/data/StonecutterProject;
