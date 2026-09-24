@@ -3,9 +3,6 @@ package dev.kikugie.stonecutter.controller.file
 import dev.kikugie.stitcher.antlr.charStream
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.parser.ScannerAdapter
-import dev.kikugie.stitcher.transformer.edit.CommentingStrategy
-import dev.kikugie.stitcher.transformer.edit.SwappingStrategy
-import dev.kikugie.stitcher.transformer.edit.UncommentingStrategy
 import java.io.Serializable
 
 @JvmRecord
@@ -40,19 +37,4 @@ internal data class ScannerModel(
         result = 31 * result + lexer.hashCode()
         return result
     }
-}
-
-@JvmRecord
-internal data class HandlerModel(
-    val scanner: ScannerModel,
-    val commenter: CommentingStrategy,
-    val uncommenter: UncommentingStrategy,
-    val swapper: SwappingStrategy
-) : Serializable {
-    constructor(builder: HandlerBuilder) : this(
-        ScannerModel(builder.scanner.get()),
-        builder.commenter.get(),
-        builder.uncommenter.get(),
-        builder.swapper.get()
-    )
 }
