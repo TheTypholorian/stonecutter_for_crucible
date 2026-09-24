@@ -2,6 +2,7 @@ package dev.kikugie.stonecutter.build.task
 
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.StonecutterBuildImpl
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.task.StonecutterModelTask
 import dev.kikugie.stonecutter.controller.task.registerDefault
 import dev.kikugie.stonecutter.controller.tree.toModel
@@ -69,6 +70,7 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
     fun registerNodeModelTask(): TaskProvider<StonecutterModelTask> = build.project.registerDefault("stonecutterSaveNodeModel") {
         val node = build.node
 
+        enabled = build.config.flags[StonecutterFlag.SERIALIZE_TREE_MODEL]
         output.set(build.project.layout.buildDirectory.file("stonecutter-cache/node.json"))
         model.set(build.project.providers) {
             node.toModel(build.config.data, build.config.flags.registry).let(SCJSON::encodeToString)

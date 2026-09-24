@@ -1,16 +1,12 @@
 package dev.kikugie.stonecutter.controller
 
-import dev.kikugie.semver.data.SemanticVersion
-import dev.kikugie.semver.data.Version
+import dev.kikugie.stonecutter.StonecutterBaseExtension
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
 import dev.kikugie.stonecutter.controller.task.StonecutterControllerTasks
 import dev.kikugie.stonecutter.data.StonecutterProject
-import dev.kikugie.stonecutter.data.property.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.data.tree.ProjectTree
-import dev.kikugie.stonecutter.data.version.SemanticOperations
-import dev.kikugie.stonecutter.data.version.VersionOperations
 import org.gradle.api.Action
 
 @DslMarker @Retention(AnnotationRetention.BINARY)
@@ -26,7 +22,7 @@ private annotation class ControllerDsl
  * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/">Preprocessor Configuration Documentation</a>
  */
 @ControllerDsl
-public interface StonecutterControllerExtension : VersionOperations<Version>, StructuredPropertiesProvider {
+public interface StonecutterControllerExtension : StonecutterBaseExtension {
     /**
      * Tree associated with the applied Gradle [Project][org.gradle.api.Project]..
      *
@@ -76,19 +72,13 @@ public interface StonecutterControllerExtension : VersionOperations<Version>, St
     public val versions: Set<StonecutterProject> get() = tree.versions
 
     /**
-     * Accessor for strictly SemVer version evaluation.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/build-setup#version-aware-buildscript">Semantic Operations Documentation</a>
-     */
-    public val semantics: VersionOperations<SemanticVersion> get() = SemanticOperations
-
-    /**
      * Mutable view of Stonecutter configuration flags.
      *
      * Flags are used to configure the internal behaviour of the plugin.
      * **The flags should be configured before the [active] call.**
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#flags">Flags Documentation</a>
      */
-    public val flags: StonecutterFlags
+    override val flags: StonecutterFlags
 
     /**
      * Stonecutter version switch tasks and aggregation utility extension.
@@ -139,7 +129,7 @@ public interface StonecutterControllerExtension : VersionOperations<Version>, St
      * **The flags should be configured before the [active] call.**
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#flags">Flags Documentation</a>
      */
-    public infix fun flags(action: Action<StonecutterFlags>): Unit = action.execute(flags)
+    override infix fun flags(action: Action<StonecutterFlags>): Unit = action.execute(flags)
 
     /**Configures the [tasks] extension.*/
     public infix fun tasks(action: Action<StonecutterControllerTasks>): Unit = action.execute(tasks)

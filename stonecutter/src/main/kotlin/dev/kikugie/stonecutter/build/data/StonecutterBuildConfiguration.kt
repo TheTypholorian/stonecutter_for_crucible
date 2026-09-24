@@ -25,7 +25,7 @@ import dev.kikugie.stonecutter.controller.tree.resolveFiles
 import dev.kikugie.stonecutter.controller.tree.restrictedTo
 import dev.kikugie.stonecutter.controller.tree.toParameters
 import dev.kikugie.stonecutter.data.container.FlagContainer
-import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
+import dev.kikugie.stonecutter.data.container.getContainer
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesImpl
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.version.LenientOperations

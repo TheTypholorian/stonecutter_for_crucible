@@ -6,8 +6,6 @@ import dev.kikugie.stonecutter.controller.StonecutterControllerManager
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
-import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
-import dev.kikugie.stonecutter.data.container.ProjectBranchContainer
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
 import dev.kikugie.stonecutter.settings.StonecutterSettingsImpl
@@ -30,12 +28,13 @@ import kotlin.io.path.notExists
 
 private const val ROOT: String = ""
 
-internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory, hierarchy: String) :
+internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectFactory, val providers: ProviderFactory, path: String) :
     TreeBuilder(), Named {
-    private val name: String = "TreeBuilderImpl@$hierarchy"
     internal var localBuildScriptProvider: ((Identifier, StonecutterProject) -> String)? = null
         private set
     internal val branchBuilders: MutableMap<Identifier, BranchBuilderImpl> = mutableMapOf()
+    internal val hierarchy: ProjectHierarchy = ProjectHierarchy(path)
+    private val name: String = "TreeBuilderImpl@$path"
     private lateinit var resolvedVcsVersion: StonecutterProject
     private lateinit var resolvedController: StonecutterControllerManager
 
@@ -81,15 +80,6 @@ internal abstract class TreeBuilderImpl @Inject constructor(val objects: ObjectF
         prepare(ext, project)
         create(ext, project)
         ext.treeBuilderContainer += this
-        publishBranchPaths(ext, project)
-    }
-
-    // Records each non-main branch's path so the lifecycle callback knows which
-    // projects to configure.
-    private fun publishBranchPaths(ext: StonecutterSettingsImpl, project: ProjectDescriptor) {
-        val container = ext.settings.gradle.getContainer<ProjectBranchContainer>()
-        for (branch in branchBuilders.values) if (branch.name.isNotEmpty())
-            container.register(project.hierarchy.resolve(branch.name).toString())
     }
 
     internal fun prepare(ext: StonecutterSettingsImpl, project: ProjectDescriptor) {
@@ -146,6 +136,7 @@ internal abstract class BranchBuilderImpl @Inject constructor(
     val tree: TreeBuilderImpl,
     val objects: ObjectFactory
 ) : BranchBuilder() {
+    internal val hierarchy: ProjectHierarchy = tree.hierarchy.resolve(name)
     private val nodeBuilders: MutableList<NodeBuilderImpl> = mutableListOf()
     private val inheritedBranches: MutableSet<Identifier> = mutableSetOf()
     private var inheritAll: Boolean = false
@@ -199,7 +190,7 @@ internal abstract class BranchBuilderImpl @Inject constructor(
         ext: StonecutterSettingsImpl,
         project: ProjectDescriptor
     ) {
-        for (node in nodes) node.prepare(to, ext, project)
+        for (node in nodes) node.prepare(to, ext, project, hierarchy)
     }
 
     private fun resolveBuild(ext: StonecutterSettingsImpl, project: ProjectDescriptor): String = branchScript.orNull
@@ -212,10 +203,10 @@ internal abstract class NodeBuilderImpl @Inject constructor(
 ) : NodeBuilder() {
     val tree: TreeBuilderImpl inline get() = branch.tree
 
-    internal fun prepare(to: MutableMap<String, BuiltNodeInfo>, ext: StonecutterSettingsImpl, project: ProjectDescriptor) {
+    internal fun prepare(to: MutableMap<String, BuiltNodeInfo>, ext: StonecutterSettingsImpl, project: ProjectDescriptor, target: ProjectHierarchy) {
         for (data in versions) {
             val file = data.resolveBuild(ext, project)
-            val hierarchy = project.hierarchy.resolve(data.project)
+            val hierarchy = target.resolve(data.project)
             checkBuildscript(hierarchy, file)
             to[data.project] = BuiltNodeInfo(data, hierarchy, file)
         }

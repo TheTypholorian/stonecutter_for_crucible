@@ -30,17 +30,6 @@ import javax.inject.Inject
 internal interface GradleContainerService : BuildService<BuildServiceParameters.None> {
     @get:Inject
     val objects: ObjectFactory
-
-    companion object {
-        inline fun <reified T : GradleContainerService> Gradle.createContainer(): Provider<T> =
-            sharedServices.registerIfAbsent(requireNotNull(T::class.simpleName) { "Provided class has no name" }, T::class)
-
-        inline fun <reified T : GradleContainerService> Gradle.getContainer(): T {
-            val name = requireNotNull(T::class.simpleName) { "Provided class has no name" }
-            val service = checkNotNull(sharedServices.registrations.findByName(name)) { "No service registered for name $name" }
-            return service.service.get() as T
-        }
-    }
 }
 
 internal abstract class TreeBuilderContainer : GradleContainerService {
@@ -77,48 +66,26 @@ internal abstract class ProjectNodeContainer : GradleContainerService {
     }
 }
 
-/**
- * Carries non-main branch models to their branch projects without a
- * cross-project reference.
- *
- * Branch roots are neither the controller nor nodes, so the controller can't
- * register their model task directly. Each branch path is
- * [registered][register] at settings time with an empty placeholder, the
- * controller later [publishes][set] the real model, and the branch project
- * reads it back to register its own task.
- */
+/** Carries branch models to their branch projects without a cross-project reference. */
 internal abstract class ProjectBranchContainer : GradleContainerService {
-    // Branch project path -> serialized model, or "" while only the path is
-    // known.
     private val models: MutableMap<String, String> = ConcurrentHashMap()
-
-    /**
-     * Records a branch project [path] at settings time, before its model
-     * exists.
-     */
-    fun register(path: String) {
-        models.putIfAbsent(path, "")
-    }
-
-    /** Whether [path] is a known non-main branch root. */
-    operator fun contains(path: String): Boolean = path in models
 
     /** Publishes the serialized [model] for the branch project at [path]. */
     operator fun set(path: String, model: String) {
         models[path] = model
     }
 
-    /**
-     * The serialized model for [path], or `null` if it hasn't been published
-     * yet.
-     */
-    operator fun get(path: String): String? = models[path]?.ifEmpty { null }
+    /** The serialized model for [path], or `null` if it hasn't been published yet. */
+    operator fun get(path: String): String? = models[path]
 }
 
 internal abstract class FlagContainer : GradleContainerService {
     private lateinit var settings: ConfigurationRegistry
     private val controller: MutableMap<ProjectHierarchy, ConfigurationRegistry> = HashMap()
     private val node: MutableMap<ProjectHierarchy, ConfigurationRegistry> = HashMap()
+
+    operator fun <T : Any> get(tree: ProjectHierarchy, flag: StonecutterFlag<T>): T =
+        checkNotNull(controller[tree]) { "Flags for '$tree' are not initialized" }[flag.configuration]
 
     fun settings(provider: StructuredPropertiesExtension): StonecutterFlagsImpl =
         StonecutterFlagsImpl(scope = FlagScope.SETTINGS) { settingsFallback(it, provider) }

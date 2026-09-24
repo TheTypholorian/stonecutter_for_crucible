@@ -1,13 +1,9 @@
 package dev.kikugie.stonecutter.settings
 
-import dev.kikugie.semver.data.SemanticVersion
-import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.ProjectReference
+import dev.kikugie.stonecutter.StonecutterBaseExtension
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
-import dev.kikugie.stonecutter.data.property.StructuredPropertiesProvider
-import dev.kikugie.stonecutter.data.version.SemanticOperations
-import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.settings.tree.TreeBuilder
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.doFirst
@@ -33,10 +29,7 @@ private annotation class SettingsDsl
  * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model">Project Model Documentation</a>
  */
 @SettingsDsl
-public abstract class StonecutterSettingsExtension(
-    internal val settings: Settings,
-    internal val objects: ObjectFactory,
-) : VersionOperations<Version>, StructuredPropertiesProvider {
+public abstract class StonecutterSettingsExtension(internal val settings: Settings, internal val objects: ObjectFactory) : StonecutterBaseExtension {
     /**
      * Shared [Action] for configuring instances of [TreeBuilder].
      *
@@ -72,18 +65,12 @@ public abstract class StonecutterSettingsExtension(
     public abstract val kotlinController: Property<Boolean>
 
     /**
-     * Accessor for strictly SemVer version evaluation.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/build-setup#version-aware-buildscript">Semantic Operations Documentation</a>
-     */
-    public val semantics: VersionOperations<SemanticVersion> get() = SemanticOperations
-
-    /**
      * Mutable view of settings-scoped Stonecutter configuration flags.
      *
      * Flags are used to configure the internal behaviour of the plugin.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#flags">Flags Documentation</a>
      */
-    public abstract val flags: StonecutterFlags
+    abstract override val flags: StonecutterFlags
 
     /**
      * Configures settings-scoped Stonecutter configuration flags.
@@ -91,7 +78,7 @@ public abstract class StonecutterSettingsExtension(
      * Flags are used to configure the internal behaviour of the plugin.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#flags">Flags Documentation</a>
      */
-    public infix fun flags(action: Action<StonecutterFlags>): Unit = action.execute(flags)
+    override infix fun flags(action: Action<StonecutterFlags>): Unit = action.execute(flags)
 
     /* Shared configuration */
     /**

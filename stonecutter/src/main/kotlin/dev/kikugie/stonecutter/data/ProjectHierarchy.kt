@@ -86,6 +86,11 @@ public class ProjectHierarchy private constructor(@PublishedApi internal val pat
     /**Returns the absolute path string.*/
     override fun toString(): PathString = path
 
+    override fun equals(other: Any?): Boolean =
+        other is ProjectHierarchy && path == other.path
+
+    override fun hashCode(): Int = path.hashCode()
+
     /**Returns `true` for the root project path `:`.*/
     override fun isEmpty(): Boolean = path.length == 1
 

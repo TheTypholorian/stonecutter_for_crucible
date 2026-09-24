@@ -1,32 +1,25 @@
 package dev.kikugie.stonecutter
 
 import dev.kikugie.semver.data.SemanticVersion
-import dev.kikugie.stonecutter.build.StonecutterBuildExtension
-import dev.kikugie.stonecutter.build.StonecutterBuildImpl
-import dev.kikugie.stonecutter.controller.StonecutterControllerExtension
-import dev.kikugie.stonecutter.controller.StonecutterControllerImpl
-import dev.kikugie.stonecutter.controller.StonecutterControllerManager.Companion.getController
-import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.settings.StonecutterSettingsExtension
 import dev.kikugie.stonecutter.settings.StonecutterSettingsImpl
-import dev.kikugie.stonecutter.util.propertyKey
-import dev.kikugie.stonecutter.util.stonecutterProperty
+import dev.kikugie.stonecutter.util.createStonecutterExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.initialization.Settings
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.ExtensionAware
-import org.gradle.api.provider.ProviderFactory
 import org.gradle.build.event.BuildEventsListenerRegistry
-import org.gradle.kotlin.dsl.add
-import org.gradle.kotlin.dsl.create
 import javax.inject.Inject
 
 /**
  * The Stonecutter Gradle plugin.
  *
- * Registers the `stonecutter` extension, additionally aliased as `sc`,
- * on the [Settings] or [Project] it is [applied][apply] to.
+ * Registers the `stonecutter` extension, additionally aliased as `sc`.
+ *
+ * The plugin is only effective on [Settings].
+ * When applied to a [Project] it only serves as a marker.
+ *
  * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/project-setup">Project Setup Documentation</a>
  */
 public abstract class StonecutterPlugin @Inject constructor(
@@ -50,32 +43,9 @@ public abstract class StonecutterPlugin @Inject constructor(
             check(SemanticVersion.parse(target.gradle.gradleVersion) >= GRADLE_COMPAT) {
                 "Stonecutter requires at least Gradle $GRADLE_COMPAT. See https://gradle.org/releases/"
             }
-            target.stonecutter<StonecutterSettingsExtension, StonecutterSettingsImpl>(registry)
+            target.createStonecutterExtension<StonecutterSettingsExtension, StonecutterSettingsImpl>(registry)
         }
-
-        is Project ->
-            if (target.getController() == null) target.stonecutter<StonecutterBuildExtension, StonecutterBuildImpl>()
-            else target.stonecutter<StonecutterControllerExtension, StonecutterControllerImpl>()
-
-        else ->
-            error("The plugin may only be applied to settings and projects")
+        is Project -> Unit
+        else -> error("The plugin may only be applied to settings and projects")
     }
-}
-
-private inline fun <reified P : Any, reified R : P> ExtensionAware.stonecutter(vararg args: Any) {
-    val it = extensions.create(P::class, "stonecutter", R::class, this, *args)
-    if (usesShortExtension()) extensions.add(P::class, "sc", it)
-}
-
-private fun ExtensionAware.usesShortExtension(): Boolean {
-    if (extensions.extraProperties.has(stonecutterProperty("no_short_extension"))) return false
-
-    val flag: StonecutterFlag<Boolean> = StonecutterFlag.SHORT_EXTENSION
-    val providers: ProviderFactory = when (this) {
-        is Settings -> providers
-        is Project -> providers
-        else -> return flag.default
-    }
-
-    return providers.gradleProperty(flag.propertyKey).orNull?.let(flag::fromString) ?: flag.default
 }

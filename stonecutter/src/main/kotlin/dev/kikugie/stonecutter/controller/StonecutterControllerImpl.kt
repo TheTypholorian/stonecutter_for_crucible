@@ -1,7 +1,6 @@
 package dev.kikugie.stonecutter.controller
 
 import dev.kikugie.semver.data.Version
-import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager.Companion.getController
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
@@ -15,7 +14,7 @@ import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
 import dev.kikugie.stonecutter.data.container.FlagContainer
-import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
+import dev.kikugie.stonecutter.data.container.getContainer
 import dev.kikugie.stonecutter.data.container.ProjectBranchContainer
 import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
@@ -35,7 +34,6 @@ import dev.kikugie.stonecutter.util.requestTasks
 import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Action
 import org.gradle.api.Project
-import org.gradle.api.configuration.BuildFeatures
 import org.gradle.api.file.RegularFile
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
@@ -55,9 +53,6 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     override val properties: StructuredPropertiesImpl = setupDefaultProperties(root, objects)
     override val flags: StonecutterFlagsImpl = root.gradle.getContainer<FlagContainer>()
         .controller(tree.hierarchy, properties)
-
-    @get:Inject
-    protected abstract val buildFeatures: BuildFeatures
 
     private val nodeContainer: ProjectNodeContainer = root.gradle.getContainer<ProjectNodeContainer>().also { it += tree }
     private var hasInitialized: Boolean = false
@@ -82,12 +77,6 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     override fun active(provider: Any?) {
         check(!hasInitialized) { "Stonecutter has already been initialized!" }
         tree.assignActive(root, tasks, provider.resolveActive())
-
-        if (buildFeatures.isolatedProjects.active.get() && flags[StonecutterFlag.APPLY_PLUGIN_TO_NODES])
-            flags[StonecutterFlag.APPLY_PLUGIN_TO_NODES] = false
-
-        if (flags[StonecutterFlag.APPLY_PLUGIN_TO_NODES])
-            for (it in tree.nodes) it.project.plugins.apply(StonecutterPlugin::class)
 
         if (tree.current != null) tree.createSwitchTasks(root, tasks)
         tree.createModelTasks(tasks)
@@ -176,14 +165,13 @@ private fun ProjectTreeImpl.createSwitchTasks(root: Project, impls: StonecutterC
 
 private fun ProjectTreeImpl.createModelTasks(impls: StonecutterControllerTasksImpl) {
     impls.registerTreeModelTask()
-    impls.registerBranchModelTask()
     publishBranchModels()
     impls.registerModelGroupingTask()
 }
 
 private fun ProjectTreeImpl.publishBranchModels() {
     val container = gradle.getContainer<ProjectBranchContainer>()
-    for (branch in branches) if (branch.id.isNotEmpty())
+    for (branch in branches)
         container[branch.hierarchy.toString()] = branch.toModel().let(SCJSON::encodeToString)
 }
 

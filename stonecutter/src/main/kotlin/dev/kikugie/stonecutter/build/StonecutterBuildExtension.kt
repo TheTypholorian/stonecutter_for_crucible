@@ -1,17 +1,13 @@
 package dev.kikugie.stonecutter.build
 
-import dev.kikugie.semver.data.SemanticVersion
-import dev.kikugie.semver.data.Version
+import dev.kikugie.stonecutter.StonecutterBaseExtension
 import dev.kikugie.stonecutter.build.config.*
 import dev.kikugie.stonecutter.build.task.StonecutterBuildTasks
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
 import dev.kikugie.stonecutter.data.StonecutterProject
-import dev.kikugie.stonecutter.data.property.StructuredPropertiesProvider
 import dev.kikugie.stonecutter.data.tree.ProjectBranch
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
-import dev.kikugie.stonecutter.data.version.SemanticOperations
-import dev.kikugie.stonecutter.data.version.VersionOperations
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.tasks.util.PatternFilterable
@@ -30,7 +26,7 @@ private annotation class BuildDsl
  * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/">Preprocessor Configuration Documentation</a>
  */
 @BuildDsl
-public interface StonecutterBuildExtension : VersionOperations<Version>, StructuredPropertiesProvider {
+public interface StonecutterBuildExtension : StonecutterBaseExtension {
     /**
      * Gradle project this extension is applied to.
      */
@@ -104,12 +100,6 @@ public interface StonecutterBuildExtension : VersionOperations<Version>, Structu
     public val versions: Collection<StonecutterProject> get() = branch.versions
 
     /**
-     * Accessor for strictly SemVer version evaluation.
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/build-setup#version-aware-buildscript">Semantic Operations Documentation</a>
-     */
-    public val semantics: VersionOperations<SemanticVersion> get() = SemanticOperations
-
-    /**
      * Swap configuration extension.
      * 
      * Swaps provide ways to substitute code fragments with predefined templates during file preprocessing.
@@ -168,7 +158,7 @@ public interface StonecutterBuildExtension : VersionOperations<Version>, Structu
      * and apply to this node only.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#flags">Flags Documentation</a>
      */
-    public val flags: StonecutterFlags
+    override val flags: StonecutterFlags
 
     /**
      * Stonecutter file processing task access extension.
@@ -226,7 +216,7 @@ public interface StonecutterBuildExtension : VersionOperations<Version>, Structu
      * can be assigned with the `=` operator and apply to this node only.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#flags">Flags Documentation</a>
      */
-    public infix fun flags(action: Action<StonecutterFlags>): Unit = action.execute(flags)
+    override infix fun flags(action: Action<StonecutterFlags>): Unit = action.execute(flags)
 
     /**Configures the [tasks] extension.*/
     public infix fun tasks(action: Action<StonecutterBuildTasks>): Unit = action.execute(tasks)

@@ -2,9 +2,9 @@ package dev.kikugie.stonecutter.controller.task
 
 import dev.kikugie.commons.takeAs
 import dev.kikugie.stonecutter.Identifier
-import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.controller.StonecutterControllerImpl
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
 import dev.kikugie.stonecutter.controller.tree.toModel
 import dev.kikugie.stonecutter.data.tree.ProjectNode
@@ -39,7 +39,6 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
         return property
     }
 
-    @OptIn(StonecutterInternalAPI::class)
     override fun orderImpl(name: String, ordering: Comparator<ProjectNode>, filter: ProjectNode.() -> Boolean) {
         val lock = StonecutterTaskMutexService.create(controller.root.gradle, name)
         val nodes = controller.tree.nodes.filter(filter).sortedWith(ordering)
@@ -89,22 +88,10 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
         val tree = controller.tree
         val flags = controller.flags.takeAs<StonecutterFlagsImpl>()
 
+        enabled = flags[StonecutterFlag.SERIALIZE_TREE_MODEL]
         output.set(controller.root.layout.buildDirectory.file("stonecutter-cache/tree.json"))
         model.set(controller.root.providers) {
             tree.toModel(flags.registry).let(SCJSON::encodeToString)
-        }
-    }
-
-    // The main branch is the controller's own project, so its task lives here.
-    // Non-main branches register their own tasks from the models the controller
-    // publishes to the ProjectBranchContainer.
-    fun registerBranchModelTask() {
-        val main = controller.tree[""] ?: return
-        controller.root.registerDefault<StonecutterModelTask>("stonecutterSaveBranchModel") {
-            output.set(controller.root.layout.buildDirectory.file("stonecutter-cache/branch.json"))
-            model.set(controller.root.providers) {
-                main.toModel().let(SCJSON::encodeToString)
-            }
         }
     }
 

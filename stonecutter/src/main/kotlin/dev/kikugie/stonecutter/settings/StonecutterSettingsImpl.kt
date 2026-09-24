@@ -10,24 +10,18 @@ import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.configureDefaults
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
-import dev.kikugie.stonecutter.controller.task.StonecutterModelTask
-import dev.kikugie.stonecutter.controller.task.registerDefault
 import dev.kikugie.stonecutter.data.container.FlagContainer
-import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.createContainer
-import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
+import dev.kikugie.stonecutter.data.container.createContainer
+import dev.kikugie.stonecutter.data.container.getContainer
 import dev.kikugie.stonecutter.data.container.ProjectBranchContainer
 import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesImpl
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
-import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
 import dev.kikugie.stonecutter.settings.tree.TreeBuilder
 import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
-import dev.kikugie.stonecutter.util.isIdeaSync
 import dev.kikugie.stonecutter.util.newInstance
-import dev.kikugie.stonecutter.util.projectDirectory
-import dev.kikugie.stonecutter.util.requestTasks
 import org.gradle.api.configuration.BuildFeatures
 import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
@@ -36,9 +30,7 @@ import org.gradle.api.logging.Logging
 import org.gradle.api.model.ObjectFactory
 import org.gradle.build.event.BuildEventsListenerRegistry
 import org.gradle.kotlin.dsl.extra
-import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.registerIfAbsent
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 internal abstract class StonecutterSettingsImpl @Inject constructor(
@@ -66,9 +58,10 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
             createContainer<ProjectNodeContainer>()
             val handlers = createContainer<FileHandlerContainer>().get()
             handlers.configureDefaults()
-            configureSyncTask()
-            configureBranchModels()
+            createContainer<ProjectBranchContainer>()
             configureServices(handlers, registry)
+            @Suppress("UnstableApiUsage")
+            lifecycle.beforeProject(StonecutterProjectInitAction)
             settingsEvaluated {
                 if (usesGroovy && !flags[StonecutterFlag.HARD_MODE]) LOGGER.reportGroovyComplaint()
             }
@@ -84,43 +77,6 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
 
     private companion object {
         val LOGGER: Logger = Logging.getLogger("StonecutterSettings")
-    }
-}
-
-private fun Gradle.configureSyncTask() {
-    projectsLoaded {
-        val root = rootProject
-        val task = root.tasks.register<StonecutterIdeaConfigTask>("stonecutterIdea") {
-            group = "stonecutter-impl"
-            description = "Generates IntelliJ IDEA run configurations for version switch tasks"
-
-            projects.set(ConcurrentHashMap())
-            configurations.from(root.projectDirectory.resolve(".idea/runConfigurations"))
-                .include { it.file.name.startsWith("Stonecutter") }
-        }
-        if (isIdeaSync)
-            requestTasks(listOf(task.name), root.path, root.projectDir)
-    }
-}
-
-// Registers each non-main branch's model task on the branch project itself, so
-// we never reach into another project. Paths come from TreeBuilderImpl; the
-// models are published later by the controller.
-private fun Gradle.configureBranchModels() {
-    createContainer<ProjectBranchContainer>()
-    // Capture nothing external here, or Gradle can't isolate the
-    // callback - grab the service off the project's own `gradle` instead.
-    lifecycle.beforeProject {
-        val branches = gradle.createContainer<ProjectBranchContainer>()
-        val branchPath = path
-        if (branchPath !in branches.get()) return@beforeProject
-        registerDefault<StonecutterModelTask>("stonecutterSaveBranchModel") {
-            output.set(layout.buildDirectory.file("stonecutter-cache/branch.json"))
-            // Read eagerly so the value is captured for the configuration
-            // cache; a lazy service read would hit a fresh, empty service at
-            // execution time.
-            model.set(branches.get()[branchPath] ?: error("Branch model for '$branchPath' was not published"))
-        }
     }
 }
 

@@ -1,16 +1,21 @@
 package dev.kikugie.stonecutter.util
 
+import dev.kikugie.stonecutter.StonecutterBaseExtension
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFile
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.internal.DefaultTaskExecutionRequest
+import org.gradle.kotlin.dsl.add
+import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.the
 import org.gradle.work.InputChanges
@@ -70,4 +75,9 @@ internal fun File.toRegularFile(objects: ObjectFactory): RegularFile =
 internal inline fun <T : Any> Action<T>.doFirst(crossinline other: T.() -> Unit): Action<T> = Action {
     other(this)
     this@doFirst.execute(this)
+}
+
+internal inline fun <reified P : StonecutterBaseExtension, reified R : P> ExtensionAware.createStonecutterExtension(vararg args: Any) {
+    val it = extensions.create(P::class, "stonecutter", R::class, this, *args)
+    if (it.flags[StonecutterFlag.SHORT_EXTENSION]) extensions.add(P::class, "sc", it)
 }
