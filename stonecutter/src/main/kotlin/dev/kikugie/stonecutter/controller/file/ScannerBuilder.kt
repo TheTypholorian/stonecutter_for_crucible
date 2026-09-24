@@ -103,8 +103,8 @@ private object PlainTextLexerFactory : ScannerBuilder.LexerFactory {
 
 private data class InterpretedLexerFactory(val grammar: String) : ScannerBuilder.LexerFactory {
     @Transient private var compiled: LexerGrammar? = null
-    private val instance: LexerGrammar get() = compiled
-        ?: LexerGrammar(grammar).also { compiled = it }
+    private val instance: LexerGrammar
+        get() = compiled ?: LexerGrammar(grammar).also { compiled = it }
 
     override fun create(input: CharStream): Lexer =
         instance.createLexerInterpreter(input)
@@ -112,8 +112,8 @@ private data class InterpretedLexerFactory(val grammar: String) : ScannerBuilder
 
 private data class ReflectiveLexerFactory(val lexerClass: Class<out Lexer>) : ScannerBuilder.LexerFactory {
     @Transient private var constructor: Constructor<out Lexer>? = null
-    private val instance: Constructor<out Lexer> get() = constructor
-        ?: lexerClass.getConstructor(CharStream::class.java).also { constructor = it }
+    private val instance: Constructor<out Lexer>
+        get() = constructor ?: lexerClass.getConstructor(CharStream::class.java).also { constructor = it }
 
     override fun create(input: CharStream): Lexer =
         instance.newInstance(input)

@@ -8,7 +8,7 @@ import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.asIllegalArg
 import dev.kikugie.stonecutter.data.version.unpack
 import org.gradle.api.provider.Provider
-import java.util.Optional
+import java.util.*
 import kotlin.jvm.optionals.getOrNull
 
 /**

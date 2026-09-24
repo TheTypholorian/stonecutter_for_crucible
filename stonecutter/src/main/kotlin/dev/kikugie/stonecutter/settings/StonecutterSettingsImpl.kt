@@ -10,12 +10,7 @@ import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.configureDefaults
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
-import dev.kikugie.stonecutter.data.container.FlagContainer
-import dev.kikugie.stonecutter.data.container.createContainer
-import dev.kikugie.stonecutter.data.container.getContainer
-import dev.kikugie.stonecutter.data.container.ProjectBranchContainer
-import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
-import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
+import dev.kikugie.stonecutter.data.container.*
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesImpl
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations

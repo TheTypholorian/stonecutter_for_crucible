@@ -10,6 +10,7 @@ internal inline fun <reified T : GradleContainerService> Gradle.createContainer(
 
 internal inline fun <reified T : GradleContainerService> Gradle.getContainer(): T {
     val name: String = requireNotNull(T::class.simpleName) { "Provided class has no name" }
-    val service: BuildServiceRegistration<*, *> = checkNotNull(sharedServices.registrations.findByName(name)) { "No service registered for name $name" }
+    val service: BuildServiceRegistration<*, *> =
+        checkNotNull(sharedServices.registrations.findByName(name)) { "No service registered for name $name" }
     return service.service.get() as T
 }

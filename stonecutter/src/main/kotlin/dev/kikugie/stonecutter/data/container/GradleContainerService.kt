@@ -16,13 +16,10 @@ import dev.kikugie.stonecutter.util.propertyKey
 import org.gradle.api.Action
 import org.gradle.api.NamedDomainObjectSet
 import org.gradle.api.Project
-import org.gradle.api.invocation.Gradle
 import org.gradle.api.model.ObjectFactory
-import org.gradle.api.provider.Provider
 import org.gradle.api.services.BuildService
 import org.gradle.api.services.BuildServiceParameters
 import org.gradle.kotlin.dsl.newInstance
-import org.gradle.kotlin.dsl.registerIfAbsent
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 

@@ -3,8 +3,8 @@ package dev.kikugie.stonecutter.controller.file
 import dev.kikugie.stitcher.antlr.HashStyleScanner
 import dev.kikugie.stitcher.antlr.SlashStyleScanner
 import dev.kikugie.stitcher.antlr.XmlStyleScanner
-import dev.kikugie.stitcher.transformer.edit.impl.SlashStarUncommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.JavaLikeCommentingStrategy
+import dev.kikugie.stitcher.transformer.edit.impl.SlashStarUncommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.XmlCommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.impl.XmlUncommentingStrategy
 

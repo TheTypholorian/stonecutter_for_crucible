@@ -34,14 +34,29 @@ public interface PatternFilter {
 internal class PatternSetFilter(val patterns: PatternSet = PatternSet()) : PatternFilter {
     override var includes: Set<String>
         get() = patterns.includes
-        set(value) { patterns.setIncludes(value) }
+        set(value) {
+            patterns.setIncludes(value)
+        }
 
     override var excludes: Set<String>
         get() = patterns.excludes
-        set(value) { patterns.setExcludes(value) }
+        set(value) {
+            patterns.setExcludes(value)
+        }
 
-    override fun include(vararg patterns: String) { this.patterns.include(*patterns) }
-    override fun include(patterns: Iterable<String>) { this.patterns.include(patterns) }
-    override fun exclude(vararg patterns: String) { this.patterns.exclude(*patterns) }
-    override fun exclude(patterns: Iterable<String>) { this.patterns.exclude(patterns) }
+    override fun include(vararg patterns: String) {
+        this.patterns.include(*patterns)
+    }
+
+    override fun include(patterns: Iterable<String>) {
+        this.patterns.include(patterns)
+    }
+
+    override fun exclude(vararg patterns: String) {
+        this.patterns.exclude(*patterns)
+    }
+
+    override fun exclude(patterns: Iterable<String>) {
+        this.patterns.exclude(patterns)
+    }
 }

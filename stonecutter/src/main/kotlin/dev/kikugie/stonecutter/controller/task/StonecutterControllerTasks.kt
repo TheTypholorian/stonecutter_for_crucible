@@ -1,8 +1,8 @@
 package dev.kikugie.stonecutter.controller.task
 
 import dev.kikugie.commons.takeAs
-import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.collection.TaskProviderMap
+import dev.kikugie.stonecutter.data.tree.ProjectNode
 import org.gradle.api.Task
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.tasks.TaskProvider

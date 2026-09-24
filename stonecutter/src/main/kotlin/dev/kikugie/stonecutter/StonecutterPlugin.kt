@@ -45,6 +45,7 @@ public abstract class StonecutterPlugin @Inject constructor(
             }
             target.createStonecutterExtension<StonecutterSettingsExtension, StonecutterSettingsImpl>(registry)
         }
+
         is Project -> Unit
         else -> error("The plugin may only be applied to settings and projects")
     }

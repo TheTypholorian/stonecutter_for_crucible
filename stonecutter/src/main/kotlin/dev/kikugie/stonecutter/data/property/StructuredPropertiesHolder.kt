@@ -1,7 +1,6 @@
 package dev.kikugie.stonecutter.data.property
 
 import dev.kikugie.commons.takeAsOrNull
-import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.data.deserialization.*
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesHolder.OverwritePolicy.*
 import org.gradle.api.plugins.ExtraPropertiesExtension
@@ -28,17 +27,17 @@ internal class StructuredPropertiesHolder {
     private var warnOnDuplicate: Boolean = false
     private val exportedKeys: HashSet<String> = HashSet()
 
-    public fun all(): SCMap = flattenedMap[""]?.takeAsOrNull<SCMap>()
+    fun all(): SCMap = flattenedMap[""]?.takeAsOrNull<SCMap>()
         ?: SCMap(emptyMap())
 
-    public fun get(path: String): SCElement? {
+    fun get(path: String): SCElement? {
         if (path in primitiveCache) return primitiveCache[path]
         val best = resolve(path)
         val primitive = if (best is SCMap || best is SCList) null else best
         return primitive.also { primitiveCache[path] = it }
     }
 
-    public fun raw(path: String): SCElement? {
+    fun raw(path: String): SCElement? {
         if (path in rawCache) return rawCache[path]
         val best = resolve(path)
         val result = if (best is SCMap || best is SCList) mergeMatches(path, best) else best
@@ -97,7 +96,7 @@ internal class StructuredPropertiesHolder {
         return index
     }
 
-    public fun tags(tags: Iterable<String>): Boolean {
+    fun tags(tags: Iterable<String>): Boolean {
         val remainder: Set<String> = (tags.toSet() - appliedTags).ifEmpty { return false }
         appliedTags += remainder
 
@@ -116,7 +115,7 @@ internal class StructuredPropertiesHolder {
         return true
     }
 
-    public fun load(file: File?, reload: Boolean = true, data: () -> SCMap?): Boolean {
+    fun load(file: File?, reload: Boolean = true, data: () -> SCMap?): Boolean {
         if (file != null && file in loadedFiles) return false
 
         loadedStructs += data() ?: return false
@@ -126,7 +125,7 @@ internal class StructuredPropertiesHolder {
         return true
     }
 
-    public fun overwrite(policy: OverwritePolicy) {
+    fun overwrite(policy: OverwritePolicy) {
         if (policy == overwritePolicy) return
 
         overwritePolicy = policy
@@ -206,7 +205,7 @@ internal class StructuredPropertiesHolder {
         return result.joinToString(".")
     }
 
-    public enum class OverwritePolicy {
+    enum class OverwritePolicy {
         KEEP, MERGE, WRITE,
     }
 }

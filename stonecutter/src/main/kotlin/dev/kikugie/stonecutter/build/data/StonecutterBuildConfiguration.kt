@@ -19,11 +19,7 @@ import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
-import dev.kikugie.stonecutter.controller.tree.forFile
-import dev.kikugie.stonecutter.controller.tree.unmatchedFiles
-import dev.kikugie.stonecutter.controller.tree.resolveFiles
-import dev.kikugie.stonecutter.controller.tree.restrictedTo
-import dev.kikugie.stonecutter.controller.tree.toParameters
+import dev.kikugie.stonecutter.controller.tree.*
 import dev.kikugie.stonecutter.data.container.FlagContainer
 import dev.kikugie.stonecutter.data.container.getContainer
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesImpl
@@ -113,7 +109,12 @@ private fun Project.setupDefaultProperties(node: ProjectNode, objects: ObjectFac
     holder.reload()
 }
 
-private fun Project.collectTransformParams(file: File, node: ProjectNode, data: StonecutterBuildData, flags: ConfigurationRegistry): StitcherParameters {
+private fun Project.collectTransformParams(
+    file: File,
+    node: ProjectNode,
+    data: StonecutterBuildData,
+    flags: ConfigurationRegistry
+): StitcherParameters {
     val handlers = gradle.getContainer<FileHandlerContainer>()
         .handlers[file.extension.lowercase()].let { mapOf(it.name to HandlerModel(it)) }
     val resolved: File = file(file)

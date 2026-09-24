@@ -7,11 +7,7 @@ import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.ReplacementID
 import dev.kikugie.stonecutter.StonecutterExperimentalAPI
 import dev.kikugie.stonecutter.build.config.ReplacementContainer.*
-import dev.kikugie.stonecutter.model.process.PerlReplacement
-import dev.kikugie.stonecutter.model.process.RegexReplacement
-import dev.kikugie.stonecutter.model.process.Replacement
-import dev.kikugie.stonecutter.model.process.ReplacementModel
-import dev.kikugie.stonecutter.model.process.StringReplacement
+import dev.kikugie.stonecutter.model.process.*
 import dev.kikugie.stonecutter.util.isValidIdentifier
 import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
