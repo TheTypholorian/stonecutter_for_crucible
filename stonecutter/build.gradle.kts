@@ -148,6 +148,7 @@ tasks {
 
     register<GenerateVersionTask>("generateVersion") {
         version = project.version as String
+        gradle = providers.gradleProperty("gradle_compat")
         file = file("build/generated/ver/main/kotlin/dev/kikugie/stonecutter/__version.kt")
     }
 

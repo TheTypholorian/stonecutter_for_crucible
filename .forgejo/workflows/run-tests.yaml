@@ -31,22 +31,36 @@ jobs:
     outputs:
       versions: ${{ steps.resolve.outputs.versions }}
       release: ${{ steps.resolve.outputs.release }}
+      compat: ${{ steps.resolve.outputs.compat }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          sparse-checkout: gradle.properties
+          sparse-checkout-cone-mode: false
       - name: Install dependencies
         run: |
           apt-get update && apt-get install -y --no-install-recommends jq
       - name: Resolve versions
         id: resolve
         run: |
+          compat=$(sed -nE 's/^[[:space:]]*gradle_compat[[:space:]]*=[[:space:]]*([^[:space:]]+).*$/\1/p' gradle.properties)
+          if [ -z "$compat" ]; then
+            echo "gradle_compat is not defined in gradle.properties" >&2
+            exit 1
+          fi
           latest=$(curl -sSf https://services.gradle.org/versions/current | jq -r '.version // empty')
           rc=$(curl -sSf https://services.gradle.org/versions/release-candidate | jq -r '.version // empty')
           nightly=$(curl -sSf https://services.gradle.org/versions/nightly | jq -r '.version // empty')
-          versions=$(jq -cn --arg latest "$latest" --arg rc "$rc" --arg nightly "$nightly" \
-            '[$latest, $rc, $nightly] | map(select(. != "")) | unique')
+          versions=$(jq -cn --arg compat "$compat" --arg latest "$latest" --arg rc "$rc" --arg nightly "$nightly" \
+            '[$compat, $latest, $rc, $nightly] | map(select(. != "")) | unique')
           echo "Resolved Gradle versions: $versions"
+          echo "Compatibility version: $compat"
           echo "Release (latest) version: $latest"
           echo "versions=$versions" >> "$GITHUB_OUTPUT"
           echo "release=$latest" >> "$GITHUB_OUTPUT"
+          echo "compat=$compat" >> "$GITHUB_OUTPUT"
 
   test:
     name: Run tests
@@ -54,7 +68,7 @@ jobs:
     runs-on: kiku-server-heavy
     container:
       image: node:24-bookworm
-    continue-on-error: ${{ matrix.gradle-version != needs.resolve-versions.outputs.release }}
+    continue-on-error: ${{ matrix.gradle-version != needs.resolve-versions.outputs.release && matrix.gradle-version != needs.resolve-versions.outputs.compat }}
     strategy:
       fail-fast: false
       matrix:

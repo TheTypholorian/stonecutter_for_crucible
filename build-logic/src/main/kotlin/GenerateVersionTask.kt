@@ -12,6 +12,9 @@ abstract class GenerateVersionTask : DefaultTask() {
     @get:Input
     abstract val version: Property<String>
 
+    @get:Input
+    abstract val gradle: Property<String>
+
     @get:OutputFile
     abstract val file: RegularFileProperty
 
@@ -21,6 +24,7 @@ abstract class GenerateVersionTask : DefaultTask() {
         val template = """
             package $module
             internal const val __VERSION: String = "${version.get()}"
+            internal const val __GRADLE_COMPAT: String = "${gradle.get()}"
         """.trimIndent()
         with(file.asFile.get().toPath()) {
             createParentDirectories()

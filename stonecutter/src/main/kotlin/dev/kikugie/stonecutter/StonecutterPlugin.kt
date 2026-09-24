@@ -38,7 +38,7 @@ public abstract class StonecutterPlugin @Inject constructor(
         public const val VERSION: String = __VERSION
 
         /**The minimum required Gradle version for Stonecutter to function properly.*/
-        @JvmField public val GRADLE_COMPAT: SemanticVersion = SemanticVersion(9)
+        @JvmField public val GRADLE_COMPAT: SemanticVersion = SemanticVersion.parse(__GRADLE_COMPAT)
     }
 
     /**
