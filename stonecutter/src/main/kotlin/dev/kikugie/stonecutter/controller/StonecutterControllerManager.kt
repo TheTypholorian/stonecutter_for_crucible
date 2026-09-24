@@ -32,14 +32,8 @@ internal interface StonecutterControllerManager : Serializable {
         override val filename: String = "stonecutter.gradle"
         override val pattern: Regex = Regex("""(sc|stonecutter)\s*\.\s*active\s*\(?\s*["'](\S+)["']\s*\)?""")
 
-        override fun create(file: Path, project: Identifier): Unit = file.overwriteText(
-            """
-            plugins {
-                id "dev.kikugie.stonecutter"
-            }
-            stonecutter.active "$project"
-        """.trimIndent(), true
-        )
+        override fun create(file: Path, project: Identifier): Unit =
+            file.overwriteText("stonecutter.active '$project'\n", true)
 
         override fun replace(text: String, template: String): String = pattern.find(text)?.groups?.get(2)?.range
             ?.let { text.replaceRange(it, template) }
@@ -52,14 +46,8 @@ internal interface StonecutterControllerManager : Serializable {
         override val filename: String = "stonecutter.gradle.kts"
         override val pattern: Regex = Regex("""(sc|stonecutter)\s*\.?\s*active\s*\(?\s*"(\S+)"\s*\)?""")
 
-        override fun create(file: Path, project: Identifier): Unit = file.overwriteText(
-            """
-            plugins {
-                id("dev.kikugie.stonecutter")
-            }
-            stonecutter active "$project"
-        """.trimIndent(), true
-        )
+        override fun create(file: Path, project: Identifier): Unit =
+            file.overwriteText("stonecutter active \"$project\"\n", true)
 
         override fun replace(text: String, template: String): String = pattern.find(text)?.groups?.get(2)?.range
             ?.let { text.replaceRange(it, template) }

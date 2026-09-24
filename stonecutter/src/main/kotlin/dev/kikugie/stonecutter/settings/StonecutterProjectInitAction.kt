@@ -57,8 +57,13 @@ internal object StonecutterProjectInitAction : IsolatedAction<Project> {
     }
 
     private fun configureRoot(project: Project, tree: TreeBuilderImpl): Unit = with(project) {
-        pluginManager.apply(StonecutterPlugin::class.java)
-        createStonecutterExtension<StonecutterControllerExtension, StonecutterControllerImpl>()
+        val properties = StonecutterControllerImpl.setupDefaultProperties(project)
+        val flags = gradle.getContainer<FlagContainer>().controller(tree.hierarchy, properties)
+        plugins.withType<StonecutterPlugin> {
+            project.createStonecutterExtension<StonecutterControllerExtension, StonecutterControllerImpl>(properties, flags)
+        }
+        if (flags[StonecutterFlag.AUTO_APPLY_PLUGIN])
+            pluginManager.apply(StonecutterPlugin::class.java)
         if ("" in tree.branchBuilders) configureBranch(project, tree)
     }
 
@@ -78,7 +83,7 @@ internal object StonecutterProjectInitAction : IsolatedAction<Project> {
         plugins.withType<StonecutterPlugin> {
             project.createStonecutterExtension<StonecutterBuildExtension, StonecutterBuildImpl>()
         }
-        if (gradle.getContainer<FlagContainer>()[tree.hierarchy, StonecutterFlag.APPLY_PLUGIN_TO_NODES])
+        if (gradle.getContainer<FlagContainer>()[tree.hierarchy, StonecutterFlag.AUTO_APPLY_PLUGIN])
             pluginManager.apply(StonecutterPlugin::class.java)
     }
 

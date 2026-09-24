@@ -13,7 +13,6 @@ import dev.kikugie.stonecutter.data.ParsedVersion
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.StonecutterProject
-import dev.kikugie.stonecutter.data.container.FlagContainer
 import dev.kikugie.stonecutter.data.container.getContainer
 import dev.kikugie.stonecutter.data.container.ProjectBranchContainer
 import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
@@ -35,7 +34,6 @@ import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFile
-import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.extra
@@ -45,14 +43,14 @@ import java.io.File
 import java.nio.file.Path
 import javax.inject.Inject
 
-internal abstract class StonecutterControllerImpl @Inject constructor(val root: Project, objects: ObjectFactory) :
-    StonecutterControllerExtension, VersionOperations<Version> by LenientOperations {
+internal abstract class StonecutterControllerImpl @Inject constructor(
+    val root: Project,
+    override val properties: StructuredPropertiesImpl,
+    override val flags: StonecutterFlagsImpl,
+) : StonecutterControllerExtension, VersionOperations<Version> by LenientOperations {
     override val tree: ProjectTreeImpl = constructTree(root)
     override val tasks: StonecutterControllerTasksImpl = root.objects.newInstance(this)
     override val handlers: FileHandlerContainer = root.gradle.getContainer()
-    override val properties: StructuredPropertiesImpl = setupDefaultProperties(root, objects)
-    override val flags: StonecutterFlagsImpl = root.gradle.getContainer<FlagContainer>()
-        .controller(tree.hierarchy, properties)
 
     private val nodeContainer: ProjectNodeContainer = root.gradle.getContainer<ProjectNodeContainer>().also { it += tree }
     private var hasInitialized: Boolean = false
@@ -88,13 +86,15 @@ internal abstract class StonecutterControllerImpl @Inject constructor(val root: 
     override fun parameters(action: Action<StonecutterBuildExtension>) {
         nodeContainer.configure(tree, action)
     }
-}
 
-private fun setupDefaultProperties(project: Project, objects: ObjectFactory): StructuredPropertiesImpl = objects.newInstance(project.providers) {
-    loadDefaults(project.layout.settingsDirectory)
-    loadDefaults(project.layout.projectDirectory)
-    holder.extraProperties = project.extra
-    holder.reload()
+    companion object {
+        fun setupDefaultProperties(project: Project): StructuredPropertiesImpl = project.objects.newInstance(project.providers) {
+            loadDefaults(project.layout.settingsDirectory)
+            loadDefaults(project.layout.projectDirectory)
+            holder.extraProperties = project.extra
+            holder.reload()
+        }
+    }
 }
 
 private fun constructTree(root: Project): ProjectTreeImpl {

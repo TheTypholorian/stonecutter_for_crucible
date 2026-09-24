@@ -74,7 +74,8 @@ public data class StonecutterFlag<T : Any> private constructor(
         /**
          * Configures the automatic plugin application behaviour.
          * When disabled, the Stonecutter plugin will not be automatically applied
-         * to versioned `build.gradle[.kts]` files, and will have to be added explicitly with
+         * to `stonecutter.gradle(.kts)` and versioned `build.gradle(.kts)` files,
+         * and will have to be added explicitly with
          * ```kotlin
          * plugins {
          *     id("dev.kikugie.stonecutter")
@@ -84,7 +85,7 @@ public data class StonecutterFlag<T : Any> private constructor(
          * **Default**: `true`
          */
         @JvmField
-        public val APPLY_PLUGIN_TO_NODES: StonecutterFlag<Boolean> = StonecutterFlag("auto_apply_plugin", true)
+        public val AUTO_APPLY_PLUGIN: StonecutterFlag<Boolean> = StonecutterFlag("auto_apply_plugin", true)
 
         /**
          * Configures versioned source generation on IntelliJ sync.
