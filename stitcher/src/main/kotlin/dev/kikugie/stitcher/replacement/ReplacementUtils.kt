@@ -4,9 +4,9 @@ import dev.kikugie.stonecutter.model.process.Replacement
 import java.util.*
 import kotlin.enums.enumEntries
 
-context(exec: ReplacementExecutor)
-internal val Replacement.isActive: Boolean
-    get() = identifier == null || identifier in exec.identifiers
+@Suppress("UNCHECKED_CAST")
+internal inline fun <reified T : Replacement> List<ReplacementState<*>>.ofType(): List<ReplacementState<T>> =
+    filter { it.value is T } as List<ReplacementState<T>>
 
 inline fun <reified T : Enum<T>> Int.toEnumSet(): EnumSet<T> = EnumSet.noneOf(T::class.java).apply {
     if (this@toEnumSet == 0) return@apply

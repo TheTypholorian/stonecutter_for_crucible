@@ -5,7 +5,6 @@ import dev.kikugie.stitcher.document.issue.REPLACEMENT_GROUP
 import dev.kikugie.stitcher.document.issue.report
 import dev.kikugie.stitcher.document.reference
 import dev.kikugie.stonecutter.model.process.PerlReplacement
-import dev.kikugie.stonecutter.model.process.Replacement
 import org.pcre4j.Pcre2Code
 import org.pcre4j.Pcre2MatchData
 import org.pcre4j.option.Pcre2CompileOption
@@ -19,11 +18,9 @@ import java.util.*
 private val FLAGS: EnumSet<Pcre2SubstituteOption> = EnumSet.of(EXTENDED, REPLACEMENT_ONLY)
 private val MATCH_FLAGS: EnumSet<Pcre2MatchOption> = EnumSet.noneOf(Pcre2MatchOption::class.java)
 
-class PerlExecutor(replacements: List<Replacement>, override val identifiers: Set<String>) : ReplacementExecutor {
-    private val replacements: List<Pair<Pcre2Code, PerlReplacement>> = replacements.asSequence()
-        .filterIsInstance<PerlReplacement>()
-        .map { Pcre2Code(it.pattern, it.compileOptions()) to it }
-        .toList()
+class PerlExecutor(replacements: List<ReplacementState<PerlReplacement>>) : ReplacementExecutor {
+    private val replacements: List<Pair<Pcre2Code, ReplacementState<PerlReplacement>>> =
+        replacements.map { Pcre2Code(it.value.pattern, it.value.compileOptions()) to it }
 
     override fun isEmpty(): Boolean =
         replacements.isEmpty()
@@ -31,8 +28,8 @@ class PerlExecutor(replacements: List<Replacement>, override val identifiers: Se
     override fun collect(tracker: ModificationTracker, text: String, queue: EmitQueue) {
         if (replacements.isEmpty()) return
         val cursor = Utf8Cursor(text)
-        for ((pattern, repl) in replacements) if (repl.isActive)
-            process(tracker, pattern, repl.target, text, queue, cursor)
+        for ((pattern, repl) in replacements) if (repl.enabled)
+            process(tracker, pattern, repl.value.target, text, queue, cursor)
     }
 
     private fun process(tracker: ModificationTracker, pattern: Pcre2Code, target: String, text: String, queue: EmitQueue, cursor: Utf8Cursor) {

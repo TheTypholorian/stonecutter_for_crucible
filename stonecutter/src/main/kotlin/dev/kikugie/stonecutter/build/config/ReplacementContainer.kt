@@ -10,13 +10,12 @@ import dev.kikugie.stonecutter.build.config.ReplacementContainer.*
 import dev.kikugie.stonecutter.model.process.PerlReplacement
 import dev.kikugie.stonecutter.model.process.RegexReplacement
 import dev.kikugie.stonecutter.model.process.Replacement
-import dev.kikugie.stonecutter.model.process.ReplacementFilter
+import dev.kikugie.stonecutter.model.process.ReplacementModel
 import dev.kikugie.stonecutter.model.process.StringReplacement
 import dev.kikugie.stonecutter.util.isValidIdentifier
 import org.gradle.api.Action
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
-import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.newInstance
@@ -449,12 +448,9 @@ public sealed interface ReplacementContainer {
 }
 
 internal abstract class ReplacementContainerImpl @Inject constructor(
-    val replacements: ListProperty<Replacement>,
-    val filters: MapProperty<Int, ReplacementFilter>,
+    val replacements: ListProperty<ReplacementModel>,
     val objects: ObjectFactory
 ) : ReplacementContainer {
-    private var count: Int = 0
-
     override fun string(action: Action<StringReplacementSpec>): Unit =
         objects.newInstance<StringSpecImpl>(this).also(action::execute).finalise()
 
@@ -464,16 +460,11 @@ internal abstract class ReplacementContainerImpl @Inject constructor(
     @OptIn(StonecutterExperimentalAPI::class)
     override fun perl(action: Action<PerlReplacementSpec>): Unit =
         objects.newInstance<PerlSpecImpl>(this).also(action::execute).finalise()
-
-    fun register(replacement: Replacement): Int {
-        replacements.add(replacement)
-        return count++
-    }
 }
 
 internal abstract class StringSpecImpl @Inject constructor(val container: ReplacementContainerImpl) :
     StringReplacementSpec(), PatternFilter by PatternSetFilter() {
-    private val indices: MutableList<Int> = mutableListOf()
+    private val pending: MutableList<Pair<Replacement, Boolean>> = mutableListOf()
     private var usedImmediateAnonymousAssignment: Boolean = false
 
     override fun replace(from: String, to: String) {
@@ -482,9 +473,9 @@ internal abstract class StringSpecImpl @Inject constructor(val container: Replac
         else require(id.isValidIdentifier()) { "Invalid replacement identifier '$id'" }
 
         val it =
-            if (direction.get()) StringReplacement(from, to, id, enabled)
-            else StringReplacement(to, from, id, enabled)
-        indices += container.register(it)
+            if (direction.get()) StringReplacement(from, to, id)
+            else StringReplacement(to, from, id)
+        pending += it to enabled
     }
 
     fun finalise() {
@@ -492,13 +483,13 @@ internal abstract class StringSpecImpl @Inject constructor(val container: Replac
             error("String replacement id '${id.get()}' was assigned after replacements were registered")
 
         if (from.isPresent || to.isPresent) replace(from.get(), to.get())
-        container.registerFilter(indices, this)
+        container.register(pending, this)
     }
 }
 
 internal abstract class RegexSpecImpl @Inject constructor(val container: ReplacementContainerImpl) :
     RegexReplacementSpec(), PatternFilter by PatternSetFilter() {
-    private val indices: MutableList<Int> = mutableListOf()
+    private val pending: MutableList<Pair<Replacement, Boolean>> = mutableListOf()
     private var usedImmediateAnonymousAssignment: Boolean = false
 
     override fun replace(directPattern: Pattern, directReplacement: String, reversePattern: Pattern, reverseReplacement: String) {
@@ -507,9 +498,9 @@ internal abstract class RegexSpecImpl @Inject constructor(val container: Replace
         else require(id.isValidIdentifier()) { "Invalid replacement identifier '$id'" }
 
         val it =
-            if (direction.get()) RegexReplacement(directPattern.pattern(), directReplacement, directPattern.flags(), id, enabled)
-            else RegexReplacement(reversePattern.pattern(), reverseReplacement, reversePattern.flags(), id, enabled)
-        indices += container.register(it)
+            if (direction.get()) RegexReplacement(directPattern.pattern(), directReplacement, directPattern.flags(), id)
+            else RegexReplacement(reversePattern.pattern(), reverseReplacement, reversePattern.flags(), id)
+        pending += it to enabled
     }
 
     fun finalise() {
@@ -518,14 +509,14 @@ internal abstract class RegexSpecImpl @Inject constructor(val container: Replace
 
         if (fromPattern.isPresent || toValue.isPresent || reversePattern.isPresent || reverseValue.isPresent)
             replace(fromPattern.get(), toValue.get(), reversePattern.get(), reverseValue.get())
-        container.registerFilter(indices, this)
+        container.register(pending, this)
     }
 }
 
 @OptIn(StonecutterExperimentalAPI::class)
 internal abstract class PerlSpecImpl @Inject constructor(val container: ReplacementContainerImpl) :
     PerlReplacementSpec(), PatternFilter by PatternSetFilter() {
-    private val indices: MutableList<Int> = mutableListOf()
+    private val pending: MutableList<Pair<Replacement, Boolean>> = mutableListOf()
     private var usedImmediateAnonymousAssignment: Boolean = false
 
     override fun replace(
@@ -544,25 +535,26 @@ internal abstract class PerlSpecImpl @Inject constructor(val container: Replacem
             .toInt()
 
         val it =
-            if (direction.get()) PerlReplacement(directPattern, directReplacement, set, id, enabled)
-            else PerlReplacement(reversePattern, reverseReplacement, set, id, enabled)
-        indices += container.register(it)
+            if (direction.get()) PerlReplacement(directPattern, directReplacement, set, id)
+            else PerlReplacement(reversePattern, reverseReplacement, set, id)
+        pending += it to enabled
     }
 
     fun finalise() {
         if (usedImmediateAnonymousAssignment && id.isPresent)
             error("Regex replacement id '${id.get()}' was assigned after replacements were registered")
-        container.registerFilter(indices, this)
+        container.register(pending, this)
     }
 }
 
-private fun ReplacementContainerImpl.registerFilter(indices: List<Int>, spec: PatternFilter) {
-    if (indices.isEmpty() || (spec.includes.isEmpty() && spec.excludes.isEmpty())) return
-    val filter = ReplacementFilter(spec.includes.toSet(), spec.excludes.toSet())
-    for (index in indices) filters.put(index, filter)
+private fun ReplacementContainerImpl.register(pending: List<Pair<Replacement, Boolean>>, spec: PatternFilter) {
+    val includes = spec.includes.toSet()
+    val excludes = spec.excludes.toSet()
+    for ((replacement, enabled) in pending)
+        replacements.add(ReplacementModel(replacement, enabled, includes, excludes))
 }
 
 private fun Provider<Identifier>.unwrap(): Pair<String?, Boolean> {
-    val id = orNull ?: return null to false
+    val id = orNull ?: return null to true
     return id.trimStart('!') to id.startsWith('!')
 }

@@ -11,18 +11,32 @@ import dev.kikugie.stitcher.util.findClosest
 import dev.kikugie.stitcher.util.findInsertionPlaces
 import dev.kikugie.stonecutter.model.Identifier
 import dev.kikugie.stonecutter.model.process.ProcessParameters
+import dev.kikugie.stonecutter.model.process.ReplacementModel
 import kotlin.math.max
 
 object ExpressionChecker : BlockToken.Visitor<Unit, Context>, DefinitionToken.Visitor<Unit, Context>, ExpressionToken.Visitor<Unit, Context> {
     class Context(val vars: ProcessParameters) {
         val knownReplacementIds: MutableSet<Identifier> = HashSet()
-        val activeReplacementIds: MutableSet<Identifier> = HashSet()
+        val enabledReplacementIds: MutableSet<Identifier> = HashSet()
+        val disabledReplacementIds: MutableSet<Identifier> = HashSet()
 
         init {
-            for (repl in vars.replacements) repl.identifier?.let {
-                knownReplacementIds += it
-                if (repl.defaultEnabled) activeReplacementIds += it
+            val states = vars.replacements.groupBy({ it.replacement.identifier }, ReplacementModel::enabled)
+            for ((id, enabled) in states) if (id != null) {
+                knownReplacementIds += id
+                if (enabled.all { it }) enabledReplacementIds += id
+                if (enabled.none { it }) disabledReplacementIds += id
             }
+        }
+
+        fun enable(id: Identifier): Boolean {
+            disabledReplacementIds -= id
+            return enabledReplacementIds.add(id)
+        }
+
+        fun disable(id: Identifier): Boolean {
+            enabledReplacementIds -= id
+            return disabledReplacementIds.add(id)
         }
     }
 
@@ -98,7 +112,7 @@ object ExpressionChecker : BlockToken.Visitor<Unit, Context>, DefinitionToken.Vi
             it.accept(::visitReplacementLocalEntry, ctx)
         if (repl.opener is ScopeToken.Named) repl.opener.id?.let {
             ctx.knownReplacementIds += it
-            ctx.activeReplacementIds += it
+            ctx.enable(it)
         }
     }
 
@@ -142,11 +156,11 @@ object ExpressionChecker : BlockToken.Visitor<Unit, Context>, DefinitionToken.Vi
             reportUnresolvedReplacementId(entry, ctx.knownReplacementIds)
 
         else if (entry.op == null) ->
-            if (ctx.activeReplacementIds.add(id)) Unit
+            if (ctx.enable(id)) Unit
             else reportDuplicateEnabledReplacement(entry)
 
         else ->
-            if (ctx.activeReplacementIds.remove(id)) Unit
+            if (ctx.disable(id)) Unit
             else reportDuplicateDisabledReplacement(entry)
     }
 }

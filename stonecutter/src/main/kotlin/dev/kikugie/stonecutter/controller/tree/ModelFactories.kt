@@ -10,8 +10,11 @@ import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 import dev.kikugie.stonecutter.model.process.ProcessParameters
-import dev.kikugie.stonecutter.model.process.ReplacementFilter
+import dev.kikugie.stonecutter.model.process.ReplacementModel
 import dev.kikugie.stonecutter.model.tree.*
+import dev.kikugie.stonecutter.util.SCJSON
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import org.gradle.api.file.FileTree
 import org.gradle.api.tasks.util.PatternSet
 import java.io.File
@@ -29,7 +32,7 @@ internal fun ProjectBranch.toModel(): BranchModel =
 
 internal fun ProjectNode.toModel(data: StonecutterBuildData, flags: ConfigurationRegistry): NodeModel = NodeModel(
     metadata.project, metadata.version, metadata.isActive, branch.toInfo(), tree.location,
-    data.toParameters(), flags, data.replacementFilters.get().toMap()
+    data.toParameters(), flags
 )
 
 internal fun ProjectTree.toModel(flags: ConfigurationRegistry): TreeModel =
@@ -42,20 +45,35 @@ internal fun StonecutterBuildData.toParameters(): ProcessParameters = ProcessPar
     replacements = replacements.get().toList(),
 )
 
-internal fun ProcessParameters.forFile(file: Path, handlers: Map<String, HandlerModel>): StitcherParameters? {
+internal fun ProcessParameters.forFile(file: Path, handlers: Map<String, HandlerModel>, flags: ConfigurationRegistry): StitcherParameters? {
     val handler = handlers[file.extension.lowercase()] ?: return null
     return StitcherParameters(
-        this, ConfigurationRegistry(),
+        this, flags,
         handler.scanner, handler.commenter, handler.uncommenter, handler.swapper
     )
 }
 
-internal fun Map<Int, ReplacementFilter>.resolveFiles(tree: FileTree): Map<Int, Set<File>> = mapValues { (_, it) ->
-    tree.matching(PatternSet().setIncludes(it.includes).setExcludes(it.excludes)).files
+internal fun ConfigurationRegistry.toJsonString(): String {
+    val encoded = SCJSON.encodeToJsonElement(ConfigurationRegistry.RegistrySerializer, this).jsonObject
+    return JsonObject(encoded.filterValues { "value" in it.jsonObject }.toSortedMap()).toString()
 }
 
-internal fun ProcessParameters.restrictedTo(file: File, scopes: Map<Int, Set<File>>): ProcessParameters {
-    if (scopes.isEmpty()) return this
-    val allowed = replacements.filterIndexed { index, _ -> scopes[index]?.contains(file) ?: true }
-    return if (allowed.size == replacements.size) this else copy(replacements = allowed)
+internal fun restoreFromJson(snapshot: String): ConfigurationRegistry =
+    SCJSON.decodeFromString(ConfigurationRegistry.RegistrySerializer, snapshot)
+
+internal fun List<ReplacementModel>.resolveFiles(tree: FileTree): Map<Int, Set<File>> = buildMap {
+    for ((index, it) in this@resolveFiles.withIndex()) if (it.isFiltered)
+        this[index] = tree.matching(PatternSet().setIncludes(it.includes).setExcludes(it.excludes)).files
 }
+
+internal fun List<ReplacementModel>.unmatchedFiles(): Map<Int, Set<File>> = buildMap {
+    for ((index, it) in this@unmatchedFiles.withIndex()) if (it.isFiltered) this[index] = emptySet()
+}
+
+internal fun ProcessParameters.restrictedTo(file: File, scopes: Map<Int, Set<File>>): ProcessParameters = if (scopes.isEmpty()) this
+else copy(replacements = replacements.mapIndexed { index, it ->
+    if (it.enabled && scopes[index]?.contains(file) == false) it.copy(enabled = false) else it
+})
+
+private val ReplacementModel.isFiltered: Boolean
+    get() = includes.isNotEmpty() || excludes.isNotEmpty()

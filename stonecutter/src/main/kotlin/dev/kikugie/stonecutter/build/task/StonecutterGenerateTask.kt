@@ -14,20 +14,26 @@ import dev.kikugie.stonecutter.build.data.StonecutterBuildData
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
 import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.controller.tree.forFile
+import dev.kikugie.stonecutter.controller.tree.restoreFromJson
 import dev.kikugie.stonecutter.controller.tree.resolveFiles
 import dev.kikugie.stonecutter.controller.tree.restrictedTo
 import dev.kikugie.stonecutter.controller.tree.toParameters
+import dev.kikugie.stonecutter.controller.tree.toJsonString
+import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 import dev.kikugie.stonecutter.model.process.ProcessParameters
 import dev.kikugie.stonecutter.util.clearIfNotIncremental
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.FileSystemLocation
 import org.gradle.api.file.FileType
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.gradle.api.services.ServiceReference
 import org.gradle.api.tasks.*
 import org.gradle.kotlin.dsl.submit
+import org.gradle.work.ChangeType
 import org.gradle.work.FileChange
 import org.gradle.work.Incremental
 import org.gradle.work.InputChanges
@@ -36,7 +42,12 @@ import org.gradle.workers.WorkParameters
 import org.gradle.workers.WorkQueue
 import org.gradle.workers.WorkerExecutor
 import java.io.File
+import java.io.InputStreamReader
+import java.nio.charset.CharacterCodingException
+import java.nio.charset.CharsetDecoder
+import java.nio.charset.CodingErrorAction
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import javax.inject.Inject
 import kotlin.io.path.*
 
@@ -68,12 +79,28 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
     public abstract val source: ConfigurableFileCollection
 
     /**The subset of [source] files that should be run through the preprocessor.*/
-    @get:InputFiles @get:IgnoreEmptyDirectories @get:PathSensitive(PathSensitivity.RELATIVE)
+    @get:Internal
     public abstract val processable: ConfigurableFileCollection
 
     /**The version-specific files overriding shared sources, excluded from the output.*/
-    @get:InputFiles @get:IgnoreEmptyDirectories @get:PathSensitive(PathSensitivity.RELATIVE)
+    @get:Internal
     public abstract val local: ConfigurableFileCollection
+
+    @get:Input
+    internal val processablePaths: Provider<Set<String>>
+        get() = processable.elements.map { it.relativePaths(root.get()) }
+
+    @get:Input
+    internal val localPaths: Provider<Set<String>>
+        get() = local.elements.map { it.relativePaths(localRoot.get()) }
+
+    @get:Input
+    internal val handlerFingerprints: Provider<Map<String, String>>
+        get() = processablePaths.zip(handlers) { paths, service ->
+            val models = service.parameters.handlers.get()
+            paths.mapTo(sortedSetOf()) { it.substringAfterLast('/').substringAfterLast('.', "").lowercase() }
+                .mapNotNull { ext -> models[ext]?.let { ext to it.fingerprint() } }.toMap()
+        }
 
     /**The base directory of the [local] overrides used for resolving relative paths.*/
     @get:Internal
@@ -87,6 +114,9 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
     @get:Input
     internal abstract val lineEnding: Property<String>
 
+    @get:Input
+    internal abstract val flagRegistry: Property<String>
+
     @get:Inject
     internal abstract val executor: WorkerExecutor
 
@@ -98,6 +128,7 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
 
     init {
         lineEnding.convention(System.lineSeparator())
+        flagRegistry.convention(ConfigurationRegistry().toJsonString())
     }
 
     @TaskAction
@@ -105,16 +136,25 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
         inputs.clearIfNotIncremental(destination.asFile.get())
         val data = params.get()
         val model = data.toParameters()
-        val scopes: Map<Int, Set<File>> = data.replacementFilters.get().resolveFiles(source.asFileTree)
-        val processable: Set<File> = processable.files
+        val scopes: Map<Int, Set<File>> = model.replacements.resolveFiles(source.asFileTree)
+        val processable: Set<String> = processablePaths.get()
 
         with(executor.noIsolation()) {
-            for (change in inputs.getFileChanges(source))
-                if (change.fileType != FileType.DIRECTORY)
-                    processFile(change, model.restrictedTo(change.file, scopes), change.file in processable)
+            processFileChanges(inputs, model, scopes, processable)
             await()
         }
         errors.get().complete(path)
+    }
+
+    private fun WorkQueue.processFileChanges(inputs: InputChanges, model: ProcessParameters, scopes: Map<Int, Set<File>>, processable: Set<String>) {
+        for (change in inputs.getFileChanges(source)) when {
+            change.fileType == FileType.DIRECTORY -> continue
+            change.changeType == ChangeType.REMOVED -> change.file.generatedFile.delete()
+            else -> processFile(
+                change, model.restrictedTo(change.file, scopes),
+                change.file.relativeTo(root.get()).invariantSeparatorsPath in processable
+            )
+        }
     }
 
     private val File.generatedFile: File
@@ -129,6 +169,7 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
             output.set(change.file.generatedFile)
             override.set(change.file.overrideFile)
             model.set(params)
+            flags.set(flagRegistry)
             transform.set(process)
             lineEnding.set(this@StonecutterGenerateTask.lineEnding)
 
@@ -144,6 +185,7 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
         val output: RegularFileProperty
         val override: RegularFileProperty
         val model: Property<ProcessParameters>
+        val flags: Property<String>
         val transform: Property<Boolean>
         val lineEnding: Property<String>
 
@@ -160,20 +202,28 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
         if (source.notExists()) return handleNoFile()
         if (override.exists()) return output.deleteIfExists().let { }
 
-        val parameters = if (parameters.transform.get()) createTransformParameters() else null
-        val processed = parameters?.let { tryProcessFile(createSourceDocument(), it) }
-            ?: return copyDirectly()
+        if (!parameters.transform.get()) return copyDirectly()
+        val parameters = createTransformParameters() ?: return copyDirectly()
+        val document = createSourceDocument() ?: return
+        val processed = tryProcessFile(document, parameters) ?: return copyDirectly()
 
         val separator = this.parameters.lineEnding.get()
         output.createParentDirectories()
         output.bufferedWriter(Charsets.UTF_8).use { raw ->
             LineNormalizingWriter(raw, separator).use { processed.appendTo(it) }
         }
+        copyMetadata()
     }
 
     private fun copyDirectly() {
         output.createParentDirectories()
-        source.copyTo(output, overwrite = true)
+        source.copyTo(output, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES)
+    }
+
+    private fun copyMetadata() {
+        if (source.fileSystem.supportedFileAttributeViews().contains("posix"))
+            output.setPosixFilePermissions(source.getPosixFilePermissions())
+        output.setLastModifiedTime(source.getLastModifiedTime())
     }
 
     private fun handleNoFile() {
@@ -191,17 +241,32 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
 
     private fun createTransformParameters(): StitcherParameters? {
         val handlers: Map<String, HandlerModel> = parameters.handlers.get().parameters.handlers.get()
-        return parameters.model.get().forFile(source, handlers)
+        val flags: ConfigurationRegistry = restoreFromJson(parameters.flags.get())
+        return parameters.model.get().forFile(source, handlers, flags)
     }
 
-    private fun createSourceDocument(): SourceDocument {
+    private fun createSourceDocument(): SourceDocument? {
         val source = source
-        val text = LineNormalizingReader(source.bufferedReader()).use { it.readText() }
+        val decoder = Charsets.UTF_8.newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+        val text = tryReadFile(source, decoder) ?: return null
         return SourceDocument(source, text, createProblemReporter())
     }
 
     private fun createDummyDocument(): SourceDocument =
         SourceDocument(source, "", createProblemReporter())
+
+    fun tryReadFile(source: Path, decoder: CharsetDecoder): String? = try {
+        LineNormalizingReader(InputStreamReader(source.inputStream(), decoder).buffered()).use { it.readText() }
+    } catch (e: CharacterCodingException) {
+        createDummyDocument().reference().report(GENERATE_TASK + "invalid-encoding") {
+            label = "Invalid file encoding"
+            info = "File is not valid UTF-8 and can't be processed."
+            error = e
+        }
+        null
+    }
 
     private fun tryProcessFile(document: SourceDocument, parameters: StitcherParameters): BlockToken.Root? = try {
         Stitcher.process(document, parameters)
@@ -220,3 +285,6 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
         null
     }
 }
+
+private fun Set<FileSystemLocation>.relativePaths(root: File): Set<String> =
+    mapTo(sortedSetOf()) { it.asFile.relativeTo(root).invariantSeparatorsPath }

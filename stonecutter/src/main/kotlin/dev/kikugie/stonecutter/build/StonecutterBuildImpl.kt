@@ -8,6 +8,8 @@ import dev.kikugie.stonecutter.build.task.StonecutterBuildTasksImpl
 import dev.kikugie.stonecutter.controller.file.FileHandlerContainer
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
+import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
+import dev.kikugie.stonecutter.controller.tree.toJsonString
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.GradleContainerService.Companion.getContainer
 import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
@@ -64,7 +66,7 @@ private fun Project.refreshConfiguration(flags: StonecutterFlags, impls: Stonecu
 private fun SourceSet.createProcessingTasks(
     project: Project,
     data: StonecutterBuildData,
-    flags: StonecutterFlags,
+    flags: StonecutterFlagsImpl,
     filters: PatternFilterable,
     impls: StonecutterBuildTasksImpl
 ) {
@@ -84,6 +86,7 @@ private fun SourceSet.createProcessingTasks(
         localRoot.set(localSource.asFile)
         destination.set(impls.generatedSourcesDir.dir(name))
         lineEnding.set(flags[StonecutterFlag.LINE_SEPARATOR])
+        flagRegistry.set(project.provider { flags.registry.toJsonString() })
     }
 
     impls.registerMergeTask(this) {

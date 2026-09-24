@@ -2,28 +2,28 @@ package dev.kikugie.stitcher.replacement
 
 import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stonecutter.model.process.Replacement
-import dev.kikugie.stonecutter.model.process.StringReplacement
+import dev.kikugie.stonecutter.model.process.ReplacementModel
 
-class CompositeExecutor(replacements: List<Replacement>) : ReplacementExecutor {
-    override val identifiers: MutableSet<String> = HashSet()
-    private val stringExecutor: StringExecutor = StringExecutor(replacements, identifiers)
-    private val regexExecutor: RegexExecutor = RegexExecutor(replacements, identifiers)
-    private val perlExecutor: PerlExecutor = PerlExecutor(replacements, identifiers)
-
-    init {
-        for (repl in replacements) repl.identifier.let {
-            if (it != null && repl.defaultEnabled) identifiers += it
-        }
-    }
+class CompositeExecutor(replacements: List<ReplacementModel>) : ReplacementExecutor {
+    private val switches: MutableList<ReplacementState<*>> =
+        replacements.mapTo(ArrayList()) { ReplacementState(it.replacement, it.enabled) }
+    private val stringExecutor: StringExecutor = StringExecutor(switches.ofType())
+    private val regexExecutor: RegexExecutor = RegexExecutor(switches.ofType())
+    private val perlExecutor: PerlExecutor = PerlExecutor(switches.ofType())
 
     fun toggle(enable: Set<String> = emptySet(), disable: Set<String> = emptySet()) {
-        identifiers += enable
-        identifiers -= disable
+        for (it in switches) {
+            val id = it.value.identifier ?: continue
+            if (id in enable) it.enabled = true
+            else if (id in disable) it.enabled = false
+        }
         stringExecutor.clear()
     }
 
     operator fun plusAssign(replacements: Sequence<Replacement>) {
-        stringExecutor += replacements.filterIsInstance<StringReplacement>()
+        val added = replacements.map { ReplacementState(it, false) }.toList()
+        switches += added
+        stringExecutor += added.ofType()
     }
 
     override fun isEmpty(): Boolean =

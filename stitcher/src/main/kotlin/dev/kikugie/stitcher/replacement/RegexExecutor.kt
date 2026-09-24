@@ -5,23 +5,20 @@ import dev.kikugie.stitcher.document.issue.REPLACEMENT_GROUP
 import dev.kikugie.stitcher.document.issue.report
 import dev.kikugie.stitcher.document.reference
 import dev.kikugie.stonecutter.model.process.RegexReplacement
-import dev.kikugie.stonecutter.model.process.Replacement
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
-class RegexExecutor(replacements: List<Replacement>, override val identifiers: Set<String>) : ReplacementExecutor {
-    private val replacements: List<Pair<Pattern, RegexReplacement>> = replacements.asSequence()
-        .filterIsInstance<RegexReplacement>()
-        .map { Pattern.compile(it.pattern, it.flags) to it }
-        .toList()
+class RegexExecutor(replacements: List<ReplacementState<RegexReplacement>>) : ReplacementExecutor {
+    private val replacements: List<Pair<Pattern, ReplacementState<RegexReplacement>>> =
+        replacements.map { Pattern.compile(it.value.pattern, it.value.flags) to it }
 
     override fun isEmpty(): Boolean =
         replacements.isEmpty()
 
     override fun collect(tracker: ModificationTracker, text: String, queue: EmitQueue) {
         if (replacements.isEmpty()) return
-        for ((regex, repl) in replacements) if (repl.isActive)
-            process(tracker, regex, repl.target, text, queue)
+        for ((regex, repl) in replacements) if (repl.enabled)
+            process(tracker, regex, repl.value.target, text, queue)
     }
 
     private fun process(tracker: ModificationTracker, regex: Pattern, target: String, text: String, queue: EmitQueue) {

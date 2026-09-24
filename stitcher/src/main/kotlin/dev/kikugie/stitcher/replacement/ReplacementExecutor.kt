@@ -4,8 +4,6 @@ import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stitcher.document.stringContent
 
 interface ReplacementExecutor {
-    val identifiers: Set<String>
-
     fun isEmpty(): Boolean
 
     fun collect(tracker: ModificationTracker, text: String, queue: EmitQueue)

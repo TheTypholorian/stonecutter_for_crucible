@@ -4,21 +4,20 @@ import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stitcher.document.issue.REPLACEMENT_GROUP
 import dev.kikugie.stitcher.document.issue.report
 import dev.kikugie.stitcher.document.reference
-import dev.kikugie.stonecutter.model.process.Replacement
 import dev.kikugie.stonecutter.model.process.StringReplacement
 
-class StringExecutor(replacements: List<Replacement>, override val identifiers: Set<String>) : ReplacementExecutor {
-    private val index: MutableMap<String, MutableList<StringReplacement>> = HashMap()
+class StringExecutor(replacements: List<ReplacementState<StringReplacement>>) : ReplacementExecutor {
+    private val index: MutableMap<String, MutableList<ReplacementState<StringReplacement>>> = HashMap()
     private val cache: MutableMap<String, String?> = HashMap()
     private val searcher: AhoCorasickTrie = AhoCorasickTrie()
 
     init {
-        this += replacements.asSequence().filterIsInstance<StringReplacement>()
+        this += replacements
     }
 
     fun clear(): Unit = cache.clear()
 
-    operator fun plusAssign(new: Sequence<StringReplacement>) {
+    operator fun plusAssign(new: List<ReplacementState<StringReplacement>>) {
         new.collectTo(index)
         searcher += new.toPayloads()
         clear()
@@ -39,7 +38,7 @@ class StringExecutor(replacements: List<Replacement>, override val identifiers: 
     private fun resolveReplacement(tracker: ModificationTracker, match: AhoCorasickTrie.Match): String? {
         val start: String = match.pattern
         // No direct transition
-        if (index[start].run { isNullOrEmpty() || none { it.isActive } })
+        if (index[start].run { isNullOrEmpty() || none { it.enabled } })
             return null
 
         // Terminal outcomes reachable from `start`; loopback/circular branches contribute none.
@@ -57,10 +56,12 @@ class StringExecutor(replacements: List<Replacement>, override val identifiers: 
 
     private tailrec fun walk(start: String, stack: ArrayDeque<String>, visited: MutableSet<String>, outcomes: MutableSet<String>) {
         val node = stack.removeFirstOrNull() ?: return
-        val targets = index[node]?.filter { it.isActive && it.pattern == node }
+        val targets = index[node]?.filter { it.enabled && it.value.pattern == node }
         if (targets.isNullOrEmpty()) outcomes += node
-        else for ((_, target) in targets)
+        else for (it in targets) {
+            val target = it.value.target
             if (target != start && visited.add(target)) stack.addLast(target)
+        }
         return walk(start, stack, visited, outcomes)
     }
 
@@ -74,22 +75,22 @@ class StringExecutor(replacements: List<Replacement>, override val identifiers: 
     }
 }
 
-private fun Sequence<StringReplacement>.collectTo(map: MutableMap<String, MutableList<StringReplacement>>): Unit = forEach {
-    map.getOrPut(it.pattern, ::mutableListOf) += it
-    if (it.target != it.pattern) map.getOrPut(it.target, ::mutableListOf) += it
+private fun List<ReplacementState<StringReplacement>>.collectTo(map: MutableMap<String, MutableList<ReplacementState<StringReplacement>>>): Unit = forEach {
+    map.getOrPut(it.value.pattern, ::mutableListOf) += it
+    if (it.value.target != it.value.pattern) map.getOrPut(it.value.target, ::mutableListOf) += it
 }
 
-private fun Sequence<StringReplacement>.toPayloads(): Sequence<String> =
-    flatMap { (pattern, target) -> listOf(pattern, target) }
+private fun List<ReplacementState<StringReplacement>>.toPayloads(): Sequence<String> =
+    asSequence().flatMap { listOf(it.value.pattern, it.value.target) }
 
 private fun ModificationTracker.reportAmbiguousReplacement(
-    match: AhoCorasickTrie.Match, replacements: Collection<Collection<StringReplacement>>, outcomes: Set<String>
+    match: AhoCorasickTrie.Match, replacements: Collection<Collection<ReplacementState<StringReplacement>>>, outcomes: Set<String>
 ): Unit = document.reference(start + match.start, start + match.end).report(REPLACEMENT_GROUP + "ambiguous-replacement") {
     label = "Ambiguous replacement"
     info = "'${match.pattern}' resolves to multiple targets: [${outcomes.joinToString { "'$it'" }}]"
 
     val ids = replacements.asSequence()
-        .flatMap { it.mapNotNull(StringReplacement::identifier) }
+        .flatMap { it.mapNotNull { switch -> switch.value.identifier } }
         .filterNot { it.startsWith("%synthetic%") }
         .toSet()
     if (ids.isNotEmpty()) hint = "Active string replacements: [${ids.joinToString()}]"

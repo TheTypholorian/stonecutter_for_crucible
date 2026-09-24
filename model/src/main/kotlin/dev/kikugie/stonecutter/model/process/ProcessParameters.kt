@@ -9,5 +9,5 @@ public data class ProcessParameters(
     val constants: Map<String, Boolean> = emptyMap(),
     val targets: Map<String, Version> = emptyMap(),
     val swaps: Map<String, String> = emptyMap(),
-    val replacements: List<Replacement> = emptyList(),
+    val replacements: List<ReplacementModel> = emptyList(),
 ) : JavaSerializable

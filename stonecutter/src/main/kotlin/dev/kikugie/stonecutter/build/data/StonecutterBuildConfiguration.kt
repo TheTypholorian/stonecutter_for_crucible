@@ -20,6 +20,7 @@ import dev.kikugie.stonecutter.controller.file.HandlerModel
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
 import dev.kikugie.stonecutter.controller.tree.forFile
+import dev.kikugie.stonecutter.controller.tree.unmatchedFiles
 import dev.kikugie.stonecutter.controller.tree.resolveFiles
 import dev.kikugie.stonecutter.controller.tree.restrictedTo
 import dev.kikugie.stonecutter.controller.tree.toParameters
@@ -29,6 +30,7 @@ import dev.kikugie.stonecutter.data.property.StructuredPropertiesImpl
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.data.version.VersionOperations
+import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 import dev.kikugie.stonecutter.util.newInstance
 import dev.kikugie.stonecutter.util.overwriteText
 import dev.kikugie.stonecutter.util.toRegularFile
@@ -62,7 +64,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     @Suppress("DEPRECATION")
     @Deprecated("Stonecutter dependencies were renamed to targets", ReplaceWith("targets"))
     override val dependencies: DependencyContainer = objects.newInstance(targets)
-    override val replacements: ReplacementContainerImpl = objects.newInstance(data.replacements, data.replacementFilters)
+    override val replacements: ReplacementContainerImpl = objects.newInstance(data.replacements)
     override val filters: PatternFilterable = PatternSet()
 
     init {
@@ -74,7 +76,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
         get() = throw UnsupportedOperationException("Build tasks are not available in the controller")
 
     override fun process(file: File, destination: String): File {
-        val parameters: StitcherParameters = project.collectTransformParams(file, node, data)
+        val parameters: StitcherParameters = project.collectTransformParams(file, node, data, flags.registry)
         val problems: MutableCollection<ProblemReport> = mutableListOf()
         val reporter = DefaultProblemReporter({
             if (it.severity == ProblemReport.Severity.ERROR) problems += it
@@ -91,12 +93,12 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
             problems.collect()
         }
 
-        val file = project.layout.projectDirectory.file(destination)
-            .also(project.providers::fileContents).asFile
+        val output = project.layout.projectDirectory.file(destination)
         val writer = StringWriter()
-        LineNormalizingWriter(writer).write(modified)
-        file.overwriteText(writer.toString(), true)
-        return file
+        LineNormalizingWriter(writer, flags[StonecutterFlag.LINE_SEPARATOR]).use { it.write(modified) }
+        output.asFile.overwriteText(writer.toString(), true)
+        project.providers.fileContents(output).asBytes.orNull
+        return output.asFile
     }
 }
 
@@ -111,14 +113,15 @@ private fun Project.setupDefaultProperties(node: ProjectNode, objects: ObjectFac
     holder.reload()
 }
 
-private fun Project.collectTransformParams(file: File, node: ProjectNode, data: StonecutterBuildData): StitcherParameters {
+private fun Project.collectTransformParams(file: File, node: ProjectNode, data: StonecutterBuildData, flags: ConfigurationRegistry): StitcherParameters {
     val handlers = gradle.getContainer<FileHandlerContainer>()
         .handlers[file.extension.lowercase()].let { mapOf(it.name to HandlerModel(it)) }
     val resolved: File = file(file)
+    val parameters = data.toParameters()
     val scopes = node.sourceRoot(resolved)
-        ?.let { data.replacementFilters.get().resolveFiles(fileTree(it)) }
-        .orEmpty()
-    return data.toParameters().restrictedTo(resolved, scopes).forFile(resolved.toPath(), handlers)!!
+        ?.let { parameters.replacements.resolveFiles(fileTree(it)) }
+        ?: parameters.replacements.unmatchedFiles()
+    return parameters.restrictedTo(resolved, scopes).forFile(resolved.toPath(), handlers, flags)!!
 }
 
 private fun ProjectNode.sourceRoot(file: File): File? {
