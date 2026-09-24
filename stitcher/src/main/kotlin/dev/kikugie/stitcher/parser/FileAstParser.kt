@@ -266,7 +266,39 @@ private class LineSwapBuilder(token: BlockToken.Code, parent: ScopeBuilder) : Li
 }
 
 private class LookupSwapBuilder(token: BlockToken.Code, parent: ScopeBuilder) : LookupScopeBuilder(token, parent) {
+    private var hasSearchedForMatch: Boolean = false
+
     override fun processCode(token: BlockToken.Code, stream: FileTokenStream): FileAstBuilder? = null
+
+    override fun processContent(token: BlockToken.Content, stream: FileTokenStream): FileAstBuilder? {
+        tryFindMatch(stream)
+        return if (matchesAtScopeStart(token)) markEmptyMatch(token, stream)
+        else super.processContent(token, stream)
+    }
+
+    override fun processComment(token: BlockToken.Comment, stream: FileTokenStream): FileAstBuilder? {
+        tryFindMatch(stream)
+        return if (matchesAtScopeStart(token)) markEmptyMatch(token, stream)
+        else super.processComment(token, stream)
+    }
+
+    private fun tryFindMatch(stream: FileTokenStream) {
+        if (hasSearchedForMatch) return
+
+        hasSearchedForMatch = true
+        if (!stream.hasLookupMatch(lookup, capturing)) foundSplitMatch = true
+    }
+
+    private fun matchesAtScopeStart(token: BlockToken): Boolean = !foundSplitMatch
+        && entries.isEmpty()
+        && token.findLookupSplit(lookup, capturing) == 0
+
+    private fun markEmptyMatch(token: BlockToken, stream: FileTokenStream): FileAstBuilder {
+        foundSplitMatch = true
+        stream.consume()
+        stream.insert(token)
+        return ContentBuilder(BlockToken.Content(token.ref.copy(end = token.ref.start)))
+    }
 }
 
 private enum class MatchAction {
@@ -441,6 +473,20 @@ private fun BlockToken.Content.findLineSplit(immediate: Boolean): Int =
 private fun BlockToken.Comment.findLineSplit(immediate: Boolean): Int {
     val split = body.text.findLineSplit(immediate)
     return if (split >= 0 || body.text.isBlank() || '\n' !in opener?.text.orEmpty()) split else body.text.length
+}
+
+private fun FileTokenStream.hasLookupMatch(match: String?, capturing: Boolean): Boolean {
+    var offset = 1
+    while (true) when (val next: BlockToken = peek(offset++) ?: return false) {
+        is BlockToken.Content, is BlockToken.Comment -> if (next.findLookupSplit(match, capturing) != -1) return true
+        else -> return false
+    }
+}
+
+private fun BlockToken.findLookupSplit(match: String?, capturing: Boolean): Int = when (this) {
+    is BlockToken.Content -> findLookupSplit(match, capturing)
+    is BlockToken.Comment -> findLookupSplit(match, capturing)
+    else -> -1
 }
 
 private fun BlockToken.Content.findLookupSplit(match: String?, capturing: Boolean): Int = when (match) {

@@ -86,6 +86,7 @@ class FileAstAssembler(val params: StitcherParameters) : BlockTokenVisitor<Block
     }
 
     private fun substituteSwap(code: Code, value: String): Code {
+        if (code.scope.isEmpty() && code.definition.opener is ScopeToken.Lookup) return code
         val substituted = ModificationTracker((code.scope.firstOrNull() ?: code).ref join (code.scope.lastOrNull() ?: code).ref).run {
             params.swapper.substitute(params.flags, this, value)
             InjectedDocument(this)
