@@ -22,6 +22,13 @@ internal data class HandlerModel(
         builder.swapper.get()
     )
 
+    constructor(data: HandlerData) : this(
+        ScannerModel(data.openers.get().toIntArray(), data.closers.get().toIntArray(), data.lexer.get()),
+        data.commenter.get(),
+        data.uncommenter.get(),
+        data.swapper.get()
+    )
+
     fun fingerprint(): String {
         val bytes = ByteArrayOutputStream().also { ObjectOutputStream(it).use { out -> out.writeObject(this) } }.toByteArray()
         return MessageDigest.getInstance("SHA-256").digest(bytes).toHexString()

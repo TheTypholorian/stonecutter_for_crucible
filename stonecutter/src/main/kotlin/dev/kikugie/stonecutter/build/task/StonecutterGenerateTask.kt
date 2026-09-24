@@ -97,9 +97,8 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
     @get:Input
     internal val handlerFingerprints: Provider<Map<String, String>>
         get() = processablePaths.zip(handlers) { paths, service ->
-            val models = service.parameters.handlers.get()
             paths.mapTo(sortedSetOf()) { it.substringAfterLast('/').substringAfterLast('.', "").lowercase() }
-                .mapNotNull { ext -> models[ext]?.let { ext to it.fingerprint() } }.toMap()
+                .mapNotNull { ext -> service.handlers[ext]?.let { ext to it.fingerprint() } }.toMap()
         }
 
     /**The base directory of the [local] overrides used for resolving relative paths.*/
@@ -240,7 +239,7 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
     }
 
     private fun createTransformParameters(): StitcherParameters? {
-        val handlers: Map<String, HandlerModel> = parameters.handlers.get().parameters.handlers.get()
+        val handlers: Map<String, HandlerModel> = parameters.handlers.get().handlers
         val flags: ConfigurationRegistry = restoreFromJson(parameters.flags.get())
         return parameters.model.get().forFile(source, handlers, flags)
     }

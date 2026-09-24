@@ -1,9 +1,11 @@
 package dev.kikugie.stonecutter.controller.file
 
 import dev.kikugie.stonecutter.data.container.GradleContainerService
+import dev.kikugie.stonecutter.util.newInstance
 import org.gradle.api.Action
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.NamedDomainObjectProvider
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.setProperty
 
@@ -22,7 +24,7 @@ public abstract class FileHandlerContainer : GradleContainerService {
 
     internal val extensions: Provider<Set<String>> by lazy {
         objects.setProperty<String>().apply {
-            set(service.map { it.parameters.handlers.get().keys })
+            set(service.map { it.handlers.keys })
             finalizeValueOnRead()
         }
     }
@@ -48,11 +50,21 @@ public abstract class FileHandlerContainer : GradleContainerService {
         for (it in extensions) handlers.make(it, configuration)
     }
 
-    internal fun build(): Map<String, HandlerModel> = handlers.asMap.mapValues { (_, it) ->
-        HandlerModel(it)
+    internal fun build(): Map<String, HandlerData> = handlers.asMap.mapValues { (_, it) ->
+        it.toSerializableData(objects)
     }
 
     private fun <T : Any> NamedDomainObjectContainer<T>.make(name: String, config: Action<T>) {
         if (name in names) named(name, config) else create(name, config)
     }
+}
+
+private fun HandlerBuilder.toSerializableData(objects: ObjectFactory): HandlerData = objects.newInstance {
+    val scanner = this@toSerializableData.scanner.get()
+    openers.set(scanner.openers.get())
+    closers.set(scanner.closers.get())
+    lexer.set(scanner.lexer.get())
+    commenter.set(this@toSerializableData.commenter.get())
+    uncommenter.set(this@toSerializableData.uncommenter.get())
+    swapper.set(this@toSerializableData.swapper.get())
 }

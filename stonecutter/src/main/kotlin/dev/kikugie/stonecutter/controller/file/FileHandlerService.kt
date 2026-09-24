@@ -9,7 +9,11 @@ import javax.inject.Inject
 
 internal abstract class FileHandlerService @Inject constructor(objects: ObjectFactory) : BuildService<Parameters> {
     interface Parameters : BuildServiceParameters {
-        val handlers: MapProperty<String, HandlerModel>
+        val handlers: MapProperty<String, HandlerData>
+    }
+
+    val handlers: Map<String, HandlerModel> by lazy {
+        parameters.handlers.get().mapValues { (_, it) -> HandlerModel(it) }
     }
 
     companion object {
