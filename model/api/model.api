@@ -52,19 +52,16 @@ public final class dev/kikugie/stonecutter/model/process/ConfigurationRegistry$R
 
 public final class dev/kikugie/stonecutter/model/process/PerlReplacement : java/lang/Record, dev/kikugie/stonecutter/model/process/Replacement, java/io/Serializable {
 	public static final field Companion Ldev/kikugie/stonecutter/model/process/PerlReplacement$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Z)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/lang/String;
 	public final fun component3 ()I
 	public final fun component4 ()Ljava/lang/String;
-	public final fun component5 ()Z
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Z)Ldev/kikugie/stonecutter/model/process/PerlReplacement;
-	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/process/PerlReplacement;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;ZILjava/lang/Object;)Ldev/kikugie/stonecutter/model/process/PerlReplacement;
-	public fun defaultEnabled ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;)Ldev/kikugie/stonecutter/model/process/PerlReplacement;
+	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/process/PerlReplacement;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;ILjava/lang/Object;)Ldev/kikugie/stonecutter/model/process/PerlReplacement;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun flags ()I
-	public synthetic fun getDefaultEnabled ()Z
 	public synthetic fun getIdentifier ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun identifier ()Ljava/lang/String;
@@ -125,19 +122,16 @@ public final class dev/kikugie/stonecutter/model/process/ProcessParameters$Compa
 
 public final class dev/kikugie/stonecutter/model/process/RegexReplacement : java/lang/Record, dev/kikugie/stonecutter/model/process/Replacement, java/io/Serializable {
 	public static final field Companion Ldev/kikugie/stonecutter/model/process/RegexReplacement$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Z)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/lang/String;
 	public final fun component3 ()I
 	public final fun component4 ()Ljava/lang/String;
-	public final fun component5 ()Z
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Z)Ldev/kikugie/stonecutter/model/process/RegexReplacement;
-	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/process/RegexReplacement;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;ZILjava/lang/Object;)Ldev/kikugie/stonecutter/model/process/RegexReplacement;
-	public fun defaultEnabled ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;)Ldev/kikugie/stonecutter/model/process/RegexReplacement;
+	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/process/RegexReplacement;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;ILjava/lang/Object;)Ldev/kikugie/stonecutter/model/process/RegexReplacement;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun flags ()I
-	public synthetic fun getDefaultEnabled ()Z
 	public synthetic fun getIdentifier ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun identifier ()Ljava/lang/String;
@@ -163,7 +157,6 @@ public final class dev/kikugie/stonecutter/model/process/RegexReplacement$Compan
 
 public abstract interface class dev/kikugie/stonecutter/model/process/Replacement {
 	public static final field Companion Ldev/kikugie/stonecutter/model/process/Replacement$Companion;
-	public abstract fun getDefaultEnabled ()Z
 	public abstract fun getIdentifier ()Ljava/lang/String;
 }
 
@@ -171,50 +164,50 @@ public final class dev/kikugie/stonecutter/model/process/Replacement$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
-public final class dev/kikugie/stonecutter/model/process/ReplacementFilter : java/lang/Record, java/io/Serializable {
-	public static final field Companion Ldev/kikugie/stonecutter/model/process/ReplacementFilter$Companion;
-	public fun <init> ()V
-	public fun <init> (Ljava/util/Set;Ljava/util/Set;)V
-	public synthetic fun <init> (Ljava/util/Set;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun component1 ()Ljava/util/Set;
-	public final fun component2 ()Ljava/util/Set;
-	public final fun copy (Ljava/util/Set;Ljava/util/Set;)Ldev/kikugie/stonecutter/model/process/ReplacementFilter;
-	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/process/ReplacementFilter;Ljava/util/Set;Ljava/util/Set;ILjava/lang/Object;)Ldev/kikugie/stonecutter/model/process/ReplacementFilter;
+public final class dev/kikugie/stonecutter/model/process/ReplacementModel : java/lang/Record, java/io/Serializable {
+	public static final field Companion Ldev/kikugie/stonecutter/model/process/ReplacementModel$Companion;
+	public fun <init> (Ldev/kikugie/stonecutter/model/process/Replacement;ZLjava/util/Set;Ljava/util/Set;)V
+	public synthetic fun <init> (Ldev/kikugie/stonecutter/model/process/Replacement;ZLjava/util/Set;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ldev/kikugie/stonecutter/model/process/Replacement;
+	public final fun component2 ()Z
+	public final fun component3 ()Ljava/util/Set;
+	public final fun component4 ()Ljava/util/Set;
+	public final fun copy (Ldev/kikugie/stonecutter/model/process/Replacement;ZLjava/util/Set;Ljava/util/Set;)Ldev/kikugie/stonecutter/model/process/ReplacementModel;
+	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/process/ReplacementModel;Ldev/kikugie/stonecutter/model/process/Replacement;ZLjava/util/Set;Ljava/util/Set;ILjava/lang/Object;)Ldev/kikugie/stonecutter/model/process/ReplacementModel;
+	public final fun enabled ()Z
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun excludes ()Ljava/util/Set;
 	public fun hashCode ()I
 	public final fun includes ()Ljava/util/Set;
+	public final fun replacement ()Ldev/kikugie/stonecutter/model/process/Replacement;
 	public fun toString ()Ljava/lang/String;
 }
 
-public final synthetic class dev/kikugie/stonecutter/model/process/ReplacementFilter$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
-	public static final field INSTANCE Ldev/kikugie/stonecutter/model/process/ReplacementFilter$$serializer;
+public final synthetic class dev/kikugie/stonecutter/model/process/ReplacementModel$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Ldev/kikugie/stonecutter/model/process/ReplacementModel$$serializer;
 	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
-	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/kikugie/stonecutter/model/process/ReplacementFilter;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ldev/kikugie/stonecutter/model/process/ReplacementModel;
 	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
 	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
-	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/model/process/ReplacementFilter;)V
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Ldev/kikugie/stonecutter/model/process/ReplacementModel;)V
 	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
 	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
 }
 
-public final class dev/kikugie/stonecutter/model/process/ReplacementFilter$Companion {
+public final class dev/kikugie/stonecutter/model/process/ReplacementModel$Companion {
 	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public final class dev/kikugie/stonecutter/model/process/StringReplacement : java/lang/Record, dev/kikugie/stonecutter/model/process/Replacement, java/io/Serializable {
 	public static final field Companion Ldev/kikugie/stonecutter/model/process/StringReplacement$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ljava/lang/String;
 	public final fun component2 ()Ljava/lang/String;
 	public final fun component3 ()Ljava/lang/String;
-	public final fun component4 ()Z
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)Ldev/kikugie/stonecutter/model/process/StringReplacement;
-	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/process/StringReplacement;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Ldev/kikugie/stonecutter/model/process/StringReplacement;
-	public fun defaultEnabled ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ldev/kikugie/stonecutter/model/process/StringReplacement;
+	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/process/StringReplacement;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ldev/kikugie/stonecutter/model/process/StringReplacement;
 	public fun equals (Ljava/lang/Object;)Z
-	public synthetic fun getDefaultEnabled ()Z
 	public synthetic fun getIdentifier ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun identifier ()Ljava/lang/String;
@@ -334,8 +327,8 @@ public final class dev/kikugie/stonecutter/model/tree/NodeInfo$Companion {
 
 public final class dev/kikugie/stonecutter/model/tree/NodeModel : java/lang/Record {
 	public static final field Companion Ldev/kikugie/stonecutter/model/tree/NodeModel$Companion;
-	public fun <init> (Ljava/lang/String;Ljava/lang/String;ZLdev/kikugie/stonecutter/model/tree/BranchInfo;Ljava/nio/file/Path;Ldev/kikugie/stonecutter/model/process/ProcessParameters;Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;Ljava/util/Map;)V
-	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZLdev/kikugie/stonecutter/model/tree/BranchInfo;Ljava/nio/file/Path;Ldev/kikugie/stonecutter/model/process/ProcessParameters;Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ZLdev/kikugie/stonecutter/model/tree/BranchInfo;Ljava/nio/file/Path;Ldev/kikugie/stonecutter/model/process/ProcessParameters;Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZLdev/kikugie/stonecutter/model/tree/BranchInfo;Ljava/nio/file/Path;Ldev/kikugie/stonecutter/model/process/ProcessParameters;Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun active ()Z
 	public final fun branch ()Ldev/kikugie/stonecutter/model/tree/BranchInfo;
 	public final fun component1 ()Ljava/lang/String;
@@ -345,15 +338,13 @@ public final class dev/kikugie/stonecutter/model/tree/NodeModel : java/lang/Reco
 	public final fun component5 ()Ljava/nio/file/Path;
 	public final fun component6 ()Ldev/kikugie/stonecutter/model/process/ProcessParameters;
 	public final fun component7 ()Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;
-	public final fun component8 ()Ljava/util/Map;
-	public final fun copy (Ljava/lang/String;Ljava/lang/String;ZLdev/kikugie/stonecutter/model/tree/BranchInfo;Ljava/nio/file/Path;Ldev/kikugie/stonecutter/model/process/ProcessParameters;Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;Ljava/util/Map;)Ldev/kikugie/stonecutter/model/tree/NodeModel;
-	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/tree/NodeModel;Ljava/lang/String;Ljava/lang/String;ZLdev/kikugie/stonecutter/model/tree/BranchInfo;Ljava/nio/file/Path;Ldev/kikugie/stonecutter/model/process/ProcessParameters;Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;Ljava/util/Map;ILjava/lang/Object;)Ldev/kikugie/stonecutter/model/tree/NodeModel;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;ZLdev/kikugie/stonecutter/model/tree/BranchInfo;Ljava/nio/file/Path;Ldev/kikugie/stonecutter/model/process/ProcessParameters;Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;)Ldev/kikugie/stonecutter/model/tree/NodeModel;
+	public static synthetic fun copy$default (Ldev/kikugie/stonecutter/model/tree/NodeModel;Ljava/lang/String;Ljava/lang/String;ZLdev/kikugie/stonecutter/model/tree/BranchInfo;Ljava/nio/file/Path;Ldev/kikugie/stonecutter/model/process/ProcessParameters;Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;ILjava/lang/Object;)Ldev/kikugie/stonecutter/model/tree/NodeModel;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun flags ()Ldev/kikugie/stonecutter/model/process/ConfigurationRegistry;
 	public fun hashCode ()I
 	public final fun parameters ()Ldev/kikugie/stonecutter/model/process/ProcessParameters;
 	public final fun project ()Ljava/lang/String;
-	public final fun replacementFilters ()Ljava/util/Map;
 	public final fun root ()Ljava/nio/file/Path;
 	public fun toString ()Ljava/lang/String;
 	public final fun version ()Ljava/lang/String;

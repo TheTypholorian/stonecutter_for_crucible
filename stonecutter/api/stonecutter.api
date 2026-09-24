@@ -4,6 +4,22 @@ public abstract interface annotation class dev/kikugie/stonecutter/ConstantID : 
 public abstract interface annotation class dev/kikugie/stonecutter/ReplacementID : java/lang/annotation/Annotation {
 }
 
+public abstract interface class dev/kikugie/stonecutter/StonecutterBaseExtension : dev/kikugie/stonecutter/data/property/StructuredPropertiesProvider, dev/kikugie/stonecutter/data/version/VersionOperations {
+	public fun flags (Lorg/gradle/api/Action;)V
+	public abstract fun getFlags ()Ldev/kikugie/stonecutter/controller/flag/StonecutterFlags;
+	public fun getSemantics ()Ldev/kikugie/stonecutter/data/version/VersionOperations;
+}
+
+public final class dev/kikugie/stonecutter/StonecutterBaseExtension$DefaultImpls {
+	public static fun contains (Ldev/kikugie/stonecutter/StonecutterBaseExtension;Lkotlin/ranges/ClosedRange;Ldev/kikugie/stonecutter/data/ParsedVersion;)Z
+	public static fun contains (Ldev/kikugie/stonecutter/StonecutterBaseExtension;Lkotlin/ranges/OpenEndRange;Ldev/kikugie/stonecutter/data/ParsedVersion;)Z
+	public static fun flags (Ldev/kikugie/stonecutter/StonecutterBaseExtension;Lorg/gradle/api/Action;)V
+	public static fun getSemantics (Ldev/kikugie/stonecutter/StonecutterBaseExtension;)Ldev/kikugie/stonecutter/data/version/VersionOperations;
+	public static fun properties (Ldev/kikugie/stonecutter/StonecutterBaseExtension;Ljava/io/File;)V
+	public static fun properties (Ldev/kikugie/stonecutter/StonecutterBaseExtension;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
+	public static fun properties (Ldev/kikugie/stonecutter/StonecutterBaseExtension;Lorg/gradle/api/Action;)V
+}
+
 public abstract interface annotation class dev/kikugie/stonecutter/StonecutterExperimentalAPI : java/lang/annotation/Annotation {
 }
 
@@ -25,7 +41,7 @@ public abstract interface annotation class dev/kikugie/stonecutter/SwapID : java
 public abstract interface annotation class dev/kikugie/stonecutter/TargetID : java/lang/annotation/Annotation {
 }
 
-public abstract interface class dev/kikugie/stonecutter/build/StonecutterBuildExtension : dev/kikugie/stonecutter/data/property/StructuredPropertiesProvider, dev/kikugie/stonecutter/data/version/VersionOperations {
+public abstract interface class dev/kikugie/stonecutter/build/StonecutterBuildExtension : dev/kikugie/stonecutter/StonecutterBaseExtension {
 	public fun constants (Lorg/gradle/api/Action;)V
 	public fun dependencies (Lorg/gradle/api/Action;)V
 	public fun flags (Lorg/gradle/api/Action;)V
@@ -39,7 +55,6 @@ public abstract interface class dev/kikugie/stonecutter/build/StonecutterBuildEx
 	public abstract fun getNode ()Ldev/kikugie/stonecutter/data/tree/ProjectNode;
 	public abstract fun getProject ()Lorg/gradle/api/Project;
 	public abstract fun getReplacements ()Ldev/kikugie/stonecutter/build/config/ReplacementContainer;
-	public fun getSemantics ()Ldev/kikugie/stonecutter/data/version/VersionOperations;
 	public abstract fun getSwaps ()Ldev/kikugie/stonecutter/build/config/SwapContainer;
 	public abstract fun getTargets ()Ldev/kikugie/stonecutter/build/config/TargetContainer;
 	public abstract fun getTasks ()Ldev/kikugie/stonecutter/build/task/StonecutterBuildTasks;
@@ -349,14 +364,13 @@ public abstract interface class dev/kikugie/stonecutter/build/task/StonecutterBu
 	public abstract fun getMerge ()Ldev/kikugie/stonecutter/data/collection/TaskProviderMap;
 }
 
-public abstract interface class dev/kikugie/stonecutter/controller/StonecutterControllerExtension : dev/kikugie/stonecutter/data/property/StructuredPropertiesProvider, dev/kikugie/stonecutter/data/version/VersionOperations {
+public abstract interface class dev/kikugie/stonecutter/controller/StonecutterControllerExtension : dev/kikugie/stonecutter/StonecutterBaseExtension {
 	public abstract fun active (Ljava/lang/Object;)V
 	public fun flags (Lorg/gradle/api/Action;)V
 	public fun getActive ()Ldev/kikugie/stonecutter/data/StonecutterProject;
 	public fun getCurrent ()Ldev/kikugie/stonecutter/data/StonecutterProject;
 	public abstract fun getFlags ()Ldev/kikugie/stonecutter/controller/flag/StonecutterFlags;
 	public abstract fun getHandlers ()Ldev/kikugie/stonecutter/controller/file/FileHandlerContainer;
-	public fun getSemantics ()Ldev/kikugie/stonecutter/data/version/VersionOperations;
 	public abstract fun getTasks ()Ldev/kikugie/stonecutter/controller/task/StonecutterControllerTasks;
 	public abstract fun getTree ()Ldev/kikugie/stonecutter/data/tree/ProjectTree;
 	public fun getVcsVersion ()Ldev/kikugie/stonecutter/data/StonecutterProject;
@@ -431,7 +445,7 @@ public final class dev/kikugie/stonecutter/controller/flag/FlagScope : java/lang
 
 public final class dev/kikugie/stonecutter/controller/flag/StonecutterFlag {
 	public static final field APPEND_SOURCES_AFTER_EVAL Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
-	public static final field APPLY_PLUGIN_TO_NODES Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
+	public static final field AUTO_APPLY_PLUGIN Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field Companion Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag$Companion;
 	public static final field EXPOSE_PROPERTIES Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
 	public static final field GENERATE_MANIFEST Ldev/kikugie/stonecutter/controller/flag/StonecutterFlag;
@@ -560,10 +574,12 @@ public final class dev/kikugie/stonecutter/data/ProjectHierarchy : java/io/Seria
 	public final fun contains (Ljava/lang/Object;)Z
 	public fun contains (Ljava/lang/String;)Z
 	public fun containsAll (Ljava/util/Collection;)Z
+	public fun equals (Ljava/lang/Object;)Z
 	public synthetic fun get (I)Ljava/lang/Object;
 	public fun get (I)Ljava/lang/String;
 	public final fun getPath ()Ljava/lang/String;
 	public fun getSize ()I
+	public fun hashCode ()I
 	public final fun indexOf (Ljava/lang/Object;)I
 	public fun indexOf (Ljava/lang/String;)I
 	public fun isEmpty ()Z
@@ -1019,7 +1035,7 @@ public final class dev/kikugie/stonecutter/data/version/VersionOperations$Defaul
 	public static fun contains (Ldev/kikugie/stonecutter/data/version/VersionOperations;Lkotlin/ranges/OpenEndRange;Ldev/kikugie/stonecutter/data/ParsedVersion;)Z
 }
 
-public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtension : dev/kikugie/stonecutter/data/property/StructuredPropertiesProvider, dev/kikugie/stonecutter/data/version/VersionOperations {
+public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtension : dev/kikugie/stonecutter/StonecutterBaseExtension {
 	public fun <init> (Lorg/gradle/api/initialization/Settings;Lorg/gradle/api/model/ObjectFactory;)V
 	public fun contains (Lkotlin/ranges/ClosedRange;Ldev/kikugie/stonecutter/data/ParsedVersion;)Z
 	public fun contains (Lkotlin/ranges/OpenEndRange;Ldev/kikugie/stonecutter/data/ParsedVersion;)Z
@@ -1051,11 +1067,11 @@ public abstract class dev/kikugie/stonecutter/settings/StonecutterSettingsExtens
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;[Ljava/lang/Object;Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;[Ljava/lang/Object;Ljava/io/File;Lorg/gradle/api/Action;ILjava/lang/Object;)V
 	public static synthetic fun create$default (Ldev/kikugie/stonecutter/settings/StonecutterSettingsExtension;[Ljava/lang/Object;Lorg/gradle/api/Action;ILjava/lang/Object;)V
-	public final fun flags (Lorg/gradle/api/Action;)V
+	public fun flags (Lorg/gradle/api/Action;)V
 	public abstract fun getCentralScript ()Lorg/gradle/api/provider/Property;
 	public abstract fun getFlags ()Ldev/kikugie/stonecutter/controller/flag/StonecutterFlags;
 	public abstract fun getKotlinController ()Lorg/gradle/api/provider/Property;
-	public final fun getSemantics ()Ldev/kikugie/stonecutter/data/version/VersionOperations;
+	public fun getSemantics ()Ldev/kikugie/stonecutter/data/version/VersionOperations;
 	public final fun getShared ()Lorg/gradle/api/Action;
 	public fun properties (Ljava/io/File;)V
 	public fun properties (Ljava/io/File;Ldev/kikugie/stonecutter/data/deserialization/SCConverter;)V
