@@ -10,4 +10,5 @@ public data class ProcessParameters(
     val targets: Map<String, Version> = emptyMap(),
     val swaps: Map<String, String> = emptyMap(),
     val replacements: List<ReplacementModel> = emptyList(),
+    val files: FilesModel = FilesModel(),
 ) : JavaSerializable

@@ -9,6 +9,7 @@ import dev.kikugie.stitcher.document.issue.*
 import dev.kikugie.stitcher.document.reference
 import dev.kikugie.stitcher.token.BlockToken
 import dev.kikugie.stitcher.token.appendTo
+import dev.kikugie.stitcher.token.type.RootScopeState
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData
 import dev.kikugie.stonecutter.controller.file.FileHandlerService
@@ -126,21 +127,28 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
         val data = params.get()
         val model = data.toParameters()
         val scopes: Map<Int, Set<File>> = model.replacements.resolveFiles(source.asFileTree)
+        val states: Map<File, RootScopeState> = model.files.resolveStates(source.asFileTree)
         val processable: Set<String> = processablePaths.get()
 
         with(executor.noIsolation()) {
-            processFileChanges(inputs, model, scopes, processable)
+            processFileChanges(inputs, model, scopes, states, processable)
             await()
         }
         errors.get().complete(path)
     }
 
-    private fun WorkQueue.processFileChanges(inputs: InputChanges, model: ProcessParameters, scopes: Map<Int, Set<File>>, processable: Set<String>) {
+    private fun WorkQueue.processFileChanges(
+        inputs: InputChanges,
+        model: ProcessParameters,
+        scopes: Map<Int, Set<File>>,
+        states: Map<File, RootScopeState>,
+        processable: Set<String>
+    ) {
         for (change in inputs.getFileChanges(source)) when {
             change.fileType == FileType.DIRECTORY -> continue
             change.changeType == ChangeType.REMOVED -> change.file.generatedFile.delete()
             else -> processFile(
-                change, model.restrictedTo(change.file, scopes),
+                change, model.restrictedTo(change.file, scopes), states[change.file] ?: RootScopeState.ANY,
                 change.file.relativeTo(root.get()).invariantSeparatorsPath in processable
             )
         }
@@ -152,12 +160,13 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
     private val File.overrideFile: File
         get() = localRoot.get().resolve(relativeTo(root.get()))
 
-    private fun WorkQueue.processFile(change: FileChange, params: ProcessParameters, process: Boolean): Unit =
+    private fun WorkQueue.processFile(change: FileChange, params: ProcessParameters, state: RootScopeState, process: Boolean): Unit =
         submit(GenerateAction::class) {
             source.set(change.file)
             output.set(change.file.generatedFile)
             override.set(change.file.overrideFile)
             model.set(params)
+            root.set(state)
             flags.set(flagRegistry)
             transform.set(process)
             lineEnding.set(this@StonecutterGenerateTask.lineEnding)
@@ -174,6 +183,7 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
         val output: RegularFileProperty
         val override: RegularFileProperty
         val model: Property<ProcessParameters>
+        val root: Property<RootScopeState>
         val flags: Property<String>
         val transform: Property<Boolean>
         val lineEnding: Property<String>
@@ -229,7 +239,7 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
     private fun createTransformParameters(): StitcherParameters? {
         val handlers: Map<String, HandlerModel> = parameters.handlers.get().handlers
         val flags: ConfigurationRegistry = restoreFromJson(parameters.flags.get())
-        return parameters.model.get().forFile(source, handlers, flags)
+        return parameters.model.get().forFile(source, handlers, flags, parameters.root.get())
     }
 
     private fun createSourceDocument(): SourceDocument? {

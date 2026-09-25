@@ -20,9 +20,11 @@ import dev.kikugie.stonecutter.util.requestTasks
 import dev.kikugie.stonecutter.util.sourceSets
 import org.gradle.api.Project
 import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.file.FileTree
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.util.PatternFilterable
+import org.gradle.api.tasks.util.PatternSet
 import org.gradle.jvm.tasks.Jar
 import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.withType
@@ -35,16 +37,17 @@ internal abstract class StonecutterBuildImpl private constructor(val config: Sto
 
     init {
         project.plugins.apply("java")
+        val extensions = project.gradle.getContainer<FileHandlerContainer>().extensions
+        val handled: PatternFilterable = PatternSet().include { it.isDirectory || it.file.extension.lowercase() in extensions.get() }
+        @Suppress("DEPRECATION") val processable: List<PatternFilterable> = listOf(handled, filters, config.files.processable.patterns)
+
         project.sourceSets.all {
             tasks.configureSource(this)
-            createProcessingTasks(project, config.data, config.flags, filters, tasks)
+            createProcessingTasks(project, config.data, config.flags, processable, tasks)
         }
         project.refreshConfiguration(flags, tasks)
         project.configureManifest(flags, node)
         tasks.registerNodeModelTask()
-
-        val extensions = project.gradle.getContainer<FileHandlerContainer>().extensions
-        filters.include { it.isDirectory || it.file.extension.lowercase() in extensions.get() }
     }
 }
 
@@ -67,7 +70,7 @@ private fun SourceSet.createProcessingTasks(
     project: Project,
     data: StonecutterBuildData,
     flags: StonecutterFlagsImpl,
-    filters: PatternFilterable,
+    filters: List<PatternFilterable>,
     impls: StonecutterBuildTasksImpl
 ) {
     val layout = project.layout
@@ -81,7 +84,7 @@ private fun SourceSet.createProcessingTasks(
         params.set(data)
         root.set(sharedSource.asFile)
         source.setFrom(project.fileTree(sharedSource))
-        processable.setFrom(project.fileTree(sharedSource).matching(filters))
+        processable.setFrom(filters.fold(project.fileTree(sharedSource), FileTree::matching))
         local.setFrom(project.fileTree(localSource))
         localRoot.set(localSource.asFile)
         destination.set(impls.generatedSourcesDir.dir(name))

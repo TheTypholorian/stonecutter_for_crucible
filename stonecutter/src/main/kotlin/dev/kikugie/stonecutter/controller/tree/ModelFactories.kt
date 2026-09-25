@@ -10,6 +10,7 @@ import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.data.version.LenientOperations
 import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
+import dev.kikugie.stonecutter.model.process.FilesModel
 import dev.kikugie.stonecutter.model.process.ProcessParameters
 import dev.kikugie.stonecutter.model.process.ReplacementModel
 import dev.kikugie.stonecutter.model.tree.*
@@ -44,14 +45,28 @@ internal fun StonecutterBuildData.toParameters(): ProcessParameters = ProcessPar
     targets = dependencies.get().mapValues { (_, it) -> LenientOperations.parse(it) },
     swaps = swaps.get().toMap(),
     replacements = replacements.get().toList(),
+    files = files.get(),
 )
 
-internal fun ProcessParameters.forFile(file: Path, handlers: Map<String, HandlerModel>, flags: ConfigurationRegistry): StitcherParameters? {
+internal fun ProcessParameters.forFile(
+    file: Path,
+    handlers: Map<String, HandlerModel>,
+    flags: ConfigurationRegistry,
+    root: RootScopeState
+): StitcherParameters? {
     val handler = handlers[file.extension.lowercase()] ?: return null
     return StitcherParameters(
-        this, flags, RootScopeState.ANY,
+        this, flags, root,
         handler.scanner, handler.commenter, handler.uncommenter, handler.swapper
     )
+}
+
+internal fun FilesModel.resolveStates(tree: FileTree): Map<File, RootScopeState> = buildMap {
+    if (enabled.isNotEmpty()) for (file in tree.matching(PatternSet().setIncludes(enabled)).files)
+        this[file] = RootScopeState.ENABLED
+
+    if (disabled.isNotEmpty()) for (file in tree.matching(PatternSet().setIncludes(disabled)).files)
+        this[file] = RootScopeState.DISABLED
 }
 
 internal fun ConfigurationRegistry.toJsonString(): String {

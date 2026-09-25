@@ -10,6 +10,7 @@ import dev.kikugie.stitcher.document.issue.BailException
 import dev.kikugie.stitcher.document.issue.DefaultProblemReporter
 import dev.kikugie.stitcher.document.issue.ProblemReport
 import dev.kikugie.stitcher.token.appendTo
+import dev.kikugie.stitcher.token.type.RootScopeState
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.build.config.*
 import dev.kikugie.stonecutter.build.task.StonecutterBuildTasks
@@ -61,9 +62,12 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     @Deprecated("Stonecutter dependencies were renamed to targets", ReplaceWith("targets"))
     override val dependencies: DependencyContainer = objects.newInstance(targets)
     override val replacements: ReplacementContainerImpl = objects.newInstance(data.replacements)
+    @Deprecated("File filters were moved to `files`", ReplaceWith("files"))
     override val filters: PatternFilterable = PatternSet()
+    override val files: StonecutterFilesImpl = StonecutterFilesImpl()
 
     init {
+        data.files.set(project.provider(files::toModel))
         properties.configureExport(flags[StonecutterFlag.EXPOSE_PROPERTIES], project.extra)
         properties.configureWarnings(flags[StonecutterFlag.WARN_DUPLICATE_PROPERTIES])
     }
@@ -119,10 +123,14 @@ private fun Project.collectTransformParams(
         .handlers[file.extension.lowercase()].let { mapOf(it.name to HandlerModel(it)) }
     val resolved: File = file(file)
     val parameters = data.toParameters()
-    val scopes = node.sourceRoot(resolved)
+    val source: File? = node.sourceRoot(resolved)
+    val scopes = source
         ?.let { parameters.replacements.resolveFiles(fileTree(it)) }
         ?: parameters.replacements.unmatchedFiles()
-    return parameters.restrictedTo(resolved, scopes).forFile(resolved.toPath(), handlers, flags)!!
+    val state = source
+        ?.let { parameters.files.resolveStates(fileTree(it))[resolved] }
+        ?: RootScopeState.ANY
+    return parameters.restrictedTo(resolved, scopes).forFile(resolved.toPath(), handlers, flags, state)!!
 }
 
 private fun ProjectNode.sourceRoot(file: File): File? {

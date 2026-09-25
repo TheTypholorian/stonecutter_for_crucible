@@ -147,7 +147,13 @@ public interface StonecutterBuildExtension : StonecutterBaseExtension {
      * Patterns are resolved relative to each `src/.../` directory.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/custom-formats#file-filtering">File Filter Documentation</a>
      */
+    @Deprecated("File filters were moved to `files`", ReplaceWith("files"))
     public val filters: PatternFilterable
+
+    /**
+     * Configures which files are processed and commented out.
+     */
+    public val files: StonecutterFiles
 
     /**
      * Per-node view of Stonecutter configuration flags.
@@ -207,6 +213,8 @@ public interface StonecutterBuildExtension : StonecutterBaseExtension {
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/replacements">Replacements Documentation</a>
      */
     public infix fun replacements(action: Action<ReplacementContainer>): Unit = action.execute(replacements)
+
+    public infix fun files(action: Action<in StonecutterFiles>): Unit = action.execute(files)
 
     /**
      * Executes the [action] in context of this node's Stonecutter flags.
