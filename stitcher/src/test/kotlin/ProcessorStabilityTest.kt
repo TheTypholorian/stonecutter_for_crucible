@@ -2,6 +2,7 @@
 
 import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.stitcher.StitcherParameters
+import dev.kikugie.stitcher.token.type.RootScopeState
 import io.kotest.matchers.shouldBe
 import matcher.Commenter
 import matcher.Scanner
@@ -15,8 +16,8 @@ val ProcessorStabilityTest by testSuite {
         for ((family, build) in CONFIGS) for ((name, snippet) in CASES.getValue(family))
             test("$family: $name") {
                 for (enabled in listOf(true, false)) {
-                    val once = assemble(snippet, build(enabled))
-                    assemble(once, build(enabled)) shouldBe once
+                    val once = assemble(snippet, build(enabled, RootScopeState.ANY))
+                    assemble(once, build(enabled, RootScopeState.ANY)) shouldBe once
                 }
             }
     }
@@ -24,20 +25,41 @@ val ProcessorStabilityTest by testSuite {
     testSuite("reversible") {
         for ((family, build) in CONFIGS) for ((name, snippet) in CASES.getValue(family))
             test("$family: $name") {
-                val disabled = assemble(snippet, build(false))
-                val enabled = assemble(disabled, build(true))
-                assemble(enabled, build(false)) shouldBe disabled
+                val disabled = assemble(snippet, build(false, RootScopeState.ANY))
+                val enabled = assemble(disabled, build(true, RootScopeState.ANY))
+                assemble(enabled, build(false, RootScopeState.ANY)) shouldBe disabled
+            }
+    }
+
+    testSuite("persistent root") {
+        for ((family, build) in CONFIGS) for ((name, snippet) in CASES.getValue(family))
+            test("$family: $name") {
+                for (enabled in listOf(true, false)) for (root in listOf(RootScopeState.ENABLED, RootScopeState.DISABLED)) {
+                    val once = assemble(snippet, build(enabled, root))
+                    assemble(once, build(enabled, root)) shouldBe once
+                }
+            }
+    }
+
+    testSuite("reversible root") {
+        for ((family, build) in CONFIGS) for ((name, snippet) in CASES.getValue(family))
+            test("$family: $name") {
+                for (enabled in listOf(true, false)) for (restored in listOf(RootScopeState.ENABLED, RootScopeState.ANY)) {
+                    val expected = assemble(snippet, build(enabled, RootScopeState.ANY))
+                    val disabled = assemble(snippet, build(enabled, RootScopeState.DISABLED))
+                    assemble(disabled, build(enabled, restored)) shouldBe expected
+                }
             }
     }
 }
 
-private typealias Build = (Boolean) -> StitcherParameters
+private typealias Build = (Boolean, RootScopeState) -> StitcherParameters
 
 private val CONFIGS: Map<String, Build> = mapOf(
-    "java" to { flag -> flags(flag) },
-    "kotlin" to { flag -> flags(flag) { commenter = Commenter.Kotlin; scanner = Scanner.Kotlin } },
-    "hash" to { flag -> flags(flag) { scanner = Scanner.Hash; commenter = Commenter.Hash; uncommenter = Uncommenter.Lines } },
-    "xml" to { flag -> flags(flag) { scanner = Scanner.Xml; commenter = Commenter.Xml; uncommenter = Uncommenter.Xml } },
+    "java" to { flag, root -> flags(flag, root) },
+    "kotlin" to { flag, root -> flags(flag, root) { commenter = Commenter.Kotlin; scanner = Scanner.Kotlin } },
+    "hash" to { flag, root -> flags(flag, root) { scanner = Scanner.Hash; commenter = Commenter.Hash; uncommenter = Uncommenter.Lines } },
+    "xml" to { flag, root -> flags(flag, root) { scanner = Scanner.Xml; commenter = Commenter.Xml; uncommenter = Uncommenter.Xml } },
 )
 
 private val CASES: Map<String, Map<String, String>> = mapOf(
@@ -71,7 +93,8 @@ private val CASES: Map<String, Map<String, String>> = mapOf(
     ),
 )
 
-private fun flags(flag: Boolean, action: StitcherParametersBuilder.() -> Unit = {}): StitcherParameters = params {
+private fun flags(flag: Boolean, root: RootScopeState, action: StitcherParametersBuilder.() -> Unit = {}): StitcherParameters = params {
     constants["flag"] = flag
+    this.root = root
     action()
 }

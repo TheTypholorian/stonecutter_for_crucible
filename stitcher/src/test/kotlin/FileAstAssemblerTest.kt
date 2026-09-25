@@ -4,7 +4,11 @@ import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.stitcher.StitcherParameters
+import dev.kikugie.stitcher.token.type.RootScopeState
 import io.kotest.matchers.shouldBe
+import matcher.Commenter
+import matcher.Scanner
+import matcher.Uncommenter
 import matcher.assemble
 import matcher.params
 import org.intellij.lang.annotations.Language
@@ -855,6 +859,285 @@ val FileAstAssemblerTest by testSuite {
             //? }
         """.trimIndent()
         )
+    }
+
+    testSuite("root scope") {
+        test("disable file") {
+            """
+                package a;
+
+                class A {}
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.DISABLED }, """
+                /*!stonecutter-disabled
+                package a;
+
+                class A {}*/
+            """.trimIndent()
+            )
+        }
+
+        test("enable file") {
+            """
+                /*!stonecutter-disabled
+                package a;
+
+                class A {}*/
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.ENABLED }, """
+                package a;
+
+                class A {}
+            """.trimIndent()
+            )
+        }
+
+        test("enable marked file with any state") {
+            """
+                /*!stonecutter-disabled
+                package a;
+
+                class A {}*/
+            """.trimIndent() shouldAssembleTo """
+                package a;
+
+                class A {}
+            """.trimIndent()
+        }
+
+        test("keep disabled file disabled") {
+            """
+                /*!stonecutter-disabled
+                package a;
+
+                class A {}*/
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.DISABLED }, """
+                /*!stonecutter-disabled
+                package a;
+
+                class A {}*/
+            """.trimIndent()
+            )
+        }
+
+        test("keep enabled file enabled") {
+            """
+                package a;
+
+                class A {}
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.ENABLED }, """
+                package a;
+
+                class A {}
+            """.trimIndent()
+            )
+        }
+
+        for (state in listOf(RootScopeState.ANY, RootScopeState.ENABLED)) test("keep unmarked comment with ${state.name.lowercase()} state") {
+            """
+                /*package a;
+
+                class A {}*/
+            """.trimIndent().shouldAssembleTo(
+                params { root = state }, """
+                /*package a;
+
+                class A {}*/
+            """.trimIndent()
+            )
+        }
+
+        test("disable unmarked comment") {
+            """
+                /*package a;
+
+                class A {}*/
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.DISABLED }, """
+                /*!stonecutter-disabled
+                /^package a;
+
+                class A {}^/*/
+            """.trimIndent()
+            )
+        }
+
+        test("disable single-line file") {
+            "val one = 1".shouldAssembleTo(
+                params { root = RootScopeState.DISABLED }, """
+                /*!stonecutter-disabled
+                val one = 1*/
+            """.trimIndent()
+            )
+        }
+
+        test("keep blank file") {
+            "\n\n".shouldAssembleTo(params { root = RootScopeState.DISABLED }, "\n\n")
+        }
+
+        test("disable file with leading whitespace") {
+            """
+
+
+                    val one = 1
+                val two = 2
+
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.DISABLED }, """
+
+
+                /*!stonecutter-disabled
+                    val one = 1
+                val two = 2
+                */
+            """.trimIndent()
+            )
+        }
+
+        test("enable file with leading whitespace") {
+            """
+
+
+                /*!stonecutter-disabled
+                    val one = 1
+                val two = 2
+                */
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.ENABLED }, """
+
+
+                    val one = 1
+                val two = 2
+
+            """.trimIndent()
+            )
+        }
+
+        test("enable file with indented marker") {
+            """
+
+                  /*!stonecutter-disabled
+                val one = 1
+                val two = 2*/
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.ENABLED }, """
+
+                val one = 1
+                val two = 2
+            """.trimIndent()
+            )
+        }
+
+        test("disable file with disabled condition") {
+            """
+                //? if false {
+                val one = 1
+                val two = 2
+                //?}
+                val three = 3
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.DISABLED }, """
+                /*!stonecutter-disabled
+                //? if false {
+                /^val one = 1
+                val two = 2
+                ^///?}
+                val three = 3*/
+            """.trimIndent()
+            )
+        }
+
+        test("enable file with disabled condition") {
+            """
+                /*!stonecutter-disabled
+                //? if false {
+                /^val one = 1
+                val two = 2
+                ^///?}
+                val three = 3*/
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.ENABLED }, """
+                //? if false {
+                /*val one = 1
+                val two = 2
+                *///?}
+                val three = 3
+            """.trimIndent()
+            )
+        }
+
+        test("enable file with enabled condition") {
+            """
+                /*!stonecutter-disabled
+                //? if true {
+                /^val one = 1
+                val two = 2
+                ^///?}
+                val three = 3*/
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.ENABLED }, """
+                //? if true {
+                val one = 1
+                val two = 2
+                //?}
+                val three = 3
+            """.trimIndent()
+            )
+        }
+
+        test("disable hash file") {
+            """
+                key = 1
+                other = 2
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.DISABLED; scanner = Scanner.Hash; commenter = Commenter.Hash; uncommenter = Uncommenter.Lines }, """
+                #!stonecutter-disabled
+                #key = 1
+                #other = 2
+            """.trimIndent()
+            )
+        }
+
+        test("enable hash file") {
+            """
+                #!stonecutter-disabled
+                #key = 1
+                #other = 2
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.ENABLED; scanner = Scanner.Hash; commenter = Commenter.Hash; uncommenter = Uncommenter.Lines }, """
+                key = 1
+                other = 2
+            """.trimIndent()
+            )
+        }
+
+        test("disable xml file") {
+            """
+                <item id="a"/>
+                <item id="b"/>
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.DISABLED; scanner = Scanner.Xml; commenter = Commenter.Xml; uncommenter = Uncommenter.Xml }, """
+                <!--!stonecutter-disabled
+                <item id="a"/>
+                <item id="b"/>-->
+            """.trimIndent()
+            )
+        }
+
+        test("enable xml file") {
+            """
+                <!--!stonecutter-disabled
+                <item id="a"/>
+                <item id="b"/>-->
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.ENABLED; scanner = Scanner.Xml; commenter = Commenter.Xml; uncommenter = Uncommenter.Xml }, """
+                <item id="a"/>
+                <item id="b"/>
+            """.trimIndent()
+            )
+        }
     }
 }
 

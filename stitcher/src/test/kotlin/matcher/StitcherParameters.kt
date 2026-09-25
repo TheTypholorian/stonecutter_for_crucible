@@ -32,6 +32,7 @@ import dev.kikugie.stitcher.parser.ScannerAdapter
 import dev.kikugie.stitcher.token.BlockToken
 import dev.kikugie.stitcher.token.appendTo
 import dev.kikugie.stitcher.token.type.BuiltinTokenType
+import dev.kikugie.stitcher.token.type.RootScopeState
 import dev.kikugie.stitcher.transformer.edit.CommentingStrategy
 import dev.kikugie.stitcher.transformer.edit.SwappingStrategy
 import dev.kikugie.stitcher.transformer.edit.UncommentingStrategy
@@ -141,6 +142,7 @@ private annotation class VarsBuilderDsl
 @VarsBuilderDsl
 class StitcherParametersBuilder : ProcessParametersBuilder() {
     val registry: MutableMap<ConfigurationFlag<*>, Any> = HashMap()
+    var root: RootScopeState = RootScopeState.ANY
 
     var scanner: ScannerAdapter.Factory = Scanner.Java
     var commenter: CommentingStrategy = Commenter.Java
@@ -148,7 +150,7 @@ class StitcherParametersBuilder : ProcessParametersBuilder() {
     var swapper: SwappingStrategy = Swapper.Standard
 
     fun buildParams(): StitcherParameters = StitcherParameters(
-        buildVars(), ConfigurationRegistry(registry),
+        buildVars(), ConfigurationRegistry(registry), root,
         scanner, commenter, uncommenter, swapper
     )
 }
