@@ -5,11 +5,14 @@ package integration
 import de.infix.testBalloon.framework.core.testSuite
 import integrationTest
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldContainOnlyOnce
 import read
 import runGradle
+import runGradleIncremental
 import shouldFailBuild
 import tempDirFixture
+import kotlin.io.path.deleteExisting
 
 val BuildExtensionTest by testSuite {
     tempDirFixture() asParameterForEach {
@@ -50,6 +53,33 @@ val BuildExtensionTest by testSuite {
                 scoped = LEGACY_SCOPED
                 shared = MODERN_SHARED
             """.trimIndent() + "\n"
+        }
+
+        integrationTest("exclude filtered replacements outside source roots") {
+            runGradle(it)
+            it read "versions/1/build/processed.txt" shouldBe """
+                scoped = LEGACY_SCOPED
+                shared = MODERN_SHARED
+            """.trimIndent() + "\n"
+        }
+
+        integrationTest("apply line separator to processed file") {
+            runGradle(it)
+            it read "versions/1/build/processed.txt" shouldBe "first\r\nsecond\r\n"
+        }
+
+        integrationTest("pass node flags to handlers") {
+            runGradle(it)
+            it read "versions/1/build/processed.cfg" shouldBe "#\$ entry {\nwarn=true\n#\$}\n"
+        }
+
+        integrationTest("track processed file for configuration cache") {
+            runGradleIncremental(it)
+            runGradleIncremental(it).output shouldContain "Reusing configuration cache"
+
+            it.resolve("versions/1/build/processed.txt").deleteExisting()
+            runGradleIncremental(it)
+            it read "versions/1/build/processed.txt" shouldBe "name = MODERN_NAME\n"
         }
 
         integrationTest("create extension alias") { runGradle(it) }

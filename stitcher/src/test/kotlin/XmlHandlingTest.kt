@@ -91,10 +91,60 @@ val XmlHandlingTest by testSuite {
         }
     }
 
+    testSuite("dashes") {
+        for ((name, content, escaped) in listOf(
+            Triple("double dash", "<arg>--enable-preview</arg>", "<arg>-^-enable-preview</arg>"),
+            Triple("triple dash", "a---b", "a-^-^-b"),
+            Triple("trailing dash", "value-", "value-^"),
+            Triple("escaped dash", "a-^b", "a-^^b"),
+        )) {
+            test("escape $name") {
+                "<!--? if false-->\n$content" shouldAssembleTo "<!--? if false-->\n<!--$escaped-->"
+            }
+
+            test("restore $name") {
+                "<!--? if true-->\n<!--$escaped-->" shouldAssembleTo "<!--? if true-->\n$content"
+            }
+        }
+
+        test("round-trip a dash before an enclosed closer") {
+            val nested = "<!--? if false {-->\n<!--? if false-->\nx-\n<!--?}-->"
+            val disabled = assemble(nested, xml())
+            disabled shouldBe "<!--? if false {-->\n<!--<!^^? if false^^>\n<!^^x-^^^^>\n--><!--?}-->"
+
+            val enabled = disabled.replace("<!--? if false {-->", "<!--? if true {-->")
+            assemble(enabled, xml()) shouldBe "<!--? if true {-->\n<!--? if false-->\n<!--x-^-->\n<!--?}-->"
+        }
+
+        test("restore a dash before an enclosed closer") {
+            """
+                <!--? if true {-->
+                <!--<!^^ a-^^^>
+                --><!--?}-->
+            """.trimIndent() shouldAssembleTo """
+                <!--? if true {-->
+                <!-- a--->
+                <!--?}-->
+            """.trimIndent()
+        }
+
+        test("restore an enclosed closer escaped without dash escaping") {
+            """
+                <!--? if true {-->
+                <!--<!^^ a-^^>
+                --><!--?}-->
+            """.trimIndent() shouldAssembleTo """
+                <!--? if true {-->
+                <!-- a--->
+                <!--?}-->
+            """.trimIndent()
+        }
+    }
+
     testSuite("swaps and replacements") {
         test("swap substitutes the scope") {
-            "<!--\$ id {-->old<!--\$}-->"
-                .shouldAssembleTo(xml { swaps["id"] = "new" }, "<!--\$ id {-->new<!--\$}-->")
+            "<!--$ id {-->old<!--$}-->"
+                .shouldAssembleTo(xml { swaps["id"] = "new" }, "<!--$ id {-->new<!--$}-->")
         }
 
         test("replacement applies to markup text") {

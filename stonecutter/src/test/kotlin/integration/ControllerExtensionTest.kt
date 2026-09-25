@@ -38,8 +38,12 @@ val ControllerExtensionTest by testSuite {
         }
 
         testSuite("stonecutter flags") {
-            integrationTest("not apply to build") { shouldFailBuild { runGradle(it) } }
-            integrationTest("apply before init") { runGradle(it) }
+            integrationTest("not apply to build") {
+                shouldFailBuild { runGradle(it) }.message shouldContain "Unresolved reference 'stonecutter'"
+            }
+            integrationTest("disable after init") {
+                shouldFailBuild { runGradle(it) }.message shouldContain "Unresolved reference 'stonecutter'"
+            }
             integrationTest("override default receiver") { runGradle(it, "stonecutterGenerate") }
             integrationTest("generate manifest") {
                 fun getJar() = it.resolve("versions/example/build/libs/example.jar")

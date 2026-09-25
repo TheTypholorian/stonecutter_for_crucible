@@ -730,9 +730,8 @@ val FileAstParserTest by testSuite {
                 //val one = 1
                 //?}
             """.trimIndent() shouldBeParsedAs ast {
-                code<SwapOpener> {
-                    content()
-                }
+                code<SwapOpener>()
+                content()
                 code<ConditionOpener> {
                     comment()
                 }

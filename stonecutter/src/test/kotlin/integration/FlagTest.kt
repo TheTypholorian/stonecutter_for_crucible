@@ -41,8 +41,12 @@ val FlagTest by testSuite {
             }
         }
 
-        integrationTest("disable auto-apply under isolation") {
-            runGradle(it).output shouldContain "[flag] apply=false"
+        integrationTest("keep auto-apply under isolation") {
+            with(runGradle(it).output) {
+                shouldContain("[flag] apply=true")
+                shouldContain("[node] 1")
+                shouldContain("[node] 2")
+            }
         }
 
         integrationTest("inherit down hierarchy") {

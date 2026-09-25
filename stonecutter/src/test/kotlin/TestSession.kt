@@ -16,12 +16,18 @@ class ConcurrentTestSession : TestSession(
     defaultCompartment = { TestCompartment.Concurrent }
 )
 
-fun runGradle(dir: Path, vararg arguments: String): BuildResult = configureGradle {
+fun runGradle(dir: Path, vararg arguments: String): BuildResult =
+    runGradle(dir, arguments.toList() + "--rerun-tasks")
+
+fun runGradleIncremental(dir: Path, vararg arguments: String): BuildResult =
+    runGradle(dir, arguments.toList())
+
+private fun runGradle(dir: Path, arguments: List<String>): BuildResult = configureGradle {
     forwardOutput()
 
     withPluginClasspath()
     withProjectDir(dir.toFile())
-    withArguments(*arguments, "--stacktrace", "--parallel", "--rerun-tasks", "--configuration-cache")
+    withArguments(arguments + listOf("--stacktrace", "--parallel", "--configuration-cache"))
     testPlatform.environment("GRADLE_VERSION")?.let(::withGradleVersion)
 }.build()
 

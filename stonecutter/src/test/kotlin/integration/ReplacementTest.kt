@@ -146,12 +146,44 @@ val ReplacementTest by testSuite {
             """.trimIndent() + "\n"
         }
 
+        integrationTest("toggle filtered replacement id") {
+            runGradle(it, "stonecutterSwitchTo2")
+            it read "src/main/java/Other.java" shouldBe """
+                public class Other {
+                    //~ scoped_id
+                    String a = MODERN_SCOPED;
+                }
+            """.trimIndent() + "\n"
+        }
+
+        integrationTest("enable filtered default replacement id") {
+            runGradle(it, "stonecutterSwitchTo2")
+            it read "src/main/java/Scoped.java" shouldBe """
+                public class Scoped {
+                    String a = MODERN_SCOPED;
+                }
+            """.trimIndent() + "\n"
+
+            it read "src/main/java/Other.java" shouldBe """
+                public class Other {
+                    String a = LEGACY_SCOPED;
+                }
+            """.trimIndent() + "\n"
+
+            it read "src/main/java/Toggled.java" shouldBe """
+                public class Toggled {
+                    //~ scoped
+                    String a = MODERN_SCOPED;
+                }
+            """.trimIndent() + "\n"
+        }
+
         integrationTest("serialize replacement filters") {
             runGradle(it, "stonecutterSaveNodeModel")
 
             with(it read "versions/1/build/stonecutter-cache/node.json") {
-                shouldContain("\"replacement_filters\"")
-                shouldContain("\"1\"")
+                shouldContain("\"includes\"")
+                shouldContain("\"excludes\"")
                 shouldContain("**/Scoped.java")
                 shouldContain("**/Other.java")
             }

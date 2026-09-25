@@ -4,8 +4,8 @@ package integration
 
 import de.infix.testBalloon.framework.core.testSuite
 import integrationTest
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
-import io.kotest.matchers.string.shouldNotContain
 import io.kotest.matchers.string.shouldStartWith
 import read
 import runGradle
@@ -52,8 +52,7 @@ val SwapTest by testSuite {
                 runGradle(it, ":2:stonecutterGenerate")
 
                 val generated = it read "versions/2/build/generated/stonecutter/main/java/Example.java"
-                generated shouldContain "\"Bye Tim!"
-                generated shouldNotContain ");"
+                generated shouldBe it.read("src/main/java/Example.java")
             }
         }
     }

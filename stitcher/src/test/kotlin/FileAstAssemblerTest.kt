@@ -567,6 +567,34 @@ val FileAstAssemblerTest by testSuite {
             """.trimIndent()
             )
         }
+
+        test("replacement toggle switches every replacement sharing the id") {
+            val params = params {
+                string("olda", "newa", id = "feature", enabled = true)
+                string("oldb", "newb", id = "feature")
+            }
+            """
+                val a1 = "olda"
+                val b1 = "oldb"
+                //~ feature
+                val a2 = "olda"
+                val b2 = "oldb"
+                //~ !feature
+                val a3 = "olda"
+                val b3 = "oldb"
+            """.trimIndent().shouldAssembleTo(
+                params, """
+                val a1 = "newa"
+                val b1 = "oldb"
+                //~ feature
+                val a2 = "newa"
+                val b2 = "newb"
+                //~ !feature
+                val a3 = "olda"
+                val b3 = "oldb"
+            """.trimIndent()
+            )
+        }
     }
 
     testSuite("swaps") {
@@ -628,18 +656,37 @@ val FileAstAssemblerTest by testSuite {
 
         // A matched capturing lookup ends the scope just after the match.
         test("swap lookup ends at its match") {
-            "println(/*\$ sw >>+ '!'*/\n\t\"Hello Lace!\"\n);\nafter();".shouldAssembleTo(
+            "println(/*$ sw >>+ '!'*/\n\t\"Hello Lace!\"\n);\nafter();".shouldAssembleTo(
                 params { swaps["sw"] = "SWAPPED" },
-                "println(/*\$ sw >>+ '!'*/\n\tSWAPPED\"\n);\nafter();"
+                "println(/*$ sw >>+ '!'*/\n\tSWAPPED\"\n);\nafter();"
             )
         }
 
-        // An unmatched lookup reports nothing and extends the scope to end of file, so the swap
-        // replaces every line after the marker. Documents the behaviour; it is not obviously wanted.
-        test("swap lookup without a match runs to end of file") {
-            "println(/*\$ sw >>+ '!'*/\n\tone();\n\ttwo();\n\tthree();".shouldAssembleTo(
+        test("swap lookup without a match preserves the rest of the file") {
+            "println(/*$ sw >>+ '!'*/\n\tone();\n\ttwo();\n\tthree();".shouldAssembleTo(
                 params { swaps["sw"] = "SWAPPED" },
-                "println(/*\$ sw >>+ '!'*/\n\tSWAPPED"
+                "println(/*$ sw >>+ '!'*/\n\tone();\n\ttwo();\n\tthree();"
+            )
+        }
+
+        test("swap lookup matching at its start inserts before the match") {
+            "/*$ sw >> 'void'*/void run();".shouldAssembleTo(
+                params { swaps["sw"] = "static " },
+                "/*$ sw >> 'void'*/static void run();"
+            )
+        }
+
+        test("swap lookup matching at its start removes the text before the match") {
+            "/*$ sw >> 'void'*/static void run();".shouldAssembleTo(
+                params { swaps["sw"] = "" },
+                "/*$ sw >> 'void'*/void run();"
+            )
+        }
+
+        test("swap lookup without a match before the next marker preserves the text") {
+            "a(/*$ sw >>+ '!'*/one();\n//? if true\ntwo();".shouldAssembleTo(
+                params { swaps["sw"] = "SWAPPED" },
+                "a(/*$ sw >>+ '!'*/one();\n//? if true\ntwo();"
             )
         }
 

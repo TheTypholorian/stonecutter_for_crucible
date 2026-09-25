@@ -28,6 +28,8 @@ val ControllerManagerPatternTest by testSuite {
             ReplaceSpec(Kotlin, """stonecutter active "1.0"""", "2.0", """stonecutter active "2.0""""),
             ReplaceSpec(Kotlin, """sc.active ( "1.0" )""", "2.0", """sc.active ( "2.0" )"""),
             ReplaceSpec(Kotlin, """sc active "1.0"""", "2.0", """sc active "2.0""""),
+            ReplaceSpec(Kotlin, """stonecutter active "a"""", "1.20", """stonecutter active "1.20""""),
+            ReplaceSpec(Kotlin, "val a = 1\nstonecutter active \"a\"\nprintln(a)", "b", "val a = 1\nstonecutter active \"b\"\nprintln(a)"),
         )) test(spec.toString()) { spec.run() shouldBe spec.output }
     }
 }

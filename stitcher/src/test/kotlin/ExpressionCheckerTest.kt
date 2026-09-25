@@ -241,6 +241,36 @@ val ExpressionCheckerTest by testSuite {
                 shouldNotHave(SYNTAX_GROUP + "replacement-already-disabled")
             }
         }
+
+        test("enabling a partly active replacement is not redundant") {
+            val params = vars {
+                string("a", "b", "feature", enabled = true)
+                string("c", "d", "feature")
+            }
+            "//~ feature".shouldHaveProblems(params) {
+                shouldNotHave(SYNTAX_GROUP + "replacement-already-enabled")
+            }
+        }
+
+        test("disabling a partly active replacement is not redundant") {
+            val params = vars {
+                string("a", "b", "feature", enabled = true)
+                string("c", "d", "feature")
+            }
+            "//~ !feature".shouldHaveProblems(params) {
+                shouldNotHave(SYNTAX_GROUP + "replacement-already-disabled")
+            }
+        }
+
+        test("enabling a partly active replacement twice is redundant") {
+            val params = vars {
+                string("a", "b", "feature", enabled = true)
+                string("c", "d", "feature")
+            }
+            "//~ feature\n//~ feature".shouldHaveProblems(params) {
+                shouldHave(SYNTAX_GROUP + "replacement-already-enabled")
+            }
+        }
     }
 
     testSuite("local replacements") {

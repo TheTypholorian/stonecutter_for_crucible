@@ -158,7 +158,7 @@ open class ProcessParametersBuilder {
     val constants: MutableMap<String, Boolean> = HashMap()
     val targets: MutableMap<String, Version> = HashMap()
     val swaps: MutableMap<String, String> = HashMap()
-    val replacements: MutableList<Replacement> = ArrayList()
+    val replacements: MutableList<ReplacementModel> = ArrayList()
 
     init {
         constants["true"] = true
@@ -166,15 +166,15 @@ open class ProcessParametersBuilder {
     }
 
     fun string(from: String, to: String, id: Identifier? = null, enabled: Boolean = false) {
-        replacements += StringReplacement(from, to, id, enabled)
+        replacements += ReplacementModel(StringReplacement(from, to, id), id == null || enabled)
     }
 
     fun regex(@Language("RegExp") from: String, to: String, id: String? = null, enabled: Boolean = false, flags: Int = 0) {
-        replacements += RegexReplacement(from, to, flags, id, enabled)
+        replacements += ReplacementModel(RegexReplacement(from, to, flags, id), id == null || enabled)
     }
 
     fun perl(@Language("RegExp") from: String, to: String, id: String? = null, enabled: Boolean = false) {
-        replacements += PerlReplacement(from, to, 0, id, enabled)
+        replacements += ReplacementModel(PerlReplacement(from, to, 0, id), id == null || enabled)
     }
 
     fun buildVars(): ProcessParameters = ProcessParameters(constants, targets, swaps, replacements)

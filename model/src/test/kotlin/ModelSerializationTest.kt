@@ -30,9 +30,12 @@ private fun parameters() = ProcessParameters(
     targets = mapOf("minecraft" to SemanticVersion(listOf(1, 21, 4))),
     swaps = mapOf("mc_version" to "\"1.21.4\""),
     replacements = listOf(
-        StringReplacement("GuiGraphics", "GuiGraphicsExtractor"),
-        RegexReplacement("""(\w+)Screen""", "$1Menu", flags = 2, identifier = "screens"),
-        PerlReplacement("""\bfoo\b""", "bar", identifier = "!perl", defaultEnabled = true),
+        ReplacementModel(StringReplacement("GuiGraphics", "GuiGraphicsExtractor"), enabled = true),
+        ReplacementModel(RegexReplacement("""(\w+)Screen""", "$1Menu", flags = 2, identifier = "screens"), enabled = false),
+        ReplacementModel(
+            PerlReplacement("""\bfoo\b""", "bar", identifier = "perl"), enabled = true,
+            includes = setOf("java/**"), excludes = setOf("**/Ignored.java")
+        ),
     ),
 )
 
@@ -51,11 +54,18 @@ val ModelSerializationTest by testSuite {
         test("keeps each replacement kind apart") {
             val decoded = JSON.decodeFromString<ProcessParameters>(JSON.encodeToString(parameters()))
 
-            decoded.replacements[0].shouldBeInstanceOf<StringReplacement>()
-            decoded.replacements[1].shouldBeInstanceOf<RegexReplacement> { it.flags shouldBe 2 }
-            decoded.replacements[2].shouldBeInstanceOf<PerlReplacement> {
-                it.identifier shouldBe "!perl"
-                it.defaultEnabled shouldBe true
+            decoded.replacements[0].replacement.shouldBeInstanceOf<StringReplacement>()
+            decoded.replacements[1].replacement.shouldBeInstanceOf<RegexReplacement> { it.flags shouldBe 2 }
+            decoded.replacements[2].replacement.shouldBeInstanceOf<PerlReplacement> { it.identifier shouldBe "perl" }
+        }
+
+        test("keeps replacement state and filters") {
+            val decoded = JSON.decodeFromString<ProcessParameters>(JSON.encodeToString(parameters()))
+
+            decoded.replacements.map(ReplacementModel::enabled) shouldBe listOf(true, false, true)
+            with(decoded.replacements[2]) {
+                includes shouldBe setOf("java/**")
+                excludes shouldBe setOf("**/Ignored.java")
             }
         }
 
@@ -75,13 +85,6 @@ val ModelSerializationTest by testSuite {
 
         test("node model survives json") {
             val value = NodeModel("1.21.4", "1.21.4", true, branch, Path("."), parameters())
-            JSON.decodeFromString<NodeModel>(JSON.encodeToString(value)) shouldBe value
-        }
-
-        test("node model keeps replacement filters") {
-            val filters: Map<Int, ReplacementFilter> = mapOf(1 to ReplacementFilter(includes = setOf("java/**"), excludes = setOf("**/Ignored.java")))
-            val value = NodeModel("1.21.4", "1.21.4", true, branch, Path("."), parameters(), replacementFilters = filters)
-
             JSON.decodeFromString<NodeModel>(JSON.encodeToString(value)) shouldBe value
         }
 

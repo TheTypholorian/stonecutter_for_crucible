@@ -4,6 +4,8 @@ plugins {
     id("dev.kikugie.stonecutter")
 }
 
-sc active "1"
+sc active "example"
 
-println("[flag] apply=" + stonecutter.flags[StonecutterFlag.APPLY_PLUGIN_TO_NODES])
+stonecutter flags {
+    StonecutterFlag.AUTO_APPLY_PLUGIN = false
+}
