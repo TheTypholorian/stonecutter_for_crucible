@@ -8,12 +8,13 @@ import dev.kikugie.stitcher.document.issue.ProblemReport.Severity
 import dev.kikugie.stitcher.document.issue.report
 import dev.kikugie.stitcher.token.*
 import dev.kikugie.stitcher.token.DefinitionToken.*
+import dev.kikugie.stitcher.token.type.RootScopeState
 import dev.kikugie.stitcher.util.*
 
 object FileAstParser {
     fun parse(stream: FileTokenStream): BlockToken.Root {
         val builder = RootScopeBuilder().apply { accept(stream) }
-        return BlockToken.Root(stream.document, ArrayList<BlockToken>().apply {
+        return BlockToken.Root(stream.document, RootScopeState.ANY, ArrayList<BlockToken>().apply {
             builder.collect(this)
         })
     }

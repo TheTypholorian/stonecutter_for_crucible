@@ -1,6 +1,7 @@
 package dev.kikugie.stonecutter.controller.tree
 
 import dev.kikugie.stitcher.StitcherParameters
+import dev.kikugie.stitcher.token.type.RootScopeState
 import dev.kikugie.stonecutter.StonecutterPlugin
 import dev.kikugie.stonecutter.build.data.StonecutterBuildData
 import dev.kikugie.stonecutter.controller.file.HandlerModel
@@ -48,7 +49,7 @@ internal fun StonecutterBuildData.toParameters(): ProcessParameters = ProcessPar
 internal fun ProcessParameters.forFile(file: Path, handlers: Map<String, HandlerModel>, flags: ConfigurationRegistry): StitcherParameters? {
     val handler = handlers[file.extension.lowercase()] ?: return null
     return StitcherParameters(
-        this, flags,
+        this, flags, RootScopeState.ANY,
         handler.scanner, handler.commenter, handler.uncommenter, handler.swapper
     )
 }

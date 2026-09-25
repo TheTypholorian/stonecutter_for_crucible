@@ -11,6 +11,7 @@ import dev.kikugie.stitcher.token.*
 import dev.kikugie.stitcher.token.BlockToken.*
 import dev.kikugie.stitcher.token.BlockToken.Visitor as BlockTokenVisitor
 import dev.kikugie.stitcher.token.DefinitionToken.*
+import dev.kikugie.stitcher.token.type.RootScopeState
 import dev.kikugie.stitcher.util.append
 import dev.kikugie.stitcher.util.findInsertionPlaces
 import dev.kikugie.stitcher.util.indexOfFirst
@@ -23,7 +24,7 @@ class FileAstAssembler(val params: StitcherParameters) : BlockTokenVisitor<Block
     override fun visitContent(content: Content, ctx: Nothing?): BlockToken = content
     override fun visitComment(comment: Comment, ctx: Nothing?): BlockToken = comment
     override fun visitCode(code: Code, ctx: Nothing?): BlockToken = code.definition.accept(this, code)
-    override fun visitRoot(root: Root, ctx: Nothing?): BlockToken = root.copy(scope = assembleScope(root.scope))
+    override fun visitRoot(root: Root, ctx: Nothing?): BlockToken = root.copy(state = params.root, scope = assembleRoot(root))
 
     override fun visitSwapLocal(swap: SwapLocal, ctx: Code): Code = substituteSwap(ctx, resolveLocalSwap(swap))
     override fun visitSwapOpener(swap: SwapOpener, ctx: Code): Code = substituteSwap(ctx, resolveTemplateSwap(swap))
@@ -68,13 +69,21 @@ class FileAstAssembler(val params: StitcherParameters) : BlockTokenVisitor<Block
         return end - start
     }
 
+    private fun assembleRoot(root: Root): List<BlockToken> {
+        val scope: List<BlockToken> = assembleScope(root.scope)
+        return if (params.root != RootScopeState.DISABLED || scope.all { it is Content && it.leaf.text.isBlank() }) scope
+        else commentScope(ModificationTracker(root.ref), scope)
+    }
+
     // Reprocess [code] and comment it if necessary
     private fun assembleBranch(code: Code, keepEnabled: Boolean): Code {
         val body: List<BlockToken> = code.scope.ifEmpty { return code }
         val scope: List<BlockToken> = assembleScope(body)
-        if (keepEnabled) return code.copy(scope = scope)
+        return code.copy(scope = if (keepEnabled) scope else commentScope(ModificationTracker(body.first().ref join body.last().ref), scope))
+    }
 
-        val spliced = ModificationTracker(body.first().ref join body.last().ref).run {
+    private fun commentScope(target: ModificationTracker, scope: List<BlockToken>): List<BlockToken> {
+        val spliced = target.run {
             replace(start, end, buildString { scope.appendTo(this) })
             InjectedDocument(this)
         }
@@ -82,7 +91,7 @@ class FileAstAssembler(val params: StitcherParameters) : BlockTokenVisitor<Block
             params.commenter.comment(params.flags, this, tokenize(spliced, params.scanner).toSequence().map { it.toLeaf(document) })
             InjectedDocument(this)
         }
-        return code.copy(scope = listOf(Content(commented.reference())))
+        return listOf(Content(commented.reference()))
     }
 
     private fun substituteSwap(code: Code, value: String): Code {
