@@ -85,6 +85,7 @@ class FileAstAssembler(val params: StitcherParameters) : BlockTokenVisitor<Block
         }
         val commented = ModificationTracker(spliced, lead, spliced.length).run {
             params.commenter.comment(params.flags, this, tokenize(spliced, params.scanner).toSequence().map { it.toLeaf(document) })
+            if (toList().isEmpty()) return scope
             InjectedDocument(this)
         }
         return listOf(Content(spliced.reference(0, lead)), Content(commented.reference()))
