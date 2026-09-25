@@ -5,6 +5,7 @@ import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.stitcher.StitcherParameters
 import dev.kikugie.stitcher.token.type.RootScopeState
+import dev.kikugie.stitcher.transformer.edit.CommentingStrategy
 import io.kotest.matchers.shouldBe
 import matcher.Commenter
 import matcher.Scanner
@@ -969,6 +970,18 @@ val FileAstAssemblerTest by testSuite {
                 params { root = RootScopeState.DISABLED }, """
                 /*!stonecutter-disabled
                 val one = 1*/
+            """.trimIndent()
+            )
+        }
+
+        test("keep file without commenter") {
+            """
+                key = 1
+                other = 2
+            """.trimIndent().shouldAssembleTo(
+                params { root = RootScopeState.DISABLED; commenter = CommentingStrategy { _, _, _ -> } }, """
+                key = 1
+                other = 2
             """.trimIndent()
             )
         }

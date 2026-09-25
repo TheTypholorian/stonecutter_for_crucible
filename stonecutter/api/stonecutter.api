@@ -4,6 +4,9 @@ public abstract interface annotation class dev/kikugie/stonecutter/ConstantID : 
 public abstract interface annotation class dev/kikugie/stonecutter/ReplacementID : java/lang/annotation/Annotation {
 }
 
+public abstract interface annotation class dev/kikugie/stonecutter/SourceSetPattern : java/lang/annotation/Annotation {
+}
+
 public abstract interface class dev/kikugie/stonecutter/StonecutterBaseExtension : dev/kikugie/stonecutter/data/property/StructuredPropertiesProvider, dev/kikugie/stonecutter/data/version/VersionOperations {
 	public fun flags (Lorg/gradle/api/Action;)V
 	public abstract fun getFlags ()Ldev/kikugie/stonecutter/controller/flag/StonecutterFlags;
@@ -44,12 +47,14 @@ public abstract interface annotation class dev/kikugie/stonecutter/TargetID : ja
 public abstract interface class dev/kikugie/stonecutter/build/StonecutterBuildExtension : dev/kikugie/stonecutter/StonecutterBaseExtension {
 	public fun constants (Lorg/gradle/api/Action;)V
 	public fun dependencies (Lorg/gradle/api/Action;)V
+	public fun files (Lorg/gradle/api/Action;)V
 	public fun flags (Lorg/gradle/api/Action;)V
 	public fun getActive ()Ldev/kikugie/stonecutter/data/StonecutterProject;
 	public fun getBranch ()Ldev/kikugie/stonecutter/data/tree/ProjectBranch;
 	public abstract fun getConstants ()Ldev/kikugie/stonecutter/build/config/ConstantContainer;
 	public fun getCurrent ()Ldev/kikugie/stonecutter/data/StonecutterProject;
 	public abstract fun getDependencies ()Ldev/kikugie/stonecutter/build/config/DependencyContainer;
+	public abstract fun getFiles ()Ldev/kikugie/stonecutter/build/config/StonecutterFiles;
 	public abstract fun getFilters ()Lorg/gradle/api/tasks/util/PatternFilterable;
 	public abstract fun getFlags ()Ldev/kikugie/stonecutter/controller/flag/StonecutterFlags;
 	public abstract fun getNode ()Ldev/kikugie/stonecutter/data/tree/ProjectNode;
@@ -72,6 +77,7 @@ public final class dev/kikugie/stonecutter/build/StonecutterBuildExtension$Defau
 	public static fun contains (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lkotlin/ranges/ClosedRange;Ldev/kikugie/stonecutter/data/ParsedVersion;)Z
 	public static fun contains (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lkotlin/ranges/OpenEndRange;Ldev/kikugie/stonecutter/data/ParsedVersion;)Z
 	public static fun dependencies (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lorg/gradle/api/Action;)V
+	public static fun files (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lorg/gradle/api/Action;)V
 	public static fun flags (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;Lorg/gradle/api/Action;)V
 	public static fun getActive (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;)Ldev/kikugie/stonecutter/data/StonecutterProject;
 	public static fun getBranch (Ldev/kikugie/stonecutter/build/StonecutterBuildExtension;)Ldev/kikugie/stonecutter/data/tree/ProjectBranch;
@@ -266,6 +272,23 @@ public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$
 	public abstract fun getFrom ()Lorg/gradle/api/provider/Property;
 	public abstract fun getTo ()Lorg/gradle/api/provider/Property;
 	public abstract fun replace (Ljava/lang/String;Ljava/lang/String;)V
+}
+
+public abstract interface class dev/kikugie/stonecutter/build/config/StonecutterFiles : dev/kikugie/stonecutter/build/config/PatternFilter {
+	public abstract fun disable (ZLjava/lang/Iterable;)V
+	public fun disable (Z[Ljava/lang/String;)V
+	public abstract fun exclude (Ljava/lang/Iterable;)V
+	public abstract fun exclude ([Ljava/lang/String;)V
+	public abstract fun getExcludes ()Ljava/util/Set;
+	public abstract fun getIncludes ()Ljava/util/Set;
+	public abstract fun include (Ljava/lang/Iterable;)V
+	public abstract fun include ([Ljava/lang/String;)V
+	public abstract fun setExcludes (Ljava/util/Set;)V
+	public abstract fun setIncludes (Ljava/util/Set;)V
+}
+
+public final class dev/kikugie/stonecutter/build/config/StonecutterFiles$DefaultImpls {
+	public static fun disable (Ldev/kikugie/stonecutter/build/config/StonecutterFiles;Z[Ljava/lang/String;)V
 }
 
 public abstract class dev/kikugie/stonecutter/build/config/SwapContainer : dev/kikugie/stonecutter/data/collection/ExtendedMapProperty, org/gradle/api/provider/MapProperty {
