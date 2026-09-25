@@ -210,8 +210,6 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
     }
 
     private fun copyMetadata() {
-        if (source.fileSystem.supportedFileAttributeViews().contains("posix"))
-            output.setPosixFilePermissions(source.getPosixFilePermissions())
         output.setLastModifiedTime(source.getLastModifiedTime())
     }
 
