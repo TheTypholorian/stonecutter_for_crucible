@@ -34,6 +34,13 @@ object XmlUncommentingStrategy : UncommentingStrategy {
             Tokens.XML_ESCAPED_END -> tracker.handleCloser(tokens.advance(), depth, leaf.start)
             else -> error("Invalid token type ${XmlCommentEscaper.VOCABULARY.getDisplayName(it)}")
         }
+        unescapeDashes(tracker, leaf)
+    }
+
+    private fun unescapeDashes(tracker: ModificationTracker, leaf: LeafToken) {
+        val text = leaf.text
+        for (i in 0 until text.length - 1) if (text[i] == '-' && text[i + 1] == '^' && !text.startsWith("^^>", i + 1))
+            tracker.delete(leaf.start + i + 1, leaf.start + i + 2)
     }
 
     // <!^^ -> <!--
