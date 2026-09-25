@@ -62,18 +62,35 @@ class FileAstUncommenter(val params: StitcherParameters) : Visitor<BlockToken, N
     private fun reprocess(code: Code, scope: List<BlockToken> = code.scope): Code =
         code.copy(scope = scope.map { it.accept(this, null) })
 
-    private fun uncommentRoot(root: Root): List<BlockToken> =
-        if (params.root != RootScopeState.ANY && isCommented(root.scope)) uncommentScope(root.scope) else root.scope
+    private fun isDisabled(scope: List<BlockToken>): Boolean {
+        if (!isCommented(scope)) return false
+        val first: Comment = scope.firstNotNullOfOrNull { it as? Comment } ?: return false
+        return first.body.text.substringBefore('\n').trimEnd() == RootScopeState.MARKER
+    }
+
+    private fun uncommentRoot(root: Root): List<BlockToken> {
+        if (!isDisabled(root.scope)) return root.scope
+
+        val uncommented: Document = uncommentDocument(root.scope)
+        val marker: Int = uncommented.indexOf(RootScopeState.MARKER)
+        val lineStart: Int = uncommented.lastIndexOf('\n', marker) + 1
+        val lineEnd: Int = uncommented.indexOf('\n', marker).let { if (it < 0) uncommented.length else it + 1 }
+        val stripped = ModificationTracker(uncommented, 0, uncommented.length).run {
+            delete(lineStart, lineEnd)
+            InjectedDocument(this)
+        }
+        return parse(stripped, params.scanner).scope
+    }
 
     private fun uncommentCode(code: Code): Code =
         if (isCommented(code.scope)) reprocess(code, uncommentScope(code.scope)) else reprocess(code)
 
-    private fun uncommentScope(scope: List<BlockToken>): List<BlockToken> {
-        val document = ModificationTracker(scope.run { first().ref join last().ref }).run {
-            params.uncommenter.uncomment(params.flags, this, toSequence(document, scope))
-            InjectedDocument(this)
-        }
-        return parse(document, params.scanner).scope
+    private fun uncommentScope(scope: List<BlockToken>): List<BlockToken> =
+        parse(uncommentDocument(scope), params.scanner).scope
+
+    private fun uncommentDocument(scope: List<BlockToken>): Document = ModificationTracker(scope.run { first().ref join last().ref }).run {
+        params.uncommenter.uncomment(params.flags, this, toSequence(document, scope))
+        InjectedDocument(this)
     }
 
     private fun toSequence(document: Document, tokens: List<BlockToken>): Sequence<LeafToken> = tokens.asSequence().flatMap {
