@@ -1,5 +1,7 @@
 package dev.kikugie.stonecutter.build.config
 
+import dev.kikugie.stonecutter.SourceSetPattern
+
 @DslMarker @Retention(AnnotationRetention.BINARY)
 private annotation class FilesDsl
 
@@ -14,7 +16,7 @@ public sealed interface StonecutterFiles : PatternFilter {
      * Disabled files are commented out and excluded from compilation.
      * Each pattern is relative to each `src/.../` directory.
      */
-    public fun disable(direction: Boolean, vararg patterns: String): Unit =
+    public fun disable(direction: Boolean, @SourceSetPattern vararg patterns: String): Unit =
         disable(direction, patterns.asIterable())
 
     /**
@@ -23,5 +25,5 @@ public sealed interface StonecutterFiles : PatternFilter {
      * Disabled files are commented out and excluded from compilation.
      * Each pattern is relative to each `src/.../` directory.
      */
-    public fun disable(direction: Boolean, patterns: Iterable<String>)
+    public fun disable(direction: Boolean, @SourceSetPattern patterns: Iterable<String>)
 }

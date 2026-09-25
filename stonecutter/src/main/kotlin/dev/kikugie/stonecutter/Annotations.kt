@@ -22,3 +22,8 @@ public annotation class SwapID
 @Target(VALUE_PARAMETER, LOCAL_VARIABLE, PROPERTY, FIELD, TYPE)
 @Retention(BINARY)
 public annotation class ReplacementID
+
+/** Marks a [String] as a [SourceSet][org.gradle.api.tasks.SourceSet]-relative Ant pattern. */
+@Target(VALUE_PARAMETER, LOCAL_VARIABLE, PROPERTY, FIELD, TYPE)
+@Retention(BINARY)
+public annotation class SourceSetPattern

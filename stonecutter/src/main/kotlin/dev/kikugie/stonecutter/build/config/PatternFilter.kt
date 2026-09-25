@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.build.config
 
+import dev.kikugie.stonecutter.SourceSetPattern
 import org.gradle.api.tasks.util.PatternSet
 
 /**
@@ -13,22 +14,22 @@ import org.gradle.api.tasks.util.PatternSet
  */
 public interface PatternFilter {
     /** Patterns of the files included by this filter. Empty includes everything. */
-    public var includes: Set<String>
+    @SourceSetPattern public var includes: Set<String>
 
     /** Patterns of the files excluded by this filter, applied after [includes]. */
-    public var excludes: Set<String>
+    @SourceSetPattern public var excludes: Set<String>
 
     /** Adds [patterns] to [includes]. */
-    public fun include(vararg patterns: String)
+    public fun include(@SourceSetPattern vararg patterns: String)
 
     /** Adds [patterns] to [includes]. */
-    public fun include(patterns: Iterable<String>)
+    public fun include(@SourceSetPattern patterns: Iterable<String>)
 
     /** Adds [patterns] to [excludes]. */
-    public fun exclude(vararg patterns: String)
+    public fun exclude(@SourceSetPattern vararg patterns: String)
 
     /** Adds [patterns] to [excludes]. */
-    public fun exclude(patterns: Iterable<String>)
+    public fun exclude(@SourceSetPattern patterns: Iterable<String>)
 }
 
 internal class PatternSetFilter(val patterns: PatternSet = PatternSet()) : PatternFilter {
