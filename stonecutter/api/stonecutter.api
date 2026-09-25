@@ -226,18 +226,14 @@ public final class dev/kikugie/stonecutter/build/config/ReplacementContainer$Def
 	public static fun string (Ldev/kikugie/stonecutter/build/config/ReplacementContainer;ZLorg/gradle/api/Action;)V
 }
 
-public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$PerlReplacementSpec : dev/kikugie/stonecutter/build/config/PatternFilter {
+public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$PerlReplacementSpec : dev/kikugie/stonecutter/build/config/ReplacementContainer$ReplacementSpec {
 	public fun <init> ()V
-	public abstract fun getDirection ()Lorg/gradle/api/provider/Property;
-	public abstract fun getId ()Lorg/gradle/api/provider/Property;
 	public abstract fun replace (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Lorg/pcre4j/option/Pcre2CompileOption;)V
 }
 
-public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$RegexReplacementSpec : dev/kikugie/stonecutter/build/config/PatternFilter {
+public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$RegexReplacementSpec : dev/kikugie/stonecutter/build/config/ReplacementContainer$ReplacementSpec {
 	public fun <init> ()V
-	public abstract fun getDirection ()Lorg/gradle/api/provider/Property;
 	public abstract fun getFromPattern ()Lorg/gradle/api/provider/Property;
-	public abstract fun getId ()Lorg/gradle/api/provider/Property;
 	public abstract fun getReversePattern ()Lorg/gradle/api/provider/Property;
 	public abstract fun getReverseValue ()Lorg/gradle/api/provider/Property;
 	public abstract fun getToValue ()Lorg/gradle/api/provider/Property;
@@ -252,11 +248,22 @@ public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$
 	public final fun reverse (Ljava/lang/String;Ljava/lang/String;)V
 }
 
-public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$StringReplacementSpec : dev/kikugie/stonecutter/build/config/PatternFilter {
-	public fun <init> ()V
+public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$ReplacementSpec : dev/kikugie/stonecutter/build/config/PatternFilter {
+	public abstract fun exclude (Ljava/lang/Iterable;)V
+	public abstract fun exclude ([Ljava/lang/String;)V
 	public abstract fun getDirection ()Lorg/gradle/api/provider/Property;
-	public abstract fun getFrom ()Lorg/gradle/api/provider/Property;
+	public abstract fun getExcludes ()Ljava/util/Set;
 	public abstract fun getId ()Lorg/gradle/api/provider/Property;
+	public abstract fun getIncludes ()Ljava/util/Set;
+	public abstract fun include (Ljava/lang/Iterable;)V
+	public abstract fun include ([Ljava/lang/String;)V
+	public abstract fun setExcludes (Ljava/util/Set;)V
+	public abstract fun setIncludes (Ljava/util/Set;)V
+}
+
+public abstract class dev/kikugie/stonecutter/build/config/ReplacementContainer$StringReplacementSpec : dev/kikugie/stonecutter/build/config/ReplacementContainer$ReplacementSpec {
+	public fun <init> ()V
+	public abstract fun getFrom ()Lorg/gradle/api/provider/Property;
 	public abstract fun getTo ()Lorg/gradle/api/provider/Property;
 	public abstract fun replace (Ljava/lang/String;Ljava/lang/String;)V
 }
