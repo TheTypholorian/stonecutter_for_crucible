@@ -164,22 +164,14 @@ public sealed interface ReplacementContainer {
     public fun perl(direction: Boolean, id: @ReplacementID Identifier, action: Action<PerlReplacementSpec>): Unit =
         perl { this.direction.set(direction); this.id.set(id); action.execute(this) }
 
-    /**
-     * String replacement configuration extension.
-     *
-     * String replacements must have a defined [direction] and optionally an [id].
-     * Replaced values are added with the [replace] function or [from] and [to] properties.
-     * Registered replacements only apply to the files matched by this spec's [PatternFilter].
-     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/replacements#string-replacements">String Replacement Documentation</a>
-     */
     @ReplacementSpecDsl
-    public abstract class StringReplacementSpec : PatternFilter {
+    public sealed class ReplacementSpec : PatternFilter {
         /**
          * Ordering of the replaced values.
          *
-         * When:
-         * - `true`: [from] is replaced with [to]
-         * - `false`: [to] is replaced with [from]
+         * When `false`, the replacement implementation uses inversed parameters
+         * to make the replacement work both ways.
+         *
          * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/replacements#string-replacements">String Replacement Documentation</a>
          */
         public abstract val direction: Property<Boolean>
@@ -198,6 +190,93 @@ public sealed interface ReplacementContainer {
         @ReplacementID
         public abstract val id: Property<Identifier>
 
+        /**
+         * Specifies in which files to include registered replacements.
+         *
+         * Patterns support [PatternFilterable][org.gradle.api.tasks.util.PatternFilterable] Ant notation,
+         * with paths starting in `src/.../` directories.
+         *
+         * Replacements with no [includes] and [excludes] are applied to all files.
+         * Filtered replacements with an assigned [id] can still be enabled in files
+         * explicitly with the identifier.
+         */
+        abstract override var includes: Set<String>
+
+        /**
+         * Specifies in which files to exclude registered replacements.
+         *
+         * Patterns support [PatternFilterable][org.gradle.api.tasks.util.PatternFilterable] Ant notation,
+         * with paths starting in `src/.../` directories.
+         *
+         * Replacements with no [includes] and [excludes] are applied to all files.
+         * Filtered replacements with an assigned [id] can still be enabled in files
+         * explicitly with the identifier.
+         */
+        abstract override var excludes: Set<String>
+
+        /**
+         * Specifies in which files to include registered replacements.
+         * Calls to this function are cumulative.
+         *
+         * Patterns support [PatternFilterable][org.gradle.api.tasks.util.PatternFilterable] Ant notation,
+         * with paths starting in `src/.../` directories.
+         *
+         * Replacements with no [includes] and [excludes] are applied to all files.
+         * Filtered replacements with an assigned [id] can still be enabled in files
+         * explicitly with the identifier.
+         */
+        abstract override fun include(vararg patterns: String)
+
+        /**
+         * Specifies in which files to include registered replacements.
+         * Calls to this function are cumulative.
+         *
+         * Patterns support [PatternFilterable][org.gradle.api.tasks.util.PatternFilterable] Ant notation,
+         * with paths starting in `src/.../` directories.
+         *
+         * Replacements with no [includes] and [excludes] are applied to all files.
+         * Filtered replacements with an assigned [id] can still be enabled in files
+         * explicitly with the identifier.
+         */
+        abstract override fun include(patterns: Iterable<String>)
+
+        /**
+         * Specifies in which files to exclude registered replacements.
+         * Calls to this function are cumulative.
+         *
+         * Patterns support [PatternFilterable][org.gradle.api.tasks.util.PatternFilterable] Ant notation,
+         * with paths starting in `src/.../` directories.
+         *
+         * Replacements with no [includes] and [excludes] are applied to all files.
+         * Filtered replacements with an assigned [id] can still be enabled in files
+         * explicitly with the identifier.
+         */
+        abstract override fun exclude(vararg patterns: String)
+
+        /**
+         * Specifies in which files to exclude registered replacements.
+         * Calls to this function are cumulative.
+         *
+         * Patterns support [PatternFilterable][org.gradle.api.tasks.util.PatternFilterable] Ant notation,
+         * with paths starting in `src/.../` directories.
+         *
+         * Replacements with no [includes] and [excludes] are applied to all files.
+         * Filtered replacements with an assigned [id] can still be enabled in files
+         * explicitly with the identifier.
+         */
+        abstract override fun exclude(patterns: Iterable<String>)
+    }
+
+    /**
+     * String replacement configuration extension.
+     *
+     * String replacements must have a defined [direction] and optionally an [id].
+     * Replaced values are added with the [replace] function or [from] and [to] properties.
+     * Registered replacements only apply to the files matched by this spec's [PatternFilter].
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/replacements#string-replacements">String Replacement Documentation</a>
+     */
+    @ReplacementSpecDsl
+    public abstract class StringReplacementSpec : ReplacementSpec() {
         /**
          * Original value to be replaced. Must not be empty.
          */
@@ -227,31 +306,7 @@ public sealed interface ReplacementContainer {
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/replacements#regex-replacements">Regex Replacement Documentation</a>
      */
     @ReplacementSpecDsl
-    public abstract class RegexReplacementSpec : PatternFilter {
-        /**
-         * Selector for the replaced values.
-         *
-         * When:
-         * - `true`: [fromPattern] is replaced with [toValue]
-         * - `false`: [reversePattern] is replaced with [reverseValue]
-         * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/replacements#regex-replacements">Regex Replacement Documentation</a>
-         */
-        public abstract val direction: Property<Boolean>
-
-        /**
-         * Optional identifier for the replacement.
-         *
-         * When:
-         * - `null`: replacement is always performed
-         * - non-null: replacement must be explicitly enabled by the id
-         * - prefixed with '!': replacement is active by default and can be disabled by the id
-         *
-         * The identifier must match `[_a-zA-Z][_\-a-zA-Z0-9]*`.
-         * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/replacements#replacement-identifiers">Replacement Identifier Documentation</a>
-         */
-        @ReplacementID
-        public abstract val id: Property<Identifier>
-
+    public abstract class RegexReplacementSpec : ReplacementSpec() {
         /**
          * Regex pattern to match against when replacing content in the forward direction.
          */
@@ -398,30 +453,7 @@ public sealed interface ReplacementContainer {
      * @see <a href="https://perldoc.perl.org/perlre">Perl Regular Expressions Documentation</a>
      */
     @ReplacementSpecDsl @StonecutterExperimentalAPI
-    public abstract class PerlReplacementSpec : PatternFilter {
-        /**
-         * Selector for the replaced values.
-         *
-         * When:
-         * - `true`: the direct pattern of each [replace] call is used
-         * - `false`: the reverse pattern of each [replace] call is used
-         */
-        public abstract val direction: Property<Boolean>
-
-        /**
-         * Optional identifier for the replacement.
-         *
-         * When:
-         * - `null`: replacement is always performed
-         * - non-null: replacement must be explicitly enabled by the id
-         * - prefixed with '!': replacement is active by default and can be disabled by the id
-         *
-         * The identifier must match `[_a-zA-Z][_\-a-zA-Z0-9]*`.
-         * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/replacements#replacement-identifiers">Replacement Identifier Documentation</a>
-         */
-        @ReplacementID
-        public abstract val id: Property<Identifier>
-
+    public abstract class PerlReplacementSpec : ReplacementSpec() {
         /**
          * Registers a replacement, using the [direction] and [id] defined in the extension.
          * Can be called multiple times.
