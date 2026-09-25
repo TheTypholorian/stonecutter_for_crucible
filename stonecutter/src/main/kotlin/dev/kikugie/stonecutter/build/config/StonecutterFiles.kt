@@ -11,6 +11,22 @@ private annotation class FilesDsl
 @FilesDsl
 public sealed interface StonecutterFiles : PatternFilter {
     /**
+     * File patterns explicitly included in processing.
+     *
+     * Adding files contributes to the default filter set
+     * based on extensions registered in [FileHandlerContainer][dev.kikugie.stonecutter.controller.file.FileHandlerContainer].
+     */
+    override var includes: Set<String>
+
+    /**
+     * File patterns explicitly excluded from processing.
+     *
+     * Excluded files are copied to generated sources as-is,
+     * which may be useful if they contain syntax Stonecutter can't correctly process.
+     */
+    override var excludes: Set<String>
+
+    /**
      * Marks files matching [patterns] as disabled if [direction] is `true`.
      *
      * Disabled files are commented out and excluded from compilation.
@@ -26,4 +42,40 @@ public sealed interface StonecutterFiles : PatternFilter {
      * Each pattern is relative to each `src/.../` directory.
      */
     public fun disable(direction: Boolean, @SourceSetPattern patterns: Iterable<String>)
+
+    /**
+     * File patterns explicitly included in processing.
+     * Calls to this function are cumulative.
+     *
+     * Adding files contributes to the default filter set
+     * based on extensions registered in [FileHandlerContainer][dev.kikugie.stonecutter.controller.file.FileHandlerContainer].
+     */
+    override fun include(vararg patterns: String)
+
+    /**
+     * File patterns explicitly included in processing.
+     * Calls to this function are cumulative.
+     *
+     * Adding files contributes to the default filter set
+     * based on extensions registered in [FileHandlerContainer][dev.kikugie.stonecutter.controller.file.FileHandlerContainer].
+     */
+    override fun include(patterns: Iterable<String>)
+
+    /**
+     * File patterns explicitly excluded from processing.
+     * Calls to this function are cumulative.
+     *
+     * Excluded files are copied to generated sources as-is,
+     * which may be useful if they contain syntax Stonecutter can't correctly process.
+     */
+    override fun exclude(vararg patterns: String)
+
+    /**
+     * File patterns explicitly excluded from processing.
+     * Calls to this function are cumulative.
+     *
+     * Excluded files are copied to generated sources as-is,
+     * which may be useful if they contain syntax Stonecutter can't correctly process.
+     */
+    override fun exclude(patterns: Iterable<String>)
 }
