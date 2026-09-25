@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.model.process
 
+import dev.kikugie.stonecutter.model.FilePattern
 import kotlinx.serialization.Serializable
 import java.io.Serializable as JavaSerializable
 
@@ -7,6 +8,6 @@ import java.io.Serializable as JavaSerializable
 public data class ReplacementModel(
     val replacement: Replacement,
     val enabled: Boolean,
-    val includes: Set<String> = emptySet(),
-    val excludes: Set<String> = emptySet(),
+    val includes: Set<FilePattern> = emptySet(),
+    val excludes: Set<FilePattern> = emptySet(),
 ) : JavaSerializable
