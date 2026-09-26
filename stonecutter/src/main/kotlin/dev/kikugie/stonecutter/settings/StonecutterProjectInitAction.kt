@@ -21,8 +21,13 @@ import dev.kikugie.stonecutter.settings.tree.TreeBuilderImpl
 import dev.kikugie.stonecutter.util.*
 import org.gradle.api.IsolatedAction
 import org.gradle.api.Project
+import org.gradle.api.artifacts.dsl.RepositoryHandler
+import org.gradle.api.initialization.dsl.ScriptHandler
+import org.gradle.api.internal.project.ProjectInternal
+import org.gradle.internal.service.ServiceRegistry
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
+import org.gradle.plugin.use.internal.PluginDependencyResolutionServices
 import java.util.concurrent.ConcurrentHashMap
 
 @Suppress("UnstableApiUsage")
@@ -58,8 +63,7 @@ internal object StonecutterProjectInitAction : IsolatedAction<Project> {
         plugins.withType<StonecutterPlugin> {
             project.createStonecutterExtension<StonecutterControllerExtension, StonecutterControllerImpl>(properties, flags)
         }
-        if (flags[StonecutterFlag.AUTO_APPLY_PLUGIN])
-            pluginManager.apply(StonecutterPlugin::class.java)
+        if (flags[StonecutterFlag.AUTO_APPLY_PLUGIN]) autoApplyPlugin()
         if ("" in tree.branchBuilders) configureBranch(project, tree)
     }
 
@@ -80,8 +84,19 @@ internal object StonecutterProjectInitAction : IsolatedAction<Project> {
             project.createStonecutterExtension<StonecutterBuildExtension, StonecutterBuildImpl>()
         }
         if (gradle.getContainer<FlagContainer>()[tree.hierarchy, StonecutterFlag.AUTO_APPLY_PLUGIN])
-            pluginManager.apply(StonecutterPlugin::class.java)
+            autoApplyPlugin()
     }
 
     private fun readResolve(): Any = this
+}
+
+private fun Project.autoApplyPlugin() {
+    val services: ServiceRegistry = (this as ProjectInternal).services
+    val repositories: RepositoryHandler = buildscript.repositories
+    buildscript.configurations.getByName(ScriptHandler.CLASSPATH_CONFIGURATION).incoming.beforeResolve {
+        if (repositories.isEmpty()) services.get(PluginDependencyResolutionServices::class.java)
+            .createPluginResolveRepositories()
+            .applyRepositoriesTo(repositories)
+    }
+    pluginManager.apply(StonecutterPlugin::class.java)
 }

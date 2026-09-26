@@ -41,6 +41,14 @@ val FlagTest by testSuite {
             }
         }
 
+        integrationTest("auto-apply without plugins block") {
+            with(runGradle(it).output) {
+                shouldContain("[controller] 1")
+                shouldContain("[node] 1")
+                shouldContain("[node] 2")
+            }
+        }
+
         integrationTest("keep auto-apply under isolation") {
             with(runGradle(it).output) {
                 shouldContain("[flag] apply=true")
