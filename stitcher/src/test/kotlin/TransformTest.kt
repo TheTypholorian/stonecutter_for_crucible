@@ -747,6 +747,74 @@ val TransformTest by testSuite {
             )
         }
     }
+
+    testSuite("escaped comments") {
+        // https://codeberg.org/stonecutter/stonecutter/issues/72
+        test("odd quote count in a nested comment") {
+            val enabled = """
+                //? if <=1.21.11 {
+                void method() {
+                	/* it's */
+                }
+                //?}
+            """.trimIndent().prependIndent("\t")
+            val disabled = """
+                //? if <=1.21.11 {
+                /*void method() {
+                	/^ it's ^/
+                }
+                *///?}
+            """.trimIndent().prependIndent("\t")
+            enabled.shouldAssembleTo(disabled, params { targets[""] = SemanticVersion(1, 22, 0) })
+            disabled.shouldAssembleTo(enabled, params { targets[""] = SemanticVersion(1, 21, 11) })
+        }
+
+        test("odd quote count in a multi-line nested comment") {
+            val enabled = """
+                //? if <=1.21.11 {
+                void method() {
+                	/* it's
+                	 */
+                }
+                //?}
+            """.trimIndent().prependIndent("\t")
+            val disabled = """
+                //? if <=1.21.11 {
+                /*void method() {
+                	/^ it's
+                	 ^/
+                }
+                *///?}
+            """.trimIndent().prependIndent("\t")
+            enabled.shouldAssembleTo(disabled, params { targets[""] = SemanticVersion(1, 22, 0) })
+            disabled.shouldAssembleTo(enabled, params { targets[""] = SemanticVersion(1, 21, 11) })
+        }
+
+        test("escape markers in a string under nested conditions") {
+            val enabled = """
+                //? if a {
+                void method() {
+                    //? if b {
+                    String s = "^/"; // it's
+                    foo();
+                    //?}
+                }
+                //?}
+            """.trimIndent()
+            val disabled = """
+                //? if a {
+                /*void method() {
+                    //? if b {
+                    /^String s = "^/"; // it's
+                    foo();
+                    ^///?}
+                }
+                *///?}
+            """.trimIndent()
+            enabled.shouldAssembleTo(disabled, params { constants["a"] = false; constants["b"] = false })
+            disabled.shouldAssembleTo(enabled, params { constants["a"] = true; constants["b"] = true })
+        }
+    }
 }
 
 context(scope: Test.ExecutionScope)

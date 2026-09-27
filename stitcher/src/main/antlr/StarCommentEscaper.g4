@@ -2,6 +2,9 @@ lexer grammar StarCommentEscaper;
 
 fragment SUPERSCRIPT: [⁰¹²³⁴⁵⁶⁷⁸⁹];
 fragment DOUBLE_BACKSLASH: '\\\\';
+fragment INLINE_QUOTE: ~['\\\r\n];
+fragment INLINE_DOUBLE_QUOTE: ~["\\\r\n];
+fragment INLINE_ESCAPE: '\\' ~[\r\n];
 
 TILDA_COMMENT_START: '/^'(SUPERSCRIPT*) -> pushMode(IN_TILDA);
 SLASH_COMMENT_START: '//' -> pushMode(IN_SLASH), skip;
@@ -16,9 +19,9 @@ mode IN_TILDA;
 TILDA_COMMENT_NEST: '/^'(SUPERSCRIPT*) -> pushMode(IN_TILDA), type(TILDA_COMMENT_START);
 TILDA_COMMENT_END: (SUPERSCRIPT*)'^/' -> popMode;
 
-SINGLE_QUOTE_NEST: '\'' -> pushMode(IN_CHAR), skip;
-DOUBLE_QUOTE_NEST: '"' -> pushMode(IN_STRING), skip;
-BLOCK_QUOTE_NEST: '"""' -> pushMode(IN_BLOCK), skip;
+TILDA_CHAR: '\'' (INLINE_QUOTE | INLINE_ESCAPE | '\\u' [0-9a-fA-F]+) '\'' -> skip;
+TILDA_STRING: '"' (INLINE_DOUBLE_QUOTE | INLINE_ESCAPE)* '"' -> skip;
+TILDA_BLOCK: '"""' .*? '"""' -> skip;
 
 TILDA_THE_REST: . -> skip;
 
