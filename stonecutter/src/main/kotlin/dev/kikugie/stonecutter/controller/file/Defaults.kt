@@ -52,7 +52,6 @@ private fun HandlerBuilder.useSlashScanner(nested: Boolean): Unit = scanner {
     closers(SlashStyleScanner.Tokens.SLASH_COMMENT_END, SlashStyleScanner.Tokens.STAR_COMMENT_END)
 }
 
-// FIXME: Yaml and Toml formats can have issues with quotes inside literals.
 private fun FileHandlerContainer.configureHash(): Unit = configure(
     "cfg", "aw", "accesswidener", "ct", "classtweaker", "yml", "yaml", "toml", "properties",
 ) {
