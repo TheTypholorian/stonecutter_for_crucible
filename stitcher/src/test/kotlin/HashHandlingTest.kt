@@ -154,6 +154,82 @@ val HashHandlingTest by testSuite {
                 #key = 1
             """.trimIndent()
         }
+
+        test("apostrophe in an unquoted value ends with its line") {
+            """
+                desc: it's a mod
+                #? if false
+                key: 1
+            """.trimIndent() shouldAssembleTo """
+                desc: it's a mod
+                #? if false
+                #key: 1
+            """.trimIndent()
+        }
+
+        test("unclosed double quote ends with its line") {
+            """
+                desc: 5" screen
+                #? if false
+                key: 1
+            """.trimIndent() shouldAssembleTo """
+                desc: 5" screen
+                #? if false
+                #key: 1
+            """.trimIndent()
+        }
+
+        test("doubled apostrophe escape") {
+            """
+                desc: 'it''s # not a comment'
+                #? if false
+                key: 1
+            """.trimIndent() shouldAssembleTo """
+                desc: 'it''s # not a comment'
+                #? if false
+                #key: 1
+            """.trimIndent()
+        }
+
+        test("backslash does not escape a single quote") {
+            """
+                path = 'C:\dir\'
+                #? if false
+                key = 1
+            """.trimIndent() shouldAssembleTo """
+                path = 'C:\dir\'
+                #? if false
+                #key = 1
+            """.trimIndent()
+        }
+
+        test("hash inside a single-quoted value is not a marker") {
+            """
+                name = 'a #? if true'
+                #? if false
+                key = 1
+            """.trimIndent() shouldAssembleTo """
+                name = 'a #? if true'
+                #? if false
+                #key = 1
+            """.trimIndent()
+        }
+
+        test("marker inside a multiline literal is inert") {
+            """
+                text = '''
+                #? if true
+                '''
+                #? if false
+                key = 1
+            """.trimIndent() shouldAssembleTo """
+                text = '''
+                #? if true
+                '''
+                #? if false
+                #key = 1
+            """.trimIndent()
+        }
     }
 
     testSuite("swaps and replacements") {
