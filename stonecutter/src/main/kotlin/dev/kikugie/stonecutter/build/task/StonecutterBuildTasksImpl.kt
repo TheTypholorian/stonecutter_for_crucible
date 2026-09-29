@@ -114,6 +114,7 @@ private class DisabledSourceSpec(private val roots: List<File>, private val patt
         get() = _matcher ?: createMatcher().also { _matcher = it }
 
     override fun isSatisfiedBy(element: FileTreeElement): Boolean {
+        if (element.isDirectory) return false
         val root: File = roots.firstOrNull(element.file::startsWith) ?: return false
         val path: RelativePath = RelativePath.parse(!element.isDirectory, element.file.relativeTo(root).invariantSeparatorsPath)
         return matcher.isSatisfiedBy(RelocatedElement(element, path))
