@@ -814,6 +814,44 @@ val TransformTest by testSuite {
             enabled.shouldAssembleTo(disabled, params { constants["a"] = false; constants["b"] = false })
             disabled.shouldAssembleTo(enabled, params { constants["a"] = true; constants["b"] = true })
         }
+
+        // https://codeberg.org/stonecutter/stonecutter/issues/74
+        test("apostrophe in a javadoc followed by quoted strings") {
+            val enabled = """
+                //? if <26.1 {
+                package a;
+
+                /**
+                 * Implementation using NBT's.
+                 *
+                 * @param tag
+                 */
+                public record Impl(Tag tag) {
+                    public Result<String> getString(String key) {
+                        return Result.failure("Key '" + key + "' is not a string.");
+                    }
+                }
+                //?}
+            """.trimIndent()
+            val disabled = """
+                //? if <26.1 {
+                /*package a;
+
+                /^*
+                 * Implementation using NBT's.
+                 *
+                 * @param tag
+                 ^/
+                public record Impl(Tag tag) {
+                    public Result<String> getString(String key) {
+                        return Result.failure("Key '" + key + "' is not a string.");
+                    }
+                }
+                *///?}
+            """.trimIndent()
+            enabled.shouldAssembleTo(disabled, params { targets[""] = SemanticVersion(26, 1, 0) })
+            disabled.shouldAssembleTo(enabled, params { targets[""] = SemanticVersion(1, 20, 1) })
+        }
     }
 }
 
