@@ -35,6 +35,13 @@ val FilesTest by testSuite {
             it.resolve("$BUILD/resources/main/data.cfg").shouldNotExist()
         }
 
+        integrationTest("disable nested files") {
+            runGradle(it, ":2:classes")
+            it.resolve("$BUILD/classes/java/main/com/example/Common.class").shouldExist()
+            it.resolve("$BUILD/classes/java/main/com/example/platform/neoforge/NeoforgePlatform.class").shouldExist()
+            it.resolve("$BUILD/classes/java/main/com/example/platform/fabric/FabricPlatform.class").shouldNotExist()
+        }
+
         integrationTest("enable matching files") {
             runGradle(it, ":2:classes")
             it read "$GENERATED/java/Enabled.java" shouldBe "public class Enabled {}\n"
