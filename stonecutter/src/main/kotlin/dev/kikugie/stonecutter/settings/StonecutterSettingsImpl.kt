@@ -54,6 +54,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
             val handlers = createContainer<FileHandlerContainer>().get()
             handlers.configureDefaults()
             createContainer<ProjectBranchContainer>()
+            createContainer<TaskOrderContainer>()
             configureServices(handlers, registry)
             @Suppress("UnstableApiUsage")
             lifecycle.beforeProject(StonecutterProjectInitAction)

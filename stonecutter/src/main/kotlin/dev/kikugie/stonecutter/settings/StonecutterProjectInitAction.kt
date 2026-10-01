@@ -7,11 +7,13 @@ import dev.kikugie.stonecutter.controller.StonecutterControllerExtension
 import dev.kikugie.stonecutter.controller.StonecutterControllerImpl
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.task.StonecutterModelTask
+import dev.kikugie.stonecutter.controller.task.StonecutterTaskMutexService
 import dev.kikugie.stonecutter.controller.task.registerDefault
 import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.FlagContainer
 import dev.kikugie.stonecutter.data.container.ProjectBranchContainer
+import dev.kikugie.stonecutter.data.container.TaskOrderContainer
 import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
 import dev.kikugie.stonecutter.data.container.getContainer
 import dev.kikugie.stonecutter.settings.task.StonecutterIdeaConfigTask
@@ -85,9 +87,18 @@ internal object StonecutterProjectInitAction : IsolatedAction<Project> {
         }
         if (gradle.getContainer<FlagContainer>()[tree.hierarchy, StonecutterFlag.AUTO_APPLY_PLUGIN])
             autoApplyPlugin()
+        configureTaskOrder()
     }
 
     private fun readResolve(): Any = this
+}
+
+private fun Project.configureTaskOrder() {
+    val orders: Map<String, Set<String>> = gradle.getContainer<TaskOrderContainer>()[hierarchy]
+    tasks.named { it in orders }.configureEach {
+        usesService(StonecutterTaskMutexService.create(gradle, name))
+        mustRunAfter(orders[name].orEmpty())
+    }
 }
 
 private fun Project.autoApplyPlugin() {

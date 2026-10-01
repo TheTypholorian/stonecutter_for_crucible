@@ -76,6 +76,23 @@ internal abstract class ProjectBranchContainer : GradleContainerService {
     operator fun get(path: String): String? = models[path]
 }
 
+internal abstract class TaskOrderContainer : GradleContainerService {
+    private typealias TaskOrderingMap = MutableMap<String, MutableSet<String>>
+
+    private val orders: MutableMap<ProjectHierarchy, TaskOrderingMap> = ConcurrentHashMap()
+
+    operator fun set(node: ProjectHierarchy, task: String, after: Collection<String>) {
+        getOrCreateTaskSet(node, task) += after
+    }
+
+    operator fun get(node: ProjectHierarchy): Map<String, Set<String>> =
+        orders.computeIfAbsent(node) { ConcurrentHashMap() }
+
+    private fun getOrCreateTaskSet(node: ProjectHierarchy, task: String): MutableSet<String> = orders
+        .computeIfAbsent(node) { ConcurrentHashMap() }
+        .computeIfAbsent(task) { ConcurrentHashMap.newKeySet() }
+}
+
 internal abstract class FlagContainer : GradleContainerService {
     private lateinit var settings: ConfigurationRegistry
     private val controller: MutableMap<ProjectHierarchy, ConfigurationRegistry> = HashMap()

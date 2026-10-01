@@ -119,5 +119,12 @@ val ReportedIssuesTest by testSuite {
             // Should fail because of an invalid id
             shouldFailBuild { runGradle(it, ":26.3:stonecutterGenerate") }
         }
+
+        // https://codeberg.org/stonecutter/stonecutter/issues/75
+        integrationTest("order tasks before active") {
+            val order = runGradle(it, "compileJava").tasks.map { task -> task.path }
+                .filter { path -> path.endsWith(":compileJava") }
+            order shouldBe listOf(":1:compileJava", ":2:compileJava", ":3:compileJava")
+        }
     }
 }

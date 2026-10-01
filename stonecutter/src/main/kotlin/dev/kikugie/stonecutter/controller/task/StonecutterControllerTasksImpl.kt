@@ -8,6 +8,8 @@ import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlagsImpl
 import dev.kikugie.stonecutter.controller.tree.toModel
 import dev.kikugie.stonecutter.data.collection.TaskProviderMap
+import dev.kikugie.stonecutter.data.container.TaskOrderContainer
+import dev.kikugie.stonecutter.data.container.getContainer
 import dev.kikugie.stonecutter.data.tree.ProjectNode
 import dev.kikugie.stonecutter.data.tree.ProjectTree
 import dev.kikugie.stonecutter.util.SCJSON
@@ -40,21 +42,13 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
     }
 
     override fun orderImpl(name: String, ordering: Comparator<ProjectNode>, filter: ProjectNode.() -> Boolean) {
-        val lock = StonecutterTaskMutexService.create(controller.root.gradle, name)
         val nodes = controller.tree.nodes.filter(filter).sortedWith(ordering)
         if (nodes.size <= 1) return
 
-        val dependencies = mutableListOf(nodes.first().task(name))
-        for (node in nodes.drop(1)) {
-            val copy = dependencies.toTypedArray()
-            dependencies += node.task(name)
-            node.project.afterEvaluate {
-                if (name in tasks.names) tasks.named(name) {
-                    usesService(lock)
-                    mustRunAfter(*copy)
-                }
-            }
-        }
+        val orders = controller.root.gradle.getContainer<TaskOrderContainer>()
+        val paths = nodes.map { it.task(name) }
+        for ((i, node) in nodes.withIndex())
+            orders[node.hierarchy, name] = paths.subList(0, i)
     }
 
     fun registerScriptSwitchTask(id: Identifier, manager: StonecutterControllerManager): TaskProvider<out StonecutterSwitchTask> {
