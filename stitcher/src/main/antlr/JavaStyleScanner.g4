@@ -1,9 +1,4 @@
-lexer grammar SlashStyleScanner;
-
-@members {
-public var nestMultiLineComments: Boolean = false
-private var commentDepth: Int = 0
-}
+lexer grammar JavaStyleScanner;
 
 fragment LINE_BREAK: '\r'|'\n'|'\r\n';
 fragment DOUBLE_SLASH: '\\\\';
@@ -22,9 +17,7 @@ SLASH_COMMENT_END: LINE_BREAK -> popMode;
 SLASH_THE_REST: . -> skip;
 
 mode IN_STAR;
-STAR_COMMENT_NEST: {nestMultiLineComments}? '/*' {commentDepth++} -> skip;
-STAR_COMMENT_END: {commentDepth == 0}? '*/' -> popMode;
-STAR_COMMENT_END_SKIP: '*/' {commentDepth--} -> skip;
+STAR_COMMENT_END: '*/' -> popMode;
 STAR_THE_REST: . -> skip;
 
 mode IN_CHAR;

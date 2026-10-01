@@ -8,11 +8,8 @@ import dev.kikugie.stitcher.antlr.charStream
 import dev.kikugie.stitcher.antlr.HashStyleScanner
 import dev.kikugie.stitcher.antlr.HashStyleScanner.Tokens.HASH_COMMENT_END
 import dev.kikugie.stitcher.antlr.HashStyleScanner.Tokens.HASH_COMMENT_START
-import dev.kikugie.stitcher.antlr.SlashStyleScanner
-import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.SLASH_COMMENT_END
-import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.SLASH_COMMENT_START
-import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.STAR_COMMENT_END
-import dev.kikugie.stitcher.antlr.SlashStyleScanner.Tokens.STAR_COMMENT_START
+import dev.kikugie.stitcher.antlr.JavaStyleScanner
+import dev.kikugie.stitcher.antlr.KotlinStyleScanner
 import dev.kikugie.stitcher.antlr.StitcherErrorListener
 import dev.kikugie.stitcher.antlr.XmlStyleScanner
 import dev.kikugie.stitcher.antlr.XmlStyleScanner.Tokens.XML_COMMENT_END
@@ -79,15 +76,15 @@ inline fun vars(action: ProcessParametersBuilder.() -> Unit = {}): ProcessParame
 
 object Scanner {
     val Java: ScannerAdapter.Factory = Template(
-        intArrayOf(SLASH_COMMENT_START, STAR_COMMENT_START),
-        intArrayOf(SLASH_COMMENT_END, STAR_COMMENT_END),
-        ::SlashStyleScanner
+        intArrayOf(JavaStyleScanner.Tokens.SLASH_COMMENT_START, JavaStyleScanner.Tokens.STAR_COMMENT_START),
+        intArrayOf(JavaStyleScanner.Tokens.SLASH_COMMENT_END, JavaStyleScanner.Tokens.STAR_COMMENT_END),
+        ::JavaStyleScanner
     )
 
     val Kotlin: ScannerAdapter.Factory = Template(
-        intArrayOf(SLASH_COMMENT_START, STAR_COMMENT_START),
-        intArrayOf(SLASH_COMMENT_END, STAR_COMMENT_END),
-        { SlashStyleScanner(it).apply { nestMultiLineComments = true } }
+        intArrayOf(KotlinStyleScanner.Tokens.SLASH_COMMENT_START, KotlinStyleScanner.Tokens.STAR_COMMENT_START),
+        intArrayOf(KotlinStyleScanner.Tokens.SLASH_COMMENT_END, KotlinStyleScanner.Tokens.STAR_COMMENT_END),
+        ::KotlinStyleScanner
     )
 
     val Hash: ScannerAdapter.Factory = Template(
