@@ -171,10 +171,6 @@ private fun ProjectTreeImpl.publishBranchModels() {
 }
 
 private fun ProjectTreeImpl.configureSyncTask(root: Project, flags: StonecutterFlags): Unit = root.afterEvaluate {
-    if (flags[StonecutterFlag.GENERATE_SWITCH_ACTIONS]) rootProject.tasks.named<StonecutterIdeaConfigTask>("stonecutterIdea") {
-        projects.put(hierarchy.path, versions.map(StonecutterProject::project))
-    }
-
     if (flags[StonecutterFlag.SERIALIZE_TREE_MODEL] && isIdeaSync)
         root.gradle.requestTasks(listOf("stonecutterSaveModels"), root.path, root.projectDir)
 }

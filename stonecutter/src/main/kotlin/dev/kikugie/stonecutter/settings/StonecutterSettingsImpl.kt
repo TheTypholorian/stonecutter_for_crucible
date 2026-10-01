@@ -47,7 +47,7 @@ internal abstract class StonecutterSettingsImpl @Inject constructor(
         properties.configureWarnings(flags[StonecutterFlag.WARN_DUPLICATE_PROPERTIES])
 
         LOGGER.lifecycle("Running Stonecutter ${StonecutterPlugin.VERSION}")
-        if (buildFeatures.isolatedProjects.active.get()) LOGGER.reportIsolatedProjectsComplaint()
+        // if (buildFeatures.isolatedProjects.active.get()) LOGGER.reportIsolatedProjectsComplaint()
         // This is the ugliest configuration block I have
         with(settings.gradle) {
             createContainer<ProjectNodeContainer>()
@@ -106,6 +106,7 @@ private fun checkGroovyUsage(tree: TreeBuilderImpl): Boolean {
     return false
 }
 
+@Suppress("unused")
 private fun Logger.reportIsolatedProjectsComplaint(): Unit = warn(
     """
     Warning: Stonecutter is used with Isolated Projects enabled

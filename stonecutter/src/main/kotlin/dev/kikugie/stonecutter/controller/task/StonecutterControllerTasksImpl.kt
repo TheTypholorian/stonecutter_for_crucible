@@ -41,6 +41,10 @@ internal abstract class StonecutterControllerTasksImpl @Inject constructor(val c
         return property
     }
 
+    override fun namesImpl(name: String, filter: ProjectNode.() -> Boolean): MapProperty<ProjectNode, String> = controller.root.objects
+        .mapProperty<ProjectNode, String>()
+        .value(controller.tree.nodes.filter(filter).associateWith { it.task(name) })
+
     override fun orderImpl(name: String, ordering: Comparator<ProjectNode>, filter: ProjectNode.() -> Boolean) {
         val nodes = controller.tree.nodes.filter(filter).sortedWith(ordering)
         if (nodes.size <= 1) return

@@ -12,6 +12,8 @@ import kotlin.reflect.KClass
 private annotation class ControllerTasksDsl
 
 private typealias ProjectFilter = (ProjectNode.() -> Boolean)
+private const val NAMED_DEPRECATION: String = "Incompatible with isolated projects. Use 'names()' to get task paths instead."
+private val ALWAYS_TRUE: (Any) -> Boolean = { true }
 
 /**
  * Extension class providing access to [StonecutterControllerExtension][dev.kikugie.stonecutter.controller.StonecutterControllerExtension]
@@ -21,7 +23,7 @@ private typealias ProjectFilter = (ProjectNode.() -> Boolean)
  */
 @ControllerTasksDsl
 public abstract class StonecutterControllerTasks {
-    /**The default node ordering used in [order], sorting by [StonecutterProject.parsed][dev.kikugie.stonecutter.data.StonecutterProject.parsed].*/
+    /** The default node ordering used in [order], sorting by [StonecutterProject.parsed][dev.kikugie.stonecutter.data.StonecutterProject.parsed]. */
     public val versionComparator: Comparator<ProjectNode> get() = VERSION_COMPARATOR
 
     /**
@@ -34,24 +36,33 @@ public abstract class StonecutterControllerTasks {
      * Returns a lazily evaluated collection of tasks in nodes with the given [name].
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-controller#aggregation">Task Aggregation Documentation</a>
      */
+    @Deprecated(NAMED_DEPRECATION, ReplaceWith("names(name, filter)"))
     @JvmOverloads
     public fun named(name: String, filter: ProjectFilter = ALWAYS_TRUE): MapProperty<ProjectNode, TaskProvider<*>> =
         namedImpl(name, null, filter)
 
-    /**Returns a lazily evaluated collection of tasks in nodes with the given [name] and [cls].*/
+    /** Returns a lazily evaluated collection of tasks in nodes with the given [name] and [cls]. */
+    @Deprecated(NAMED_DEPRECATION, ReplaceWith("names(name, filter)"))
     @JvmOverloads
     public fun <T : Task> named(name: String, cls: Class<T>, filter: ProjectFilter = ALWAYS_TRUE): MapProperty<ProjectNode, TaskProvider<T>> =
         namedImpl(name, cls, filter).takeAs()
 
-    /**Returns a lazily evaluated collection of tasks in nodes with the given [name] and [cls].*/
+    /** Returns a lazily evaluated collection of tasks in nodes with the given [name] and [cls]. */
+    @Deprecated(NAMED_DEPRECATION, ReplaceWith("names(name, filter)"))
     @JvmOverloads
     public fun <T : Task> named(name: String, cls: KClass<T>, filter: ProjectFilter = ALWAYS_TRUE): MapProperty<ProjectNode, TaskProvider<T>> =
         namedImpl(name, cls.java, filter).takeAs()
 
-    /**Returns a lazily evaluated collection of tasks in nodes with the given [name] and [T] class.*/
+    /** Returns a lazily evaluated collection of tasks in nodes with the given [name] and [T] class. */
+    @Deprecated(NAMED_DEPRECATION, ReplaceWith("names(name, filter)"))
     @JvmOverloads @JvmName("reifiedNamed")
     public inline fun <reified T : Task> named(name: String, noinline filter: ProjectFilter = { true }): MapProperty<ProjectNode, TaskProvider<T>> =
-        named(name, T::class.java, filter).takeAs()
+        @Suppress("DEPRECATION") named(name, T::class.java, filter).takeAs()
+
+    /** Returns task paths for the [task][name] for all [ProjectNode]s matching the [filter]. */
+    @JvmOverloads
+    public fun names(name: String, filter: ProjectFilter = ALWAYS_TRUE): MapProperty<ProjectNode, String> =
+        namesImpl(name, filter)
 
     /**
      * Forces the tasks in nodes with the given [name] to execute with the given [ordering].
@@ -70,6 +81,8 @@ public abstract class StonecutterControllerTasks {
 
     protected abstract fun namedImpl(name: String, cls: Class<out Task>?, filter: ProjectFilter): MapProperty<ProjectNode, TaskProvider<*>>
 
+    protected abstract fun namesImpl(name: String, filter: ProjectFilter): MapProperty<ProjectNode, String>
+
     protected abstract fun orderImpl(name: String, ordering: Comparator<ProjectNode>, filter: ProjectFilter)
 
     private companion object {
@@ -78,5 +91,3 @@ public abstract class StonecutterControllerTasks {
             Comparator.comparing { it.metadata.parsed }
     }
 }
-
-private val ALWAYS_TRUE: (Any) -> Boolean = { true }

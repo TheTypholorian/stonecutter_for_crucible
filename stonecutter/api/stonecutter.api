@@ -536,6 +536,10 @@ public abstract class dev/kikugie/stonecutter/controller/task/StonecutterControl
 	public static synthetic fun named$default (Ldev/kikugie/stonecutter/controller/task/StonecutterControllerTasks;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lorg/gradle/api/provider/MapProperty;
 	public static synthetic fun named$default (Ldev/kikugie/stonecutter/controller/task/StonecutterControllerTasks;Ljava/lang/String;Lkotlin/reflect/KClass;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lorg/gradle/api/provider/MapProperty;
 	protected abstract fun namedImpl (Ljava/lang/String;Ljava/lang/Class;Lkotlin/jvm/functions/Function1;)Lorg/gradle/api/provider/MapProperty;
+	public final fun names (Ljava/lang/String;)Lorg/gradle/api/provider/MapProperty;
+	public final fun names (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lorg/gradle/api/provider/MapProperty;
+	public static synthetic fun names$default (Ldev/kikugie/stonecutter/controller/task/StonecutterControllerTasks;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lorg/gradle/api/provider/MapProperty;
+	protected abstract fun namesImpl (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lorg/gradle/api/provider/MapProperty;
 	public final fun order (Ljava/lang/String;)V
 	public final fun order (Ljava/lang/String;Ljava/util/Comparator;)V
 	public final fun order (Ljava/lang/String;Ljava/util/Comparator;Lkotlin/jvm/functions/Function1;)V

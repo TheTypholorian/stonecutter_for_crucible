@@ -14,6 +14,7 @@ import io.kotest.matchers.string.shouldContainOnlyOnce
 import io.kotest.matchers.string.shouldNotContain
 import read
 import runGradle
+import runGradleShared
 import shouldFailBuild
 import tempDirFixture
 import java.nio.file.Path
@@ -69,6 +70,20 @@ val ControllerExtensionTest by testSuite {
 
         testSuite("task operations") {
             integrationTest("depend on uninitialized tasks") {
+                with(runGradleShared(it, "sayHelloAndGoodbye").output) {
+                    shouldContain("Hello!")
+                    shouldContainOnlyOnce("Goodbye!")
+                    lastIndexOf("Hello") shouldBeLessThan indexOf("Goodbye!")
+                }
+            }
+
+            integrationTest("generate switch configurations") {
+                runGradle(it, "stonecutterIdea")
+                it.resolve(".idea/runConfigurations/Stonecutter_example_switchTo1.xml").shouldExist()
+                it.resolve(".idea/runConfigurations/Stonecutter_example_switchTo2.xml").shouldExist()
+            }
+
+            integrationTest("depend on task names") {
                 with(runGradle(it, "sayHelloAndGoodbye").output) {
                     shouldContain("Hello!")
                     shouldContainOnlyOnce("Goodbye!")

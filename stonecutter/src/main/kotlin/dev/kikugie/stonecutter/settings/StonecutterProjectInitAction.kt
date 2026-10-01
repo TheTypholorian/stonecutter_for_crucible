@@ -13,6 +13,7 @@ import dev.kikugie.stonecutter.data.ProjectHierarchy
 import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.FlagContainer
 import dev.kikugie.stonecutter.data.container.ProjectBranchContainer
+import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.container.TaskOrderContainer
 import dev.kikugie.stonecutter.data.container.TreeBuilderContainer
 import dev.kikugie.stonecutter.data.container.getContainer
@@ -26,6 +27,7 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.initialization.dsl.ScriptHandler
 import org.gradle.api.internal.project.ProjectInternal
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.internal.service.ServiceRegistry
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
@@ -47,11 +49,17 @@ internal object StonecutterProjectInitAction : IsolatedAction<Project> {
     }
 
     private fun configureSyncTask(project: Project): Unit = with(project) {
+        val nodes: ProjectNodeContainer = gradle.getContainer()
+        val flags: FlagContainer = gradle.getContainer()
         val task = tasks.register<StonecutterIdeaConfigTask>("stonecutterIdea") {
             group = "stonecutter-impl"
             description = "Generates IntelliJ IDEA run configurations for version switch tasks"
 
-            projects.set(ConcurrentHashMap())
+            projects.set(providers.provider {
+                nodes.projects.filter { flags[it.tree.hierarchy, StonecutterFlag.GENERATE_SWITCH_ACTIONS] }
+                    .groupBy({ it.tree.hierarchy.path }, { it.metadata.project })
+                    .mapValues { it.value.distinct() }
+            })
             configurations.from(projectDirectory.resolve(".idea/runConfigurations"))
                 .include { it.file.name.startsWith("Stonecutter") }
         }
