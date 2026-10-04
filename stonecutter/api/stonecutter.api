@@ -1168,10 +1168,5 @@ public abstract class dev/kikugie/stonecutter/settings/tree/TreeBuilder : dev/ki
 public final class dev/kikugie/stonecutter/util/StringUtilKt {
 	public static final fun contains (Lkotlin/ranges/ClosedRange;Ldev/kikugie/stonecutter/data/ParsedVersion;)Z
 	public static final fun contains (Lkotlin/ranges/OpenEndRange;Ldev/kikugie/stonecutter/data/ParsedVersion;)Z
-	public static final fun escape (CZ)Ljava/lang/String;
-	public static final fun escape (Ljava/lang/String;Z)Ljava/lang/String;
-	public static synthetic fun escape$default (CZILjava/lang/Object;)Ljava/lang/String;
-	public static synthetic fun escape$default (Ljava/lang/String;ZILjava/lang/Object;)Ljava/lang/String;
-	public static final fun unescape (Ljava/lang/String;)Ljava/lang/String;
 }
 

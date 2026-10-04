@@ -3,8 +3,8 @@
 package unit
 
 import de.infix.testBalloon.framework.core.testSuite
-import dev.kikugie.stonecutter.util.escape
-import dev.kikugie.stonecutter.util.unescape
+import dev.kikugie.commons.text.escape
+import dev.kikugie.commons.text.unescape
 import io.kotest.matchers.shouldBe
 
 private const val FORM_FEED: Int = 0x0C

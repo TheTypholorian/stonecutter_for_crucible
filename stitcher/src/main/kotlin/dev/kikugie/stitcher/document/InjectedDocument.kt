@@ -2,7 +2,7 @@ package dev.kikugie.stitcher.document
 
 import dev.kikugie.stitcher.document.edit.ModificationEvent
 import dev.kikugie.stitcher.document.edit.ModificationTracker
-import dev.kikugie.stitcher.util.OpenIntRange
+import dev.kikugie.commons.ranges.OpenIntRange
 
 /**
  * Represents a modified portion of the [parent] document in range [start]..<[end].

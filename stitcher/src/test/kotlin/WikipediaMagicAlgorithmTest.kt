@@ -1,8 +1,8 @@
 @file:Suppress("PublicApiImplicitType")
 
 import de.infix.testBalloon.framework.core.testSuite
-import dev.kikugie.stitcher.util.distanceTo
-import dev.kikugie.stitcher.util.findClosest
+import dev.kikugie.commons.text.distanceTo
+import dev.kikugie.commons.text.findClosest
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 

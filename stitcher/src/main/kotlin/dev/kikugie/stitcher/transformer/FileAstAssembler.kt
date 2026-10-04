@@ -14,7 +14,7 @@ import dev.kikugie.stitcher.token.DefinitionToken.*
 import dev.kikugie.stitcher.token.type.RootScopeState
 import dev.kikugie.stitcher.util.append
 import dev.kikugie.stitcher.util.findInsertionPlaces
-import dev.kikugie.stitcher.util.indexOfFirst
+import dev.kikugie.commons.collections.indexOfFirst
 import dev.kikugie.stitcher.util.tokenize
 import dev.kikugie.stonecutter.model.process.StringReplacement
 

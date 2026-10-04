@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.settings
 
+import dev.kikugie.commons.result.invalidArg
 import dev.kikugie.stonecutter.ProjectReference
 import dev.kikugie.stonecutter.StonecutterBaseExtension
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
@@ -230,5 +231,5 @@ private tailrec fun ProjectReference.toProjectHierarchy(): String = when (this) 
     is CharSequence -> ":${trim(':')}"
     is ProjectDescriptor -> path
     is Provider<*> -> get().toProjectHierarchy()
-    else -> throw IllegalArgumentException("Unsupported project type ${this::class.qualifiedName}")
+    else -> invalidArg("Unsupported project type ${this::class.qualifiedName}")
 }

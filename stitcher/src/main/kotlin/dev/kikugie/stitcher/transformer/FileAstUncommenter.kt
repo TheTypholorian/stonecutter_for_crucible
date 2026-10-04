@@ -14,7 +14,8 @@ import dev.kikugie.stitcher.token.LeafToken
 import dev.kikugie.stitcher.token.toLeaf
 import dev.kikugie.stitcher.token.type.RootScopeState
 import dev.kikugie.stitcher.util.LINE_BREAKS
-import dev.kikugie.stitcher.util.length
+import dev.kikugie.commons.ranges.length
+import dev.kikugie.commons.collections.findIsInstance
 import dev.kikugie.stitcher.util.parse
 import dev.kikugie.stitcher.util.tokenize
 
@@ -64,7 +65,7 @@ class FileAstUncommenter(val params: StitcherParameters) : Visitor<BlockToken, N
 
     private fun isDisabled(scope: List<BlockToken>): Boolean {
         if (!isCommented(scope)) return false
-        val first: Comment = scope.firstNotNullOfOrNull { it as? Comment } ?: return false
+        val first: Comment = scope.findIsInstance<Comment>() ?: return false
         return first.body.text.substringBefore('\n').trimEnd() == RootScopeState.MARKER
     }
 

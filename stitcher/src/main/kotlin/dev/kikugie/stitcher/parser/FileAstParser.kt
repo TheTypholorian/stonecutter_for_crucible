@@ -10,6 +10,8 @@ import dev.kikugie.stitcher.token.*
 import dev.kikugie.stitcher.token.DefinitionToken.*
 import dev.kikugie.stitcher.token.type.RootScopeState
 import dev.kikugie.stitcher.util.*
+import dev.kikugie.commons.ranges.length
+import dev.kikugie.commons.text.capitaliseFirstChar
 
 object FileAstParser {
     fun parse(stream: FileTokenStream): BlockToken.Root {
@@ -440,7 +442,7 @@ private val Role.isTerminator: Boolean
     get() = this == Role.CLOSER || this == Role.EXTENSION
 
 private fun BlockToken.title(): String =
-    name().titlecase()
+    name().capitaliseFirstChar()
 
 private fun BlockToken.name(): String = when (this) {
     is BlockToken.Content -> "text"

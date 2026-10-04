@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.settings.tree
 
+import dev.kikugie.commons.result.invalidArg
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.ProjectReference
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager
@@ -251,5 +252,5 @@ private tailrec fun ProjectDescriptor.resolve(relative: ProjectReference, settin
     is CharSequence -> if (relative.isEmpty()) this else register("$path:$relative", settings)
     is ProjectDescriptor -> register(path, settings)
     is Provider<*> -> resolve(relative.get(), settings)
-    else -> throw IllegalArgumentException("Unsupported project type ${relative::class.qualifiedName}")
+    else -> invalidArg("Unsupported project type ${relative::class.qualifiedName}")
 }

@@ -1,6 +1,6 @@
 package dev.kikugie.stitcher.document.edit
 
-import dev.kikugie.stitcher.util.OpenIntRange
+import dev.kikugie.commons.ranges.OpenIntRange
 
 /**
  * Represents a change in the source [Document][dev.kikugie.stitcher.document.Document]

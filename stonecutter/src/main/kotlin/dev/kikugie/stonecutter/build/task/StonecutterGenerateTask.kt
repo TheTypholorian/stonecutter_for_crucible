@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.build.task
 
+import dev.kikugie.commons.collections.associateWithNotNull
 import dev.kikugie.stitcher.Stitcher
 import dev.kikugie.stitcher.StitcherParameters
 import dev.kikugie.stitcher.document.SourceDocument
@@ -89,7 +90,7 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
     internal val handlerFingerprints: Provider<Map<String, String>>
         get() = processablePaths.zip(handlers) { paths, service ->
             paths.mapTo(sortedSetOf()) { it.substringAfterLast('/').substringAfterLast('.', "").lowercase() }
-                .mapNotNull { ext -> service.handlers[ext]?.let { ext to it.fingerprint() } }.toMap()
+                .associateWithNotNull { service.handlers[it]?.fingerprint() }
         }
 
     /**The base directory of the [local] overrides used for resolving relative paths.*/

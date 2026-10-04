@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.controller.flag
 
+import dev.kikugie.commons.result.unsupportedOperation
 import dev.kikugie.stonecutter.model.process.ConfigurationFlag
 import org.gradle.api.SupportsKotlinAssignmentOverloading
 
@@ -49,7 +50,7 @@ public data class StonecutterFlag<T : Any> private constructor(
         is Long -> value.toLong()
         is Float -> value.toFloat()
         is Double -> value.toDouble()
-        else -> UnsupportedOperationException("Unreachable")
+        else -> unsupportedOperation("Unreachable")
     } as T
 
     public companion object {

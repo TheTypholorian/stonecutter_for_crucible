@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.data
 
+import dev.kikugie.commons.result.invalidArg
 import dev.kikugie.commons.takeAs
 import dev.kikugie.semver.data.*
 import dev.kikugie.semver.impl.VersionParsingException
@@ -146,7 +147,7 @@ public class ParsedVersion(public val value: Version) : Comparable<Any> {
          */
         public operator fun invoke(value: Any?): ParsedVersion = when (val target = VersionTarget.interpret(value)) {
             is VersionTarget.Exact -> ParsedVersion(target.version)
-            is VersionTarget.Match -> throw IllegalArgumentException("Expected a version, but '$value' is a predicate")
+            is VersionTarget.Match -> invalidArg("Expected a version, but '$value' is a predicate")
         }
 
         /**Creates a parsed version from any [value] this type can interpret, or `null` if it can't.*/
@@ -186,15 +187,15 @@ private sealed interface VersionTarget {
             is StonecutterProject -> Exact(target.parsed.value)
             is CharSequence -> interpret(target.toString())
             is Number -> Exact(LenientOperations.parseAsPredicate(target.toString()))
-            null -> throw IllegalArgumentException("Version target is null")
-            else -> throw IllegalArgumentException("Unsupported version target of ${target::class.qualifiedName}")
+            null -> invalidArg("Version target is null")
+            else -> invalidArg("Unsupported version target of ${target::class.qualifiedName}")
         }
 
         private fun interpret(value: String): VersionTarget {
             val predicates = runCatching { arrayOf(value).unpack(VersionPredicate) }
                 .getOrElse { throw it.takeAs<VersionParsingException>().asIllegalArg(value) }
             return when (predicates.size) {
-                0 -> throw IllegalArgumentException("Version target is blank")
+                0 -> invalidArg("Version target is blank")
                 1 if (predicates.first().operator == VersionOperator.IMPLICIT_EQUAL) -> Exact(predicates.first().version)
                 else -> Match(predicates)
             }

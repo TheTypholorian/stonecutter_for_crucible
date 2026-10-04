@@ -1,13 +1,14 @@
 package dev.kikugie.stitcher.document.issue.output
 
+import dev.kikugie.commons.text.decapitaliseFirstChar
 import dev.kikugie.stitcher.document.issue.ProblemReport
 
 object FullProblemFormatter : ProblemFormatter {
     override fun format(report: ProblemReport): String = buildString {
         appendLine("${report.prefix}: ${report.at.toUriString()} ${report.decorateLabel()}")
         report.info?.let { appendLines(it, "> ") }
-        report.hint?.let { appendLines(it.replaceFirstChar(Char::lowercaseChar), "- Hint: ") }
-        report.docs?.let { appendLines(it.replaceFirstChar(Char::lowercaseChar), "- Docs: ") }
+        report.hint?.let { appendLines(it.decapitaliseFirstChar(), "- Hint: ") }
+        report.docs?.let { appendLines(it.decapitaliseFirstChar(), "- Docs: ") }
         report.error?.let {
             append("Caused by: ", it::class.simpleName ?: "<anonymous class>", ' ', it.message.orEmpty(), '\n', it.stackTraceToString())
         }

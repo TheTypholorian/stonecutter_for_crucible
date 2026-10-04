@@ -1,8 +1,8 @@
 package dev.kikugie.stitcher.replacement
 
 import dev.kikugie.stitcher.document.edit.ModificationTracker
-import dev.kikugie.stitcher.util.OpenIntRange
-import dev.kikugie.stitcher.util.length
+import dev.kikugie.commons.ranges.OpenIntRange
+import dev.kikugie.commons.ranges.length
 import java.util.*
 
 @JvmInline

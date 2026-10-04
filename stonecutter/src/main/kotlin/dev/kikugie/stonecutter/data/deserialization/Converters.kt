@@ -5,7 +5,7 @@ import dev.eav.tomlkt.*
 import dev.kikugie.commons.collections.present
 import dev.kikugie.stonecutter.data.deserialization.SCPrimitive.Kind
 import dev.kikugie.stonecutter.util.SCJSON
-import dev.kikugie.stonecutter.util.unescape
+import dev.kikugie.commons.text.unescape
 import kotlinx.serialization.json.*
 import java.io.File
 import java.util.*

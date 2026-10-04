@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.build.data
 
+import dev.kikugie.commons.result.unsupportedOperation
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stitcher.Stitcher
 import dev.kikugie.stitcher.StitcherParameters
@@ -73,7 +74,7 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
     }
 
     override val tasks: StonecutterBuildTasks
-        get() = throw UnsupportedOperationException("Build tasks are not available in the controller")
+        get() = unsupportedOperation("Build tasks are not available in the controller")
 
     override fun process(file: File, destination: String): File {
         val parameters: StitcherParameters = project.collectTransformParams(file, node, data, flags.registry)

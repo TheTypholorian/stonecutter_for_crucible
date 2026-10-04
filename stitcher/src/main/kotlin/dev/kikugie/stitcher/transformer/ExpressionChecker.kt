@@ -1,13 +1,14 @@
 package dev.kikugie.stitcher.transformer
 
 import dev.kikugie.commons.takeAsOrNull
+import dev.kikugie.commons.collections.present
 import dev.kikugie.stitcher.document.issue.ProblemReport.Severity
 import dev.kikugie.stitcher.document.issue.SYNTAX_GROUP
 import dev.kikugie.stitcher.document.issue.report
 import dev.kikugie.stitcher.token.*
 import dev.kikugie.stitcher.token.DefinitionToken.SwapOpener
 import dev.kikugie.stitcher.transformer.ExpressionChecker.Context
-import dev.kikugie.stitcher.util.findClosest
+import dev.kikugie.commons.text.findClosest
 import dev.kikugie.stitcher.util.findInsertionPlaces
 import dev.kikugie.stonecutter.model.Identifier
 import dev.kikugie.stonecutter.model.process.ProcessParameters
@@ -184,7 +185,7 @@ private fun reportUnresolvedSwapId(swap: SwapOpener, ids: Collection<Identifier>
     hint = buildString {
         val candidate = swap.id.findClosest(ids, 1)
         if (candidate != null) appendLine("Did you mean '$candidate'?")
-        if (ids.isNotEmpty()) append("Available swaps: [${ids.joinToString()}]")
+        if (ids.isNotEmpty()) append("Available swaps: ${ids.present()}")
     }
     docs = "https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/swaps#declaring-swaps"
 }
@@ -208,7 +209,7 @@ private fun reportUnresolvedReplacementId(repl: DefinitionToken.ReplacementToggl
     hint = buildString {
         val candidate = repl.id.findClosest(ids, 1)
         if (candidate != null) appendLine("Did you mean '$candidate'?")
-        if (ids.isNotEmpty()) append("Available replacements: [${ids.joinToString()}]")
+        if (ids.isNotEmpty()) append("Available replacements: ${ids.present()}")
     }
     docs = "https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/replacements#replacement-identifiers"
 }
@@ -251,7 +252,7 @@ private fun reportUnresolvedConstant(constant: ExpressionToken.Constant, ids: Co
     hint = buildString {
         val candidate = constant.text.findClosest(ids, 1)
         if (candidate != null) appendLine("Did you mean '$candidate'?")
-        if (ids.isNotEmpty()) append("Available constants: [${ids.joinToString()}]")
+        if (ids.isNotEmpty()) append("Available constants: ${ids.present()}")
     }
     docs = "https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#defining-constants"
 }
@@ -265,7 +266,7 @@ private fun reportUnresolvedExplicitTarget(token: LeafToken, ids: Collection<Ide
     hint = buildString {
         val candidate = token.text.findClosest(ids, 1)
         if (candidate != null) appendLine("Did you mean '$candidate'?")
-        if (ids.isNotEmpty()) append("Available targets: [${ids.joinToString()}]")
+        if (ids.isNotEmpty()) append("Available targets: ${ids.present()}")
     }
     docs = "https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#defining-targets"
 }

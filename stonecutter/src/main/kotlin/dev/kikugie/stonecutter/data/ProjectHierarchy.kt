@@ -1,5 +1,8 @@
 package dev.kikugie.stonecutter.data
 
+import dev.kikugie.commons.runIf
+import dev.kikugie.commons.text.count
+import dev.kikugie.commons.result.invalidIndex
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -27,7 +30,7 @@ private annotation class ProjectHierarchyDsl
 public class ProjectHierarchy private constructor(@PublishedApi internal val path: PathString) : List<PathString>, java.io.Serializable {
     /** Number of segments in the path, which is `0` for [ROOT]. */
     override val size: Int
-        get() = if (isEmpty()) 0 else path.count { it == SEP_CH }
+        get() = if (isEmpty()) 0 else path.count(SEP_CH)
 
     /** Returns the absolute path string, or an empty string for [ROOT]. */
     public fun orEmpty(): String =
@@ -71,8 +74,7 @@ public class ProjectHierarchy private constructor(@PublishedApi internal val pat
         val norm = normalize(path) ?: return this
         val path = this.path.removeSuffix(norm)
 
-        return if (path.endsWith(':')) invoke(path.dropLast(1))
-        else this
+        return runIf(path.endsWith(':')) { invoke(path.dropLast(1)) }
     }
 
     /** Appends the [path] to this one. Same as [resolve]. */
@@ -317,7 +319,7 @@ public class ProjectHierarchy private constructor(@PublishedApi internal val pat
 
 @Suppress("NOTHING_TO_INLINE")
 private inline fun PathString.locateChecked(index: Int, char: Char = SEP_CH): Int =
-    locate(index, char).also { if (it < 0) throw IndexOutOfBoundsException("Index $index is out of bounds for path $this") }
+    locate(index, char).also { if (it < 0) invalidIndex("Index $index is out of bounds for path $this") }
 
 private fun PathString.locate(index: Int, char: Char = SEP_CH): Int {
     if (index < 0 || length == 1) return -1

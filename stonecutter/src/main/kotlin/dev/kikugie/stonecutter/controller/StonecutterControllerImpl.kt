@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.controller
 
+import dev.kikugie.commons.result.invalidArg
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
 import dev.kikugie.stonecutter.controller.StonecutterControllerManager.Companion.getController
@@ -183,5 +184,5 @@ private tailrec fun Any?.resolveActive(): Any? = when (this) {
     is Path -> toFile()
     is RegularFile -> asFile
     is Provider<*> -> get().resolveActive()
-    else -> throw IllegalArgumentException("Unsupported active project type ${this::class.qualifiedName}")
+    else -> invalidArg("Unsupported active project type ${this::class.qualifiedName}")
 }

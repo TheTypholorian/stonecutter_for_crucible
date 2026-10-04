@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.data.collection
 
+import dev.kikugie.commons.ifOrNull
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.TaskProvider
@@ -51,7 +52,7 @@ public class TaskProviderMap<T : Task> internal constructor(
     override fun containsValue(value: TaskProvider<T>): Boolean = project.tasks.contains(value.get())
 
     /**Retrieves the task provider by its identifier, **not the name**.*/
-    override fun get(key: String): TaskProvider<T>? = if (key in keys) getOrThrow(key) else null
+    override fun get(key: String): TaskProvider<T>? = ifOrNull(key in keys) { getOrThrow(key) }
 
     /**Returns the task name for the given identifier.*/
     public fun taskName(key: String): String = namer(key)

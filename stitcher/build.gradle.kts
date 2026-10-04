@@ -27,7 +27,7 @@ dependencies {
     implementation(libs.pcre4j.ffm)
     implementation(libs.pcre4j.bundle)
     implementation(common.misc.semver)
-    implementation(common.misc.commons)
+    api(common.misc.commons)
 
     testImplementation(common.kotlin.testballoon)
     testImplementation(common.kotlin.testballoon.assertions)

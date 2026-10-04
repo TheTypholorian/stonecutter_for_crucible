@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.build.task
 
+import dev.kikugie.commons.text.capitaliseFirstChar
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.build.StonecutterBuildImpl
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlag
@@ -132,4 +133,4 @@ private class RelocatedElement(private val delegate: FileTreeElement, private va
 }
 
 private val String.sourceSetSuffix: String
-    get() = if (this == "main") "" else replaceFirstChar(Char::uppercase)
+    get() = if (this == "main") "" else capitaliseFirstChar()

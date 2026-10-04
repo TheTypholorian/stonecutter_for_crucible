@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.replacement
 
+import dev.kikugie.commons.collections.present
 import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stitcher.document.issue.REPLACEMENT_GROUP
 import dev.kikugie.stitcher.document.issue.report
@@ -87,11 +88,11 @@ private fun ModificationTracker.reportAmbiguousReplacement(
     match: AhoCorasickTrie.Match, replacements: Collection<Collection<ReplacementState<StringReplacement>>>, outcomes: Set<String>
 ): Unit = document.reference(start + match.start, start + match.end).report(REPLACEMENT_GROUP + "ambiguous-replacement") {
     label = "Ambiguous replacement"
-    info = "'${match.pattern}' resolves to multiple targets: [${outcomes.joinToString { "'$it'" }}]"
+    info = "'${match.pattern}' resolves to multiple targets: ${outcomes.present { "'$it'" }}"
 
     val ids = replacements.asSequence()
         .flatMap { it.mapNotNull { switch -> switch.value.identifier } }
         .filterNot { it.startsWith("%synthetic%") }
         .toSet()
-    if (ids.isNotEmpty()) hint = "Active string replacements: [${ids.joinToString()}]"
+    if (ids.isNotEmpty()) hint = "Active string replacements: ${ids.present()}"
 }

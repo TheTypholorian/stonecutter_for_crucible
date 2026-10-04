@@ -3,7 +3,7 @@ package dev.kikugie.stonecutter.build.task
 import dev.kikugie.stitcher.document.issue.BailException
 import dev.kikugie.stitcher.document.issue.ProblemReport
 import dev.kikugie.stitcher.document.issue.ProblemReport.Severity.*
-import dev.kikugie.stitcher.util.length
+import dev.kikugie.commons.ranges.length
 import org.gradle.api.problems.ProblemGroup
 import org.gradle.api.problems.ProblemId
 import org.gradle.api.problems.ProblemReporter

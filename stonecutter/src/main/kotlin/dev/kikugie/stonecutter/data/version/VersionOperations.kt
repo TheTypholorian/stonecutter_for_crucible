@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.data.version
 
+import dev.kikugie.commons.text.times
 import dev.kikugie.commons.result.inherit
 import dev.kikugie.commons.result.mapResult
 import dev.kikugie.commons.takeAs
@@ -210,7 +211,7 @@ internal inline fun VersionParsingException.asIllegalArg(
     message: String = this.message,
     position: Int = this.position
 ): IllegalArgumentException {
-    val pointer = " ".repeat(position) + '^'
+    val pointer = ' ' * position + '^'
     val message = "$message:\n| $str\n| $pointer"
     return IllegalArgumentException(message).apply { addSuppressed(this@asIllegalArg) }
 }

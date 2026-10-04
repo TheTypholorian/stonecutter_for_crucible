@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.data.property
 
+import dev.kikugie.commons.result.invalidArg
 import dev.kikugie.semver.data.SemanticVersion
 import dev.kikugie.semver.data.StringVersion
 import dev.kikugie.semver.data.Version
@@ -60,7 +61,7 @@ internal abstract class StructuredPropertiesImpl @Inject constructor(
     override fun <T : Any> getAs(name: String, cls: Class<T>): T = try {
         types.get(getOrNull(name)!!, cls)
     } catch (_: NullPointerException) {
-        throw IllegalArgumentException("No such property '$name'")
+        invalidArg("No such property '$name'")
     } catch (e: RuntimeException) {
         throw IllegalArgumentException("Failed to convert '$name' to ${cls.simpleName}: ${e.message}").apply {
             initCause(e)

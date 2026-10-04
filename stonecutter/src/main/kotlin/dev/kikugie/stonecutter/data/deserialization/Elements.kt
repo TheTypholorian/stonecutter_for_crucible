@@ -5,9 +5,10 @@ package dev.kikugie.stonecutter.data.deserialization
 import com.charleskorn.kaml.YamlNode
 import com.charleskorn.kaml.YamlPath
 import dev.eav.tomlkt.TomlElement
+import dev.kikugie.commons.collections.present
 import dev.kikugie.commons.takeAs
 import dev.kikugie.commons.takeAsOrNull
-import dev.kikugie.stonecutter.util.escape
+import dev.kikugie.commons.text.escape
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonElement
@@ -348,7 +349,7 @@ public class SCList(override val content: List<SCElement>) : SCElement(), List<S
     /**
      * Returns the [content] as `[item1, item2, ...]`.
      */
-    override fun toString(): String = content.joinToString(prefix = "[", postfix = "]")
+    override fun toString(): String = content.present()
     override fun <C, T> accept(visitor: Visitor<C, T>, ctx: C): T = visitor.visitList(this, ctx)
 }
 
@@ -375,6 +376,6 @@ public class SCMap(override val content: Map<String, SCElement>) : SCElement(), 
     /**
      * Returns the [content] as `{key1: value1, key2: value2, ...}`
      */
-    override fun toString(): String = content.entries.joinToString(prefix = "{", postfix = "}") { (k, v) -> "${k.escape()}: $v" }
+    override fun toString(): String = content.present { k, v -> "${k.escape()}: $v" }
     override fun <C, T> accept(visitor: Visitor<C, T>, ctx: C): T = visitor.visitMap(this, ctx)
 }

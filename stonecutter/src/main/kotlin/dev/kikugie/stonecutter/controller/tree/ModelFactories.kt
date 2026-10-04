@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.controller.tree
 
+import dev.kikugie.commons.runIf
 import dev.kikugie.stitcher.StitcherParameters
 import dev.kikugie.stitcher.token.type.RootScopeState
 import dev.kikugie.stonecutter.StonecutterPlugin
@@ -86,10 +87,11 @@ internal fun List<ReplacementModel>.unmatchedFiles(): Map<Int, Set<File>> = buil
     for ((index, it) in this@unmatchedFiles.withIndex()) if (it.isFiltered) this[index] = emptySet()
 }
 
-internal fun ProcessParameters.restrictedTo(file: File, scopes: Map<Int, Set<File>>): ProcessParameters = if (scopes.isEmpty()) this
-else copy(replacements = replacements.mapIndexed { index, it ->
-    if (it.enabled && scopes[index]?.contains(file) == false) it.copy(enabled = false) else it
-})
+internal fun ProcessParameters.restrictedTo(file: File, scopes: Map<Int, Set<File>>): ProcessParameters = runIf(scopes.isNotEmpty()) {
+    copy(replacements = replacements.mapIndexed { index, it ->
+        if (it.enabled && scopes[index]?.contains(file) == false) it.copy(enabled = false) else it
+    })
+}
 
 private val ReplacementModel.isFiltered: Boolean
     get() = includes.isNotEmpty() || excludes.isNotEmpty()

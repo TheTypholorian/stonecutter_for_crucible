@@ -1,6 +1,6 @@
 package dev.kikugie.stitcher.document
 
-import dev.kikugie.stitcher.util.OpenIntRange
+import dev.kikugie.commons.ranges.OpenIntRange
 
 data class DocumentReference(val document: Document, override val start: Int, override val end: Int) : OpenIntRange {
     val location: DocumentLocation by lazy { document.locate(start) }

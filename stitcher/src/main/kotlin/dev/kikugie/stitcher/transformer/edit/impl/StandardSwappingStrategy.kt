@@ -1,5 +1,6 @@
 package dev.kikugie.stitcher.transformer.edit.impl
 
+import dev.kikugie.commons.text.reverseView
 import dev.kikugie.stitcher.document.edit.ModificationTracker
 import dev.kikugie.stitcher.transformer.edit.SwappingStrategy
 import dev.kikugie.stitcher.transformer.edit.hasLineContentBefore
@@ -14,7 +15,7 @@ object StandardSwappingStrategy : SwappingStrategy {
         val scope = document.subSequence(start, end).toString()
 
         val lead = scope.countOffset()
-        val trail = scope.reversed().countOffset()
+        val trail = scope.reverseView().countOffset()
         val coreStart = start + lead
         val coreEnd = end - trail
 

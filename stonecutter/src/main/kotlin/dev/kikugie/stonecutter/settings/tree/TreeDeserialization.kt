@@ -1,5 +1,7 @@
 package dev.kikugie.stonecutter.settings.tree
 
+import dev.kikugie.commons.text.count
+import dev.kikugie.commons.ifOrNull
 import dev.kikugie.stonecutter.AnyVersion
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.data.deserialization.SCConverter
@@ -194,7 +196,7 @@ private sealed interface SerializedVersion {
     value class Primitive(private val value: String) : SerializedVersion {
         override val project: Identifier get() = value.substringBefore(':')
         override val version: AnyVersion get() = value.substringAfter(':', "").substringBefore(':').ifEmpty { project }
-        override val buildscript: String? get() = if (value.count { it == ':' } > 1) value.substringAfterLast(':') else null
+        override val buildscript: String? get() = ifOrNull(value.count(':') > 1) { value.substringAfterLast(':') }
     }
 
     @Serializable

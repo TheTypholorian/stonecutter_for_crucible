@@ -6,7 +6,7 @@ import dev.kikugie.stitcher.document.minIndex
 import dev.kikugie.stitcher.token.LeafToken
 import dev.kikugie.stitcher.transformer.edit.CommentingStrategy
 import dev.kikugie.stitcher.util.LINE_BREAKS
-import dev.kikugie.stitcher.util.commonIndent
+import dev.kikugie.commons.text.commonIndent
 import dev.kikugie.stitcher.util.withoutTrailingBlankLine
 import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 
