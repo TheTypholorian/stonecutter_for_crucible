@@ -61,8 +61,8 @@ internal infix fun String.distanceTo(target: String): Int {
     if (targetLength == 0) return sourceLength
 
     val distances: Array<IntArray> = Array(sourceLength + 1) { IntArray(targetLength + 1) }
-    for (i in 0..<sourceLength) distances[i][0] = i
-    for (j in 0..<targetLength) distances[0][j] = j
+    for (i in 0..sourceLength) distances[i][0] = i
+    for (j in 0..targetLength) distances[0][j] = j
     for (i in 1..<sourceLength + 1) for (j in 1..<targetLength + 1) {
         val cost = if (this[i - 1] == target[j - 1]) 0 else 1
         distances[i][j] = min(min(distances[i - 1][j] + 1, distances[i][j - 1] + 1), distances[i - 1][j - 1] + cost)

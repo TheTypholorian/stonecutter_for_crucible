@@ -14,8 +14,11 @@ val DamerauLevenshteinDistanceTest by testSuite {
         this += Triple("test", "Test", 1)
         this += Triple("test", "test1", 1)
         this += Triple("test", "tset", 1)
-        this += Triple("test", "apple", 4)
-        this += Triple("test", "run", 3)
+        this += Triple("test", "apple", 5)
+        this += Triple("test", "run", 4)
+        this += Triple("abc", "x", 3)
+        this += Triple("x", "abc", 3)
+        this += Triple("kitten", "sitting", 3)
     }
 
     for ((first, second, third) in cases) test("'$first' to '$second'") {
