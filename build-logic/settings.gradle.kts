@@ -16,7 +16,7 @@ dependencyResolutionManagement {
 
     versionCatalogs {
         create("libs") { from(files("../gradle/libs.versions.toml")) }
-        create("common") { from("dev.kikugie:stonecutter-versions:1.16.1") }
+        create("common") { from("dev.kikugie:stonecutter-versions:1.17.1") }
     }
 }
 
