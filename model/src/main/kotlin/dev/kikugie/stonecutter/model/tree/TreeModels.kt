@@ -6,16 +6,13 @@ import dev.kikugie.stonecutter.model.AnyVersion
 import dev.kikugie.stonecutter.model.Identifier
 import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 import dev.kikugie.stonecutter.model.process.ProcessParameters
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.KeepGeneratedSerializer
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.UseSerializers
+import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonObject
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.invariantSeparatorsPathString
@@ -45,7 +42,9 @@ public data class NodeModel(
     val parameters: ProcessParameters,
     val flags: ConfigurationRegistry = ConfigurationRegistry(),
 ) {
-    internal object Serializer : VersionedModelSerializer<NodeModel>(generatedSerializer())
+    internal object Serializer : VersionedModelSerializer<NodeModel>(generatedSerializer()) {
+        override fun coerce(element: JsonObject): JsonObject = coerceLegacyNode(element)
+    }
 }
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -68,7 +67,9 @@ public data class TreeModel(
     val nodes: List<NodeInfo> = emptyList(),
     val flags: ConfigurationRegistry = ConfigurationRegistry(),
 ) {
-    internal object Serializer : VersionedModelSerializer<TreeModel>(generatedSerializer())
+    internal object Serializer : VersionedModelSerializer<TreeModel>(generatedSerializer()) {
+        override fun coerce(element: JsonObject): JsonObject = coerceLegacyTree(element)
+    }
 }
 
 public object PathSerializer : KSerializer<Path> {
