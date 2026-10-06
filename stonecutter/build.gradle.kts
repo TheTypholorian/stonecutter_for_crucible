@@ -7,8 +7,6 @@ import kotlin.io.path.ExperimentalPathApi
 
 plugins {
     java
-    signing
-    `maven-publish`
     kotlin("jvm")
     kotlin("plugin.serialization")
     kotlin("plugin.assignment") version common.versions.kotlin.jvm.get()
@@ -37,6 +35,7 @@ sourceSets.main {
 dependencies {
     api(common.misc.semver)
     api(common.misc.commons)
+    api(project(":annotations"))
     api(project(":model"))
     api(project(":stitcher"))
 
@@ -147,8 +146,8 @@ tasks {
     }
 
     register<GenerateVersionTask>("generateVersion") {
-        version = project.version as String
-        gradle = providers.gradleProperty("gradle_compat")
+        constants.put("__VERSION", project.version.toString())
+        constants.put("__GRADLE_COMPAT", providers.gradleProperty("gradle_compat"))
         file = file("build/generated/ver/main/kotlin/dev/kikugie/stonecutter/__version.kt")
     }
 
@@ -185,76 +184,6 @@ gradlePlugin {
     }
 }
 
-publishing {
-    repositories {
-        fun register(
-            type: String,
-            user: String? = env.fetchOrNull("MVN_${type.uppercase()}_USERNAME"),
-            pass: String? = env.fetchOrNull("MVN_${type.uppercase()}_PASSWORD"),
-            build: MavenArtifactRepository.() -> Unit
-        ) {
-            if (user == null || pass == null)
-                return println("Missing credentials for $type maven repository")
-
-            maven {
-                build()
-                credentials {
-                    this.username = user
-                    this.password = pass
-                }
-            }
-        }
-
-        register("kikugie", user = "kikugie") {
-            name = "KikuGieMaven"
-            url = when {
-                '-' in project.version.toString() -> uri("https://maven.kikugie.dev/snapshots")
-                else -> uri("https://maven.kikugie.dev/releases")
-            }
-        }
-    }
-
-    publications {
-        register<MavenPublication>("maven") {
-            groupId = "dev.kikugie"
-            artifactId = "stonecutter"
-            version = project.version.toString()
-            from(components["java"])
-            artifact(tasks.named("slimJar"))
-
-            pom {
-                name = "Stonecutter"
-                description = "Modern Gradle plugin for multi-version management"
-                url = "https://stonecutter.kikugie.dev/"
-
-                developers {
-                    developer {
-                        id = "kikugie"
-                        name = "KikuGie"
-                        email = "kikugie@duck.com"
-                    }
-                }
-
-                licenses {
-                    license {
-                        name = "GNU Lesser Public License 3.0"
-                        url = "https://www.gnu.org/licenses/lgpl-3.0.en.html"
-                    }
-                }
-
-                scm {
-                    connection = "scm:git:git:https://codeberg.org/stonecutter/stonecutter.git"
-                    developerConnection = "scm:git:ssh://codeberg.org:stonecutter/stonecutter.git"
-                    url = "https://codeberg.org/stonecutter/stonecutter"
-                }
-            }
-        }
-    }
-}
-
-signing {
-    env.fetchOrNull("SIGNING_KEY")?.let {
-        useInMemoryPgpKeys(it, env.fetch("SIGNING_PASSWORD", ""))
-    }
-    sign(configurations.runtimeElements.get())
+publishArtifact("stonecutter", "Stonecutter", "Modern Gradle plugin for multi-version management") {
+    artifact(tasks.named("slimJar"))
 }

@@ -13,6 +13,7 @@ dependencies {
         provider.map { plugin(it.pluginId, it.version.toString()) }
 
     implementation(plugin(common.plugins.kotlin.jvm))
+    implementation(plugin(common.plugins.gradle.dotenv))
 }
 
 gradlePlugin {

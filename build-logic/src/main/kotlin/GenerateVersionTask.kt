@@ -1,6 +1,6 @@
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
-import org.gradle.api.provider.Property
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
@@ -10,10 +10,7 @@ import kotlin.io.path.writeText
 
 abstract class GenerateVersionTask : DefaultTask() {
     @get:Input
-    abstract val version: Property<String>
-
-    @get:Input
-    abstract val gradle: Property<String>
+    abstract val constants: MapProperty<String, Any>
 
     @get:OutputFile
     abstract val file: RegularFileProperty
@@ -21,14 +18,15 @@ abstract class GenerateVersionTask : DefaultTask() {
     @TaskAction
     fun run() {
         val module = file.asFile.get().parent.substringAfter("kotlin/").replace('/', '.')
-        val template = """
-            package $module
-            internal const val __VERSION: String = "${version.get()}"
-            internal const val __GRADLE_COMPAT: String = "${gradle.get()}"
-        """.trimIndent()
+        val declarations = constants.get().entries.joinToString("\n") { (name, value) -> defineConst(value, name) }
         with(file.asFile.get().toPath()) {
             createParentDirectories()
-            writeText(template, Charsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+            writeText("package $module\n$declarations", Charsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
         }
+    }
+
+    private fun defineConst(value: Any, name: String): CharSequence = when (value) {
+        is Int -> "internal const val $name: Int = $value"
+        else -> "internal const val $name: String = \"$value\""
     }
 }

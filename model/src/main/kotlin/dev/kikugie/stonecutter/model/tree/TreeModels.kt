@@ -6,7 +6,9 @@ import dev.kikugie.stonecutter.model.AnyVersion
 import dev.kikugie.stonecutter.model.Identifier
 import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 import dev.kikugie.stonecutter.model.process.ProcessParameters
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.KeepGeneratedSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -32,7 +34,8 @@ public data class BranchInfo(
     val path: Path
 )
 
-@Serializable @JvmRecord
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable(with = NodeModel.Serializer::class) @KeepGeneratedSerializer @JvmRecord
 public data class NodeModel(
     val project: Identifier,
     val version: AnyVersion = project,
@@ -41,16 +44,22 @@ public data class NodeModel(
     val root: Path,
     val parameters: ProcessParameters,
     val flags: ConfigurationRegistry = ConfigurationRegistry(),
-)
+) {
+    internal object Serializer : VersionedModelSerializer<NodeModel>(generatedSerializer())
+}
 
-@Serializable @JvmRecord
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable(with = BranchModel.Serializer::class) @KeepGeneratedSerializer @JvmRecord
 public data class BranchModel(
     val id: String,
     val root: Path,
     val nodes: List<NodeInfo>,
-)
+) {
+    internal object Serializer : VersionedModelSerializer<BranchModel>(generatedSerializer())
+}
 
-@Serializable @JvmRecord
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable(with = TreeModel.Serializer::class) @KeepGeneratedSerializer @JvmRecord
 public data class TreeModel(
     val stonecutter: String,
     val vcs: Identifier,
@@ -58,7 +67,9 @@ public data class TreeModel(
     val branches: List<BranchInfo> = emptyList(),
     val nodes: List<NodeInfo> = emptyList(),
     val flags: ConfigurationRegistry = ConfigurationRegistry(),
-)
+) {
+    internal object Serializer : VersionedModelSerializer<TreeModel>(generatedSerializer())
+}
 
 public object PathSerializer : KSerializer<Path> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("java.nio.file.Path", PrimitiveKind.STRING)

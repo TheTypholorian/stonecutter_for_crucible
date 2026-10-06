@@ -2,11 +2,15 @@
 
 import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.semver.data.SemanticVersion
+import dev.kikugie.stonecutter.model.SCHEMA_FIELD
 import dev.kikugie.stonecutter.model.process.*
 import dev.kikugie.stonecutter.model.tree.*
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.ObjectInputStream
@@ -96,6 +100,15 @@ val ModelSerializationTest by testSuite {
         test("tree model survives json") {
             val value = TreeModel("0.10", "1.21.4", "1.21.4", listOf(branch), listOf(node))
             JSON.decodeFromString<TreeModel>(JSON.encodeToString(value)) shouldBe value
+        }
+
+        test("model version is the first field") {
+            val encoded = listOf(
+                JSON.encodeToJsonElement(NodeModel("1.21.4", "1.21.4", true, branch, Path("."), parameters())),
+                JSON.encodeToJsonElement(BranchModel("fabric", Path("fabric"), listOf(node))),
+                JSON.encodeToJsonElement(TreeModel("0.10", "1.21.4", "1.21.4", listOf(branch), listOf(node))),
+            )
+            for (it in encoded) it.jsonObject.entries.first().toPair() shouldBe (SCHEMA_FIELD to JsonPrimitive(2))
         }
 
         test("paths are written with forward slashes") {

@@ -1,12 +1,3 @@
-public abstract interface annotation class dev/kikugie/stonecutter/ConstantID : java/lang/annotation/Annotation {
-}
-
-public abstract interface annotation class dev/kikugie/stonecutter/ReplacementID : java/lang/annotation/Annotation {
-}
-
-public abstract interface annotation class dev/kikugie/stonecutter/SourceSetPattern : java/lang/annotation/Annotation {
-}
-
 public abstract interface class dev/kikugie/stonecutter/StonecutterBaseExtension : dev/kikugie/stonecutter/data/property/StructuredPropertiesProvider, dev/kikugie/stonecutter/data/version/VersionOperations {
 	public fun flags (Lorg/gradle/api/Action;)V
 	public abstract fun getFlags ()Ldev/kikugie/stonecutter/controller/flag/StonecutterFlags;
@@ -36,12 +27,6 @@ public abstract class dev/kikugie/stonecutter/StonecutterPlugin : org/gradle/api
 }
 
 public final class dev/kikugie/stonecutter/StonecutterPlugin$Companion {
-}
-
-public abstract interface annotation class dev/kikugie/stonecutter/SwapID : java/lang/annotation/Annotation {
-}
-
-public abstract interface annotation class dev/kikugie/stonecutter/TargetID : java/lang/annotation/Annotation {
 }
 
 public abstract interface class dev/kikugie/stonecutter/build/StonecutterBuildExtension : dev/kikugie/stonecutter/StonecutterBaseExtension {

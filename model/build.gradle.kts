@@ -11,6 +11,7 @@ plugins {
     alias(common.plugins.kotlin.testballoon)
 }
 
+version = property("model_version").toString()
 val baseVersion: String = property("version").toString()
     .substringBefore('-')
     .let {
@@ -22,12 +23,20 @@ dependencies {
     implementation(common.misc.semver)
     implementation(common.kotlin.stdlib)
     implementation(common.kotlin.serialization)
+    implementation(common.kotlin.serialization.json)
 
     testImplementation(common.kotlin.testballoon)
     testImplementation(common.kotlin.testballoon.assertions)
-    testImplementation(common.kotlin.serialization.json)
 
     dokkaHtmlPlugin(common.kotlin.dokka.versioning)
+}
+
+sourceSets.main {
+    kotlin.srcDir(files("build/generated/ver/main/kotlin").builtBy("generateVersion"))
+}
+
+java {
+    withSourcesJar()
 }
 
 kotlin {
@@ -76,3 +85,16 @@ dokka {
         }
     }
 }
+
+tasks {
+    compileKotlin {
+        mustRunAfter("generateVersion")
+    }
+
+    register<GenerateVersionTask>("generateVersion") {
+        constants.put("__VERSION", providers.gradleProperty("model_version").map(String::toInt))
+        file = file("build/generated/ver/main/kotlin/dev/kikugie/stonecutter/model/__version.kt")
+    }
+}
+
+publishArtifact("stonecutter-model", "Stonecutter Model", "Serialized Stonecutter project data")

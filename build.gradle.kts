@@ -21,6 +21,7 @@ dependencies {
     dokka(project(":stonecutter"))
     dokka(project(":stitcher"))
     dokka(project(":model"))
+    dokka(project(":annotations"))
 
     dokkaHtmlPlugin(common.kotlin.dokka.versioning)
 }

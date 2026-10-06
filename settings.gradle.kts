@@ -28,5 +28,5 @@ includeBuild("build-logic")
 include(
     "stonecutter",
     "stitcher", "stitcher:antlr",
-    "model"
+    "model", "annotations"
 )
