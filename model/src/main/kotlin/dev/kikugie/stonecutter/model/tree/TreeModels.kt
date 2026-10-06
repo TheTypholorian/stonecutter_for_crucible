@@ -4,6 +4,7 @@ package dev.kikugie.stonecutter.model.tree
 
 import dev.kikugie.stonecutter.model.AnyVersion
 import dev.kikugie.stonecutter.model.Identifier
+import dev.kikugie.stonecutter.model.LenientListSerializer
 import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 import dev.kikugie.stonecutter.model.process.ProcessParameters
 import kotlinx.serialization.*
@@ -52,6 +53,7 @@ public data class NodeModel(
 public data class BranchModel(
     val id: String,
     val root: Path,
+    @Serializable(with = NodeInfoListSerializer::class)
     val nodes: List<NodeInfo>,
 ) {
     internal object Serializer : VersionedModelSerializer<BranchModel>(generatedSerializer())
@@ -63,7 +65,9 @@ public data class TreeModel(
     val stonecutter: String,
     val vcs: Identifier,
     val current: Identifier? = null,
+    @Serializable(with = BranchInfoListSerializer::class)
     val branches: List<BranchInfo> = emptyList(),
+    @Serializable(with = NodeInfoListSerializer::class)
     val nodes: List<NodeInfo> = emptyList(),
     val flags: ConfigurationRegistry = ConfigurationRegistry(),
 ) {
@@ -71,6 +75,10 @@ public data class TreeModel(
         override fun coerce(element: JsonObject): JsonObject = coerceLegacyTree(element)
     }
 }
+
+private object NodeInfoListSerializer : LenientListSerializer<NodeInfo>(NodeInfo.serializer(), "node")
+
+private object BranchInfoListSerializer : LenientListSerializer<BranchInfo>(BranchInfo.serializer(), "branch")
 
 public object PathSerializer : KSerializer<Path> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("java.nio.file.Path", PrimitiveKind.STRING)

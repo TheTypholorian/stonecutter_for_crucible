@@ -1,23 +1,22 @@
 package dev.kikugie.stonecutter.model.process
 
 import dev.kikugie.stonecutter.model.Identifier
+import dev.kikugie.stonecutter.model.LenientMapSerializer
 import kotlinx.serialization.ContextualSerializer
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.descriptors.element
 import kotlinx.serialization.encoding.*
 
-
 @Serializable(with = ConfigurationRegistry.RegistrySerializer::class)
 public class ConfigurationRegistry(private val registry: MutableMap<ConfigurationFlag<*>, Any> = mutableMapOf()) {
     @Suppress("UNCHECKED_CAST")
-    public operator fun <T : Any> get(flag: ConfigurationFlag<T>): T =
-        registry.getOrPut(flag) { flag.default } as T
+    public operator fun <T : Any> get(flag: ConfigurationFlag<T>): T = registry[flag].let {
+        if (flag.default.javaClass.isInstance(it)) it as T else flag.default
+    }
 
     public operator fun <T : Any> set(flag: ConfigurationFlag<T>, value: T): Unit =
         registry.set(flag, value)
@@ -26,12 +25,7 @@ public class ConfigurationRegistry(private val registry: MutableMap<Configuratio
         registry.remove(flag)
     }
 
-    /**
-     * Compares the assigned configuration, ignoring flags that hold their own default.
-     *
-     * [get] caches a default on read, so the backing map also depends on which flags have been
-     * looked at - a registry that was read from is still equal to one that was not.
-     */
+    /** Compares the assigned configuration, ignoring flags that hold their own default. */
     override fun equals(other: Any?): Boolean =
         other is ConfigurationRegistry && assigned() == other.assigned()
 
@@ -112,7 +106,7 @@ public class ConfigurationRegistry(private val registry: MutableMap<Configuratio
 
     public object RegistrySerializer : KSerializer<ConfigurationRegistry> {
         private val delegate: KSerializer<Map<Identifier, ConfigurationModel>> =
-            MapSerializer(Identifier.serializer(), ConfigurationModel.serializer())
+            LenientMapSerializer(ConfigurationModel.serializer(), "flag")
 
         override val descriptor: SerialDescriptor get() = delegate.descriptor
 

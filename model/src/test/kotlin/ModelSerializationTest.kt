@@ -2,7 +2,12 @@
 
 import de.infix.testBalloon.framework.core.testSuite
 import dev.kikugie.semver.data.SemanticVersion
+import dev.kikugie.semver.data.StringVersion
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.jsonArray
 import dev.kikugie.stonecutter.model.SCHEMA_FIELD
+import dev.kikugie.stonecutter.model.SCHEMA_VERSION
+import dev.kikugie.stonecutter.model.decodeModel
 import dev.kikugie.stonecutter.model.process.*
 import dev.kikugie.stonecutter.model.tree.*
 import io.kotest.assertions.throwables.shouldThrow
@@ -77,6 +82,29 @@ val ModelSerializationTest by testSuite {
                 includes shouldBe setOf("java/**")
                 excludes shouldBe setOf("**/Ignored.java")
             }
+        }
+
+        test("unreadable replacements are skipped and reported") {
+            val encoded = JSON.encodeToJsonElement(parameters()).jsonObject
+            val replacements = encoded.getValue("replacements").jsonArray
+            val broken = JsonObject(encoded + ("replacements" to JsonArray(listOf(
+                replacements[0],
+                JSON.parseToJsonElement("""{"replacement": {"type": "unknown", "pattern": "a", "target": "b"}, "enabled": true}"""),
+                JSON.parseToJsonElement("""{"enabled": true}"""),
+                replacements[2],
+            ))))
+
+            val skipped = mutableListOf<SerializationException>()
+            val decoded = JSON.decodeModel<ProcessParameters>(broken.toString()) { skipped += it }
+
+            decoded.replacements shouldBe listOf(parameters().replacements[0], parameters().replacements[2])
+            skipped.size shouldBe 2
+            for (it in skipped) it.cause.shouldBeInstanceOf<SerializationException>()
+        }
+
+        test("skipped replacements are dropped silently without a handler") {
+            val json = """{"replacements": [{"replacement": {"type": "unknown"}, "enabled": true}]}"""
+            JSON.decodeFromString<ProcessParameters>(json) shouldBe ProcessParameters()
         }
 
         test("an empty value survives too") {
@@ -247,10 +275,100 @@ val ModelSerializationTest by testSuite {
             JSON.decodeFromJsonElement<BranchModel>(JSON.encodeToJsonElement(model).withoutSchema()) shouldBe model
         }
 
+        test("0.7 targets read bare string versions and camelCase semantic versions") {
+            val json = """
+                {
+                  "project": "1.21.4", "branch": {"id": "", "path": "/project"}, "root": "/project",
+                  "parameters": {
+                    "dependencies": {
+                      "minecraft": {"type": "dev.kikugie.semver.data.SemanticVersion", "components": [1, 21, 5], "preRelease": "rc.1", "buildMetadata": "b2"},
+                      "untyped": {"components": [2, 0]},
+                      "loader": "fabric"
+                    }
+                  }
+                }
+            """.trimIndent()
+
+            JSON.decodeFromString<NodeModel>(json).parameters.targets shouldBe mapOf(
+                "minecraft" to SemanticVersion(listOf(1, 21, 5), "rc.1", "b2"),
+                "untyped" to SemanticVersion(listOf(2, 0)),
+                "loader" to StringVersion("fabric"),
+            )
+        }
+
+        test("unreadable legacy replacements are skipped and reported") {
+            val json = """
+                {
+                  "project": "1.21.4", "branch": {"id": "", "path": "/project"}, "root": "/project",
+                  "parameters": {
+                    "replacements": [
+                      {"type": "dev.kikugie.stitcher.replacement.UnknownReplacement", "target": "B", "pattern": "A"},
+                      {"type": "dev.kikugie.stitcher.replacement.StringReplacement", "target": "B", "pattern": "A"}
+                    ]
+                  }
+                }
+            """.trimIndent()
+
+            val skipped = mutableListOf<SerializationException>()
+            val node = JSON.decodeModel<NodeModel>(json) { skipped += it }
+
+            node.parameters.replacements shouldBe listOf(ReplacementModel(StringReplacement("A", "B"), enabled = true))
+            skipped.single().cause.shouldBeInstanceOf<SerializationException>()
+            ("UnknownReplacement" in skipped.single().message.orEmpty()) shouldBe true
+        }
+
         test("newer schema is rejected") {
             shouldThrow<SerializationException> {
                 JSON.decodeFromString<NodeModel>("{\"$SCHEMA_FIELD\": 99, ${legacy09Node.removePrefix("{")}")
             }
+        }
+    }
+
+    testSuite("lenient decoding") {
+        test("unreadable targets are skipped and reported") {
+            val json = """
+                {"targets": {
+                  "ok": {"type": "dev.kikugie.semver.data.SemanticVersion", "components": [1, 21]},
+                  "bad": {"type": "unknown"}
+                }}
+            """.trimIndent()
+
+            val skipped = mutableListOf<SerializationException>()
+            JSON.decodeModel<ProcessParameters>(json) { skipped += it }.targets shouldBe mapOf("ok" to SemanticVersion(listOf(1, 21)))
+            ("'bad'" in skipped.single().message.orEmpty()) shouldBe true
+        }
+
+        test("unreadable flags are skipped and reported") {
+            val json = """
+                {
+                  "ok": {"type": "BOOL", "default": false, "value": true},
+                  "unknown": {"type": "LIST", "default": []},
+                  "no_default": {"type": "BOOL"}
+                }
+            """.trimIndent()
+
+            val skipped = mutableListOf<SerializationException>()
+            val registry = JSON.decodeModel<ConfigurationRegistry>(json) { skipped += it }
+
+            registry shouldBe ConfigurationRegistry().apply { set(ConfigurationFlag("ok", false), true) }
+            skipped.size shouldBe 2
+        }
+
+        test("unreadable tree entries are skipped and reported") {
+            val json = """
+                {
+                  "$SCHEMA_FIELD": $SCHEMA_VERSION, "stonecutter": "0.10", "vcs": "1.21.4",
+                  "branches": [{"id": "", "path": "/project"}, {"id": "broken"}],
+                  "nodes": [{"project": "1.21.4", "path": "/project"}, {"path": "/other"}]
+                }
+            """.trimIndent()
+
+            val skipped = mutableListOf<SerializationException>()
+            val tree = JSON.decodeModel<TreeModel>(json) { skipped += it }
+
+            tree.branches shouldBe listOf(BranchInfo("", Path("/project")))
+            tree.nodes shouldBe listOf(NodeInfo("1.21.4", path = Path("/project")))
+            skipped.size shouldBe 2
         }
     }
 

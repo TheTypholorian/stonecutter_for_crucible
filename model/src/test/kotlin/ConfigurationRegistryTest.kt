@@ -11,6 +11,31 @@ private val JSON = Json {
 }
 
 val ConfigurationRegistryTest by testSuite {
+    test("reading does not store the default") {
+        val registry = ConfigurationRegistry()
+        registry[ConfigurationFlag("unset", true)] shouldBe true
+        registry[ConfigurationFlag("unset", 5L)] shouldBe 5L
+
+        JSON.encodeToString(registry) shouldBe "{}"
+        registry shouldBe ConfigurationRegistry()
+    }
+
+    test("a value of another type falls back to the default") {
+        val registry = JSON.decodeFromString<ConfigurationRegistry>("""{"flag": {"type": "BOOL", "default": false, "value": true}}""")
+
+        registry[ConfigurationFlag("flag", false)] shouldBe true
+        registry[ConfigurationFlag("flag", 3L)] shouldBe 3L
+        registry[ConfigurationFlag("flag", "text")] shouldBe "text"
+    }
+
+    test("explicit defaults are ignored by equality") {
+        val flag = ConfigurationFlag("flag", false)
+        val registry = ConfigurationRegistry().apply { set(flag, false) }
+
+        registry shouldBe ConfigurationRegistry()
+        registry.hashCode() shouldBe ConfigurationRegistry().hashCode()
+    }
+
     test("flag serialization") {
         val bool = ConfigurationFlag("my-bool", false)
         val int = ConfigurationFlag("my-int", 0L)

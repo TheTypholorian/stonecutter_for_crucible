@@ -11,8 +11,8 @@ plugins {
     alias(common.plugins.kotlin.testballoon)
 }
 
-version = property("model_version").toString()
-val baseVersion: String = property("version").toString()
+version = property("model_release").toString()
+val baseVersion: String = providers.gradleProperty("version").get()
     .substringBefore('-')
     .let {
         val trimmed = it.substringBeforeLast('.')

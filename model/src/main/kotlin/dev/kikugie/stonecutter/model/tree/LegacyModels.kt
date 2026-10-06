@@ -1,8 +1,11 @@
 package dev.kikugie.stonecutter.model.tree
 
+import dev.kikugie.semver.data.SemanticVersion
+import dev.kikugie.semver.data.StringVersion
 import dev.kikugie.stonecutter.model.process.PerlReplacement
 import dev.kikugie.stonecutter.model.process.RegexReplacement
 import dev.kikugie.stonecutter.model.process.StringReplacement
+import dev.kikugie.stonecutter.model.reportSkipped
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.*
 
@@ -32,11 +35,37 @@ private fun legacyFlag(element: JsonElement): JsonObject {
 }
 
 private fun legacyParameters(parameters: JsonObject): JsonObject = rebuildJsonObject(parameters, "constants", "swaps", "files") {
-    (parameters["targets"] ?: parameters["dependencies"])?.let { put("targets", it) }
+    (parameters["targets"] ?: parameters["dependencies"])?.let { targets ->
+        put("targets", JsonObject(targets.jsonObject.mapValues { (_, it) -> legacyVersion(it) }))
+    }
     parameters["replacements"]?.let { replacements ->
-        putJsonArray("replacements") { for (it in replacements.jsonArray) legacyReplacement(it.jsonObject).forEach(::add) }
+        putJsonArray("replacements") { handleReplacements(replacements) }
     }
 }
+
+private fun JsonArrayBuilder.handleReplacements(replacements: JsonElement) {
+    for (it in replacements.jsonArray) try {
+        for (it in legacyReplacement(it.jsonObject)) add(it)
+    } catch (e: Exception) {
+        reportSkipped("replacement $it", e)
+    }
+}
+
+private fun legacyVersion(element: JsonElement): JsonElement = when {
+    element is JsonPrimitive && element.isString -> buildJsonObject {
+        put("type", StringVersion.serializer().descriptor.serialName)
+        put("value", element)
+    }
+
+    element is JsonObject && "components" in element -> buildJsonObject {
+        if ("type" !in element) put("type", SemanticVersion.serializer().descriptor.serialName)
+        for ((key, value) in element) put(LEGACY_VERSION_KEYS[key] ?: key, value)
+    }
+
+    else -> element
+}
+
+private val LEGACY_VERSION_KEYS: Map<String, String> = mapOf("preRelease" to "pre_release", "buildMetadata" to "build_metadata")
 
 private fun legacyReplacement(entry: JsonObject): List<JsonObject> {
     if ("replacement" in entry) return listOf(entry)

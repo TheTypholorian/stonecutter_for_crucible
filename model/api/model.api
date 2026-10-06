@@ -1,3 +1,7 @@
+public final class dev/kikugie/stonecutter/model/ModelDecodingKt {
+	public static final fun decodeModel (Lkotlinx/serialization/json/Json;Lkotlinx/serialization/DeserializationStrategy;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
+}
+
 public final class dev/kikugie/stonecutter/model/ModelVersionKt {
 	public static final field SCHEMA_FIELD Ljava/lang/String;
 	public static final field SCHEMA_VERSION I
