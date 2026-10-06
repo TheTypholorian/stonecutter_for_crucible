@@ -14,7 +14,7 @@ public interface StonecutterBaseExtension : VersionOperations<Version>, Structur
      * Accessor for strictly SemVer version evaluation.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/build-setup#version-aware-buildscript">Semantic Operations Documentation</a>
      */
-    @VersionStringMeta(include = SEMVER_ONLY)
+    @VersionStringMeta(include = [SEMVER_ONLY])
     public val semantics: VersionOperations<SemanticVersion>
         get() = SemanticOperations
 

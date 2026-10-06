@@ -15,20 +15,22 @@ public abstract interface annotation class dev/kikugie/stonecutter/TargetID : ja
 
 public abstract interface annotation class dev/kikugie/stonecutter/VersionString : java/lang/annotation/Annotation {
 	public static final field Companion Ldev/kikugie/stonecutter/VersionString$Companion;
-	public static final field SEMVER_ONLY I
-	public static final field SUPPORTS_OPERATORS I
-	public static final field SUPPORTS_WILDCARD I
-	public abstract fun flags ()I
+	public static final field SEMVER_ONLY Ljava/lang/String;
+	public static final field STONECUTTER_KNOWN Ljava/lang/String;
+	public static final field SUPPORTS_OPERATORS Ljava/lang/String;
+	public static final field SUPPORTS_WILDCARD Ljava/lang/String;
+	public abstract fun flags ()[Ljava/lang/String;
 }
 
 public final class dev/kikugie/stonecutter/VersionString$Companion {
-	public static final field SEMVER_ONLY I
-	public static final field SUPPORTS_OPERATORS I
-	public static final field SUPPORTS_WILDCARD I
+	public static final field SEMVER_ONLY Ljava/lang/String;
+	public static final field STONECUTTER_KNOWN Ljava/lang/String;
+	public static final field SUPPORTS_OPERATORS Ljava/lang/String;
+	public static final field SUPPORTS_WILDCARD Ljava/lang/String;
 }
 
 public abstract interface annotation class dev/kikugie/stonecutter/VersionStringMeta : java/lang/annotation/Annotation {
-	public abstract fun exclude ()I
-	public abstract fun include ()I
+	public abstract fun exclude ()[Ljava/lang/String;
+	public abstract fun include ()[Ljava/lang/String;
 }
 

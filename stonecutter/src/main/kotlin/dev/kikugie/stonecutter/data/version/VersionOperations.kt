@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.data.version
 
+import dev.kikugie.stonecutter.VersionString.Companion.STONECUTTER_KNOWN
 import dev.kikugie.commons.result.inherit
 import dev.kikugie.commons.result.mapResult
 import dev.kikugie.commons.takeAs
@@ -32,7 +33,8 @@ public interface VersionOperations<T : Version> {
      * @throws IllegalArgumentException if parsing fails, with [VersionParsingException] as its cause
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
      */
-    public fun parseAsPredicate(version: @VersionString(SUPPORTS_WILDCARD) AnyVersion): T
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD])
+    public fun parseAsPredicate(version: @VersionString AnyVersion): T
 
     /**
      * Tries to parse the provided [version] string as the [T] version.
@@ -47,7 +49,8 @@ public interface VersionOperations<T : Version> {
      * @return [Result] with [VersionParsingException] if parsing fails.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
      */
-    public fun tryParseAsPredicate(version: @VersionString(SUPPORTS_WILDCARD) AnyVersion): Result<T>
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD])
+    public fun tryParseAsPredicate(version: @VersionString AnyVersion): Result<T>
 
     /**
      * Checks if the provided [version] satisfies the [predicates].
@@ -62,7 +65,8 @@ public interface VersionOperations<T : Version> {
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#predicate-operators">Predicate specification</a>
      */
-    public fun eval(version: Version, vararg predicates: @VersionString(SUPPORTS_WILDCARD + SUPPORTS_OPERATORS) String): Boolean
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD, SUPPORTS_OPERATORS, STONECUTTER_KNOWN])
+    public fun eval(version: Version, vararg predicates: @VersionString String): Boolean
 
     /**
      * Checks if the provided [version] satisfies the [predicates].
@@ -77,7 +81,8 @@ public interface VersionOperations<T : Version> {
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#predicate-operators">Predicate specification</a>
      */
-    public fun tryEval(version: Version, vararg predicates: @VersionString(SUPPORTS_WILDCARD + SUPPORTS_OPERATORS) String): Result<Boolean>
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD, SUPPORTS_OPERATORS, STONECUTTER_KNOWN])
+    public fun tryEval(version: Version, vararg predicates: @VersionString String): Result<Boolean>
 
     /**
      * Checks if the provided [version] satisfies the [predicates].
@@ -91,7 +96,8 @@ public interface VersionOperations<T : Version> {
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#predicate-operators">Predicate specification</a>
      */
-    public fun eval(version: @VersionString String, vararg predicates: @VersionString(SUPPORTS_WILDCARD + SUPPORTS_OPERATORS) String): Boolean
+    @VersionStringMeta(include = [STONECUTTER_KNOWN])
+    public fun eval(version: @VersionString String, vararg predicates: @VersionString(SUPPORTS_WILDCARD, SUPPORTS_OPERATORS) String): Boolean
 
     /**
      * Checks if the provided [version] satisfies the [predicates].
@@ -105,10 +111,8 @@ public interface VersionOperations<T : Version> {
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#predicate-operators">Predicate specification</a>
      */
-    public fun tryEval(
-        version: @VersionString String,
-        vararg predicates: @VersionString(SUPPORTS_WILDCARD + SUPPORTS_OPERATORS) String
-    ): Result<Boolean>
+    @VersionStringMeta(include = [STONECUTTER_KNOWN])
+    public fun tryEval(version: @VersionString String, vararg predicates: @VersionString(SUPPORTS_WILDCARD, SUPPORTS_OPERATORS) String): Result<Boolean>
 
     /**
      * Parses each version as [T] and compares them
@@ -116,7 +120,7 @@ public interface VersionOperations<T : Version> {
      * @throws IllegalArgumentException if parsing fails, with [VersionParsingException] as its cause
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
      */
-    @VersionStringMeta(include = SUPPORTS_WILDCARD)
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD, STONECUTTER_KNOWN])
     public fun compare(version: @VersionString String, other: @VersionString String): Int
 
     /**
@@ -125,7 +129,7 @@ public interface VersionOperations<T : Version> {
      * @return [Result] with [VersionParsingException] if parsing fails
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version specification</a>
      */
-    @VersionStringMeta(include = SUPPORTS_WILDCARD)
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD, STONECUTTER_KNOWN])
     public fun tryCompare(version: @VersionString String, other: @VersionString String): Result<Int>
 
     /**
@@ -137,7 +141,8 @@ public interface VersionOperations<T : Version> {
      * ```
      * @throws IllegalArgumentException if either bound can't be read as a single version
      */
-    public operator fun ClosedRange<@VersionString(SUPPORTS_WILDCARD) String>.contains(version: ParsedVersion): Boolean =
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD, STONECUTTER_KNOWN])
+    public operator fun ClosedRange<@VersionString String>.contains(version: ParsedVersion): Boolean =
         version within this
 
     /**
@@ -149,7 +154,8 @@ public interface VersionOperations<T : Version> {
      * ```
      * @throws IllegalArgumentException if either bound can't be read as a single version
      */
-    public operator fun OpenEndRange<@VersionString(SUPPORTS_WILDCARD) String>.contains(version: ParsedVersion): Boolean =
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD, STONECUTTER_KNOWN])
+    public operator fun OpenEndRange<@VersionString String>.contains(version: ParsedVersion): Boolean =
         version within this
 }
 

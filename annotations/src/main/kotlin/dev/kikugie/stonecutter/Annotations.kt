@@ -35,16 +35,19 @@ public annotation class SourceSetPattern
  */
 @Target(VALUE_PARAMETER, LOCAL_VARIABLE, PROPERTY, FIELD, TYPE)
 @Retention(BINARY)
-public annotation class VersionString(val flags: Int = 0) {
+public annotation class VersionString(vararg val flags: String) {
     public companion object {
         /** The string is parsed as an extended semantic version, rejecting lexicographically compared ones. */
-        public const val SEMVER_ONLY: Int = 1
+        public const val SEMVER_ONLY: String = "semverOnly"
 
         /** The string is parsed as a comparison target, supporting `-*` suffix if it's an extended semantic version. */
-        public const val SUPPORTS_WILDCARD: Int = 1 shl 1
+        public const val SUPPORTS_WILDCARD: String = "supportsWildcard"
 
         /** The string is parsed as a predicate, supporting operators like `>=`, `~`, `!=`, etc. */
-        public const val SUPPORTS_OPERATORS: Int = 1 shl 2
+        public const val SUPPORTS_OPERATORS: String = "supportsOperators"
+
+        /** The version may be registered in Stonecutter, which allows variant lookup. */
+        public const val STONECUTTER_KNOWN: String = "stonecutterKnown"
     }
 }
 
@@ -56,4 +59,4 @@ public annotation class VersionString(val flags: Int = 0) {
  */
 @Target(CLASS, FUNCTION, PROPERTY, PROPERTY_GETTER)
 @Retention(BINARY)
-public annotation class VersionStringMeta(val include: Int = 0, val exclude: Int = 0)
+public annotation class VersionStringMeta(val include: Array<String> = [], val exclude: Array<String> = [])

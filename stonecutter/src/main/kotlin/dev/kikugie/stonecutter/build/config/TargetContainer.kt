@@ -20,7 +20,7 @@ private annotation class TargetDsl
 
 /**[Stonecutter target](https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#targets) configuration extension.*/
 @TargetDsl
-public abstract class TargetContainer @Inject constructor(private val delegate: MapProperty<Identifier, AnyVersion>) :
+public abstract class TargetContainer @Inject constructor(private val delegate: MapProperty<@TargetID Identifier, @VersionString AnyVersion>) :
     ExtendedMapProperty<@TargetID Identifier, @VersionString AnyVersion>, MapProperty<@TargetID Identifier, @VersionString AnyVersion> by delegate {
     /**
      * Defines the [key] as a target with the provided [value].

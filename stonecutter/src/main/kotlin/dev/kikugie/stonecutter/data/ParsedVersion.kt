@@ -1,5 +1,7 @@
 package dev.kikugie.stonecutter.data
 
+import dev.kikugie.stonecutter.VersionStringMeta
+import dev.kikugie.stonecutter.VersionString.Companion.STONECUTTER_KNOWN
 import dev.kikugie.stonecutter.VersionString
 import dev.kikugie.stonecutter.VersionString.Companion.SUPPORTS_OPERATORS
 import dev.kikugie.stonecutter.VersionString.Companion.SUPPORTS_WILDCARD
@@ -43,7 +45,8 @@ public class ParsedVersion(public val value: Version) : Comparable<Any> {
      *
      * @throws IllegalArgumentException if [other] can't be read as a single version
      */
-    override fun compareTo(other: Any): Int = when (val target = VersionTarget.interpret(other)) {
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD, SUPPORTS_OPERATORS, STONECUTTER_KNOWN])
+    override fun compareTo(other: @VersionString Any): Int = when (val target = VersionTarget.interpret(other)) {
         is VersionTarget.Exact -> value compareTo target.version
         is VersionTarget.Match -> value compareTo target.only(other)
     }
@@ -61,7 +64,8 @@ public class ParsedVersion(public val value: Version) : Comparable<Any> {
      * comparing against it, so `this == ">=1.20"` reports whether this version satisfies
      * `>=1.20`. An operand that can't be read as a version is unequal rather than an error.
      */
-    override fun equals(other: Any?): Boolean = when (val target = VersionTarget.interpretOrNull(other)) {
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD, SUPPORTS_OPERATORS, STONECUTTER_KNOWN])
+    override fun equals(other: @VersionString Any?): Boolean = when (val target = VersionTarget.interpretOrNull(other)) {
         null -> false
         is VersionTarget.Exact -> (value compareTo target.version) == 0
         is VersionTarget.Match -> target.predicates.all { it(value) }
@@ -77,14 +81,16 @@ public class ParsedVersion(public val value: Version) : Comparable<Any> {
      * if (sc.current.parsed eq "1.0") { /* ... */ }
      * ```
      */
-    public infix fun eq(other: Any?): Boolean = this == other
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD, SUPPORTS_OPERATORS, STONECUTTER_KNOWN])
+    public infix fun eq(other: @VersionString Any?): Boolean = this == other
 
     /**
      * Checks if this version matches the space-separated [predicates].
      * @throws IllegalArgumentException if the predicates can't be parsed
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#predicate-operators">Predicate Operators Documentation</a>
      */
-    public infix fun matches(predicates: @VersionString(SUPPORTS_WILDCARD + SUPPORTS_OPERATORS) String): Boolean =
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD, SUPPORTS_OPERATORS, STONECUTTER_KNOWN])
+    public infix fun matches(predicates: @VersionString String): Boolean =
         LenientOperations.eval(value, predicates)
 
     /**
@@ -93,7 +99,8 @@ public class ParsedVersion(public val value: Version) : Comparable<Any> {
      * @throws IllegalArgumentException if the predicates can't be parsed
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#predicate-operators">Predicate Operators Documentation</a>
      */
-    public fun matches(vararg predicates: @VersionString(SUPPORTS_WILDCARD + SUPPORTS_OPERATORS) String): Boolean =
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD, SUPPORTS_OPERATORS, STONECUTTER_KNOWN])
+    public fun matches(vararg predicates: @VersionString String): Boolean =
         LenientOperations.eval(value, *predicates)
 
     /**
@@ -104,14 +111,16 @@ public class ParsedVersion(public val value: Version) : Comparable<Any> {
      * @throws IllegalArgumentException if the predicates can't be parsed
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#predicate-operators">Predicate Operators Documentation</a>
      */
-    public operator fun invoke(vararg predicates: @VersionString(SUPPORTS_WILDCARD + SUPPORTS_OPERATORS) String): Boolean =
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD, SUPPORTS_OPERATORS, STONECUTTER_KNOWN])
+    public operator fun invoke(vararg predicates: @VersionString String): Boolean =
         LenientOperations.eval(value, *predicates)
 
     /**
      * Creates a range from this version to the [other], which is interpreted as in [compareTo].
      * @throws IllegalArgumentException if [other] can't be read as a single version
      */
-    public operator fun rangeTo(other: Any): ClosedRange<ParsedVersion> =
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD, STONECUTTER_KNOWN])
+    public operator fun rangeTo(other: @VersionString Any): ClosedRange<ParsedVersion> =
         ClosedVersionRange(this, ParsedVersion(other))
 
     /**
@@ -119,7 +128,8 @@ public class ParsedVersion(public val value: Version) : Comparable<Any> {
      * which is interpreted as in [compareTo].
      * @throws IllegalArgumentException if [other] can't be read as a single version
      */
-    public operator fun rangeUntil(other: Any): OpenEndRange<ParsedVersion> =
+    @VersionStringMeta(include = [SUPPORTS_WILDCARD, STONECUTTER_KNOWN])
+    public operator fun rangeUntil(other: @VersionString Any): OpenEndRange<ParsedVersion> =
         OpenVersionRange(this, ParsedVersion(other))
 
     /**
