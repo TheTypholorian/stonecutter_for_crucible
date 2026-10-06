@@ -1,6 +1,7 @@
 package dev.kikugie.stonecutter
 
 import dev.kikugie.semver.data.SemanticVersion
+import dev.kikugie.stonecutter.VersionString.Companion.SEMVER_ONLY
 import dev.kikugie.semver.data.Version
 import dev.kikugie.stonecutter.controller.flag.StonecutterFlags
 import dev.kikugie.stonecutter.data.property.StructuredPropertiesProvider
@@ -13,6 +14,7 @@ public interface StonecutterBaseExtension : VersionOperations<Version>, Structur
      * Accessor for strictly SemVer version evaluation.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/guides/start/build-setup#version-aware-buildscript">Semantic Operations Documentation</a>
      */
+    @VersionStringMeta(include = SEMVER_ONLY)
     public val semantics: VersionOperations<SemanticVersion>
         get() = SemanticOperations
 

@@ -27,3 +27,33 @@ public annotation class ReplacementID
 @Target(VALUE_PARAMETER, LOCAL_VARIABLE, PROPERTY, FIELD, TYPE)
 @Retention(BINARY)
 public annotation class SourceSetPattern
+
+/**
+ * Marks a [String] interpreted as a version by Stonecutter.
+ *
+ * @property flags Additional constraints on the version
+ */
+@Target(VALUE_PARAMETER, LOCAL_VARIABLE, PROPERTY, FIELD, TYPE)
+@Retention(BINARY)
+public annotation class VersionString(val flags: Int = 0) {
+    public companion object {
+        /** The string is parsed as an extended semantic version, rejecting lexicographically compared ones. */
+        public const val SEMVER_ONLY: Int = 1
+
+        /** The string is parsed as a comparison target, supporting `-*` suffix if it's an extended semantic version. */
+        public const val SUPPORTS_WILDCARD: Int = 1 shl 1
+
+        /** The string is parsed as a predicate, supporting operators like `>=`, `~`, `!=`, etc. */
+        public const val SUPPORTS_OPERATORS: Int = 1 shl 2
+    }
+}
+
+/**
+ * Applies additional properties to version strings in the annotated class, function, or property.
+ *
+ * @property include Flags to merge with the strings annotated with [VersionString]
+ * @property exclude Flags to remove from the strings annotated with [VersionString]
+ */
+@Target(CLASS, FUNCTION, PROPERTY, PROPERTY_GETTER)
+@Retention(BINARY)
+public annotation class VersionStringMeta(val include: Int = 0, val exclude: Int = 0)

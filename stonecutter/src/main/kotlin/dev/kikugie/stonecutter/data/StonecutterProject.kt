@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.data
 
+import dev.kikugie.stonecutter.VersionString
 import dev.kikugie.stonecutter.AnyVersion
 import dev.kikugie.stonecutter.Identifier
 import kotlinx.serialization.Serializable
@@ -12,7 +13,7 @@ import kotlinx.serialization.Serializable
  * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#node">Project Node Documentation</a>
  */
 @Serializable
-public data class StonecutterProject(val project: Identifier, val version: AnyVersion) {
+public data class StonecutterProject(val project: Identifier, val version: @VersionString AnyVersion) {
     /**
      * Wrapped parsed [version] used for comparisons.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#version-types">Version Types Documentation</a>

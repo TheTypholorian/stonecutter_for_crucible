@@ -1,5 +1,6 @@
 package dev.kikugie.stonecutter.settings.tree
 
+import dev.kikugie.stonecutter.VersionString
 import dev.kikugie.stonecutter.AnyVersion
 import dev.kikugie.stonecutter.Identifier
 import dev.kikugie.stonecutter.data.StonecutterProject
@@ -132,48 +133,48 @@ public abstract class BranchBuilder {
 
     /** Deprecated alias for [version]. */
     @Deprecated("Use the fully-spelled variant `version()`", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("version(value)"))
-    public fun vers(value: AnyVersion): NodeBuilder =
+    public fun vers(value: @VersionString AnyVersion): NodeBuilder =
         version(value)
 
     /** Deprecated alias for [version]. */
     @Deprecated("Use the fully-spelled variant `version()`", level = DeprecationLevel.ERROR, replaceWith = ReplaceWith("version(project, value)"))
-    public fun vers(project: Identifier, value: AnyVersion): NodeBuilder =
+    public fun vers(project: Identifier, value: @VersionString AnyVersion): NodeBuilder =
         version(project, value)
 
     /**
      * Registers a new subproject with the same name and version.
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#project">Node Project Documentation</a>
      */
-    public fun version(version: AnyVersion): NodeBuilder =
+    public fun version(version: @VersionString AnyVersion): NodeBuilder =
         versions(listOf(StonecutterProject(version, version)))
 
     /**
      * Registers a new subproject with distinct [name][project] and [version].
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/project-model#version">Node Version Documentation</a>
      */
-    public fun version(project: Identifier, version: AnyVersion): NodeBuilder =
+    public fun version(project: Identifier, version: @VersionString AnyVersion): NodeBuilder =
         versions(listOf(StonecutterProject(project, version)))
 
     /**Registers multiple subprojects based on the name-version [entries].*/
-    public infix fun versions(entries: Map<Identifier, AnyVersion>): NodeBuilder =
+    public infix fun versions(entries: Map<Identifier, @VersionString AnyVersion>): NodeBuilder =
         versions(entries.map { (k, v) -> StonecutterProject(k, v) })
 
     /**Registers multiple subprojects based with names matching the [versions].*/
-    public infix fun versions(versions: Iterable<Identifier>): NodeBuilder =
+    public infix fun versions(versions: Iterable<@VersionString Identifier>): NodeBuilder =
         versions(versions.map { StonecutterProject(it, it) })
 
     /**Registers multiple subprojects based with names matching the [versions].*/
-    public fun versions(vararg versions: Identifier): NodeBuilder =
+    public fun versions(vararg versions: @VersionString Identifier): NodeBuilder =
         versions(versions.map { StonecutterProject(it, it) })
 
     /**Registers multiple subprojects based on the name-version [entries].*/
     @JvmName("versionPairs")
-    public infix fun versions(entries: Iterable<Pair<Identifier, AnyVersion>>): NodeBuilder =
+    public infix fun versions(entries: Iterable<Pair<Identifier, @VersionString AnyVersion>>): NodeBuilder =
         versions(entries.map { (p, v) -> StonecutterProject(p, v) })
 
     /**Registers multiple subprojects based on the name-version [entries].*/
     @JvmName("versionPairs")
-    public fun versions(vararg entries: Pair<Identifier, AnyVersion>): NodeBuilder =
+    public fun versions(vararg entries: Pair<Identifier, @VersionString AnyVersion>): NodeBuilder =
         versions(entries.map { (p, v) -> StonecutterProject(p, v) })
 
     /**

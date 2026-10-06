@@ -1,5 +1,8 @@
 package dev.kikugie.stonecutter.data
 
+import dev.kikugie.stonecutter.VersionString
+import dev.kikugie.stonecutter.VersionString.Companion.SUPPORTS_OPERATORS
+import dev.kikugie.stonecutter.VersionString.Companion.SUPPORTS_WILDCARD
 import dev.kikugie.commons.result.invalidArg
 import dev.kikugie.commons.takeAs
 import dev.kikugie.semver.data.*
@@ -28,7 +31,7 @@ import kotlin.jvm.optionals.getOrNull
  */
 public class ParsedVersion(public val value: Version) : Comparable<Any> {
     /**Creates a parsed version from a string [value]. Throws if the version is invalid.*/
-    public constructor(value: AnyVersion) : this(LenientOperations.parse(value))
+    public constructor(value: @VersionString AnyVersion) : this(LenientOperations.parse(value))
 
     private val hashCode: Int = computeHashCode(value)
 
@@ -81,7 +84,7 @@ public class ParsedVersion(public val value: Version) : Comparable<Any> {
      * @throws IllegalArgumentException if the predicates can't be parsed
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#predicate-operators">Predicate Operators Documentation</a>
      */
-    public infix fun matches(predicates: String): Boolean =
+    public infix fun matches(predicates: @VersionString(SUPPORTS_WILDCARD + SUPPORTS_OPERATORS) String): Boolean =
         LenientOperations.eval(value, predicates)
 
     /**
@@ -90,7 +93,7 @@ public class ParsedVersion(public val value: Version) : Comparable<Any> {
      * @throws IllegalArgumentException if the predicates can't be parsed
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#predicate-operators">Predicate Operators Documentation</a>
      */
-    public fun matches(vararg predicates: String): Boolean =
+    public fun matches(vararg predicates: @VersionString(SUPPORTS_WILDCARD + SUPPORTS_OPERATORS) String): Boolean =
         LenientOperations.eval(value, *predicates)
 
     /**
@@ -101,7 +104,7 @@ public class ParsedVersion(public val value: Version) : Comparable<Any> {
      * @throws IllegalArgumentException if the predicates can't be parsed
      * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/syntax/conditions#predicate-operators">Predicate Operators Documentation</a>
      */
-    public operator fun invoke(vararg predicates: String): Boolean =
+    public operator fun invoke(vararg predicates: @VersionString(SUPPORTS_WILDCARD + SUPPORTS_OPERATORS) String): Boolean =
         LenientOperations.eval(value, *predicates)
 
     /**

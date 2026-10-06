@@ -13,3 +13,22 @@ public abstract interface annotation class dev/kikugie/stonecutter/SwapID : java
 public abstract interface annotation class dev/kikugie/stonecutter/TargetID : java/lang/annotation/Annotation {
 }
 
+public abstract interface annotation class dev/kikugie/stonecutter/VersionString : java/lang/annotation/Annotation {
+	public static final field Companion Ldev/kikugie/stonecutter/VersionString$Companion;
+	public static final field SEMVER_ONLY I
+	public static final field SUPPORTS_OPERATORS I
+	public static final field SUPPORTS_WILDCARD I
+	public abstract fun flags ()I
+}
+
+public final class dev/kikugie/stonecutter/VersionString$Companion {
+	public static final field SEMVER_ONLY I
+	public static final field SUPPORTS_OPERATORS I
+	public static final field SUPPORTS_WILDCARD I
+}
+
+public abstract interface annotation class dev/kikugie/stonecutter/VersionStringMeta : java/lang/annotation/Annotation {
+	public abstract fun exclude ()I
+	public abstract fun include ()I
+}
+
