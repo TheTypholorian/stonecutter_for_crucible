@@ -50,11 +50,11 @@ jobs:
       # so a restored entry would silently drop the Maven repository.
       - name: Publish to Maven
         run: |
-          ./gradlew publish --no-daemon --no-configuration-cache
+          ./gradlew publish --no-configuration-cache
       - name: Publish to Gradle Plugin Portal
         if: ${{ steps.version.outputs.release == 'true' }}
         run: |
-          ./gradlew publishPlugins --no-daemon --no-configuration-cache
+          ./gradlew publishPlugins --no-configuration-cache
       - name: Trigger KDoc build
         if: ${{ inputs.build-docs }}
         continue-on-error: true
