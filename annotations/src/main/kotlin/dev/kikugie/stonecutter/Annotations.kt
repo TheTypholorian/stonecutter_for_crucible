@@ -38,16 +38,16 @@ public annotation class SourceSetPattern
 public annotation class VersionString(vararg val flags: String) {
     public companion object {
         /** The string is parsed as an extended semantic version, rejecting lexicographically compared ones. */
-        public const val SEMVER_ONLY: String = "semverOnly"
+        public const val SEMVER_ONLY: String = "semver-only"
 
         /** The string is parsed as a comparison target, supporting `-*` suffix if it's an extended semantic version. */
-        public const val SUPPORTS_WILDCARD: String = "supportsWildcard"
+        public const val SUPPORTS_WILDCARD: String = "supports-wildcard"
 
         /** The string is parsed as a predicate, supporting operators like `>=`, `~`, `!=`, etc. */
-        public const val SUPPORTS_OPERATORS: String = "supportsOperators"
+        public const val SUPPORTS_OPERATORS: String = "supports-operators"
 
         /** The version may be registered in Stonecutter, which allows variant lookup. */
-        public const val STONECUTTER_KNOWN: String = "stonecutterKnown"
+        public const val STONECUTTER_KNOWN: String = "stonecutter-known"
     }
 }
 
