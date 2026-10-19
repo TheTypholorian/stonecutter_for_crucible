@@ -10,7 +10,6 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     kotlin("plugin.assignment") version common.versions.kotlin.jvm.get()
-    alias(libs.plugins.gradle.compatibility)
     alias(common.plugins.gradle.shadow)
     alias(common.plugins.gradle.publish)
     alias(common.plugins.kotlin.dokka)
@@ -177,6 +176,7 @@ gradlePlugin {
 
             compatibility {
                 features {
+                    isolatedProjects = true
                     configurationCache = true
                 }
             }

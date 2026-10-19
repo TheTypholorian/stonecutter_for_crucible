@@ -1,14 +1,14 @@
 [versions]
 antlr = "4.13.2"
+catalog-update = "1.1.1"
 pcre4j = "1.0.1"
-gradle-compat = "1.0.0"
 
 [plugins]
-gradle-compatibility = { id = "org.gradle.plugin-compatibility", version.ref = "gradle-compat" }
+catalog-update = { id = "nl.littlerobots.version-catalog-update", version.ref = "catalog-update" }
 
 [libraries]
-antlr = { group = "org.antlr", name="antlr4", version.ref = "antlr" }
+antlr = { module = "org.antlr:antlr4", version.ref = "antlr" }
 pcre4j = { module = "org.pcre4j:regex", version.ref = "pcre4j" }
-pcre4j-jna = { module = "org.pcre4j:jna", version.ref = "pcre4j" }
-pcre4j-ffm = { module = "org.pcre4j:ffm", version.ref = "pcre4j" }
 pcre4j-bundle = { module = "org.pcre4j:pcre4j-native-all", version.ref = "pcre4j" }
+pcre4j-ffm = { module = "org.pcre4j:ffm", version.ref = "pcre4j" }
+pcre4j-jna = { module = "org.pcre4j:jna", version.ref = "pcre4j" }

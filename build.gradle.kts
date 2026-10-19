@@ -3,6 +3,7 @@ plugins {
     alias(common.plugins.kotlin.serialization) apply false
     alias(common.plugins.kotlin.dokka)
     alias(common.plugins.gradle.dotenv)
+    alias(libs.plugins.catalog.update)
 }
 
 version = property("version").toString()
