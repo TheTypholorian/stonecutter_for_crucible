@@ -9,6 +9,7 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import read
 import runGradle
+import runGradleShared
 import shouldFailBuild
 import tempDirFixture
 import kotlin.io.path.useLines
@@ -125,6 +126,12 @@ val ReportedIssuesTest by testSuite {
             val order = runGradle(it, "compileJava").tasks.map { task -> task.path }
                 .filter { path -> path.endsWith(":compileJava") }
             order shouldBe listOf(":1:compileJava", ":2:compileJava", ":3:compileJava")
+        }
+
+        integrationTest("access subprojects before active") {
+            val output = runGradleShared(it, ":1:printSources", ":1:compileJava").output
+            output shouldContain "srcDir: src/main/java"
+            output shouldNotContain "srcDir: versions/1/build/generated/stonecutter/main/java"
         }
     }
 }

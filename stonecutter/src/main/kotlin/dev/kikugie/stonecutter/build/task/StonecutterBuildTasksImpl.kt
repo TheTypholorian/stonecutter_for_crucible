@@ -13,6 +13,7 @@ import dev.kikugie.stonecutter.util.SCJSON
 import dev.kikugie.stonecutter.util.allSources
 import dev.kikugie.stonecutter.util.set
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.FileTreeElement
 import org.gradle.api.file.RelativePath
 import org.gradle.api.file.SourceDirectorySet
@@ -26,6 +27,7 @@ import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.util.PatternSet
 import java.io.File
+import java.util.concurrent.Callable
 import javax.inject.Inject
 
 @OptIn(StonecutterInternalAPI::class)
@@ -63,8 +65,8 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
                 .map { it.relativeTo(versionSrc) }
                 .filterNot { it.startsWith("..") }
 
-            if (build.current.isActive) entry.extend(matching, branchSrc, null, true)
-            entry.extend(matching, generatedSrc, taskName, !build.current.isActive)
+            entry.extend(matching, branchSrc, null) { build.current.isActive }
+            entry.extend(matching, generatedSrc, taskName) { !build.current.isActive }
             if (filteredSources.add(entry)) entry.exclude(disabled)
         }
     }
@@ -91,15 +93,13 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
         }
     }
 
-    private fun SourceDirectorySet.extend(matching: Iterable<File>, root: File, task: String?, apply: Boolean) {
-        val filtered = matching.map(root::resolve).filterNot(registeredSources::contains)
+    private fun SourceDirectorySet.extend(matching: Iterable<File>, root: File, task: String?, apply: () -> Boolean) {
+        val filtered: List<File> = matching.map(root::resolve).filterNot(registeredSources::contains)
             .ifEmpty { return }
 
-        if (apply) {
-            val collection = build.project.files(filtered)
-            if (task != null) collection.builtBy("${build.node.hierarchy}:$task")
-            srcDir(collection)
-        }
+        val collection: ConfigurableFileCollection = build.project.files({ if (apply()) filtered else emptyList() })
+        if (task != null) collection.builtBy({ if (apply()) "${build.node.hierarchy}:$task" else null })
+        srcDir(collection)
 
         registeredSources += filtered
         if (logger.isDebugEnabled) for (dir in filtered) logger.debug(buildString {
