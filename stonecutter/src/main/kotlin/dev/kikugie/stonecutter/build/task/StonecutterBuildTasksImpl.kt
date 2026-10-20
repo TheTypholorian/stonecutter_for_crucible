@@ -97,8 +97,8 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
         val filtered: List<File> = matching.map(root::resolve).filterNot(registeredSources::contains)
             .ifEmpty { return }
 
-        val collection: ConfigurableFileCollection = build.project.files({ if (apply()) filtered else emptyList() })
-        if (task != null) collection.builtBy({ if (apply()) "${build.node.hierarchy}:$task" else null })
+        val collection: ConfigurableFileCollection = build.project.files(Callable { if (apply()) filtered else emptyList() })
+        if (task != null) collection.builtBy(Callable { if (apply()) "${build.node.hierarchy}:$task" else null })
         srcDir(collection)
 
         registeredSources += filtered
