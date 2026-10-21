@@ -115,6 +115,14 @@ internal class StructuredPropertiesHolder {
         return true
     }
 
+    fun reset() {
+        parsedTags = emptyArray()
+        primitiveCache.clear()
+        appliedTags.clear()
+        rawCache.clear()
+        refreshExport()
+    }
+
     fun load(file: File?, reload: Boolean = true, data: () -> SCMap?): Boolean {
         if (file != null && file in loadedFiles) return false
 

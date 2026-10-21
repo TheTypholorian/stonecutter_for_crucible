@@ -134,6 +134,30 @@ val StructuredPropertiesHolderTest by testSuite {
             holder("common.value = 1\nvalue = 2", tags = listOf("common"))
                 .get("value") shouldBe SCPrimitive(1)
         }
+
+        test("reset removes applied tags") {
+            with(holder("common.value = 1\nvalue = 2", tags = listOf("common"))) {
+                get("value") shouldBe SCPrimitive(1)
+                reset()
+                get("value") shouldBe SCPrimitive(2)
+                get("common.value") shouldBe SCPrimitive(1)
+            }
+        }
+
+        test("reset keeps loaded properties") {
+            with(holder("x = 1", tags = listOf("common"))) {
+                reset()
+                all() shouldBe scmap("x = 1")
+            }
+        }
+
+        test("a reset tag can be applied again") {
+            with(holder("common.deps.value = 1", tags = listOf("common"))) {
+                reset()
+                tags(listOf("common")) shouldBe true
+                get("deps.value") shouldBe SCPrimitive(1)
+            }
+        }
     }
 
     test("a dotted key name stays distinct from nested keys") {

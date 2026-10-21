@@ -978,6 +978,7 @@ public abstract class dev/kikugie/stonecutter/data/property/StructuredProperties
 	public final fun raw ([Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
 	public abstract fun rawOrNull (Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
 	public final fun rawOrNull ([Ljava/lang/String;)Ldev/kikugie/stonecutter/data/deserialization/SCElement;
+	public abstract fun reset ()V
 	public abstract fun tags (Ljava/lang/Iterable;)V
 	public final fun tags ([Ljava/lang/String;)V
 }

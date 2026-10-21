@@ -58,6 +58,8 @@ internal abstract class StructuredPropertiesImpl @Inject constructor(
         holder.tags(filtered)
     }
 
+    override fun reset(): Unit = holder.reset()
+
     override fun <T : Any> getAs(name: String, cls: Class<T>): T = try {
         types.get(getOrNull(name)!!, cls)
     } catch (_: NullPointerException) {

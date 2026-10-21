@@ -57,6 +57,13 @@ public abstract class StructuredPropertiesExtension {
     public fun tags(vararg tags: String): Unit = tags(tags.asIterable())
 
     /**
+     * Removes all registered [tags] from the config.
+     *
+     * @see <a href="https://stonecutter.kikugie.dev/wiki/v2/reference/gradle-api/structured-properties#property-tags">Structured Property Tags</a>
+     */
+    public abstract fun reset()
+
+    /**
      * Retrieves the property with the given [name], parsing it as the requested type [T].
      *
      * Properties are queried from loaded files, with a fallback to
