@@ -89,6 +89,40 @@ public abstract class StructuredPropertiesExtension {
     public inline fun <reified T : Any> getAs(name: String): T = getAs(name, T::class.java)
 
     /**
+     * Retrieves the property with the given [name], parsing it as the requested type [T].
+     * Returns `null` if the property doesn't exist or can't be converted to [T].
+     *
+     * Properties are queried from loaded files, with a fallback to
+     * [properties.gradleProperty][org.gradle.api.provider.ProviderFactory.gradleProperty].
+     * Keys of nested property values are joined with the dot (`.`) character.
+     *
+     * Only [SCPrimitive][dev.kikugie.stonecutter.data.deserialization.SCPrimitive] values
+     * may be returned - composite types are ignored and treated as if the [name] is invalid.
+     * To get those, use [raw]/[rawOrNull] functions.
+     *
+     * @throws IllegalArgumentException If a property with this [name] is not defined
+     * @throws IllegalArgumentException If the property value can't be converted to type [T]
+     */
+    public abstract fun <T : Any> getAsOrNull(name: String, cls: Class<T>): T?
+
+    /**
+     * Retrieves the property with the given [name], parsing it as the requested type [T].
+     * Returns `null` if the property doesn't exist or can't be converted to [T].
+     *
+     * Properties are queried from loaded files, with a fallback to
+     * [properties.gradleProperty][org.gradle.api.provider.ProviderFactory.gradleProperty].
+     * Keys of nested property values are joined with the dot (`.`) character.
+     *
+     * Only [SCPrimitive][dev.kikugie.stonecutter.data.deserialization.SCPrimitive] values
+     * may be returned - composite types are ignored and treated as if the [name] is invalid.
+     * To get those, use [raw]/[rawOrNull] functions.
+     *
+     * @throws IllegalArgumentException If a property with this [name] is not defined
+     * @throws IllegalArgumentException If the property value can't be converted to type [T]
+     */
+    public inline fun <reified T : Any> getAsOrNull(name: String): T? = getAsOrNull(name, T::class.java)
+
+    /**
      * Retrieves the property with the given [name], or `null` if it's not found or defined as
      * [SCNull][dev.kikugie.stonecutter.data.deserialization.SCNull].
      *

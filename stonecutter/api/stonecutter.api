@@ -967,6 +967,7 @@ public abstract class dev/kikugie/stonecutter/data/property/StructuredProperties
 	public abstract fun contains (Ljava/lang/String;Z)Z
 	public final fun get (Ljava/lang/String;)Ljava/lang/String;
 	public abstract fun getAs (Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;
+	public abstract fun getAsOrNull (Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;
 	public abstract fun getLazy (Ljava/lang/String;)Lorg/gradle/api/provider/Provider;
 	public abstract fun getOrNull (Ljava/lang/String;)Ljava/lang/String;
 	public final fun load (Ljava/io/File;)V

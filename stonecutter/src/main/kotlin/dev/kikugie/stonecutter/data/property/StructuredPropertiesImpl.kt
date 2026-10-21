@@ -68,6 +68,12 @@ internal abstract class StructuredPropertiesImpl @Inject constructor(
         }
     }
 
+    override fun <T : Any> getAsOrNull(name: String, cls: Class<T>): T? = try {
+        types.get(getOrNull(name) ?: return null, cls)
+    } catch (_: RuntimeException) {
+        null
+    }
+
     override fun getLazy(name: String): Provider<String> =
         providers.provider { getOrNull(name) }
 
