@@ -94,7 +94,7 @@ jobs:
           ./gradlew check --build-cache --configuration-cache
       - name: Upload test reports
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: test-reports-gradle-${{ matrix.gradle-version }}
           path: |

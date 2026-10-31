@@ -9,7 +9,7 @@ stonecutter {
         }
         string(true) {
             replace("LEGACY_SCOPED", "MODERN_SCOPED")
-            include("java/**")
+            include("**/*.java")
         }
     }
 }

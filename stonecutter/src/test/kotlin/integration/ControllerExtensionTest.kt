@@ -95,7 +95,7 @@ val ControllerExtensionTest by testSuite {
         testSuite("file handlers") {
             integrationTest("inherit custom handler") {
                 runGradle(it, "stonecutterSwitchTo2")
-                it read "src/main/example.custom" shouldContain "#comment"
+                it read "src/main/resources/example.custom" shouldContain "#comment"
             }
 
             integrationTest("override existing handler") {

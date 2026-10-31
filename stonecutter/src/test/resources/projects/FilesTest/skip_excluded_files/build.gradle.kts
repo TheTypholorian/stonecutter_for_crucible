@@ -4,7 +4,7 @@ plugins {
 
 stonecutter {
     files {
-        exclude("java/Excluded.java")
-        disable(true, "java/Excluded.java")
+        exclude("Excluded.java")
+        disable(true, "Excluded.java")
     }
 }

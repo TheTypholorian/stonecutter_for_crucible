@@ -4,7 +4,7 @@ plugins {
 
 stonecutter {
     files {
-        disable(sc.current.parsed >= "2", "java/**/platform/fabric/**")
-        disable(sc.current.parsed < "2", "java/**/platform/neoforge/**")
+        disable(sc.current.parsed >= "2", "**/platform/fabric/**")
+        disable(sc.current.parsed < "2", "**/platform/neoforge/**")
     }
 }

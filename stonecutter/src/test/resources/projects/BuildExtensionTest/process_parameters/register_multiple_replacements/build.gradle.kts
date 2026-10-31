@@ -1,3 +1,7 @@
+plugins {
+    java
+}
+
 stonecutter {
     replacements {
         string(true) {

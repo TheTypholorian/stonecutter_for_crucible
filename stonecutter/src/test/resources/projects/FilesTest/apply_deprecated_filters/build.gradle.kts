@@ -3,5 +3,5 @@ plugins {
 }
 
 stonecutter {
-    filters.exclude("java/Excluded.java")
+    filters.exclude("Excluded.java")
 }

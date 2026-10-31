@@ -3,5 +3,5 @@ plugins {
 }
 
 stonecutter {
-    files.disable(sc.current.parsed < "2", listOf("java/Enabled.java"))
+    files.disable(sc.current.parsed < "2", listOf("Enabled.java"))
 }
