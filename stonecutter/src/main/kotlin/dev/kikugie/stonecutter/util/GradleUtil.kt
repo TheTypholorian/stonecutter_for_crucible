@@ -81,3 +81,30 @@ internal inline fun <reified P : StonecutterBaseExtension, reified R : P> Extens
     val it = extensions.create(P::class, "stonecutter", R::class, this, *args)
     if (it.flags[StonecutterFlag.SHORT_EXTENSION]) extensions.add(P::class, "sc", it)
 }
+
+internal class SourceRoot(val name: String, val local: File, val shared: File)
+
+private fun Project.rootPath(dir: File): File? = when {
+    dir.startsWith(buildDirectory) || buildDirectory.startsWith(dir) || !dir.startsWith(projectDirectory) -> null
+    else -> dir.relativeToOrNull(projectDirectory)
+}
+
+internal fun Project.sourceRoots(set: SourceSet, branch: File): Map<File, SourceRoot> {
+    val paths: Map<File, File> = set.allSources()
+        .flatMap { it.sourceDirectories.files }
+        .distinct()
+        .mapNotNull { dir -> rootPath(dir)?.let { dir to it } }
+        .toMap()
+    val conventional = File("src", set.name)
+
+    return paths.entries.groupBy { it.key.name }.flatMap { (name, entries) ->
+        entries.map { (dir, path) ->
+            val unique: Boolean = entries.size == 1 || path == conventional.resolve(name)
+            val id: String = if (unique) name else "$name-${path.pathHash()}"
+            dir to SourceRoot(id, dir, branch.resolve(path).normalize())
+        }
+    }.toMap()
+}
+
+private fun File.pathHash(): String =
+    invariantSeparatorsPath.hashCode().toUInt().toString(16).padStart(8, '0')

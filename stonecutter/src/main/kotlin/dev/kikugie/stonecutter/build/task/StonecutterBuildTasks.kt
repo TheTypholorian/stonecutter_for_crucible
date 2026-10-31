@@ -3,7 +3,6 @@ package dev.kikugie.stonecutter.build.task
 import dev.kikugie.stonecutter.StonecutterInternalAPI
 import dev.kikugie.stonecutter.data.collection.TaskProviderMap
 import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSet
 
 @DslMarker @Retention(AnnotationRetention.BINARY)
@@ -33,7 +32,7 @@ public interface StonecutterBuildTasks {
      * and only be configured directly in rare edge cases.
      */
     @StonecutterInternalAPI
-    public val merge: TaskProviderMap<Copy>
+    public val merge: TaskProviderMap<StonecutterMergeTask>
 
     /**`build/generated/stonecutter/`*/
     public val generatedSourcesDir: DirectoryProperty

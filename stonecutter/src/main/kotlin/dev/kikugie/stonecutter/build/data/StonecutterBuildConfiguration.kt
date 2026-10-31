@@ -31,13 +31,16 @@ import dev.kikugie.stonecutter.data.version.VersionOperations
 import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 import dev.kikugie.stonecutter.util.newInstance
 import dev.kikugie.stonecutter.util.overwriteText
+import dev.kikugie.stonecutter.util.sourceRoots
 import dev.kikugie.stonecutter.util.toRegularFile
 import org.gradle.api.Named
 import org.gradle.api.Project
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.util.PatternFilterable
 import org.gradle.api.tasks.util.PatternSet
 import org.gradle.kotlin.dsl.extra
+import org.gradle.kotlin.dsl.findByType
 import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.newInstance
 import java.io.File
@@ -122,9 +125,9 @@ private fun Project.collectTransformParams(
 ): StitcherParameters {
     val handlers = gradle.getContainer<FileHandlerContainer>()
         .handlers[file.extension.lowercase()].let { mapOf(it.name to HandlerModel(it)) }
-    val resolved: File = file(file)
+    val resolved: File = file(file).normalize()
     val parameters = data.toParameters()
-    val source: File? = node.sourceRoot(resolved)
+    val source: File? = sourceRoot(resolved, node.branch.location.toFile())
     val scopes = source
         ?.let { parameters.replacements.resolveFiles(fileTree(it)) }
         ?: parameters.replacements.unmatchedFiles()
@@ -134,13 +137,12 @@ private fun Project.collectTransformParams(
     return parameters.restrictedTo(resolved, scopes).forFile(resolved.toPath(), handlers, flags, state)!!
 }
 
-private fun ProjectNode.sourceRoot(file: File): File? {
-    val target = file.toPath().normalize()
-    for (root in sequenceOf(branch.location, location)) {
-        val src = root.resolve("src").normalize()
-        if (!target.startsWith(src)) continue
-        val name = target.relativeTo(src).firstOrNull() ?: continue
-        return src.resolve(name).toFile()
-    }
-    return null
+private fun Project.sourceRoot(file: File, branch: File): File? {
+    val sets: SourceSetContainer = extensions.findByType<SourceSetContainer>()
+        ?: return null
+    return sets.asSequence()
+        .flatMap { sourceRoots(it, branch).values }
+        .flatMap { sequenceOf(it.local, it.shared) }
+        .filter(file::startsWith)
+        .maxByOrNull { it.path.length }
 }

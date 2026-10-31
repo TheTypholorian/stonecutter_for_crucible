@@ -9,20 +9,17 @@ import dev.kikugie.stonecutter.controller.task.registerDefault
 import dev.kikugie.stonecutter.controller.tree.toModel
 import dev.kikugie.stonecutter.data.collection.TaskProviderMap
 import dev.kikugie.stonecutter.model.process.FilesModel
-import dev.kikugie.stonecutter.util.SCJSON
-import dev.kikugie.stonecutter.util.allSources
-import dev.kikugie.stonecutter.util.set
+import dev.kikugie.stonecutter.util.*
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.Directory
 import org.gradle.api.file.FileTreeElement
-import org.gradle.api.file.RelativePath
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.provider.Provider
 import org.gradle.api.specs.Spec
 import org.gradle.api.specs.Specs
-import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.util.PatternSet
@@ -33,7 +30,7 @@ import javax.inject.Inject
 @OptIn(StonecutterInternalAPI::class)
 internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build: StonecutterBuildImpl) : StonecutterBuildTasks {
     override val generate: TaskProviderMap<StonecutterGenerateTask> = TaskProviderMap(build.project) { "stonecutterGenerate${it.sourceSetSuffix}" }
-    override val merge: TaskProviderMap<Copy> = TaskProviderMap(build.project) { "stonecutterMerge${it.sourceSetSuffix}" }
+    override val merge: TaskProviderMap<StonecutterMergeTask> = TaskProviderMap(build.project) { "stonecutterMerge${it.sourceSetSuffix}" }
 
     @PublishedApi
     internal val generateAll: TaskProvider<DefaultTask> = build.project.registerDefault<DefaultTask>("stonecutterGenerateAll")
@@ -41,7 +38,6 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
     @PublishedApi
     internal val mergeAll: TaskProvider<DefaultTask> = build.project.registerDefault<DefaultTask>("stonecutterMergeAll")
 
-    private val registeredSources: MutableSet<File> = mutableSetOf()
     private val filteredSources: MutableSet<SourceDirectorySet> = mutableSetOf()
     private val logger: Logger = Logging.getLogger("StonecutterBuild")
 
@@ -51,22 +47,26 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
     }
 
     override fun configureSource(src: SourceSet) {
-        val branchSrc: File = build.branch.location.resolve("src").toFile()
-        val versionSrc: File = build.node.location.resolve("src").toFile()
-        val generatedSrc: File = generatedSourcesDir.asFile.get()
+        val project = build.project
+        val branch: File = build.branch.location.toFile()
+        val generatedSrc: File = generatedSourcesDir.asFile.get().resolve(src.name)
         val taskName: String = generate.taskName(src.name)
+        val active: Boolean = build.current.isActive
         val disabled = DisabledSourceSpec(
-            listOf(branchSrc.resolve(src.name), generatedSrc.resolve(src.name)),
+            project.layout.projectDirectory.asFile,
+            project.layout.buildDirectory,
             build.config.data.files.map(FilesModel::disabled)
         )
 
+        val roots: Map<File, SourceRoot> = project.sourceRoots(src, branch)
         for (entry in src.allSources()) {
-            val matching = entry.sourceDirectories
-                .map { it.relativeTo(versionSrc) }
-                .filterNot { it.startsWith("..") }
+            val present: Set<File> = entry.sourceDirectories.files
+            val missing: List<SourceRoot> = present.mapNotNull(roots::get).filterNot {
+                (if (active) it.shared else generatedSrc.resolve(it.name)) in present
+            }
 
-            entry.extend(matching, branchSrc, null) { build.current.isActive }
-            entry.extend(matching, generatedSrc, taskName) { !build.current.isActive }
+            entry.extend(missing.map { it.shared }, null) { build.current.isActive }
+            entry.extend(missing.map { generatedSrc.resolve(it.name) }, taskName) { !build.current.isActive }
             if (filteredSources.add(entry)) entry.exclude(disabled)
         }
     }
@@ -77,7 +77,7 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
             generateAll.configure { dependsOn(task) }
         }, config)
 
-    inline fun registerMergeTask(src: SourceSet, crossinline config: Copy.() -> Unit): TaskProvider<Copy> =
+    inline fun registerMergeTask(src: SourceSet, crossinline config: StonecutterMergeTask.() -> Unit): TaskProvider<StonecutterMergeTask> =
         build.project.registerDefault(merge.taskName(src.name), { task ->
             merge.identifiers += src.name
             mergeAll.configure { dependsOn(task) }
@@ -93,43 +93,38 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
         }
     }
 
-    private fun SourceDirectorySet.extend(matching: Iterable<File>, root: File, task: String?, apply: () -> Boolean) {
-        val filtered: List<File> = matching.map(root::resolve).filterNot(registeredSources::contains)
-            .ifEmpty { return }
+    private fun SourceDirectorySet.extend(dirs: List<File>, task: String?, apply: () -> Boolean) {
+        if (dirs.isEmpty()) return
 
-        val collection: ConfigurableFileCollection = build.project.files(Callable { if (apply()) filtered else emptyList() })
+        val collection: ConfigurableFileCollection = build.project.files(Callable { if (apply()) dirs else emptyList() })
         if (task != null) collection.builtBy(Callable { if (apply()) "${build.node.hierarchy}:$task" else null })
         srcDir(collection)
 
-        registeredSources += filtered
-        if (logger.isDebugEnabled) for (dir in filtered) logger.debug(buildString {
+        if (logger.isDebugEnabled) for (dir in dirs) logger.debug(buildString {
             append("Registered source directory ${dir.absolutePath}")
             if (task != null) append(" << $task")
         })
     }
 }
 
-private class DisabledSourceSpec(private val roots: List<File>, private val patterns: Provider<Set<String>>) : Spec<FileTreeElement> {
+private class DisabledSourceSpec(
+    private val project: File,
+    private val build: Provider<Directory>,
+    private val patterns: Provider<Set<String>>
+) : Spec<FileTreeElement> {
     @Transient private var _matcher: Spec<FileTreeElement>? = null
     private val matcher: Spec<FileTreeElement>
         get() = _matcher ?: createMatcher().also { _matcher = it }
 
-    override fun isSatisfiedBy(element: FileTreeElement): Boolean {
-        if (element.isDirectory) return false
-        val root: File = roots.firstOrNull(element.file::startsWith) ?: return false
-        val path: RelativePath = RelativePath.parse(!element.isDirectory, element.file.relativeTo(root).invariantSeparatorsPath)
-        return matcher.isSatisfiedBy(RelocatedElement(element, path))
+    override fun isSatisfiedBy(element: FileTreeElement): Boolean = when {
+        element.isDirectory -> false
+        element.file.startsWith(project) && !element.file.startsWith(build.get().asFile) -> false
+        else -> matcher.isSatisfiedBy(element)
     }
 
     private fun createMatcher(): Spec<FileTreeElement> = patterns.get().let {
         if (it.isEmpty()) Specs.satisfyNone() else PatternSet().include(it).asSpec
     }
-}
-
-private class RelocatedElement(private val delegate: FileTreeElement, private val path: RelativePath) : FileTreeElement by delegate {
-    override fun getRelativePath(): RelativePath = path
-    override fun getPath(): String = path.pathString
-    override fun getName(): String = path.lastName
 }
 
 private val String.sourceSetSuffix: String

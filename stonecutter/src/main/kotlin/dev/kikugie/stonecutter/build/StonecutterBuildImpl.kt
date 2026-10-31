@@ -14,20 +14,23 @@ import dev.kikugie.stonecutter.data.ProjectHierarchy.Companion.hierarchy
 import dev.kikugie.stonecutter.data.container.ProjectNodeContainer
 import dev.kikugie.stonecutter.data.container.getContainer
 import dev.kikugie.stonecutter.data.tree.ProjectNode
-import dev.kikugie.stonecutter.util.isIdeaSync
-import dev.kikugie.stonecutter.util.projectDirectory
-import dev.kikugie.stonecutter.util.requestTasks
-import dev.kikugie.stonecutter.util.sourceSets
+import dev.kikugie.stonecutter.util.*
 import org.gradle.api.Project
-import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.file.DirectoryTree
 import org.gradle.api.file.FileTree
 import org.gradle.api.invocation.Gradle
+import org.gradle.api.plugins.JvmEcosystemPlugin
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.SourceSet
+import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.util.PatternFilterable
 import org.gradle.api.tasks.util.PatternSet
 import org.gradle.jvm.tasks.Jar
+import org.gradle.kotlin.dsl.findByType
 import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.withType
+import java.io.File
+import java.util.concurrent.Callable
 import javax.inject.Inject
 
 internal abstract class StonecutterBuildImpl private constructor(val config: StonecutterBuildConfiguration) : StonecutterBuildExtension by config {
@@ -36,14 +39,15 @@ internal abstract class StonecutterBuildImpl private constructor(val config: Sto
     override val tasks: StonecutterBuildTasksImpl = project.objects.newInstance(this)
 
     init {
-        project.plugins.apply("java")
         val extensions = project.gradle.getContainer<FileHandlerContainer>().extensions
         val handled: PatternFilterable = PatternSet().include { it.isDirectory || it.file.extension.lowercase() in extensions.get() }
         @Suppress("DEPRECATION") val processable: List<PatternFilterable> = listOf(handled, filters, config.files.processable.patterns)
 
-        project.sourceSets.all {
-            tasks.configureSource(this)
-            createProcessingTasks(project, config.data, config.flags, processable, tasks)
+        project.plugins.withType<JvmEcosystemPlugin> {
+            project.sourceSets.all {
+                tasks.configureSource(this)
+                createProcessingTasks(project, config.data, config.flags, processable, tasks)
+            }
         }
         project.refreshConfiguration(flags, tasks)
         project.configureManifest(flags, node)
@@ -58,7 +62,7 @@ private fun Project.findConfig(): StonecutterBuildConfiguration = checkNotNull(g
 @OptIn(StonecutterInternalAPI::class)
 private fun Project.refreshConfiguration(flags: StonecutterFlags, impls: StonecutterBuildTasksImpl): Unit = afterEvaluate {
     if (flags[StonecutterFlag.APPEND_SOURCES_AFTER_EVAL])
-        sourceSets.forEach(impls::configureSource)
+        extensions.findByType<SourceSetContainer>()?.forEach(impls::configureSource)
 
     if (flags[StonecutterFlag.GENERATE_SOURCES_ON_SYNC] && isIdeaSync) impls.generate.tasks
         .map { "${hierarchy.orEmpty()}:$it" }
@@ -73,29 +77,34 @@ private fun SourceSet.createProcessingTasks(
     filters: List<PatternFilterable>,
     impls: StonecutterBuildTasksImpl
 ) {
-    val layout = project.layout
-
     val name = name
-    val sourceDir = "src/$name"
-    val localSource = layout.projectDirectory.dir(sourceDir)
-    val sharedSource = layout.projectDirectory.dir("../../$sourceDir")
+    val branch: File = impls.build.branch.location.toFile()
+    val roots: Provider<Map<File, SourceRoot>> = project.provider { project.sourceRoots(this, branch) }
+    val trees: Provider<List<Pair<SourceRoot, DirectoryTree>>> = project.provider {
+        val roots: Map<File, SourceRoot> = project.sourceRoots(this, branch)
+        allSources().flatMap { it.srcDirTrees }.mapNotNull { tree -> roots[tree.dir]?.to(tree) }.toList()
+    }
 
     val generateTask = impls.registerGenerateTask(this) {
         params.set(data)
-        root.set(sharedSource.asFile)
-        source.setFrom(project.fileTree(sharedSource))
-        processable.setFrom(filters.fold(project.fileTree(sharedSource), FileTree::matching))
-        local.setFrom(project.fileTree(localSource))
-        localRoot.set(localSource.asFile)
+        sourceRoots.set(roots.map { it.values.associate { root -> root.name to root.shared } })
+        overrideRoots.set(roots.map { it.values.associate { root -> root.name to root.local } })
+        sources.from(Callable { trees.get().map { (root, tree) -> project.fileTree(root.shared).matching(tree.patterns) } })
+        sources.from(Callable {
+            val disabled: Set<String> = data.files.get().disabled
+            if (disabled.isEmpty()) emptyList()
+            else roots.get().values.map { project.fileTree(it.shared).matching(PatternSet().include(disabled)) }
+        })
+        overrides.from(Callable { trees.get().map { (root, tree) -> project.fileTree(root.local).matching(tree.patterns) } })
+        processable.from(Callable { roots.get().values.map { filters.fold(project.fileTree(it.shared), FileTree::matching) } })
         destination.set(impls.generatedSourcesDir.dir(name))
         lineEnding.set(flags[StonecutterFlag.LINE_SEPARATOR])
         flagRegistry.set(project.provider { flags.registry.toJsonString() })
     }
 
     impls.registerMergeTask(this) {
-        duplicatesStrategy = DuplicatesStrategy.INCLUDE
-        from(generateTask.map { it.destination })
-        into(sharedSource)
+        generated.set(generateTask.flatMap { it.destination })
+        sourceRoots.set(generateTask.flatMap { it.sourceRoots })
     }
 }
 

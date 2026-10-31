@@ -21,13 +21,13 @@ import dev.kikugie.stonecutter.model.process.ProcessParameters
 import dev.kikugie.stonecutter.util.clearIfNotIncremental
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.*
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.services.ServiceReference
 import org.gradle.api.tasks.*
 import org.gradle.kotlin.dsl.submit
 import org.gradle.work.ChangeType
-import org.gradle.work.FileChange
 import org.gradle.work.Incremental
 import org.gradle.work.InputChanges
 import org.gradle.workers.WorkAction
@@ -48,43 +48,46 @@ private val GENERATE_TASK: ProblemID = ProblemID("file-processing")
 /**
  * Task responsible for generating processed sources for a given [SourceSet].
  *
- * Files matching the configured [processable] filters are run through [Stitcher];
- * every other shared file is copied verbatim. Files with a matching [local]
- * version override are skipped, since those are served directly from the version
- * source directory.
- *
  * This task should be considered an internal implementation
  * and only be configured directly in rare edge cases.
  */
 @CacheableTask @StonecutterInternalAPI
 public abstract class StonecutterGenerateTask : DefaultTask() {
+    /** Parameters used by Stitcher processor. */
     @get:Nested
     internal abstract val params: Property<StonecutterBuildData>
 
-    /**The task base directory at `src/` used for resolving relative paths.*/
-    @get:Input
-    public abstract val root: Property<File>
+    /** Maps directory names in `build/generated/stonecutter/{source set}/` to the actual directory being processed. */
+    @get:Internal
+    public abstract val sourceRoots: MapProperty<String, File>
+
+    /** Maps directory names in `build/generated/stonecutter/{source set}/` to its overrides directory. */
+    @get:Internal
+    public abstract val overrideRoots: MapProperty<String, File>
 
     /**All shared source set files, processed or copied depending on [processable].*/
-    @get:InputFiles @get:Incremental
-    @get:IgnoreEmptyDirectories @get:PathSensitive(PathSensitivity.RELATIVE)
-    public abstract val source: ConfigurableFileCollection
+    @get:[InputFiles Incremental IgnoreEmptyDirectories PathSensitive(PathSensitivity.RELATIVE)]
+    public abstract val sources: ConfigurableFileCollection
 
-    /**The subset of [source] files that should be run through the preprocessor.*/
+    /** Filtered subset of [sourceRoots] with applied [FileHandlerService] specs. */
     @get:Internal
     public abstract val processable: ConfigurableFileCollection
 
-    /**The version-specific files overriding shared sources, excluded from the output.*/
+    /** Filtered subset of [overrideRoots] with applied [SourceSet] filters. */
     @get:Internal
-    public abstract val local: ConfigurableFileCollection
+    public abstract val overrides: ConfigurableFileCollection
+
+    @get:Input
+    internal val sourcePaths: Provider<Set<String>>
+        get() = sources.elements.map { it.rootPaths(sourceRoots.get()) }
 
     @get:Input
     internal val processablePaths: Provider<Set<String>>
-        get() = processable.elements.map { it.relativePaths(root.get()) }
+        get() = processable.elements.map { it.rootPaths(sourceRoots.get()) }
 
     @get:Input
-    internal val localPaths: Provider<Set<String>>
-        get() = local.elements.map { it.relativePaths(localRoot.get()) }
+    internal val overridePaths: Provider<Set<String>>
+        get() = overrides.elements.map { it.rootPaths(overrideRoots.get()) }
 
     @get:Input
     internal val handlerFingerprints: Provider<Map<String, String>>
@@ -93,15 +96,7 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
                 .associateWithNotNull { service.handlers[it]?.fingerprint() }
         }
 
-    /**The base directory of the [local] overrides used for resolving relative paths.*/
-    @get:Internal
-    public abstract val localRoot: Property<File>
-
-    /**The output directory at `build/generated/stonecutter/`.*/
-    @get:OutputDirectory
-    public abstract val destination: DirectoryProperty
-
-    /**The line separator written between lines of processed files.*/
+    /** The line separator written between lines of processed files. */
     @get:Input
     internal abstract val lineEnding: Property<String>
 
@@ -110,6 +105,10 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
 
     @get:Inject
     internal abstract val executor: WorkerExecutor
+
+    /**The output directory at `build/generated/stonecutter/`.*/
+    @get:OutputDirectory
+    public abstract val destination: DirectoryProperty
 
     @get:ServiceReference(FileHandlerService.NAME)
     internal abstract val handlers: Property<FileHandlerService>
@@ -120,6 +119,8 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
     init {
         lineEnding.convention(System.lineSeparator())
         flagRegistry.convention(ConfigurationRegistry().toJsonString())
+        sourceRoots.finalizeValueOnRead()
+        overrideRoots.finalizeValueOnRead()
     }
 
     @TaskAction
@@ -127,8 +128,8 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
         inputs.clearIfNotIncremental(destination.asFile.get())
         val data = params.get()
         val model = data.toParameters()
-        val scopes: Map<Int, Set<File>> = model.replacements.resolveFiles(source.asFileTree)
-        val states: Map<File, RootScopeState> = model.files.resolveStates(source.asFileTree)
+        val scopes: Map<Int, Set<File>> = model.replacements.resolveFiles(sources.asFileTree)
+        val states: Map<File, RootScopeState> = model.files.resolveStates(sources.asFileTree)
         val processable: Set<String> = processablePaths.get()
 
         with(executor.noIsolation()) {
@@ -145,27 +146,31 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
         states: Map<File, RootScopeState>,
         processable: Set<String>
     ) {
-        for (change in inputs.getFileChanges(source)) when {
-            change.fileType == FileType.DIRECTORY -> continue
-            change.changeType == ChangeType.REMOVED -> change.file.generatedFile.delete()
-            else -> processFile(
-                change, model.restrictedTo(change.file, scopes), states[change.file] ?: RootScopeState.ANY,
-                change.file.relativeTo(root.get()).invariantSeparatorsPath in processable
+        val roots: Map<String, File> = sourceRoots.get()
+        val overrides: Map<String, File> = overrideRoots.get()
+        val destination: File = destination.asFile.get()
+
+        for (change in inputs.getFileChanges(sources)) if (change.fileType != FileType.DIRECTORY) {
+            val (root, relative) = roots.locate(change.file)
+                ?: continue
+            val output: File = destination.resolve(root).resolve(relative)
+
+            if (change.changeType == ChangeType.REMOVED) output.delete() else processFile(
+                change.file,
+                output,
+                overrides.getValue(root).resolve(relative),
+                model.restrictedTo(change.file, scopes),
+                states[change.file] ?: RootScopeState.ANY,
+                "$root/$relative" in processable
             )
         }
     }
 
-    private val File.generatedFile: File
-        get() = destination.asFile.get().resolve(relativeTo(root.get()))
-
-    private val File.overrideFile: File
-        get() = localRoot.get().resolve(relativeTo(root.get()))
-
-    private fun WorkQueue.processFile(change: FileChange, params: ProcessParameters, state: RootScopeState, process: Boolean): Unit =
+    private fun WorkQueue.processFile(file: File, generated: File, overrideFile: File, params: ProcessParameters, state: RootScopeState, process: Boolean): Unit =
         submit(GenerateAction::class) {
-            source.set(change.file)
-            output.set(change.file.generatedFile)
-            override.set(change.file.overrideFile)
+            source.set(file)
+            output.set(generated)
+            override.set(overrideFile)
             model.set(params)
             root.set(state)
             flags.set(flagRegistry)
@@ -284,5 +289,12 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
     }
 }
 
-private fun Set<FileSystemLocation>.relativePaths(root: File): Set<String> =
-    mapTo(sortedSetOf()) { it.asFile.relativeTo(root).invariantSeparatorsPath }
+private fun Map<String, File>.locate(file: File): Pair<String, String>? = entries
+    .filter { file.startsWith(it.value) }
+    .maxByOrNull { it.value.path.length }
+    ?.let { (root, dir) -> root to file.relativeTo(dir).invariantSeparatorsPath }
+
+private fun Set<FileSystemLocation>.rootPaths(roots: Map<String, File>): Set<String> = mapNotNullTo(sortedSetOf()) { location ->
+    val (root, relative) = roots.locate(location.asFile) ?: return@mapNotNullTo null
+    "$root/$relative"
+}
