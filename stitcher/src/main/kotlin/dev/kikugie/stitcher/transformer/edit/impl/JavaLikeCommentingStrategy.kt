@@ -2,6 +2,7 @@ package dev.kikugie.stitcher.transformer.edit.impl
 
 import dev.kikugie.stitcher.document.Document
 import dev.kikugie.stitcher.document.edit.ModificationTracker
+import dev.kikugie.stitcher.token.DefinitionToken.Body
 import dev.kikugie.stitcher.token.LeafToken
 import dev.kikugie.stitcher.token.type.BuiltinTokenType
 import dev.kikugie.stitcher.transformer.edit.CommentingStrategy
@@ -11,9 +12,15 @@ import dev.kikugie.stitcher.transformer.edit.spansMultipleLines
 import dev.kikugie.stonecutter.model.process.ConfigurationRegistry
 
 class JavaLikeCommentingStrategy(val flatten: Boolean) : CommentingStrategy {
-    override fun comment(config: ConfigurationRegistry, tracker: ModificationTracker, tokens: Sequence<LeafToken>): Unit = with(tracker) {
+    override fun comment(config: ConfigurationRegistry, tracker: ModificationTracker, tokens: Sequence<LeafToken>): Unit =
+        comment(tracker, tokens, tracker.document.canUseLineComment(tracker.start, tracker.end))
+
+    override fun comment(config: ConfigurationRegistry, tracker: ModificationTracker, tokens: Sequence<LeafToken>, body: Body?): Unit =
+        comment(tracker, tokens, body == Body.LINE && tracker.document.canUseLineComment(tracker.start, tracker.end))
+
+    private fun comment(tracker: ModificationTracker, tokens: Sequence<LeafToken>, lineComment: Boolean): Unit = with(tracker) {
         val offset = start + document.countLeadingIndent(start, end)
-        if (document.canUseLineComment(start, end))
+        if (lineComment)
             tracker.insert(offset, "//")
         else {
             tracker.insert(offset, "/*")
