@@ -43,13 +43,13 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
 
     init {
         val buildDir = build.project.layout.buildDirectory
-        generatedSourcesDir.value(buildDir.dir("generated/stonecutter")).finalizeValue()
+        generatedSourcesDir.value(buildDir.dir("generated/stonecutter")).disallowChanges()
     }
 
     override fun configureSource(src: SourceSet) {
         val project = build.project
         val branch: File = build.branch.location.toFile()
-        val generatedSrc: File = generatedSourcesDir.asFile.get().resolve(src.name)
+        val generatedSrc: () -> File = { generatedSourcesDir.asFile.get().resolve(src.name) }
         val taskName: String = generate.taskName(src.name)
         val active: Boolean = build.current.isActive
         val disabled = DisabledSourceSpec(
@@ -62,11 +62,11 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
         for (entry in src.allSources()) {
             val present: Set<File> = entry.sourceDirectories.files
             val missing: List<SourceRoot> = present.mapNotNull(roots::get).filterNot {
-                (if (active) it.shared else generatedSrc.resolve(it.name)) in present
+                (if (active) it.shared else generatedSrc().resolve(it.name)) in present
             }
 
-            entry.extend(missing.map { it.shared }, null) { build.current.isActive }
-            entry.extend(missing.map { generatedSrc.resolve(it.name) }, taskName) { !build.current.isActive }
+            entry.extend(missing, null, { build.current.isActive }) { it.shared }
+            entry.extend(missing, taskName, { !build.current.isActive }) { generatedSrc().resolve(it.name) }
             if (filteredSources.add(entry)) entry.exclude(disabled)
         }
     }
@@ -93,15 +93,15 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
         }
     }
 
-    private fun SourceDirectorySet.extend(dirs: List<File>, task: String?, apply: () -> Boolean) {
-        if (dirs.isEmpty()) return
+    private fun SourceDirectorySet.extend(roots: List<SourceRoot>, task: String?, apply: () -> Boolean, location: (SourceRoot) -> File) {
+        if (roots.isEmpty()) return
 
-        val collection: ConfigurableFileCollection = build.project.files(Callable { if (apply()) dirs else emptyList() })
+        val collection: ConfigurableFileCollection = build.project.files(Callable { if (apply()) roots.map(location) else emptyList() })
         if (task != null) collection.builtBy(Callable { if (apply()) "${build.node.hierarchy}:$task" else null })
         srcDir(collection)
 
-        if (logger.isDebugEnabled) for (dir in dirs) logger.debug(buildString {
-            append("Registered source directory ${dir.absolutePath}")
+        if (logger.isDebugEnabled) for (root in roots) logger.debug(buildString {
+            append("Registered source directory ${location(root).absolutePath}")
             if (task != null) append(" << $task")
         })
     }
