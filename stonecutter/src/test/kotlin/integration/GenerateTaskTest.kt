@@ -34,6 +34,14 @@ val GenerateTaskTest by testSuite {
             it.resolve("$GENERATED/java/Invalid.java").shouldNotExist()
         }
 
+        integrationTest("keep line separator of source file") {
+            it.resolve("src/main/java/Example.java").createParentDirectories()
+                .writeText("//? if <2\r\npublic class Example {}\r\n")
+
+            runGradle(it, GENERATE)
+            it read "$GENERATED/java/Example.java" shouldBe "//? if <2\r\n//public class Example {}\r\n"
+        }
+
         integrationTest("remove output of deleted file") {
             val binary = it.resolve("src/main/resources/image.png")
             runGradleIncremental(it, GENERATE)

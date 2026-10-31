@@ -11,6 +11,8 @@ import io.kotest.matchers.string.shouldContain
 import read
 import runGradle
 import tempDirFixture
+import kotlin.io.path.createParentDirectories
+import kotlin.io.path.writeText
 
 private const val BUILD: String = "versions/2/build"
 private const val GENERATED: String = "$BUILD/generated/stonecutter/main"
@@ -40,6 +42,23 @@ val FilesTest by testSuite {
             it.resolve("$BUILD/classes/java/main/com/example/Common.class").shouldExist()
             it.resolve("$BUILD/classes/java/main/com/example/platform/neoforge/NeoforgePlatform.class").shouldExist()
             it.resolve("$BUILD/classes/java/main/com/example/platform/fabric/FabricPlatform.class").shouldNotExist()
+        }
+
+        integrationTest("keep matching files outside stonecutter roots") {
+            it.resolve("versions/2/output/extra/Generated.java").createParentDirectories()
+                .writeText("public class Generated {}")
+            runGradle(it, ":1:classes", ":2:classes")
+
+            val active = "versions/1/output/classes/java/main"
+            it.resolve("$active/Kept.class").shouldExist()
+            it.resolve("$active/External.class").shouldExist()
+            it.resolve("$active/Disabled.class").shouldNotExist()
+
+            val inactive = "versions/2/output/classes/java/main"
+            it.resolve("$inactive/Kept.class").shouldExist()
+            it.resolve("$inactive/Generated.class").shouldExist()
+            it.resolve("$inactive/External.class").shouldExist()
+            it.resolve("$inactive/Disabled.class").shouldNotExist()
         }
 
         integrationTest("enable matching files") {

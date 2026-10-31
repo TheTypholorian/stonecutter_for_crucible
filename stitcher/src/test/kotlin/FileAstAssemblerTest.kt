@@ -44,15 +44,15 @@ val FileAstAssemblerTest by testSuite {
             """.trimIndent()
         }
 
-        test("disable scoped with single-line comment") {
+        test("disable single-line scoped with block comment") {
             """
                 //? if false {
                 val one = 1
                 //?}
             """.trimIndent() shouldAssembleTo """
                 //? if false {
-                //val one = 1
-                //?}
+                /*val one = 1
+                *///?}
             """.trimIndent()
         }
 

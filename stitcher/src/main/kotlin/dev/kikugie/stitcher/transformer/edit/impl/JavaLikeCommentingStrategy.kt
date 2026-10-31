@@ -16,7 +16,7 @@ class JavaLikeCommentingStrategy(val flatten: Boolean) : CommentingStrategy {
         comment(tracker, tokens, tracker.document.canUseLineComment(tracker.start, tracker.end))
 
     override fun comment(config: ConfigurationRegistry, tracker: ModificationTracker, tokens: Sequence<LeafToken>, body: Body?): Unit =
-        comment(tracker, tokens, body == Body.LINE && tracker.document.canUseLineComment(tracker.start, tracker.end))
+        comment(tracker, tokens, (body == Body.LINE || body == Body.LOOKUP) && tracker.document.canUseLineComment(tracker.start, tracker.end))
 
     private fun comment(tracker: ModificationTracker, tokens: Sequence<LeafToken>, lineComment: Boolean): Unit = with(tracker) {
         val offset = start + document.countLeadingIndent(start, end)

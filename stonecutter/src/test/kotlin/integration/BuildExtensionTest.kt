@@ -12,7 +12,9 @@ import runGradle
 import runGradleIncremental
 import shouldFailBuild
 import tempDirFixture
+import kotlin.io.path.createParentDirectories
 import kotlin.io.path.deleteExisting
+import kotlin.io.path.writeText
 
 val BuildExtensionTest by testSuite {
     tempDirFixture() asParameterForEach {
@@ -64,6 +66,12 @@ val BuildExtensionTest by testSuite {
         }
 
         integrationTest("apply line separator to processed file") {
+            runGradle(it)
+            it read "versions/1/build/processed.txt" shouldBe "first\r\nsecond\r\n"
+        }
+
+        integrationTest("keep line separator of processed file") {
+            it.resolve("config/data.txt").createParentDirectories().writeText("first\r\nsecond\n")
             runGradle(it)
             it read "versions/1/build/processed.txt" shouldBe "first\r\nsecond\r\n"
         }
