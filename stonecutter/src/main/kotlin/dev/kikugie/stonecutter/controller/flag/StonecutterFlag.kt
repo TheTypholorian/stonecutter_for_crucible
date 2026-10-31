@@ -152,12 +152,15 @@ public data class StonecutterFlag<T : Any> private constructor(
 
         /**
          * Configures the line separator used when writing processed files.
+         * A non-empty value replaces every line break in the processed file.
          *
-         * **Default**: [System.lineSeparator]
+         * When empty, files preserve the first encountered line separator.
+         *
+         * **Default**: `""`
          */
         @JvmField
         public val LINE_SEPARATOR: StonecutterFlag<String> =
-            StonecutterFlag("line_separator", System.lineSeparator())
+            StonecutterFlag("line_separator", "")
 
 //        /**
 //         * Configures the task IntelliJ plugin should mark as the primary runnable action.

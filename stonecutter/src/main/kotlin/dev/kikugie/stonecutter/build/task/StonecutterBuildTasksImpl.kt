@@ -53,8 +53,7 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
         val taskName: String = generate.taskName(src.name)
         val active: Boolean = build.current.isActive
         val disabled = DisabledSourceSpec(
-            project.layout.projectDirectory.asFile,
-            project.layout.buildDirectory,
+            project.provider { project.sourceRoots(src, branch).values.map(SourceRoot::shared) + generatedSrc() },
             build.config.data.files.map(FilesModel::disabled)
         )
 
@@ -108,22 +107,23 @@ internal abstract class StonecutterBuildTasksImpl @Inject constructor(val build:
 }
 
 private class DisabledSourceSpec(
-    private val project: File,
-    private val build: Provider<Directory>,
+    private val roots: Provider<List<File>>,
     private val patterns: Provider<Set<String>>
 ) : Spec<FileTreeElement> {
     @Transient private var _matcher: Spec<FileTreeElement>? = null
     private val matcher: Spec<FileTreeElement>
         get() = _matcher ?: createMatcher().also { _matcher = it }
 
-    override fun isSatisfiedBy(element: FileTreeElement): Boolean = when {
-        element.isDirectory -> false
-        element.file.startsWith(project) && !element.file.startsWith(build.get().asFile) -> false
-        else -> matcher.isSatisfiedBy(element)
-    }
+    override fun isSatisfiedBy(element: FileTreeElement): Boolean =
+        !element.isDirectory && matcher.isSatisfiedBy(element)
 
-    private fun createMatcher(): Spec<FileTreeElement> = patterns.get().let {
-        if (it.isEmpty()) Specs.satisfyNone() else PatternSet().include(it).asSpec
+    private fun createMatcher(): Spec<FileTreeElement> {
+        val patterns: Set<String> = patterns.get()
+        if (patterns.isEmpty()) return Specs.satisfyNone()
+
+        val roots: List<File> = roots.get()
+        val spec: Spec<FileTreeElement> = PatternSet().include(patterns).asSpec
+        return Spec { element -> roots.any(element.file::startsWith) && spec.isSatisfiedBy(element) }
     }
 }
 

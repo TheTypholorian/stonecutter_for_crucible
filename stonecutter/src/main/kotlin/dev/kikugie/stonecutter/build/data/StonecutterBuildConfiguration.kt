@@ -87,10 +87,11 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
             project.logger.log(it)
         })
 
+        val raw: String = project.providers.fileContents(file.toRegularFile(project.objects)).asText.orNull
+            ?: throw NoSuchFileException(file.absolutePath)
+        val reader = LineNormalizingReader(raw.reader())
+        val text: String = reader.use { it.readText() }
         val modified: String = try {
-            val raw: String = project.providers.fileContents(file.toRegularFile(project.objects)).asText.orNull
-                ?: throw NoSuchFileException(file.absolutePath)
-            val text: String = LineNormalizingReader(raw.reader()).use { it.readText() }
             val document = SourceDocument(file.toPath(), text, reporter)
             buildString { Stitcher.process(document, parameters).appendTo(this) }
         } catch (_: BailException) {
@@ -99,7 +100,9 @@ internal abstract class StonecutterBuildConfiguration @Inject constructor(
 
         val output = project.layout.projectDirectory.file(destination)
         val writer = StringWriter()
-        LineNormalizingWriter(writer, flags[StonecutterFlag.LINE_SEPARATOR]).use { it.write(modified) }
+        val separator = flags[StonecutterFlag.LINE_SEPARATOR]
+            .ifEmpty { reader.separator ?: System.lineSeparator() }
+        LineNormalizingWriter(writer, separator).use { it.write(modified) }
         output.asFile.overwriteText(writer.toString(), true)
         project.providers.fileContents(output).asBytes.orNull
         return output.asFile

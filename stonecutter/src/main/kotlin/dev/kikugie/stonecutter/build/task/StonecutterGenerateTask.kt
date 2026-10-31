@@ -96,7 +96,7 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
                 .associateWithNotNull { service.handlers[it]?.fingerprint() }
         }
 
-    /** The line separator written between lines of processed files. */
+    /** The line separator written between lines of processed files. When empty, each file keeps its own. */
     @get:Input
     internal abstract val lineEnding: Property<String>
 
@@ -117,7 +117,7 @@ public abstract class StonecutterGenerateTask : DefaultTask() {
     internal abstract val errors: Property<StonecutterErrorsService>
 
     init {
-        lineEnding.convention(System.lineSeparator())
+        lineEnding.convention("")
         flagRegistry.convention(ConfigurationRegistry().toJsonString())
         sourceRoots.finalizeValueOnRead()
         overrideRoots.finalizeValueOnRead()
@@ -209,10 +209,11 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
 
         if (!parameters.transform.get()) return copyDirectly()
         val parameters = createTransformParameters() ?: return copyDirectly()
-        val document = createSourceDocument() ?: return
+        val (document, detected) = createSourceDocument() ?: return
         val processed = tryProcessFile(document, parameters) ?: return copyDirectly()
 
         val separator = this.parameters.lineEnding.get()
+            .ifEmpty { detected ?: System.lineSeparator() }
         output.createParentDirectories()
         output.bufferedWriter(Charsets.UTF_8).use { raw ->
             LineNormalizingWriter(raw, separator).use { processed.appendTo(it) }
@@ -248,20 +249,20 @@ private interface GenerateAction : WorkAction<GenerateAction.Parameters> {
         return parameters.model.get().forFile(source, handlers, flags, parameters.root.get())
     }
 
-    private fun createSourceDocument(): SourceDocument? {
+    private fun createSourceDocument(): Pair<SourceDocument, String?>? {
         val source = source
         val decoder = Charsets.UTF_8.newDecoder()
             .onMalformedInput(CodingErrorAction.REPORT)
             .onUnmappableCharacter(CodingErrorAction.REPORT)
-        val text = tryReadFile(source, decoder) ?: return null
-        return SourceDocument(source, text, createProblemReporter())
+        val (text, separator) = tryReadFile(source, decoder) ?: return null
+        return SourceDocument(source, text, createProblemReporter()) to separator
     }
 
     private fun createDummyDocument(): SourceDocument =
         SourceDocument(source, "", createProblemReporter())
 
-    fun tryReadFile(source: Path, decoder: CharsetDecoder): String? = try {
-        LineNormalizingReader(InputStreamReader(source.inputStream(), decoder).buffered()).use { it.readText() }
+    fun tryReadFile(source: Path, decoder: CharsetDecoder): Pair<String, String?>? = try {
+        LineNormalizingReader(InputStreamReader(source.inputStream(), decoder).buffered()).use { it.readText() to it.separator }
     } catch (e: CharacterCodingException) {
         createDummyDocument().reference().report(GENERATE_TASK + "invalid-encoding") {
             label = "Invalid file encoding"
