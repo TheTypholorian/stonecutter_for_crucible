@@ -106,9 +106,6 @@ public abstract class StructuredPropertiesExtension {
      * Only [SCPrimitive][dev.kikugie.stonecutter.data.deserialization.SCPrimitive] values
      * may be returned - composite types are ignored and treated as if the [name] is invalid.
      * To get those, use [raw]/[rawOrNull] functions.
-     *
-     * @throws IllegalArgumentException If a property with this [name] is not defined
-     * @throws IllegalArgumentException If the property value can't be converted to type [T]
      */
     public abstract fun <T : Any> getAsOrNull(name: String, cls: Class<T>): T?
 
@@ -123,9 +120,6 @@ public abstract class StructuredPropertiesExtension {
      * Only [SCPrimitive][dev.kikugie.stonecutter.data.deserialization.SCPrimitive] values
      * may be returned - composite types are ignored and treated as if the [name] is invalid.
      * To get those, use [raw]/[rawOrNull] functions.
-     *
-     * @throws IllegalArgumentException If a property with this [name] is not defined
-     * @throws IllegalArgumentException If the property value can't be converted to type [T]
      */
     public inline fun <reified T : Any> getAsOrNull(name: String): T? = getAsOrNull(name, T::class.java)
 

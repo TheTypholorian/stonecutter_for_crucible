@@ -141,7 +141,7 @@ public data class StonecutterFlag<T : Any> private constructor(
          *
          * The following entries are added when the flag is enabled:
          * - `Stonecutter-Plugin-Version`: [StonecutterPlugin.VERSION][dev.kikugie.stonecutter.StonecutterPlugin.VERSION]
-         * - `Stonecutter-Gradle-Version`: [CradleVersion.current()][org.gradle.util.GradleVersion.current]
+         * - `Stonecutter-Gradle-Version`: [GradleVersion.current()][org.gradle.util.GradleVersion.current]
          * - `Stonecutter-Node-Project`: [sc.current.project][dev.kikugie.stonecutter.build.StonecutterBuildExtension.current]
          * - `Stonecutter-Node-Version`: [sc.current.version][dev.kikugie.stonecutter.build.StonecutterBuildExtension.current]
          *

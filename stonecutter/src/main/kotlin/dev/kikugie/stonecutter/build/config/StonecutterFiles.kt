@@ -27,7 +27,8 @@ public sealed interface StonecutterFiles : PatternFilter {
     override var excludes: Set<String>
 
     /**
-     * Marks files matching [patterns] as disabled if [direction] is `true`.
+     * Marks files matching [patterns] as disabled if [direction] is `true`,
+     * or as enabled if it's `false`.
      *
      * Disabled files are commented out and excluded from compilation.
      * Each pattern is relative to each `src/.../` directory.
@@ -36,7 +37,8 @@ public sealed interface StonecutterFiles : PatternFilter {
         disable(direction, patterns.asIterable())
 
     /**
-     * Marks files matching [patterns] as disabled if [direction] is `true`.
+     * Marks files matching [patterns] as disabled if [direction] is `true`,
+     * or as enabled if it's `false`.
      *
      * Disabled files are commented out and excluded from compilation.
      * Each pattern is relative to each `src/.../` directory.
