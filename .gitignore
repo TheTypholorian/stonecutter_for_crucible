@@ -13,10 +13,10 @@ out
 *.iml
 .idea
 
-# gradle
+# crucible
 build/
 !**/src/**/build/
-.gradle
+.crucible
 .kotlin
 
 # other
